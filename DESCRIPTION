@@ -1,0 +1,43 @@
+Package: SIRAP
+Title: Spatial Immune Receptor Analysis and Processing
+Version: 0.0.0.9000
+Authors@R: c(
+    person("Hunter J.", "Melton", role = c("aut", "cre"), email = "Hunter.J.Melton@dartmouth.edu")
+  )
+Author: Hunter J. Melton [aut, cre]
+Maintainer: Hunter J. Melton <Hunter.J.Melton@dartmouth.edu>
+Description: Spatial Immune Receptor Analysis and Processing. How sweet is
+    that? Utilities for processing, visualizing, and lightly analyzing long-read
+    spatial BCR and TCR sequencing data. The package focuses on AIRR-style
+    rearrangement tables with spatial barcodes and coordinates, with helpers
+    for Visium HD barcode mapping, pRESTO/IgBLAST shell pipeline generation,
+    clonal summaries, Seurat clone assays, and tree plotting.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends:
+    R (>= 4.1.0)
+Imports:
+    data.table,
+    dplyr,
+    ggplot2,
+    rlang,
+    stringr,
+    tibble,
+    tidyr
+Suggests:
+    alakazam,
+    airr,
+    arrow,
+    cowplot,
+    dowser,
+    ggtree,
+    Matrix,
+    pals,
+    scoper,
+    Seurat,
+    SeuratObject,
+    seqinr,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
