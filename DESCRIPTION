@@ -24,12 +24,14 @@ Imports:
     data.table,
     dplyr,
     ggplot2,
+    magrittr,
     Rcpp,
     rlang,
     stringr,
     tibble,
     tidyr
 LinkingTo:
+    BH,
     Rcpp
 Suggests:
     alakazam,

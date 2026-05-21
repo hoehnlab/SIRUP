@@ -1,0 +1,14 @@
+CXX_STD = CXX17
+
+PKG_CPPFLAGS = -I. -I./include -I./include/external \
+               -DSTRICT_R_HEADERS -DBUILDING_R_PACKAGE
+
+PKG_CXXFLAGS = -O3 $(SHLIB_OPENMP_CXXFLAGS)
+PKG_LIBS     = ssw.o -lz $(SHLIB_OPENMP_CXXFLAGS)
+
+# Build the C SSW translation unit into a single object linked with the
+# rest of the package. Mirrors rad_dev's pattern.
+$(SHLIB): ssw.o
+
+ssw.o: include/external/ssw/ssw.c include/external/ssw/ssw.h
+	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $< -o $@
