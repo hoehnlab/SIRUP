@@ -35,62 +35,62 @@ suppressPackageStartupMessages({
 
 # ---- Things to change --------------------------------------------------------
 
-sampleId <- "M5" # M1 uses demuxed_bc23; M5 uses demuxed_bc24.
-sampleLower <- tolower(sampleId)
+sample_id <- "M5" # M1 uses demuxed_bc23; M5 uses demuxed_bc24.
+sample_lower <- tolower(sample_id)
 
-thymusDir <- normalizePath("../../Thymus_VisiumHD", mustWork = TRUE)
-demuxBySample <- c(M1 = "022526_Visium_demuxed_bc23", M5 = "022526_Visium_demuxed_bc24")
-demuxDir <- file.path("/dartfs/rc/lab/H/HoehnK/Chinmay/022126_Visium_HD", demuxBySample[[sampleId]])
+thymus_dir <- normalizePath("../../Thymus_VisiumHD", mustWork = TRUE)
+demux_by_sample <- c(M1 = "022526_Visium_demuxed_bc23", M5 = "022526_Visium_demuxed_bc24")
+demux_dir <- file.path("/dartfs/rc/lab/H/HoehnK/Chinmay/022126_Visium_HD", demux_by_sample[[sample_id]])
 
-rawBcrIgblastPath <- file.path(demuxDir, "igblast_out", "igblast_bcr.tsv")
-rawTcrIgblastPath <- file.path(demuxDir, "igblast_out", "igblast_tcr.tsv")
-barcodeMapPath <- file.path(thymusDir, sprintf("%s_barcode_mappings.csv", sampleId))
-positionsPath <- file.path(thymusDir, sprintf("%s_tissue_positions_8um.csv", sampleId))
-seuratPath <- file.path(thymusDir, "data", sprintf("Thymus_VisiumHD_%s_8um_hires_sr_processed.rds", sampleId))
+raw_bcr_igblast_path <- file.path(demux_dir, "igblast_out", "igblast_bcr.tsv")
+raw_tcr_igblast_path <- file.path(demux_dir, "igblast_out", "igblast_tcr.tsv")
+barcode_map_path <- file.path(thymus_dir, sprintf("%s_barcode_mappings.csv", sample_id))
+positions_path <- file.path(thymus_dir, sprintf("%s_tissue_positions_8um.csv", sample_id))
+seurat_path <- file.path(thymus_dir, "data", sprintf("Thymus_VisiumHD_%s_8um_hires_sr_processed.rds", sample_id))
 
-outDir <- file.path(thymusDir, "SIRAP_walkthrough", sampleId)
-prestoInputDir <- file.path(outDir, "01_length_filtered_spatial_fastas")
-prestoOutputDir <- file.path(outDir, "02_presto_igblast")
-finalAirrDir <- file.path(outDir, "03_final_spatial_airr")
-plotDir <- file.path(outDir, "plots")
-for (dir in c(prestoInputDir, prestoOutputDir, finalAirrDir, plotDir)) {
+out_dir <- file.path(thymus_dir, "SIRAP_walkthrough", sample_id)
+presto_input_dir <- file.path(out_dir, "01_length_filtered_spatial_fastas")
+presto_output_dir <- file.path(out_dir, "02_presto_igblast")
+final_airr_dir <- file.path(out_dir, "03_final_spatial_airr")
+plot_dir <- file.path(out_dir, "plots")
+for (dir in c(presto_input_dir, presto_output_dir, final_airr_dir, plot_dir)) {
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
 }
 
 nproc <- 4
-genesToShow <- c("CD79A", "CD3E")
+genes_to_show <- c("CD79A", "CD3E")
 
 # pRESTO/IgBLAST can take a while, so leave this FALSE until the input FASTAs
 # look right. When FALSE, the script will look for db-pass TSVs from a prior run.
-runPrestoIgblast <- FALSE
-runCloneCalling <- FALSE
-buildBcrTrees <- FALSE
-savePlots <- TRUE
-loadSeuratObject <- TRUE
+run_presto_igblast <- FALSE
+run_clone_calling <- FALSE
+build_bcr_trees <- FALSE
+save_plots <- TRUE
+load_seurat_object <- TRUE
 
 identity <- 0.975
-consensusFreq <- 0.51
-germlineGlob <- "~/software/germlines/imgt/human/vdj/imgt_human_*.fasta"
-germlineDir <- path.expand("~/software/germlines/imgt/human/vdj")
-igblastBase <- "~/software/igblast"
-igblastExec <- "~/software/igblast/bin/igblastn"
-muscleExec <- "~/software/muscle3.8.31_i86linux64"
+consensus_freq <- 0.51
+germline_glob <- "~/software/germlines/imgt/human/vdj/imgt_human_*.fasta"
+germline_dir <- path.expand("~/software/germlines/imgt/human/vdj")
+igblast_base <- "~/software/igblast"
+igblast_exec <- "~/software/igblast/bin/igblastn"
+muscle_exec <- "~/software/muscle3.8.31_i86linux64"
 
-bcrCloneIdsToPlot <- NULL
-tcrCloneIdsToPlot <- NULL
+bcr_clone_ids_to_plot <- NULL
+tcr_clone_ids_to_plot <- NULL
 
 # ---- Small helpers for this walkthrough -------------------------------------
 
-checkFiles <- function(paths) {
-  fileStatus <- data.frame(path = paths, exists = file.exists(paths))
-  print(fileStatus)
-  if (!all(fileStatus$exists)) {
+check_files <- function(paths) {
+  file_status <- data.frame(path = paths, exists = file.exists(paths))
+  print(file_status)
+  if (!all(file_status$exists)) {
     stop("Some input files are missing. Edit the paths above, then rerun this section.")
   }
-  invisible(fileStatus)
+  invisible(file_status)
 }
 
-expectedPrestoPaths <- function(input_fasta, output_dir, identity = 0.975, consensus_freq = 0.51) {
+expected_presto_paths <- function(input_fasta, output_dir, identity = 0.975, consensus_freq = 0.51) {
   stem <- tools::file_path_sans_ext(basename(input_fasta))
   consensus <- file.path(
     output_dir,
@@ -108,27 +108,27 @@ expectedPrestoPaths <- function(input_fasta, output_dir, identity = 0.975, conse
   )
 }
 
-savePlot <- function(plot, filename, width = 8, height = 6) {
-  if (savePlots) {
-    ggsave(file.path(plotDir, filename), plot, width = width, height = height, dpi = 300)
+save_plot <- function(plot, filename, width = 8, height = 6) {
+  if (save_plots) {
+    ggsave(file.path(plot_dir, filename), plot, width = width, height = height, dpi = 300)
   }
   invisible(plot)
 }
 
 # ---- Load the spatial metadata ----------------------------------------------
 
-checkFiles(c(rawBcrIgblastPath, rawTcrIgblastPath, barcodeMapPath, positionsPath))
+check_files(c(raw_bcr_igblast_path, raw_tcr_igblast_path, barcode_map_path, positions_path))
 
-barcodeMap <- readBarcodeMapping(barcodeMapPath)
+barcode_map <- read_barcode_mapping(barcode_map_path)
 
-positions <- readBarcodeMapping(positionsPath) |>
+positions <- read_barcode_mapping(positions_path) |>
   mutate(
     barcode_8um = barcode,
     x = pxl_col_in_fullres,
     y = pxl_row_in_fullres
   )
 
-head(barcodeMap)
+head(barcode_map)
 head(positions)
 
 # ---- Start from raw IgBLAST output ------------------------------------------
@@ -137,53 +137,53 @@ head(positions)
 # a real junction. Then it pulled the 2 um barcode from sequence_id, mapped it
 # to 8 um and 16 um barcodes, and wrote both AIRR TSVs and FASTAs for pRESTO.
 
-bcrRaw <- readSpatialAirr(rawBcrIgblastPath)
-tcrRaw <- readSpatialAirr(rawTcrIgblastPath)
+bcr_raw <- read_spatial_airr(raw_bcr_igblast_path)
+tcr_raw <- read_spatial_airr(raw_tcr_igblast_path)
 
-dim(bcrRaw)
-dim(tcrRaw)
+dim(bcr_raw)
+dim(tcr_raw)
 
-bcrLengthSpatial <- preprocessSpatialAirr(
-  input = bcrRaw,
-  barcode_map = barcodeMap,
+bcr_length_spatial <- preprocess_spatial_airr(
+  input = bcr_raw,
+  barcode_map = barcode_map,
   loci = "IGH",
-  out_tsv = file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_barcode.tsv", sampleLower)),
-  out_fasta = file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_barcode.fasta", sampleLower)),
+  out_tsv = file.path(presto_input_dir, sprintf("%s_igblast_bcr_pass_length_spatial_barcode.tsv", sample_lower)),
+  out_fasta = file.path(presto_input_dir, sprintf("%s_igblast_bcr_pass_length_spatial_barcode.fasta", sample_lower)),
   min_v_length = 100,
   min_j_length = 10,
   min_junction_length = 1,
   sequence_col = "sequence_alignment"
 )
 
-tcrLengthSpatial <- preprocessSpatialAirr(
-  input = tcrRaw,
-  barcode_map = barcodeMap,
+tcr_length_spatial <- preprocess_spatial_airr(
+  input = tcr_raw,
+  barcode_map = barcode_map,
   loci = "TRB",
-  out_tsv = file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_barcode.tsv", sampleLower)),
-  out_fasta = file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_barcode.fasta", sampleLower)),
+  out_tsv = file.path(presto_input_dir, sprintf("%s_igblast_tcr_pass_length_spatial_barcode.tsv", sample_lower)),
+  out_fasta = file.path(presto_input_dir, sprintf("%s_igblast_tcr_pass_length_spatial_barcode.fasta", sample_lower)),
   min_v_length = 100,
   min_j_length = 10,
   min_junction_length = 1,
   sequence_col = "sequence_alignment"
 )
 
-spatialReceptorSummary(bcrLengthSpatial, barcode_col = "barcode_2um")
-spatialReceptorSummary(tcrLengthSpatial, barcode_col = "barcode_2um")
+spatial_receptor_summary(bcr_length_spatial, barcode_col = "barcode_2um")
+spatial_receptor_summary(tcr_length_spatial, barcode_col = "barcode_2um")
 
-prePrestoQcPlot <- cowplot::plot_grid(
-  plotLengthQc(bcrLengthSpatial, title = paste(sampleId, "raw IGH reads after length/spatial filtering")),
-  plotLengthQc(tcrLengthSpatial, title = paste(sampleId, "raw TRB reads after length/spatial filtering")),
+pre_presto_qc_plot <- cowplot::plot_grid(
+  plot_length_qc(bcr_length_spatial, title = paste(sample_id, "raw IGH reads after length/spatial filtering")),
+  plot_length_qc(tcr_length_spatial, title = paste(sample_id, "raw TRB reads after length/spatial filtering")),
   ncol = 1
 )
-prePrestoQcPlot
-savePlot(prePrestoQcPlot, sprintf("%s_pre_presto_length_qc.png", sampleLower), width = 10, height = 8)
+pre_presto_qc_plot
+save_plot(pre_presto_qc_plot, sprintf("%s_pre_presto_length_qc.png", sample_lower), width = 10, height = 8)
 
 # Things to inspect:
-head(bcrLengthSpatial)
-head(tcrLengthSpatial)
+head(bcr_length_spatial)
+head(tcr_length_spatial)
 
 # Notes:
-# - TODO: Should preprocessSpatialAirr() print a drop-count summary?
+# - TODO: Should preprocess_spatial_airr() print a drop-count summary?
 # - TODO: Should full_id include barcode16um too?
 
 # ---- Run pRESTO and IgBLAST from R ------------------------------------------
@@ -192,52 +192,52 @@ head(tcrLengthSpatial)
 # ClusterSets.py -> ParseHeaders.py -> AlignSets.py -> BuildConsensus.py ->
 # AssignGenes.py -> MakeDb.py. The command output prints to the R console.
 
-bcrLengthSpatialFasta <- file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_barcode.fasta", sampleLower))
-tcrLengthSpatialFasta <- file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_barcode.fasta", sampleLower))
+bcr_length_spatial_fasta <- file.path(presto_input_dir, sprintf("%s_igblast_bcr_pass_length_spatial_barcode.fasta", sample_lower))
+tcr_length_spatial_fasta <- file.path(presto_input_dir, sprintf("%s_igblast_tcr_pass_length_spatial_barcode.fasta", sample_lower))
 
-if (runPrestoIgblast) {
-  bcrPrestoPaths <- runPrestoIgblastSample(
-    input_fasta = bcrLengthSpatialFasta,
-    output_dir = prestoOutputDir,
+if (run_presto_igblast) {
+  bcr_presto_paths <- run_presto_igblast_sample(
+    input_fasta = bcr_length_spatial_fasta,
+    output_dir = presto_output_dir,
     receptor = "ig",
     identity = identity,
-    consensus_freq = consensusFreq,
-    germline_glob = germlineGlob,
-    igblast_base = igblastBase,
-    igblast_exec = igblastExec,
-    muscle_exec = muscleExec,
+    consensus_freq = consensus_freq,
+    germline_glob = germline_glob,
+    igblast_base = igblast_base,
+    igblast_exec = igblast_exec,
+    muscle_exec = muscle_exec,
     nproc = nproc
   )
 
-  tcrPrestoPaths <- runPrestoIgblastSample(
-    input_fasta = tcrLengthSpatialFasta,
-    output_dir = prestoOutputDir,
+  tcr_presto_paths <- run_presto_igblast_sample(
+    input_fasta = tcr_length_spatial_fasta,
+    output_dir = presto_output_dir,
     receptor = "tr",
     identity = identity,
-    consensus_freq = consensusFreq,
-    germline_glob = germlineGlob,
-    igblast_base = igblastBase,
-    igblast_exec = igblastExec,
-    muscle_exec = muscleExec,
+    consensus_freq = consensus_freq,
+    germline_glob = germline_glob,
+    igblast_base = igblast_base,
+    igblast_exec = igblast_exec,
+    muscle_exec = muscle_exec,
     nproc = nproc
   )
 } else {
-  message("runPrestoIgblast is FALSE, so I am not running the external commands in this pass.")
+  message("run_presto_igblast is FALSE, so I am not running the external commands in this pass.")
 }
 
-if (!exists("bcrPrestoPaths")) {
-  bcrPrestoPaths <- expectedPrestoPaths(bcrLengthSpatialFasta, prestoOutputDir, identity, consensusFreq)
+if (!exists("bcr_presto_paths")) {
+  bcr_presto_paths <- expected_presto_paths(bcr_length_spatial_fasta, presto_output_dir, identity, consensus_freq)
 }
-if (!exists("tcrPrestoPaths")) {
-  tcrPrestoPaths <- expectedPrestoPaths(tcrLengthSpatialFasta, prestoOutputDir, identity, consensusFreq)
+if (!exists("tcr_presto_paths")) {
+  tcr_presto_paths <- expected_presto_paths(tcr_length_spatial_fasta, presto_output_dir, identity, consensus_freq)
 }
 
-bcrPrestoPaths$db_pass
-tcrPrestoPaths$db_pass
+bcr_presto_paths$db_pass
+tcr_presto_paths$db_pass
 
 # Notes:
-# - TODO: Should SIRAP expose expectedPrestoPaths() as a real package function?
-# - TODO: Should runPrestoIgblastSample() check all external executables first?
+# - TODO: Should SIRAP expose expected_presto_paths() as a real package function?
+# - TODO: Should run_presto_igblast_sample() check all external executables first?
 
 # ---- Polish the pRESTO/IgBLAST consensus output -----------------------------
 
@@ -246,13 +246,13 @@ tcrPrestoPaths$db_pass
 # swapped the 2 um barcode row/column order, remapped to 8 um/16 um, and kept
 # the top consensus sequence per 2 um barcode and locus.
 
-checkFiles(c(bcrPrestoPaths$db_pass, tcrPrestoPaths$db_pass))
+check_files(c(bcr_presto_paths$db_pass, tcr_presto_paths$db_pass))
 
-bcrConsensus <- readSpatialAirr(bcrPrestoPaths$db_pass)
-tcrConsensus <- readSpatialAirr(tcrPrestoPaths$db_pass)
+bcr_consensus <- read_spatial_airr(bcr_presto_paths$db_pass)
+tcr_consensus <- read_spatial_airr(tcr_presto_paths$db_pass)
 
-bcrConsensusFiltered <- filterReceptorReads(
-  bcrConsensus,
+bcr_consensus_filtered <- filter_receptor_reads(
+  bcr_consensus,
   loci = "IGH",
   min_v_length = 250,
   min_j_length = 30,
@@ -262,8 +262,8 @@ bcrConsensusFiltered <- filterReceptorReads(
   max_opening_gap = 2
 )
 
-tcrConsensusFiltered <- filterReceptorReads(
-  tcrConsensus,
+tcr_consensus_filtered <- filter_receptor_reads(
+  tcr_consensus,
   loci = "TRB",
   min_v_length = 250,
   min_j_length = 30,
@@ -273,14 +273,14 @@ tcrConsensusFiltered <- filterReceptorReads(
   max_opening_gap = 2
 )
 
-bcrSpatialConsensus <- addSpatialBarcodes(bcrConsensusFiltered, barcodeMap, mode = "presto_header", swap = TRUE)
-tcrSpatialConsensus <- addSpatialBarcodes(tcrConsensusFiltered, barcodeMap, mode = "presto_header", swap = TRUE)
+bcr_spatial_consensus <- add_spatial_barcodes(bcr_consensus_filtered, barcode_map, mode = "presto_header", swap = TRUE)
+tcr_spatial_consensus <- add_spatial_barcodes(tcr_consensus_filtered, barcode_map, mode = "presto_header", swap = TRUE)
 
-bcrTopBarcode <- collapseTopConsensusPerBarcode(bcrSpatialConsensus, barcode_col = "barcode_2um", locus_col = "locus", ties = "all")
-tcrTopBarcode <- collapseTopConsensusPerBarcode(tcrSpatialConsensus, barcode_col = "barcode_2um", locus_col = "locus", ties = "all")
+bcr_top_barcode <- collapse_top_consensus_per_barcode(bcr_spatial_consensus, barcode_col = "barcode_2um", locus_col = "locus", ties = "all")
+tcr_top_barcode <- collapse_top_consensus_per_barcode(tcr_spatial_consensus, barcode_col = "barcode_2um", locus_col = "locus", ties = "all")
 
-bcr <- addTissuePositions(
-  bcrTopBarcode,
+bcr <- add_tissue_positions(
+  bcr_top_barcode,
   positions,
   barcode_col = "barcode_8um",
   position_barcode_col = "barcode_8um",
@@ -289,8 +289,8 @@ bcr <- addTissuePositions(
 ) |>
   filter(!is.na(x), !is.na(y))
 
-tcr <- addTissuePositions(
-  tcrTopBarcode,
+tcr <- add_tissue_positions(
+  tcr_top_barcode,
   positions,
   barcode_col = "barcode_8um",
   position_barcode_col = "barcode_8um",
@@ -299,23 +299,23 @@ tcr <- addTissuePositions(
 ) |>
   filter(!is.na(x), !is.na(y))
 
-finalBcrPath <- file.path(finalAirrDir, sprintf("%s_bcrs_heavy_final_spatial_airr.tsv", sampleLower))
-finalTcrPath <- file.path(finalAirrDir, sprintf("%s_tcrs_beta_final_spatial_airr.tsv", sampleLower))
-writeSpatialOutputs(bcr, out_tsv = finalBcrPath)
-writeSpatialOutputs(tcr, out_tsv = finalTcrPath)
+final_bcr_path <- file.path(final_airr_dir, sprintf("%s_bcrs_heavy_final_spatial_airr.tsv", sample_lower))
+final_tcr_path <- file.path(final_airr_dir, sprintf("%s_tcrs_beta_final_spatial_airr.tsv", sample_lower))
+write_spatial_outputs(bcr, out_tsv = final_bcr_path)
+write_spatial_outputs(tcr, out_tsv = final_tcr_path)
 
 list(
-  bcr = spatialReceptorSummary(bcr, barcode_col = "barcode_8um"),
-  tcr = spatialReceptorSummary(tcr, barcode_col = "barcode_8um")
+  bcr = spatial_receptor_summary(bcr, barcode_col = "barcode_8um"),
+  tcr = spatial_receptor_summary(tcr, barcode_col = "barcode_8um")
 )
 
-postPrestoQcPlot <- cowplot::plot_grid(
-  plotLengthQc(bcr, title = paste(sampleId, "final BCRs")),
-  plotLengthQc(tcr, title = paste(sampleId, "final TCRs")),
+post_presto_qc_plot <- cowplot::plot_grid(
+  plot_length_qc(bcr, title = paste(sample_id, "final BCRs")),
+  plot_length_qc(tcr, title = paste(sample_id, "final TCRs")),
   ncol = 1
 )
-postPrestoQcPlot
-savePlot(postPrestoQcPlot, sprintf("%s_post_presto_final_length_qc.png", sampleLower), width = 10, height = 8)
+post_presto_qc_plot
+save_plot(post_presto_qc_plot, sprintf("%s_post_presto_final_length_qc.png", sample_lower), width = 10, height = 8)
 
 # Things to inspect:
 head(bcr)
@@ -323,54 +323,54 @@ head(tcr)
 
 # Notes:
 # - TODO: Should the post-pRESTO block become a single high-level function?
-# - TODO: Should collapseTopConsensusPerBarcode() have built-in diagnostics for ties?
+# - TODO: Should collapse_top_consensus_per_barcode() have built-in diagnostics for ties?
 
 # ---- Put every BCR and TCR on the tissue slice -------------------------------
 
-allBcrPlot <- plotReceptorOverlay(
+all_bcr_plot <- plot_receptor_overlay(
   tissue_positions = positions,
   receptors = bcr,
   receptor_color = "#2c7fb8",
   receptor_size = 1.2,
-  title = paste(sampleId, "all BCR-positive spots")
+  title = paste(sample_id, "all BCR-positive spots")
 )
-allBcrPlot
+all_bcr_plot
 
-allTcrPlot <- plotReceptorOverlay(
+all_tcr_plot <- plot_receptor_overlay(
   tissue_positions = positions,
   receptors = tcr,
   receptor_color = "#d95f02",
   receptor_size = 1.2,
-  title = paste(sampleId, "all TCR-positive spots")
+  title = paste(sample_id, "all TCR-positive spots")
 )
-allTcrPlot
+all_tcr_plot
 
-bcrTcrOverlay <- ggplot(positions, aes(x = x, y = y)) +
+bcr_tcr_overlay <- ggplot(positions, aes(x = x, y = y)) +
   geom_point(color = "grey88", size = 0.55, alpha = 0.75) +
   geom_point(data = bcr, aes(x = x, y = y), inherit.aes = FALSE, shape = 21, fill = NA, color = "#2c7fb8", stroke = 0.45, size = 1.4) +
   geom_point(data = tcr, aes(x = x, y = y), inherit.aes = FALSE, shape = 21, fill = NA, color = "#d95f02", stroke = 0.45, size = 1.4) +
   coord_fixed() +
   scale_y_reverse() +
   theme_minimal() +
-  labs(title = paste(sampleId, "BCR and TCR locations"), x = "x", y = "y")
-bcrTcrOverlay
+  labs(title = paste(sample_id, "BCR and TCR locations"), x = "x", y = "y")
+bcr_tcr_overlay
 
-savePlot(allBcrPlot, sprintf("%s_all_bcr_locations.png", sampleLower), width = 6, height = 5)
-savePlot(allTcrPlot, sprintf("%s_all_tcr_locations.png", sampleLower), width = 6, height = 5)
-savePlot(bcrTcrOverlay, sprintf("%s_bcr_tcr_locations.png", sampleLower), width = 6, height = 5)
+save_plot(all_bcr_plot, sprintf("%s_all_bcr_locations.png", sample_lower), width = 6, height = 5)
+save_plot(all_tcr_plot, sprintf("%s_all_tcr_locations.png", sample_lower), width = 6, height = 5)
+save_plot(bcr_tcr_overlay, sprintf("%s_bcr_tcr_locations.png", sample_lower), width = 6, height = 5)
 
 # Notes:
-# - TODO: Should plotReceptorOverlay() support BCR and TCR layers at the same time?
+# - TODO: Should plot_receptor_overlay() support BCR and TCR layers at the same time?
 
 # ---- Add gene expression underneath receptor locations -----------------------
 
 thymus <- NULL
-geneOverlayPlots <- list()
+gene_overlay_plots <- list()
 
-if (loadSeuratObject && file.exists(seuratPath) && requireNamespace("SeuratObject", quietly = TRUE)) {
-  thymus <- readRDS(seuratPath)
+if (load_seurat_object && file.exists(seurat_path) && requireNamespace("SeuratObject", quietly = TRUE)) {
+  thymus <- readRDS(seurat_path)
 
-  for (gene in genesToShow) {
+  for (gene in genes_to_show) {
     if (!gene %in% rownames(thymus)) {
       message("Skipping ", gene, ": not found in the Seurat object.")
       next
@@ -379,12 +379,12 @@ if (loadSeuratObject && file.exists(seuratPath) && requireNamespace("SeuratObjec
     expr <- SeuratObject::FetchData(thymus, vars = gene)
     expr$barcode_8um <- rownames(expr)
 
-    tissueGene <- positions |>
+    tissue_gene <- positions |>
       left_join(expr, by = "barcode_8um") |>
       mutate(expression = .data[[gene]])
 
-    bcrGenePlot <- plotReceptorOverlay(
-      tissue_positions = tissueGene,
+    bcr_gene_plot <- plot_receptor_overlay(
+      tissue_positions = tissue_gene,
       receptors = bcr,
       gene_col = "expression",
       receptor_color = "#2c7fb8",
@@ -392,8 +392,8 @@ if (loadSeuratObject && file.exists(seuratPath) && requireNamespace("SeuratObjec
       title = paste(gene, "expression with BCR spots")
     )
 
-    tcrGenePlot <- plotReceptorOverlay(
-      tissue_positions = tissueGene,
+    tcr_gene_plot <- plot_receptor_overlay(
+      tissue_positions = tissue_gene,
       receptors = tcr,
       gene_col = "expression",
       receptor_color = "#d95f02",
@@ -401,12 +401,12 @@ if (loadSeuratObject && file.exists(seuratPath) && requireNamespace("SeuratObjec
       title = paste(gene, "expression with TCR spots")
     )
 
-    geneOverlayPlots[[gene]] <- cowplot::plot_grid(bcrGenePlot, tcrGenePlot, ncol = 2)
-    print(geneOverlayPlots[[gene]])
-    savePlot(geneOverlayPlots[[gene]], sprintf("%s_%s_receptor_gene_overlay.png", sampleLower, gene), width = 11, height = 5)
+    gene_overlay_plots[[gene]] <- cowplot::plot_grid(bcr_gene_plot, tcr_gene_plot, ncol = 2)
+    print(gene_overlay_plots[[gene]])
+    save_plot(gene_overlay_plots[[gene]], sprintf("%s_%s_receptor_gene_overlay.png", sample_lower, gene), width = 11, height = 5)
   }
 } else {
-  message("Skipping gene overlays. Check loadSeuratObject, seuratPath, and SeuratObject.")
+  message("Skipping gene overlays. Check load_seurat_object, seurat_path, and SeuratObject.")
 }
 
 # Notes:
@@ -414,12 +414,12 @@ if (loadSeuratObject && file.exists(seuratPath) && requireNamespace("SeuratObjec
 
 # ---- Call clones -------------------------------------------------------------
 
-bcrClonesPath <- file.path(outDir, sprintf("%s_bcr_hierarchical_clones.rds", sampleLower))
-tcrClonesPath <- file.path(outDir, sprintf("%s_tcr_hierarchical_clones.rds", sampleLower))
-bcrTreesPath <- file.path(outDir, sprintf("%s_bcr_pml_trees.rds", sampleLower))
+bcr_clones_path <- file.path(out_dir, sprintf("%s_bcr_hierarchical_clones.rds", sample_lower))
+tcr_clones_path <- file.path(out_dir, sprintf("%s_tcr_hierarchical_clones.rds", sample_lower))
+bcr_trees_path <- file.path(out_dir, sprintf("%s_bcr_pml_trees.rds", sample_lower))
 
-if (runCloneCalling) {
-  bcrClones <- assignSpatialClones(
+if (run_clone_calling) {
+  bcr_clones <- assign_spatial_clones(
     bcr,
     threshold = 0.1,
     productive_only = TRUE,
@@ -427,7 +427,7 @@ if (runCloneCalling) {
     nproc = nproc
   )
 
-  tcrClones <- assignSpatialClones(
+  tcr_clones <- assign_spatial_clones(
     tcr,
     threshold = 0.1,
     productive_only = TRUE,
@@ -435,37 +435,37 @@ if (runCloneCalling) {
     nproc = nproc
   )
 
-  saveRDS(bcrClones, bcrClonesPath)
-  saveRDS(tcrClones, tcrClonesPath)
-} else if (file.exists(bcrClonesPath) && file.exists(tcrClonesPath)) {
-  bcrClones <- readRDS(bcrClonesPath)
-  tcrClones <- readRDS(tcrClonesPath)
+  saveRDS(bcr_clones, bcr_clones_path)
+  saveRDS(tcr_clones, tcr_clones_path)
+} else if (file.exists(bcr_clones_path) && file.exists(tcr_clones_path)) {
+  bcr_clones <- readRDS(bcr_clones_path)
+  tcr_clones <- readRDS(tcr_clones_path)
 } else {
-  message("Clone RDS files not found. Set runCloneCalling <- TRUE and rerun this section.")
+  message("Clone RDS files not found. Set run_clone_calling <- TRUE and rerun this section.")
 }
 
-if (exists("bcrClones")) {
-  bcrCloneCounts <- bcrClones |>
+if (exists("bcr_clones")) {
+  bcr_clone_counts <- bcr_clones |>
     filter(!is.na(clone_id)) |>
     count(clone_id, sort = TRUE)
-  head(bcrCloneCounts, 20)
+  head(bcr_clone_counts, 20)
 }
 
-if (exists("tcrClones")) {
-  tcrCloneCounts <- tcrClones |>
+if (exists("tcr_clones")) {
+  tcr_clone_counts <- tcr_clones |>
     filter(!is.na(clone_id)) |>
     count(clone_id, sort = TRUE)
-  head(tcrCloneCounts, 20)
+  head(tcr_clone_counts, 20)
 }
 
 # Notes:
-# - TODO: Should assignSpatialClones() have better defaults for spatial data?
+# - TODO: Should assign_spatial_clones() have better defaults for spatial data?
 
 # ---- Pick a couple of clones and plot them ----------------------------------
 
-chooseBigClones <- function(clones, cloneIds = NULL, n = 2) {
-  if (!is.null(cloneIds)) {
-    return(as.character(cloneIds))
+choose_big_clones <- function(clones, clone_ids = NULL, n = 2) {
+  if (!is.null(clone_ids)) {
+    return(as.character(clone_ids))
   }
   clones |>
     filter(!is.na(clone_id)) |>
@@ -475,60 +475,60 @@ chooseBigClones <- function(clones, cloneIds = NULL, n = 2) {
     as.character()
 }
 
-if (exists("bcrClones")) {
-  bcrCloneIds <- chooseBigClones(bcrClones, bcrCloneIdsToPlot, n = 2)
-  bcrCloneIds
+if (exists("bcr_clones")) {
+  bcr_clone_ids <- choose_big_clones(bcr_clones, bcr_clone_ids_to_plot, n = 2)
+  bcr_clone_ids
 }
 
-if (exists("tcrClones")) {
-  tcrCloneIds <- chooseBigClones(tcrClones, tcrCloneIdsToPlot, n = 2)
-  tcrCloneIds
+if (exists("tcr_clones")) {
+  tcr_clone_ids <- choose_big_clones(tcr_clones, tcr_clone_ids_to_plot, n = 2)
+  tcr_clone_ids
 }
 
 # After inspecting clone counts, set these manually if you want:
-# bcrCloneIdsToPlot <- c("123", "456")
-# tcrCloneIdsToPlot <- c("789", "101")
+# bcr_clone_ids_to_plot <- c("123", "456")
+# tcr_clone_ids_to_plot <- c("789", "101")
 
-if (exists("bcrClones") && exists("bcrCloneIds")) {
-  bcrClonePlots <- lapply(
-    bcrCloneIds,
-    function(cloneId) {
-      plotReceptorOverlay(
+if (exists("bcr_clones") && exists("bcr_clone_ids")) {
+  bcr_clone_plots <- lapply(
+    bcr_clone_ids,
+    function(clone_id) {
+      plot_receptor_overlay(
         tissue_positions = positions,
-        receptors = filter(bcrClones, .data$clone_id == .env$cloneId),
+        receptors = filter(bcr_clones, .data$clone_id == .env$clone_id),
         receptor_color = "#2c7fb8",
         receptor_size = 1.7,
-        title = paste("BCR clone", cloneId)
+        title = paste("BCR clone", clone_id)
       )
     }
   )
-  selectedBcrClonePlot <- cowplot::plot_grid(plotlist = bcrClonePlots, ncol = 2)
-  selectedBcrClonePlot
-  savePlot(selectedBcrClonePlot, sprintf("%s_selected_bcr_clones_spatial.png", sampleLower), width = 10, height = 5)
+  selected_bcr_clone_plot <- cowplot::plot_grid(plotlist = bcr_clone_plots, ncol = 2)
+  selected_bcr_clone_plot
+  save_plot(selected_bcr_clone_plot, sprintf("%s_selected_bcr_clones_spatial.png", sample_lower), width = 10, height = 5)
 }
 
-if (exists("tcrClones") && exists("tcrCloneIds")) {
-  tcrClonePlots <- lapply(
-    tcrCloneIds,
-    function(cloneId) {
-      plotReceptorOverlay(
+if (exists("tcr_clones") && exists("tcr_clone_ids")) {
+  tcr_clone_plots <- lapply(
+    tcr_clone_ids,
+    function(clone_id) {
+      plot_receptor_overlay(
         tissue_positions = positions,
-        receptors = filter(tcrClones, .data$clone_id == .env$cloneId),
+        receptors = filter(tcr_clones, .data$clone_id == .env$clone_id),
         receptor_color = "#d95f02",
         receptor_size = 1.7,
-        title = paste("TCR clone", cloneId)
+        title = paste("TCR clone", clone_id)
       )
     }
   )
-  selectedTcrClonePlot <- cowplot::plot_grid(plotlist = tcrClonePlots, ncol = 2)
-  selectedTcrClonePlot
-  savePlot(selectedTcrClonePlot, sprintf("%s_selected_tcr_clones_spatial.png", sampleLower), width = 10, height = 5)
+  selected_tcr_clone_plot <- cowplot::plot_grid(plotlist = tcr_clone_plots, ncol = 2)
+  selected_tcr_clone_plot
+  save_plot(selected_tcr_clone_plot, sprintf("%s_selected_tcr_clones_spatial.png", sample_lower), width = 10, height = 5)
 }
 
 # ---- Build BCR trees and match tips back to space ----------------------------
 
-if (buildBcrTrees) {
-  if (!exists("bcrClones") || !exists("bcrCloneIds")) {
+if (build_bcr_trees) {
+  if (!exists("bcr_clones") || !exists("bcr_clone_ids")) {
     stop("Run clone calling/loading and clone selection before tree building.")
   }
   if (!requireNamespace("dowser", quietly = TRUE)) {
@@ -538,21 +538,21 @@ if (buildBcrTrees) {
     stop("Install alakazam to read IMGT germlines for dowser tree building.")
   }
 
-  refs <- alakazam::readIMGT(germlineDir)
+  refs <- alakazam::readIMGT(germline_dir)
 
-  bcrTreeInput <- bcrClones |>
-    filter(clone_id %in% bcrCloneIds, !is.na(clone_id)) |>
+  bcr_tree_input <- bcr_clones |>
+    filter(clone_id %in% bcr_clone_ids, !is.na(clone_id)) |>
     mutate(
       sequence_id_tree = make.unique(as.character(sequence_id)),
-      c_call_simple = simplifyIghConstantCall(c_call)
+      c_call_simple = simplify_igh_constant_call(c_call)
     ) |>
-    assignTipColors(clone_ids = bcrCloneIds, id_col = "sequence_id_tree")
+    assign_tip_colors(clone_ids = bcr_clone_ids, id_col = "sequence_id_tree")
 
-  bcrTreeInput <- dowser::createGermlines(bcrTreeInput, refs, id = "sequence_id_tree")
+  bcr_tree_input <- dowser::createGermlines(bcr_tree_input, refs, id = "sequence_id_tree")
 
-  bcrTreeResult <- buildDowserTrees(
-    bcrTreeInput,
-    clone_ids = bcrCloneIds,
+  bcr_tree_result <- build_dowser_trees(
+    bcr_tree_input,
+    clone_ids = bcr_clone_ids,
     id = "sequence_id_tree",
     traits = c("tip_color_id", "tip_color", "c_call_simple", "barcode_8um"),
     columns = c("x", "y", "barcode_8um"),
@@ -560,43 +560,43 @@ if (buildBcrTrees) {
     nproc = nproc
   )
 
-  saveRDS(bcrTreeResult, bcrTreesPath)
-} else if (file.exists(bcrTreesPath)) {
-  bcrTreeResult <- readRDS(bcrTreesPath)
+  saveRDS(bcr_tree_result, bcr_trees_path)
+} else if (file.exists(bcr_trees_path)) {
+  bcr_tree_result <- readRDS(bcr_trees_path)
 }
 
-if (exists("bcrTreeResult") && exists("bcrTreeInput")) {
-  treePalette <- unique(bcrTreeInput$tip_color)
-  names(treePalette) <- unique(bcrTreeInput$tip_color_id)
+if (exists("bcr_tree_result") && exists("bcr_tree_input")) {
+  tree_palette <- unique(bcr_tree_input$tip_color)
+  names(tree_palette) <- unique(bcr_tree_input$tip_color_id)
 
-  bcrTreePlots <- dowser::plotTrees(
-    bcrTreeResult$trees,
+  bcr_tree_plots <- dowser::plotTrees(
+    bcr_tree_result$trees,
     tips = "tip_color_id",
-    palette = treePalette,
-    tipsize = if ("consensus_count" %in% colnames(bcrTreeInput)) "consensus_count" else NULL
+    palette = tree_palette,
+    tipsize = if ("consensus_count" %in% colnames(bcr_tree_input)) "consensus_count" else NULL
   )
 
-  pairedTreeSpatialPlots <- list()
-  for (i in seq_along(bcrCloneIds)) {
-    cloneId <- bcrCloneIds[[i]]
-    spatialPlot <- plotColoredCloneSpatial(
-      bcrTreeInput,
-      clone_id = cloneId,
+  paired_tree_spatial_plots <- list()
+  for (i in seq_along(bcr_clone_ids)) {
+    clone_id <- bcr_clone_ids[[i]]
+    spatial_plot <- plot_colored_clone_spatial(
+      bcr_tree_input,
+      clone_id = clone_id,
       tissue_positions = positions
     )
 
-    pairedTreeSpatialPlots[[i]] <- cowplot::plot_grid(
-      bcrTreePlots[[i]] + ggplot2::ggtitle(paste("BCR clone", cloneId, "tree")),
-      spatialPlot + ggplot2::ggtitle(paste("BCR clone", cloneId, "matched tissue colors")),
+    paired_tree_spatial_plots[[i]] <- cowplot::plot_grid(
+      bcr_tree_plots[[i]] + ggplot2::ggtitle(paste("BCR clone", clone_id, "tree")),
+      spatial_plot + ggplot2::ggtitle(paste("BCR clone", clone_id, "matched tissue colors")),
       ncol = 2,
       rel_widths = c(1.2, 1)
     )
-    print(pairedTreeSpatialPlots[[i]])
+    print(paired_tree_spatial_plots[[i]])
   }
 
-  if (savePlots) {
-    pdf(file.path(plotDir, sprintf("%s_bcr_tree_spatial_pairs.pdf", sampleLower)), width = 12, height = 6)
-    for (page in pairedTreeSpatialPlots) {
+  if (save_plots) {
+    pdf(file.path(plot_dir, sprintf("%s_bcr_tree_spatial_pairs.pdf", sample_lower)), width = 12, height = 6)
+    for (page in paired_tree_spatial_plots) {
       print(page)
     }
     dev.off()
@@ -604,10 +604,10 @@ if (exists("bcrTreeResult") && exists("bcrTreeInput")) {
 }
 
 # Notes:
-# - TODO: Should buildDowserTrees() handle createGermlines()?
+# - TODO: Should build_dowser_trees() handle createGermlines()?
 # - TODO: Should plotTreeSpatialPairs() become a package function?
 
 # ---- Done -------------------------------------------------------------------
 
 message("Walkthrough objects are loaded in the current R session.")
-message("Output directory: ", outDir)
+message("Output directory: ", out_dir)
