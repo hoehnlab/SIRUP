@@ -117,15 +117,13 @@ test_that("revcomp_bits on a palindrome returns the input unchanged", {
 
 # ---- hamming_distance_rcpp ----------------------------------------------
 #
-# Important contract note: hamming_distance_rcpp computes
-#   popcount(XOR(a, b)) / 2     (integer division, at the bit level)
-# under the encoding A=00, C=01, G=11, T=10. This equals true base-level
-# Hamming distance ONLY when each differing base-pair has bit-XOR == 2 —
-# transitions A<->G and C<->T. For transversions (1-bit XOR diffs like
-# A<->C, C<->G, G<->T, T<->A), the function under-counts by 0.5 per base
-# (rounded down), so e.g. hamming("AAAA","CCCC") = 2, not 4. Tests below
-# pin the actual behavior; whether the semantics are a bug or intentional
-# is a separate question.
+# Returns true base-level Hamming distance under the 2-bit-per-base
+# encoding (A=00, C=01, G=11, T=10). Implementation collapses each 2-bit
+# chunk of (a XOR b) down to a single bit before popcount, so it counts
+# one per differing base regardless of whether the diff flipped one or
+# two bits within the chunk. (Pre-fix it computed
+# `ceil(popcount(XOR) / 2)`, which under-counted transversions —
+# hamming("AAAA","CCCC") used to return 2; now returns 4.)
 
 test_that("hamming_distance_rcpp returns 0 for identical inputs", {
   for (s in c("A","ACGT","AAAA","TTTTGGGGCCCC","NNNN")) {
@@ -143,17 +141,24 @@ test_that("hamming_distance_rcpp is symmetric in its arguments", {
   }
 })
 
-test_that("hamming_distance_rcpp matches popcount(XOR(a,b)) / 2 (bit-level)", {
+test_that("hamming_distance_rcpp counts differing bases (transversions + transitions)", {
   cases <- list(
-    list("AA",   "AA",   0),
-    list("A",    "C",    1),    # XOR=01, popcount=1, 1%/%2 = 0 ... but function returns 1
-    list("A",    "G",    1),    # XOR=11, popcount=2, 2/2 = 1
-    list("A",    "T",    1),    # XOR=10, popcount=1
-    list("AAAA", "CCCC", 2),    # popcount(01010101)=4, 4/2 = 2
-    list("AAAA", "GGGG", 4),    # popcount(11111111)=8, 8/2 = 4
-    list("AAAA", "TTTT", 2),    # popcount(10101010)=4, 4/2 = 2
-    list("ACGT", "TTTT", 2),    # popcount(10110100)=4, 4/2 = 2
-    list("ACGT", "ACGA", 1)     # last base T(10) vs A(00), popcount(10)=1
+    # Single-base
+    list("A",    "A",    0),
+    list("A",    "C",    1),    # transversion
+    list("A",    "G",    1),    # transition
+    list("A",    "T",    1),    # transversion
+    # 4-base homopolymer comparisons — every base differs
+    list("AAAA", "CCCC", 4),    # 4 transversions (previously returned 2)
+    list("AAAA", "GGGG", 4),    # 4 transitions
+    list("AAAA", "TTTT", 4),    # 4 transversions (previously returned 2)
+    list("CCCC", "GGGG", 4),
+    list("CCCC", "TTTT", 4),
+    # Mixed
+    list("ACGT", "TTTT", 3),    # A,C,G differ; T matches (previously returned 2)
+    list("ACGT", "ACGA", 1),    # last base only
+    list("ACGT", "ACGT", 0),    # palindrome with itself
+    list("AC",   "CA",   2)     # both positions swapped (previously returned 1)
   )
   for (case in cases) {
     a_seq <- case[[1]]; b_seq <- case[[2]]; expected <- case[[3]]
@@ -161,6 +166,24 @@ test_that("hamming_distance_rcpp matches popcount(XOR(a,b)) / 2 (bit-level)", {
       hamming_distance_rcpp(sequence_to_bits(a_seq), sequence_to_bits(b_seq)),
       expected,
       info = sprintf("hamming(%s, %s) -> %d", a_seq, b_seq, expected)
+    )
+  }
+})
+
+test_that("hamming_distance_rcpp matches a naive base-level reference for random sequences", {
+  set.seed(42)
+  base_hamming <- function(a, b) {
+    sum(strsplit(a, "")[[1]] != strsplit(b, "")[[1]])
+  }
+  bases <- c("A","C","G","T")
+  for (i in seq_len(40)) {
+    len <- sample(c(4, 8, 16, 32), 1)
+    a <- paste(sample(bases, len, replace = TRUE), collapse = "")
+    b <- paste(sample(bases, len, replace = TRUE), collapse = "")
+    expect_equal(
+      hamming_distance_rcpp(sequence_to_bits(a), sequence_to_bits(b)),
+      base_hamming(a, b),
+      info = paste(a, b)
     )
   }
 })
