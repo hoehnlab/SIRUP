@@ -1,3 +1,181 @@
+#' Locate the rad source tree (the git clone, not the binary)
+#'
+#' Resolution order: explicit `path` argument, then
+#' `getOption("SIRAP.rad_src")`, then the `SIRAP_RAD_SRC` environment
+#' variable, then walk up from [rad_path()] looking for a directory
+#' that contains both `.git/` and `CMakeLists.txt`.
+#'
+#' @param path Optional explicit path to the rad source tree.
+#' @return Absolute path to the rad source tree.
+#' @export
+rad_src_path <- function(path = NULL) {
+  is_rad_src <- function(d) {
+    dir.exists(file.path(d, ".git")) && file.exists(file.path(d, "CMakeLists.txt"))
+  }
+
+  if (!is.null(path)) {
+    if (!dir.exists(path)) rlang::abort(paste0("rad source not found at: ", path))
+    if (!is_rad_src(path)) {
+      rlang::abort(paste0("'", path, "' is not a rad git clone (need .git + CMakeLists.txt)."))
+    }
+    return(normalizePath(path))
+  }
+  opt <- getOption("SIRAP.rad_src")
+  if (!is.null(opt) && nzchar(opt) && is_rad_src(opt)) return(normalizePath(opt))
+  env <- Sys.getenv("SIRAP_RAD_SRC", unset = "")
+  if (nzchar(env) && is_rad_src(env)) return(normalizePath(env))
+
+  bin <- tryCatch(rad_path(), error = function(e) NULL)
+  if (!is.null(bin)) {
+    # Resolve symlink chain (a common setup is `~/bin/rad` symlinked into a
+    # source clone like `~/code/rad/build/rad`).
+    for (i in seq_len(10)) {
+      tgt <- Sys.readlink(bin)
+      if (is.na(tgt) || !nzchar(tgt)) break
+      if (!startsWith(tgt, "/")) {
+        tgt <- normalizePath(file.path(dirname(bin), tgt), mustWork = FALSE)
+      }
+      bin <- tgt
+    }
+    d <- normalizePath(dirname(bin), mustWork = FALSE)
+    for (i in seq_len(6)) {  # walk up at most 6 levels
+      if (is_rad_src(d)) return(d)
+      parent <- dirname(d)
+      if (parent == d) break
+      d <- parent
+    }
+  }
+
+  rlang::abort(
+    paste0(
+      "Could not locate the rad source tree. Either: ",
+      "(1) clone https://github.com/indianewok/rad somewhere and pass it as `path`, ",
+      "(2) set options(SIRAP.rad_src = '/path/to/rad'), or ",
+      "(3) set SIRAP_RAD_SRC=/path/to/rad in your environment."
+    )
+  )
+}
+
+#' Update + rebuild the rad CLI from upstream
+#'
+#' Pulls the latest rad commits from origin and rebuilds the binary.
+#' Uses `git pull --ff-only` so dirty / diverged working trees abort
+#' rather than getting merged silently. If the rebuild succeeds, the
+#' new binary lands at `<rad-src>/build/rad`.
+#'
+#' If the source commit didn't change and `<rad-src>/build/rad`
+#' already exists, the rebuild is skipped — this is a cheap noop.
+#'
+#' Requires `git`, `cmake`, and a C++ compiler on PATH (the same
+#' tools needed for the initial install).
+#'
+#' @param path Path to the rad source tree (see [rad_src_path()] for
+#'   resolution rules).
+#' @param branch Optional git branch to check out before pulling.
+#'   Defaults to whatever is currently checked out.
+#' @param build_type cmake build type. Default `"Release"`.
+#' @param jobs Parallel build jobs. Defaults to
+#'   `parallel::detectCores()` (or 1 if that can't be determined).
+#' @param clean Logical; pass `--clean-first` to cmake. Default
+#'   `FALSE`.
+#' @param force_rebuild Logical; rebuild even if nothing changed.
+#' @param quiet Logical; suppress git + cmake output. Default
+#'   `FALSE` (stream everything live).
+#' @return Invisible list with `src`, `old_commit`, `new_commit`,
+#'   `built` (logical — did the rebuild actually happen?), and
+#'   `binary` (path to the rebuilt rad).
+#' @seealso [rad_path()], [rad_src_path()]
+#' @export
+update_rad <- function(path = NULL,
+                       branch = NULL,
+                       build_type = "Release",
+                       jobs = NULL,
+                       clean = FALSE,
+                       force_rebuild = FALSE,
+                       quiet = FALSE) {
+  src <- rad_src_path(path)
+  build_dir <- file.path(src, "build")
+  binary <- file.path(build_dir, "rad")
+
+  stream <- function(label, cmd, args) {
+    if (!isTRUE(quiet)) message("[update_rad] ", label, ": ", cmd, " ", paste(args, collapse = " "))
+    status <- system2(
+      cmd, args,
+      stdout = if (isTRUE(quiet)) FALSE else "",
+      stderr = if (isTRUE(quiet)) FALSE else ""
+    )
+    if (!identical(as.integer(status), 0L)) {
+      rlang::abort(paste0("[update_rad] ", label, " failed (status ", status, ")."))
+    }
+    invisible(status)
+  }
+
+  capture <- function(cmd, args) {
+    out <- suppressWarnings(system2(cmd, args, stdout = TRUE, stderr = TRUE))
+    status <- attr(out, "status")
+    if (!is.null(status) && status != 0) {
+      rlang::abort(paste0("[update_rad] '", cmd, " ", paste(args, collapse = " "),
+                          "' failed: ", paste(out, collapse = "\n")))
+    }
+    trimws(paste(out, collapse = "\n"))
+  }
+
+  if (Sys.which("git") == "")   rlang::abort("`git` not found on PATH; required by update_rad().")
+  if (Sys.which("cmake") == "") rlang::abort("`cmake` not found on PATH; required by update_rad().")
+
+  old_commit <- capture("git", c("-C", src, "rev-parse", "--short", "HEAD"))
+
+  if (!is.null(branch) && nzchar(branch)) {
+    stream("checkout", "git", c("-C", src, "checkout", branch))
+  }
+
+  stream("fetch", "git", c("-C", src, "fetch", "--prune", "origin"))
+  stream("pull",  "git", c("-C", src, "pull", "--ff-only"))
+
+  new_commit <- capture("git", c("-C", src, "rev-parse", "--short", "HEAD"))
+
+  needs_build <-
+    !identical(old_commit, new_commit) ||
+    isTRUE(force_rebuild) ||
+    !file.exists(binary)
+
+  if (!needs_build) {
+    if (!isTRUE(quiet)) {
+      message("[update_rad] rad already at ", old_commit, "; binary present; nothing to do.")
+    }
+    return(invisible(list(
+      src = src, old_commit = old_commit, new_commit = new_commit,
+      built = FALSE, binary = binary
+    )))
+  }
+
+  if (is.null(jobs)) {
+    n <- tryCatch(parallel::detectCores(), error = function(e) NA_integer_)
+    jobs <- if (is.finite(n) && n > 0) as.integer(n) else 1L
+  }
+
+  stream(
+    "configure", "cmake",
+    c("-S", src, "-B", build_dir, paste0("-DCMAKE_BUILD_TYPE=", build_type))
+  )
+
+  build_args <- c("--build", build_dir, "-j", as.character(jobs))
+  if (isTRUE(clean)) build_args <- c(build_args, "--clean-first")
+  stream("build", "cmake", build_args)
+
+  if (!file.exists(binary)) {
+    rlang::abort(paste0("[update_rad] build finished but no binary at ", binary))
+  }
+
+  if (!isTRUE(quiet)) {
+    message("[update_rad] done: ", old_commit, " -> ", new_commit, "  (", binary, ")")
+  }
+  invisible(list(
+    src = src, old_commit = old_commit, new_commit = new_commit,
+    built = TRUE, binary = binary
+  ))
+}
+
 #' Locate the rad CLI binary
 #'
 #' Resolves the path to the `rad` command-line binary. Resolution order:
