@@ -286,22 +286,6 @@ std::vector<int64_t> generate_quaternary_mutations_cpp(int64_t sequence, int seq
   return mutations;
 }
 
-//' @export
-// [[Rcpp::export]]
-Rcpp::NumericVector generate_quaternary_mutations(Rcpp::NumericVector sequences, Rcpp::IntegerVector sequence_length = 32) {
-  std::vector<int64_t> cpp_input_list = Rcpp::as<std::vector<int64_t>>(sequences);
-  bool use_sl = sequence_length.size() == 1;
-  int seq_length = use_sl ? sequence_length[0] : 0;
-  std::vector<int64_t> results;
-  for (size_t i = 0; i < cpp_input_list.size(); ++i) {
-    int64_t quaternary_input = cpp_input_list[i];
-    int seqlength = use_sl ? seq_length : sequence_length[i];
-    std::vector<int64_t> subresult = generate_quaternary_mutations_cpp(quaternary_input, seqlength);
-    results.insert(results.end(), subresult.begin(), subresult.end());
-  }
-  return Rcpp::wrap(results);
-}
-
 // Function to generate recursive mutations
 std::vector<int64_t> generate_recursive_quaternary_mutations_cpp(
     int64_t sequence, 
@@ -384,22 +368,3 @@ std::vector<int64_t> generate_recursive_quaternary_mutations_cpp_v3(
   return std::vector<int64_t>(all_mutations->begin(), all_mutations->end());
 }
 
-//' @export
-// [[Rcpp::export]]
-Rcpp::NumericVector generate_recursive_quaternary_mutations(
-    Rcpp::NumericVector sequences,
-    int mutation_rounds = 2, 
-  Rcpp::IntegerVector sequence_length = 32) {
-  std::vector<int64_t> cpp_input_list = Rcpp::as<std::vector<int64_t>>(sequences);
-  std::vector<int64_t> results;
-  bool use_sl = sequence_length.size() == 1;
-  int seq_length = use_sl ? sequence_length[0] : 0;
-  
-  for (size_t i = 0; i < cpp_input_list.size(); ++i) {
-    int64_t quaternary_input = cpp_input_list[i];
-    int seqlength = use_sl ? seq_length : sequence_length[i];
-    std::vector<int64_t> subresult = generate_recursive_quaternary_mutations_cpp(quaternary_input, mutation_rounds, seqlength); 
-    results.insert(results.end(), subresult.begin(), subresult.end());
-  }
-  return Rcpp::wrap(results);
-}

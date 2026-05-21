@@ -10,58 +10,6 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// sigalign
-Rcpp::CharacterVector sigalign(Rcpp::CharacterVector adapters, std::vector<std::string> sequences, std::vector<std::string> ids, const Rcpp::DataFrame& misalignment_threshold, int nthreads);
-RcppExport SEXP _SIRAP_sigalign(SEXP adaptersSEXP, SEXP sequencesSEXP, SEXP idsSEXP, SEXP misalignment_thresholdSEXP, SEXP nthreadsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type adapters(adaptersSEXP);
-    Rcpp::traits::input_parameter< std::vector<std::string> >::type sequences(sequencesSEXP);
-    Rcpp::traits::input_parameter< std::vector<std::string> >::type ids(idsSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame& >::type misalignment_threshold(misalignment_thresholdSEXP);
-    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(sigalign(adapters, sequences, ids, misalignment_threshold, nthreads));
-    return rcpp_result_gen;
-END_RCPP
-}
-// sigalign_stats
-Rcpp::DataFrame sigalign_stats(Rcpp::CharacterVector adapters, std::vector<std::string> sequences, int nthreads);
-RcppExport SEXP _SIRAP_sigalign_stats(SEXP adaptersSEXP, SEXP sequencesSEXP, SEXP nthreadsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type adapters(adaptersSEXP);
-    Rcpp::traits::input_parameter< std::vector<std::string> >::type sequences(sequencesSEXP);
-    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(sigalign_stats(adapters, sequences, nthreads));
-    return rcpp_result_gen;
-END_RCPP
-}
-// extract_blaze_barcode
-Rcpp::DataFrame extract_blaze_barcode(std::string fastq_file, int print_every);
-RcppExport SEXP _SIRAP_extract_blaze_barcode(SEXP fastq_fileSEXP, SEXP print_everySEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::string >::type fastq_file(fastq_fileSEXP);
-    Rcpp::traits::input_parameter< int >::type print_every(print_everySEXP);
-    rcpp_result_gen = Rcpp::wrap(extract_blaze_barcode(fastq_file, print_every));
-    return rcpp_result_gen;
-END_RCPP
-}
-// extract_blaze_id_bc
-void extract_blaze_id_bc(std::string fastq_file, std::string output_file, int print_every);
-RcppExport SEXP _SIRAP_extract_blaze_id_bc(SEXP fastq_fileSEXP, SEXP output_fileSEXP, SEXP print_everySEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::string >::type fastq_file(fastq_fileSEXP);
-    Rcpp::traits::input_parameter< std::string >::type output_file(output_fileSEXP);
-    Rcpp::traits::input_parameter< int >::type print_every(print_everySEXP);
-    extract_blaze_id_bc(fastq_file, output_file, print_every);
-    return R_NilValue;
-END_RCPP
-}
 // read_seqs_cpp
 Rcpp::DataFrame read_seqs_cpp(std::string filename, std::string type, bool full_id, int max_reads);
 RcppExport SEXP _SIRAP_read_seqs_cpp(SEXP filenameSEXP, SEXP typeSEXP, SEXP full_idSEXP, SEXP max_readsSEXP) {
@@ -87,52 +35,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type full_id(full_idSEXP);
     Rcpp::traits::input_parameter< int >::type max_reads(max_readsSEXP);
     rcpp_result_gen = Rcpp::wrap(stream_fastqas(fn, type, full_id, max_reads));
-    return rcpp_result_gen;
-END_RCPP
-}
-// masked_sigalign
-Rcpp::CharacterVector masked_sigalign(Rcpp::CharacterVector adapters, std::vector<std::string> sequences, std::vector<std::string> ids, const Rcpp::DataFrame& misalignment_threshold, int nthreads);
-RcppExport SEXP _SIRAP_masked_sigalign(SEXP adaptersSEXP, SEXP sequencesSEXP, SEXP idsSEXP, SEXP misalignment_thresholdSEXP, SEXP nthreadsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type adapters(adaptersSEXP);
-    Rcpp::traits::input_parameter< std::vector<std::string> >::type sequences(sequencesSEXP);
-    Rcpp::traits::input_parameter< std::vector<std::string> >::type ids(idsSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame& >::type misalignment_threshold(misalignment_thresholdSEXP);
-    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(masked_sigalign(adapters, sequences, ids, misalignment_threshold, nthreads));
-    return rcpp_result_gen;
-END_RCPP
-}
-// n_masked_misalignment_cigar_string
-Rcpp::DataFrame n_masked_misalignment_cigar_string(const std::string& input_path, Rcpp::CharacterVector adapters, int nthreads, int max_sequences, size_t chunk_size);
-RcppExport SEXP _SIRAP_n_masked_misalignment_cigar_string(SEXP input_pathSEXP, SEXP adaptersSEXP, SEXP nthreadsSEXP, SEXP max_sequencesSEXP, SEXP chunk_sizeSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const std::string& >::type input_path(input_pathSEXP);
-    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type adapters(adaptersSEXP);
-    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
-    Rcpp::traits::input_parameter< int >::type max_sequences(max_sequencesSEXP);
-    Rcpp::traits::input_parameter< size_t >::type chunk_size(chunk_sizeSEXP);
-    rcpp_result_gen = Rcpp::wrap(n_masked_misalignment_cigar_string(input_path, adapters, nthreads, max_sequences, chunk_size));
-    return rcpp_result_gen;
-END_RCPP
-}
-// n_masked_sigalign
-Rcpp::CharacterVector n_masked_sigalign(Rcpp::CharacterVector adapters, std::vector<std::string> sequences, std::vector<std::string> ids, const Rcpp::DataFrame& misalignment_threshold, int nthreads, bool verbose);
-RcppExport SEXP _SIRAP_n_masked_sigalign(SEXP adaptersSEXP, SEXP sequencesSEXP, SEXP idsSEXP, SEXP misalignment_thresholdSEXP, SEXP nthreadsSEXP, SEXP verboseSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type adapters(adaptersSEXP);
-    Rcpp::traits::input_parameter< std::vector<std::string> >::type sequences(sequencesSEXP);
-    Rcpp::traits::input_parameter< std::vector<std::string> >::type ids(idsSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame& >::type misalignment_threshold(misalignment_thresholdSEXP);
-    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
-    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(n_masked_sigalign(adapters, sequences, ids, misalignment_threshold, nthreads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -298,59 +200,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// prep_read_layout_rcpp
-void prep_read_layout_rcpp(const Rcpp::DataFrame& read_layout, const Rcpp::DataFrame& misalignment_threshold, bool verbose);
-RcppExport SEXP _SIRAP_prep_read_layout_rcpp(SEXP read_layoutSEXP, SEXP misalignment_thresholdSEXP, SEXP verboseSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame& >::type read_layout(read_layoutSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame& >::type misalignment_threshold(misalignment_thresholdSEXP);
-    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    prep_read_layout_rcpp(read_layout, misalignment_threshold, verbose);
-    return R_NilValue;
-END_RCPP
-}
-// generate_position_setup_test
-void generate_position_setup_test(Rcpp::DataFrame& read_layout, const Rcpp::DataFrame& misalignment_threshold);
-RcppExport SEXP _SIRAP_generate_position_setup_test(SEXP read_layoutSEXP, SEXP misalignment_thresholdSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame& >::type read_layout(read_layoutSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame& >::type misalignment_threshold(misalignment_thresholdSEXP);
-    generate_position_setup_test(read_layout, misalignment_threshold);
-    return R_NilValue;
-END_RCPP
-}
-// sig_extraction_updated
-Rcpp::DataFrame sig_extraction_updated(const Rcpp::DataFrame& read_layout, const Rcpp::DataFrame& misalignment_threshold, Rcpp::DataFrame& df, const Rcpp::CharacterVector& processed_sigstrings, bool verbose);
-RcppExport SEXP _SIRAP_sig_extraction_updated(SEXP read_layoutSEXP, SEXP misalignment_thresholdSEXP, SEXP dfSEXP, SEXP processed_sigstringsSEXP, SEXP verboseSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame& >::type read_layout(read_layoutSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame& >::type misalignment_threshold(misalignment_thresholdSEXP);
-    Rcpp::traits::input_parameter< Rcpp::DataFrame& >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::CharacterVector& >::type processed_sigstrings(processed_sigstringsSEXP);
-    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(sig_extraction_updated(read_layout, misalignment_threshold, df, processed_sigstrings, verbose));
-    return rcpp_result_gen;
-END_RCPP
-}
-// sigrun
-Rcpp::CharacterVector sigrun(const Rcpp::DataFrame& read_layout, const Rcpp::DataFrame& misalignment_threshold, const Rcpp::StringVector& sigstrings, int nthreads, bool verbose);
-RcppExport SEXP _SIRAP_sigrun(SEXP read_layoutSEXP, SEXP misalignment_thresholdSEXP, SEXP sigstringsSEXP, SEXP nthreadsSEXP, SEXP verboseSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame& >::type read_layout(read_layoutSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame& >::type misalignment_threshold(misalignment_thresholdSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::StringVector& >::type sigstrings(sigstringsSEXP);
-    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
-    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(sigrun(read_layout, misalignment_threshold, sigstrings, nthreads, verbose));
-    return rcpp_result_gen;
-END_RCPP
-}
 // revcomp
 Rcpp::StringVector revcomp(Rcpp::StringVector sequences);
 RcppExport SEXP _SIRAP_revcomp(SEXP sequencesSEXP) {
@@ -432,31 +281,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// generate_quaternary_mutations
-Rcpp::NumericVector generate_quaternary_mutations(Rcpp::NumericVector sequences, Rcpp::IntegerVector sequence_length);
-RcppExport SEXP _SIRAP_generate_quaternary_mutations(SEXP sequencesSEXP, SEXP sequence_lengthSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type sequences(sequencesSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type sequence_length(sequence_lengthSEXP);
-    rcpp_result_gen = Rcpp::wrap(generate_quaternary_mutations(sequences, sequence_length));
-    return rcpp_result_gen;
-END_RCPP
-}
-// generate_recursive_quaternary_mutations
-Rcpp::NumericVector generate_recursive_quaternary_mutations(Rcpp::NumericVector sequences, int mutation_rounds, Rcpp::IntegerVector sequence_length);
-RcppExport SEXP _SIRAP_generate_recursive_quaternary_mutations(SEXP sequencesSEXP, SEXP mutation_roundsSEXP, SEXP sequence_lengthSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type sequences(sequencesSEXP);
-    Rcpp::traits::input_parameter< int >::type mutation_rounds(mutation_roundsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type sequence_length(sequence_lengthSEXP);
-    rcpp_result_gen = Rcpp::wrap(generate_recursive_quaternary_mutations(sequences, mutation_rounds, sequence_length));
-    return rcpp_result_gen;
-END_RCPP
-}
 // sirap_rcpp_loaded
 bool sirap_rcpp_loaded();
 RcppExport SEXP _SIRAP_sirap_rcpp_loaded() {
@@ -467,103 +291,10 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// sigstream
-void sigstream(const std::string& input_path, const std::string& sigstringsFilePath, Rcpp::CharacterVector adapters, const Rcpp::DataFrame& read_layout, const Rcpp::DataFrame& misalignment_threshold, int chunkSize, int nthreads, const std::string& outputPath, bool write_fastq, bool compress, int max_sequences, int min_length, bool verbose);
-RcppExport SEXP _SIRAP_sigstream(SEXP input_pathSEXP, SEXP sigstringsFilePathSEXP, SEXP adaptersSEXP, SEXP read_layoutSEXP, SEXP misalignment_thresholdSEXP, SEXP chunkSizeSEXP, SEXP nthreadsSEXP, SEXP outputPathSEXP, SEXP write_fastqSEXP, SEXP compressSEXP, SEXP max_sequencesSEXP, SEXP min_lengthSEXP, SEXP verboseSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const std::string& >::type input_path(input_pathSEXP);
-    Rcpp::traits::input_parameter< const std::string& >::type sigstringsFilePath(sigstringsFilePathSEXP);
-    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type adapters(adaptersSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame& >::type read_layout(read_layoutSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame& >::type misalignment_threshold(misalignment_thresholdSEXP);
-    Rcpp::traits::input_parameter< int >::type chunkSize(chunkSizeSEXP);
-    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
-    Rcpp::traits::input_parameter< const std::string& >::type outputPath(outputPathSEXP);
-    Rcpp::traits::input_parameter< bool >::type write_fastq(write_fastqSEXP);
-    Rcpp::traits::input_parameter< bool >::type compress(compressSEXP);
-    Rcpp::traits::input_parameter< int >::type max_sequences(max_sequencesSEXP);
-    Rcpp::traits::input_parameter< int >::type min_length(min_lengthSEXP);
-    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    sigstream(input_path, sigstringsFilePath, adapters, read_layout, misalignment_threshold, chunkSize, nthreads, outputPath, write_fastq, compress, max_sequences, min_length, verbose);
-    return R_NilValue;
-END_RCPP
-}
-// misalignment_stream
-Rcpp::DataFrame misalignment_stream(const std::string& input_path, Rcpp::CharacterVector adapters, int nthreads, int max_sequences, size_t chunk_size);
-RcppExport SEXP _SIRAP_misalignment_stream(SEXP input_pathSEXP, SEXP adaptersSEXP, SEXP nthreadsSEXP, SEXP max_sequencesSEXP, SEXP chunk_sizeSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const std::string& >::type input_path(input_pathSEXP);
-    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type adapters(adaptersSEXP);
-    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
-    Rcpp::traits::input_parameter< int >::type max_sequences(max_sequencesSEXP);
-    Rcpp::traits::input_parameter< size_t >::type chunk_size(chunk_sizeSEXP);
-    rcpp_result_gen = Rcpp::wrap(misalignment_stream(input_path, adapters, nthreads, max_sequences, chunk_size));
-    return rcpp_result_gen;
-END_RCPP
-}
-// tabulate_variable_sequences
-void tabulate_variable_sequences(const std::vector<std::string>& input_files, const std::string& output_prefix, const std::vector<std::string>& identity_elements, bool compress, size_t batch_size);
-RcppExport SEXP _SIRAP_tabulate_variable_sequences(SEXP input_filesSEXP, SEXP output_prefixSEXP, SEXP identity_elementsSEXP, SEXP compressSEXP, SEXP batch_sizeSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const std::vector<std::string>& >::type input_files(input_filesSEXP);
-    Rcpp::traits::input_parameter< const std::string& >::type output_prefix(output_prefixSEXP);
-    Rcpp::traits::input_parameter< const std::vector<std::string>& >::type identity_elements(identity_elementsSEXP);
-    Rcpp::traits::input_parameter< bool >::type compress(compressSEXP);
-    Rcpp::traits::input_parameter< size_t >::type batch_size(batch_sizeSEXP);
-    tabulate_variable_sequences(input_files, output_prefix, identity_elements, compress, batch_size);
-    return R_NilValue;
-END_RCPP
-}
-// tabulate_sigs
-void tabulate_sigs(const std::string& file_path, const std::string& output_prefix, int chunk_size, int max_sequences, int nthreads, bool compress, const std::string& output_type);
-RcppExport SEXP _SIRAP_tabulate_sigs(SEXP file_pathSEXP, SEXP output_prefixSEXP, SEXP chunk_sizeSEXP, SEXP max_sequencesSEXP, SEXP nthreadsSEXP, SEXP compressSEXP, SEXP output_typeSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const std::string& >::type file_path(file_pathSEXP);
-    Rcpp::traits::input_parameter< const std::string& >::type output_prefix(output_prefixSEXP);
-    Rcpp::traits::input_parameter< int >::type chunk_size(chunk_sizeSEXP);
-    Rcpp::traits::input_parameter< int >::type max_sequences(max_sequencesSEXP);
-    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
-    Rcpp::traits::input_parameter< bool >::type compress(compressSEXP);
-    Rcpp::traits::input_parameter< const std::string& >::type output_type(output_typeSEXP);
-    tabulate_sigs(file_path, output_prefix, chunk_size, max_sequences, nthreads, compress, output_type);
-    return R_NilValue;
-END_RCPP
-}
-// fastq_correction
-Rcpp::DataFrame fastq_correction(std::string input_file, std::string output_file, Rcpp::StringVector incorrect_bcs, Rcpp::StringVector correct_bcs, std::string barcode_id, int chunk_size, int print_freq, int nthreads, int downsample);
-RcppExport SEXP _SIRAP_fastq_correction(SEXP input_fileSEXP, SEXP output_fileSEXP, SEXP incorrect_bcsSEXP, SEXP correct_bcsSEXP, SEXP barcode_idSEXP, SEXP chunk_sizeSEXP, SEXP print_freqSEXP, SEXP nthreadsSEXP, SEXP downsampleSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::string >::type input_file(input_fileSEXP);
-    Rcpp::traits::input_parameter< std::string >::type output_file(output_fileSEXP);
-    Rcpp::traits::input_parameter< Rcpp::StringVector >::type incorrect_bcs(incorrect_bcsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::StringVector >::type correct_bcs(correct_bcsSEXP);
-    Rcpp::traits::input_parameter< std::string >::type barcode_id(barcode_idSEXP);
-    Rcpp::traits::input_parameter< int >::type chunk_size(chunk_sizeSEXP);
-    Rcpp::traits::input_parameter< int >::type print_freq(print_freqSEXP);
-    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
-    Rcpp::traits::input_parameter< int >::type downsample(downsampleSEXP);
-    rcpp_result_gen = Rcpp::wrap(fastq_correction(input_file, output_file, incorrect_bcs, correct_bcs, barcode_id, chunk_size, print_freq, nthreads, downsample));
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_SIRAP_sigalign", (DL_FUNC) &_SIRAP_sigalign, 5},
-    {"_SIRAP_sigalign_stats", (DL_FUNC) &_SIRAP_sigalign_stats, 3},
-    {"_SIRAP_extract_blaze_barcode", (DL_FUNC) &_SIRAP_extract_blaze_barcode, 2},
-    {"_SIRAP_extract_blaze_id_bc", (DL_FUNC) &_SIRAP_extract_blaze_id_bc, 3},
     {"_SIRAP_read_seqs_cpp", (DL_FUNC) &_SIRAP_read_seqs_cpp, 4},
     {"_SIRAP_stream_fastqas", (DL_FUNC) &_SIRAP_stream_fastqas, 4},
-    {"_SIRAP_masked_sigalign", (DL_FUNC) &_SIRAP_masked_sigalign, 5},
-    {"_SIRAP_n_masked_misalignment_cigar_string", (DL_FUNC) &_SIRAP_n_masked_misalignment_cigar_string, 5},
-    {"_SIRAP_n_masked_sigalign", (DL_FUNC) &_SIRAP_n_masked_sigalign, 6},
     {"_SIRAP_cmv_consensusMatrix", (DL_FUNC) &_SIRAP_cmv_consensusMatrix, 1},
     {"_SIRAP_find_longest_matches", (DL_FUNC) &_SIRAP_find_longest_matches, 1},
     {"_SIRAP_analyze_cigar_patterns", (DL_FUNC) &_SIRAP_analyze_cigar_patterns, 1},
@@ -574,10 +305,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_SIRAP_stream_paf2mat_anch", (DL_FUNC) &_SIRAP_stream_paf2mat_anch, 11},
     {"_SIRAP_splice_contacts_from_paf", (DL_FUNC) &_SIRAP_splice_contacts_from_paf, 10},
     {"_SIRAP_splice_contacts_from_paf_dt", (DL_FUNC) &_SIRAP_splice_contacts_from_paf_dt, 17},
-    {"_SIRAP_prep_read_layout_rcpp", (DL_FUNC) &_SIRAP_prep_read_layout_rcpp, 3},
-    {"_SIRAP_generate_position_setup_test", (DL_FUNC) &_SIRAP_generate_position_setup_test, 2},
-    {"_SIRAP_sig_extraction_updated", (DL_FUNC) &_SIRAP_sig_extraction_updated, 5},
-    {"_SIRAP_sigrun", (DL_FUNC) &_SIRAP_sigrun, 5},
     {"_SIRAP_revcomp", (DL_FUNC) &_SIRAP_revcomp, 1},
     {"_SIRAP_sequence_to_bits", (DL_FUNC) &_SIRAP_sequence_to_bits, 1},
     {"_SIRAP_sequence_to_bitlist", (DL_FUNC) &_SIRAP_sequence_to_bitlist, 1},
@@ -585,14 +312,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_SIRAP_bits_to_hex", (DL_FUNC) &_SIRAP_bits_to_hex, 2},
     {"_SIRAP_revcomp_bits", (DL_FUNC) &_SIRAP_revcomp_bits, 2},
     {"_SIRAP_hamming_distance_rcpp", (DL_FUNC) &_SIRAP_hamming_distance_rcpp, 2},
-    {"_SIRAP_generate_quaternary_mutations", (DL_FUNC) &_SIRAP_generate_quaternary_mutations, 2},
-    {"_SIRAP_generate_recursive_quaternary_mutations", (DL_FUNC) &_SIRAP_generate_recursive_quaternary_mutations, 3},
     {"_SIRAP_sirap_rcpp_loaded", (DL_FUNC) &_SIRAP_sirap_rcpp_loaded, 0},
-    {"_SIRAP_sigstream", (DL_FUNC) &_SIRAP_sigstream, 13},
-    {"_SIRAP_misalignment_stream", (DL_FUNC) &_SIRAP_misalignment_stream, 5},
-    {"_SIRAP_tabulate_variable_sequences", (DL_FUNC) &_SIRAP_tabulate_variable_sequences, 5},
-    {"_SIRAP_tabulate_sigs", (DL_FUNC) &_SIRAP_tabulate_sigs, 7},
-    {"_SIRAP_fastq_correction", (DL_FUNC) &_SIRAP_fastq_correction, 9},
     {NULL, NULL, 0}
 };
 
