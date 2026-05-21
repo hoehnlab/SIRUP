@@ -2,26 +2,6 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #' @export
-sigalign <- function(adapters, sequences, ids, misalignment_threshold, nthreads) {
-    .Call(`_SIRAP_sigalign`, adapters, sequences, ids, misalignment_threshold, nthreads)
-}
-
-#' @export
-sigalign_stats <- function(adapters, sequences, nthreads = 1L) {
-    .Call(`_SIRAP_sigalign_stats`, adapters, sequences, nthreads)
-}
-
-#' @export
-extract_blaze_barcode <- function(fastq_file, print_every = 10000L) {
-    .Call(`_SIRAP_extract_blaze_barcode`, fastq_file, print_every)
-}
-
-#' @export
-extract_blaze_id_bc <- function(fastq_file, output_file, print_every = 10000L) {
-    invisible(.Call(`_SIRAP_extract_blaze_id_bc`, fastq_file, output_file, print_every))
-}
-
-#' @export
 read_seqs_cpp <- function(filename, type, full_id = FALSE, max_reads = -1L) {
     .Call(`_SIRAP_read_seqs_cpp`, filename, type, full_id, max_reads)
 }
@@ -29,21 +9,6 @@ read_seqs_cpp <- function(filename, type, full_id = FALSE, max_reads = -1L) {
 #' @export
 stream_fastqas <- function(fn, type = "fq", full_id = FALSE, max_reads = -1L) {
     .Call(`_SIRAP_stream_fastqas`, fn, type, full_id, max_reads)
-}
-
-#' @export
-masked_sigalign <- function(adapters, sequences, ids, misalignment_threshold, nthreads) {
-    .Call(`_SIRAP_masked_sigalign`, adapters, sequences, ids, misalignment_threshold, nthreads)
-}
-
-#' @export
-n_masked_misalignment_cigar_string <- function(input_path, adapters, nthreads = 1L, max_sequences = 500000L, chunk_size = 50000L) {
-    .Call(`_SIRAP_n_masked_misalignment_cigar_string`, input_path, adapters, nthreads, max_sequences, chunk_size)
-}
-
-#' @export
-n_masked_sigalign <- function(adapters, sequences, ids, misalignment_threshold, nthreads, verbose = FALSE) {
-    .Call(`_SIRAP_n_masked_sigalign`, adapters, sequences, ids, misalignment_threshold, nthreads, verbose)
 }
 
 #' @export
@@ -97,26 +62,6 @@ splice_contacts_from_paf_dt <- function(df, target = "", region_start = 1.0, reg
 }
 
 #' @export
-prep_read_layout_rcpp <- function(read_layout, misalignment_threshold, verbose) {
-    invisible(.Call(`_SIRAP_prep_read_layout_rcpp`, read_layout, misalignment_threshold, verbose))
-}
-
-#' @export
-generate_position_setup_test <- function(read_layout, misalignment_threshold) {
-    invisible(.Call(`_SIRAP_generate_position_setup_test`, read_layout, misalignment_threshold))
-}
-
-#' @export
-sig_extraction_updated <- function(read_layout, misalignment_threshold, df, processed_sigstrings, verbose) {
-    .Call(`_SIRAP_sig_extraction_updated`, read_layout, misalignment_threshold, df, processed_sigstrings, verbose)
-}
-
-#' @export
-sigrun <- function(read_layout, misalignment_threshold, sigstrings, nthreads = 1L, verbose = FALSE) {
-    .Call(`_SIRAP_sigrun`, read_layout, misalignment_threshold, sigstrings, nthreads, verbose)
-}
-
-#' @export
 revcomp <- function(sequences) {
     .Call(`_SIRAP_revcomp`, sequences)
 }
@@ -151,16 +96,6 @@ hamming_distance_rcpp <- function(a, b) {
     .Call(`_SIRAP_hamming_distance_rcpp`, a, b)
 }
 
-#' @export
-generate_quaternary_mutations <- function(sequences, sequence_length = 32L) {
-    .Call(`_SIRAP_generate_quaternary_mutations`, sequences, sequence_length)
-}
-
-#' @export
-generate_recursive_quaternary_mutations <- function(sequences, mutation_rounds = 2L, sequence_length = 32L) {
-    .Call(`_SIRAP_generate_recursive_quaternary_mutations`, sequences, mutation_rounds, sequence_length)
-}
-
 #' Confirm the SIRAP shared object loaded
 #'
 #' Trivial smoke test for the Rcpp build. Returns `TRUE` if the SIRAP
@@ -171,30 +106,5 @@ generate_recursive_quaternary_mutations <- function(sequences, mutation_rounds =
 #' @export
 sirap_rcpp_loaded <- function() {
     .Call(`_SIRAP_sirap_rcpp_loaded`)
-}
-
-#' @export
-sigstream <- function(input_path, sigstringsFilePath, adapters, read_layout, misalignment_threshold, chunkSize, nthreads, outputPath, write_fastq = TRUE, compress = TRUE, max_sequences = -1L, min_length = 100L, verbose = FALSE) {
-    invisible(.Call(`_SIRAP_sigstream`, input_path, sigstringsFilePath, adapters, read_layout, misalignment_threshold, chunkSize, nthreads, outputPath, write_fastq, compress, max_sequences, min_length, verbose))
-}
-
-#' @export
-misalignment_stream <- function(input_path, adapters, nthreads = 1L, max_sequences = 500000L, chunk_size = 50000L) {
-    .Call(`_SIRAP_misalignment_stream`, input_path, adapters, nthreads, max_sequences, chunk_size)
-}
-
-#' @export
-tabulate_variable_sequences <- function(input_files, output_prefix, identity_elements, compress = TRUE, batch_size = 50000L) {
-    invisible(.Call(`_SIRAP_tabulate_variable_sequences`, input_files, output_prefix, identity_elements, compress, batch_size))
-}
-
-#' @export
-tabulate_sigs <- function(file_path, output_prefix, chunk_size = 50000L, max_sequences = -1L, nthreads = 1L, compress = TRUE, output_type = "summary") {
-    invisible(.Call(`_SIRAP_tabulate_sigs`, file_path, output_prefix, chunk_size, max_sequences, nthreads, compress, output_type))
-}
-
-#' @export
-fastq_correction <- function(input_file, output_file, incorrect_bcs, correct_bcs, barcode_id = "barcode", chunk_size = 50000L, print_freq = 10000L, nthreads = 4L, downsample = -1L) {
-    .Call(`_SIRAP_fastq_correction`, input_file, output_file, incorrect_bcs, correct_bcs, barcode_id, chunk_size, print_freq, nthreads, downsample)
 }
 
