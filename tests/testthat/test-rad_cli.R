@@ -184,6 +184,59 @@ test_that(".rad_call surfaces non-zero exit codes by default", {
   )
 })
 
+# ---- rad_src_path() resolution -------------------------------------------
+
+make_fake_rad_src <- function() {
+  d <- tempfile("rad_src_")
+  dir.create(file.path(d, ".git"), recursive = TRUE)
+  file.create(file.path(d, "CMakeLists.txt"))
+  normalizePath(d)
+}
+
+test_that("rad_src_path() honours explicit path argument", {
+  d <- make_fake_rad_src(); on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  expect_equal(rad_src_path(d), d)
+})
+
+test_that("rad_src_path() rejects a non-clone path", {
+  d <- tempfile("not_rad_"); dir.create(d); on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  expect_error(rad_src_path(d), "not a rad git clone")
+})
+
+test_that("rad_src_path() rejects a missing path", {
+  expect_error(rad_src_path("/definitely/not/here"), "not found")
+})
+
+test_that("rad_src_path() finds the source by walking up from rad_path()", {
+  skip_if_not_unix()
+  src <- make_fake_rad_src(); on.exit(unlink(src, recursive = TRUE), add = TRUE)
+  build_dir <- file.path(src, "build"); dir.create(build_dir)
+  bin <- file.path(build_dir, "rad"); file.create(bin); Sys.chmod(bin, "0755")
+
+  old_opt <- getOption("SIRAP.rad_path")
+  on.exit(options(SIRAP.rad_path = old_opt), add = TRUE)
+  options(SIRAP.rad_path = bin)
+
+  expect_equal(rad_src_path(), src)
+})
+
+test_that("rad_src_path() resolves a symlinked binary", {
+  skip_if_not_unix()
+  src <- make_fake_rad_src(); on.exit(unlink(src, recursive = TRUE), add = TRUE)
+  build_dir <- file.path(src, "build"); dir.create(build_dir)
+  real_bin <- file.path(build_dir, "rad"); file.create(real_bin); Sys.chmod(real_bin, "0755")
+
+  link_dir <- tempfile("bin_"); dir.create(link_dir); on.exit(unlink(link_dir, recursive = TRUE), add = TRUE)
+  link_bin <- file.path(link_dir, "rad")
+  file.symlink(real_bin, link_bin)
+
+  old_opt <- getOption("SIRAP.rad_path")
+  on.exit(options(SIRAP.rad_path = old_opt), add = TRUE)
+  options(SIRAP.rad_path = link_bin)
+
+  expect_equal(rad_src_path(), src)
+})
+
 # ---- rad_run end-to-end orchestrator -------------------------------------
 
 test_that("rad_run requires out_dir", {
