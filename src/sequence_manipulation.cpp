@@ -229,10 +229,22 @@ Rcpp::NumericVector revcomp_bits(Rcpp::NumericVector input, Rcpp::IntegerVector 
   return Rcpp::toInteger64(results);
 }
 
-// Function to calculate the number of differing bits for int64_t sequences
+// True base-level Hamming distance under the 2-bit-per-base encoding.
+//
+// The previous `ceil(popcount(a ^ b) / 2)` formula only gave the right
+// answer when every differing base was a transition (A<->G or C<->T —
+// bit-XOR value 2). For transversions (A<->C, C<->G, G<->T, T<->A —
+// bit-XOR value 1), it under-counted by 0.5 per base, so e.g.
+//   hamming("AAAA", "CCCC") returned 2 instead of 4.
+//
+// Correct approach: collapse each 2-bit chunk of (a XOR b) down to its
+// low bit (1 if any bit in the chunk is set, else 0), then popcount.
+// That counts one differing base regardless of whether the diff flipped
+// one or two bits within the chunk.
 int hamming_distance(int64_t a, int64_t b) {
-  int bit_diff_count = std::bitset<64>(a ^ b).count();
-  return std::ceil(bit_diff_count / 2.0);  // Base Hamming distance
+  uint64_t x = static_cast<uint64_t>(a ^ b);
+  uint64_t collapsed = (x | (x >> 1)) & 0x5555555555555555ULL;
+  return static_cast<int>(std::bitset<64>(collapsed).count());
 }
 
 //' @export
