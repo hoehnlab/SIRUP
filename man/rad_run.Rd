@@ -9,10 +9,17 @@ rad_run(
   fastq,
   out_dir,
   output = "demux",
+  kit = NULL,
   threads = 1L,
   position_map = TRUE,
   do_reformat = FALSE,
-  reformat_args = list(),
+  reformat_out_dir = NULL,
+  split_bc = FALSE,
+  reformat_header = FALSE,
+  reformat_delim = NULL,
+  coordinate = FALSE,
+  bin_size = NULL,
+  reformat_fastq = NULL,
   verbose = FALSE,
   max_verbose = FALSE,
   ...,
@@ -26,13 +33,21 @@ rad_run(
 \item{fastq}{Input FASTQ/FASTQ.gz path.}
 
 \item{out_dir}{Output directory; created if missing. All three
-steps write here.}
+steps write here (reformat's per-barcode FASTQs go to
+\code{reformat_out_dir} instead, which defaults to NULL).}
 
 \item{output}{Filename prefix shared across steps. Default
 \code{"demux"}. prep writes \verb{<out_dir>/<output>_prep_layout.csv}
 and (if \code{position_map = TRUE}) \verb{<output>_prep_position_map.csv};
 demux writes its outputs under \verb{<out_dir>} with \verb{<output>} as
 the filename prefix.}
+
+\item{kit}{Whitelist kit key passed to \code{\link[=rad_demux]{rad_demux()}}. See
+\code{rad_list(whitelists = TRUE)} for the canonical list — at the
+time of writing, valid values include \code{"10x_3v3"}, \code{"10x_3v4"},
+\code{"10x_5v3"}, \code{"10x_Vis_V1"}..\code{"10x_Vis_V5"}, \code{"splitseq_bc1"},
+\code{"splitseq_bc2"}, \code{"visium_hd_bc1"}, \code{"visium_hd_bc2"}. Note the
+underscores — rad does NOT accept \code{"10xv3"} etc.}
 
 \item{threads}{Threads passed to every step.}
 
@@ -43,13 +58,30 @@ semantics; set \code{FALSE} to skip the misalignment-stats scan on
 subsequent runs.}
 
 \item{do_reformat}{Logical; run \code{\link[=rad_reformat]{rad_reformat()}} after demux.
-Default \code{FALSE}.}
+Default \code{FALSE}. The following reformat-specific arguments are
+only consulted when this is \code{TRUE}.}
 
-\item{reformat_args}{Named list of arguments forwarded to
-\code{\link[=rad_reformat]{rad_reformat()}} when \code{do_reformat = TRUE}. The \code{fastq} arg is
-filled in automatically (assumed to be
-\verb{<out_dir>/<output>.fq.gz}); override by including \code{fastq} in
-the list.}
+\item{reformat_out_dir}{Output directory passed to
+\code{\link[=rad_reformat]{rad_reformat()}}'s \code{out_dir}. Required by rad when
+\code{split_bc = TRUE}. Defaults to \code{NULL} (caller's responsibility).}
+
+\item{split_bc}{Logical; split per-barcode FASTQs.}
+
+\item{reformat_header}{Logical; collapse headers to
+\code{QNAME_CB_UB}.}
+
+\item{reformat_delim}{Single-character delimiter for collapsed
+headers.}
+
+\item{coordinate}{\code{FALSE} (default), \code{TRUE} (rad mode
+\code{"vizHD-v1"}), or a string mode.}
+
+\item{bin_size}{Target bin size in microns for coordinate mode.
+rad default 2.}
+
+\item{reformat_fastq}{Path to the FASTQ fed to reformat. Defaults
+to \verb{<out_dir>/<output>.fq.gz} (what rad demux writes). Override
+only if rad wrote it elsewhere.}
 
 \item{verbose, max_verbose}{Verbosity controls, forwarded to all
 three steps.}
@@ -69,17 +101,21 @@ each is the result-list returned by the corresponding wrapper
 \description{
 Convenience wrapper that chains \code{\link[=rad_prep]{rad_prep()}} -> \code{\link[=rad_demux]{rad_demux()}} ->
 optionally \code{\link[=rad_reformat]{rad_reformat()}} in sequence. Every step shells out to
-the same rad binary, writes into the same \code{out_dir}, and shares the
-same \code{threads} setting. A non-zero exit code from any step aborts
-the run.
+the same rad binary, writes into the same \code{out_dir}, and shares
+the same \code{threads} setting. A non-zero exit code from any step
+aborts the run.
 }
 \details{
 Demux is the main step, so additional named args (\code{...}) are
 forwarded to \code{\link[=rad_demux]{rad_demux()}} (e.g. \code{kit}, \code{global_whitelist},
 \code{bc_correction_mode}, \code{chunk_size}, \code{write_dbg}, \code{bc_split}).
-Reformat is optional and disabled by default; pass its options as
-a named list via \code{reformat_args} (e.g. \code{list(split_bc = TRUE, coordinate = "vizHD-v1")}).
+Reformat is optional and disabled by default; its arguments are
+available directly as top-level parameters on \code{rad_run()} —
+\code{reformat_out_dir}, \code{split_bc}, \code{reformat_header},
+\code{reformat_delim}, \code{coordinate}, \code{bin_size} — and are only
+consulted when \code{do_reformat = TRUE}.
 }
 \seealso{
-\code{\link[=rad_prep]{rad_prep()}}, \code{\link[=rad_demux]{rad_demux()}}, \code{\link[=rad_reformat]{rad_reformat()}}
+\code{\link[=rad_prep]{rad_prep()}}, \code{\link[=rad_demux]{rad_demux()}}, \code{\link[=rad_reformat]{rad_reformat()}},
+\code{\link[=rad_list]{rad_list()}} for kit names.
 }
