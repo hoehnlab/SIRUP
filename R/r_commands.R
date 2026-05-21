@@ -1,85 +1,135 @@
 .datatable.aware = TRUE
 
-#' @export
-write_fastqas<-function(df, fn, type = "fq", append = FALSE, nthreads = 1){
-  if(type == "fq"){
-    fq_list<-df %>%
-      dplyr::mutate(dummy = "+") %>%
-      dplyr::select(id, seq, dummy, qual) %>%
-      as.matrix() %>%
-      t() %>%
-      as.character() %>%
-      tibble::as_tibble()
-    data.table::fwrite(fq_list, file = fn, compress = "auto", col.names = FALSE, quote = FALSE, append = append, nThread = nthreads)
-  }
-  if(type == "fa"){
-    if(any(grepl("^>", df$id)) == FALSE){
-      df$id<-paste0(">",df$id)
-      fa_list<-df %>%
-        dplyr::select(id, seq) %>%
-        as.matrix() %>%
-        t() %>%
-        as.character() %>%
-        tibble::as_tibble()
-      data.table::fwrite(fa_list, file = fn, compress = "auto", col.names = FALSE, quote = FALSE, append = append, nThread = nthreads)
-    } else {
-    fa_list<-df %>%
-      dplyr::select(id, seq) %>%
-      as.matrix() %>%
-      t() %>%
-      as.character() %>%
-      tibble::as_tibble()
-    data.table::fwrite(fa_list, file = fn, compress = "auto", col.names = FALSE, quote = FALSE, append = append, nThread = nthreads)
-    }
-  }
+# Shared FASTQ/FASTA header contract for read_fastqas / write_fastqas /
+# stream_fastqas:
+#   - `id`      always present; short id (everything before first space),
+#               with no leading `@` (fastq) or `>` (fasta).
+#   - `full_id` present only when `full_id = TRUE`; full header (name +
+#               comment) with no leading `@`/`>`.
+#   - `seq`     always present.
+#   - `qual`    present for fastq.
+#   - Column order: id, full_id (if requested), seq, qual (if fastq).
+#
+# `type` accepts "fq" / "fastq" / "fa" / "fasta" in all three functions.
+
+.fastqas_normalize_type <- function(type) {
+  type <- match.arg(type, c("fq", "fastq", "fa", "fasta"))
+  if (type %in% c("fa", "fasta")) "fa" else "fq"
 }
 
+#' Write a data.table of sequences to FASTQ/FASTA
+#'
+#' @param df data.table or data.frame with at least `seq` (and `qual` for
+#'   fastq). The header column is chosen by `header_col`.
+#' @param fn output path.
+#' @param type one of `"fq"`, `"fastq"`, `"fa"`, `"fasta"`.
+#' @param header_col column name to use as the record header. Defaults to
+#'   `"id"`. Pass `"full_id"` to write the full header instead.
+#' @param append append to an existing file?
+#' @param nthreads `data.table::fwrite` thread count.
+#' @return Invisibly returns `fn`.
 #' @export
-read_fastqas<-function(fn, type = "fq", full_id = FALSE, ...){
-  rfq_single<-function(fn, type, full_id = FALSE, ...){
-    ext<-tools::file_ext(fn)
-    sysname<-Sys.info()[["sysname"]]
-    if (ext == "gz"){
-      if(sysname == "Linux"){
-        cat_cmd<-"zcat"
-      }else if(sysname =="Darwin"){
-        cat_cmd<-"gunzip -c"
-      }else{
-        stop("Unsupported OS")
-      }
-    } else {
-      cat_cmd<-"cat"
-    }
-    if (type == "fq"){
-      res<-data.table::fread(
-        cmd = glue::glue("{cat_cmd} {fn} | paste - - - - | cut -f1,2,4"),
-        col.names = c("id", "seq", "qual"),
-        sep = "\t", header = FALSE, quote = "", data.table = TRUE, ...
-      )
-      res<-res[, .(id = data.table::tstrsplit(id, " ", fixed = TRUE)[[1]], qual, seq)]
-      if (full_id) {
-        res[, full_id := id]
-      }
-      return(res)
-    }
-    if(type == "fa"){
-      awk_cmd<-'awk \'/^>/{if (NR>1) printf("\\n"); printf("%s\\t",$0); next} {printf("%s",$0);} END {printf("\\n");}\''
-      res<-data.table::fread(
-        cmd = glue::glue("{cat_cmd} {fn} | {awk_cmd}"),
-        col.names = c("id", "seq"),
-        sep = "\t", data.table = TRUE, ...
-      )
-      return(res)
-    }
+write_fastqas <- function(df, fn, type = "fq", header_col = "id",
+                          append = FALSE, nthreads = 1) {
+  type <- .fastqas_normalize_type(type)
+  if (!header_col %in% names(df)) {
+    stop("header_col '", header_col, "' not found in df. ",
+         "Use header_col = 'id' or 'full_id'.")
   }
-  if (is.list(fn) || length(fn) > 1) {
-    out<-pbapply::pblapply(fn, FUN = function(X) {
-      rfq_single(fn = X, type = type, full_id = full_id, ...)
-    }, ...)
-    dt<-data.table::rbindlist(out)
-    return(dt)
+  if (!"seq" %in% names(df)) stop("`df` must have a `seq` column.")
+  prefix  <- if (type == "fq") "@" else ">"
+  headers <- paste0(prefix, sub("^[@>]", "", df[[header_col]]))
+  if (type == "fq") {
+    if (!"qual" %in% names(df)) stop("FASTQ output requires a `qual` column.")
+    out <- tibble::tibble(header = headers,
+                          seq    = df$seq,
+                          plus   = "+",
+                          qual   = df$qual)
   } else {
-    return(rfq_single(fn = fn, type = type, full_id = full_id, ...))
+    out <- tibble::tibble(header = headers,
+                          seq    = df$seq)
+  }
+  flat <- as.character(t(as.matrix(out)))
+  data.table::fwrite(
+    data.table::data.table(line = flat),
+    file = fn, compress = "auto", col.names = FALSE,
+    quote = FALSE, append = append, nThread = nthreads
+  )
+  invisible(fn)
+}
+
+#' Read FASTQ/FASTA into a data.table
+#'
+#' Returns a data.table matching the shared contract documented above:
+#' columns `id`, optionally `full_id`, then `seq`, then `qual` (fastq only).
+#' Headers are stripped of their leading `@` / `>`. `id` is the first
+#' whitespace-delimited token of the header; `full_id` is the entire
+#' header.
+#'
+#' @param fn input path, or a character vector / list of paths.
+#' @param type one of `"fq"`, `"fastq"`, `"fa"`, `"fasta"`.
+#' @param full_id include a `full_id` column with the full header.
+#' @param ... passed through to `data.table::fread`.
+#' @return data.table.
+#' @export
+read_fastqas <- function(fn, type = "fq", full_id = FALSE, ...) {
+  type <- .fastqas_normalize_type(type)
+  include_full <- isTRUE(full_id)
+
+  rfq_single <- function(path) {
+    ext <- tools::file_ext(path)
+    sysname <- Sys.info()[["sysname"]]
+    cat_cmd <- if (ext == "gz") {
+      switch(sysname,
+             Linux  = "zcat",
+             Darwin = "gunzip -c",
+             stop("Unsupported OS: ", sysname))
+    } else {
+      "cat"
+    }
+
+    if (type == "fq") {
+      res <- data.table::fread(
+        cmd = glue::glue("{cat_cmd} {path} | paste - - - - | cut -f1,2,4"),
+        col.names = c("hdr", "seq", "qual"),
+        sep = "\t", header = FALSE, quote = "",
+        data.table = TRUE, ...
+      )
+      res[, hdr := sub("^@", "", hdr)]
+      res[, id := data.table::tstrsplit(hdr, " ", fixed = TRUE)[[1]]]
+      if (include_full) {
+        data.table::setnames(res, "hdr", "full_id")
+        data.table::setcolorder(res, c("id", "full_id", "seq", "qual"))
+      } else {
+        res[, hdr := NULL]
+        data.table::setcolorder(res, c("id", "seq", "qual"))
+      }
+      return(res[])
+    }
+
+    awk_cmd <- 'awk \'/^>/{if (NR>1) printf("\\n"); printf("%s\\t",$0); next} {printf("%s",$0);} END {printf("\\n");}\''
+    res <- data.table::fread(
+      cmd = glue::glue("{cat_cmd} {path} | {awk_cmd}"),
+      col.names = c("hdr", "seq"),
+      sep = "\t", data.table = TRUE, ...
+    )
+    res[, hdr := sub("^>", "", hdr)]
+    res[, id := data.table::tstrsplit(hdr, " ", fixed = TRUE)[[1]]]
+    if (include_full) {
+      data.table::setnames(res, "hdr", "full_id")
+      data.table::setcolorder(res, c("id", "full_id", "seq"))
+    } else {
+      res[, hdr := NULL]
+      data.table::setcolorder(res, c("id", "seq"))
+    }
+    res[]
+  }
+
+  if (is.list(fn) || length(fn) > 1) {
+    out <- pbapply::pblapply(fn, rfq_single)
+    data.table::rbindlist(out)
+  } else {
+    rfq_single(fn)
   }
 }
 
