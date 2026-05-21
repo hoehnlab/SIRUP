@@ -183,3 +183,119 @@ test_that(".rad_call surfaces non-zero exit codes by default", {
     "status 2"
   )
 })
+
+# ---- rad_run end-to-end orchestrator -------------------------------------
+
+test_that("rad_run requires out_dir", {
+  expect_error(
+    rad_run(layout = "five_prime", fastq = "x.fq.gz", rad = tempfile()),
+    "out_dir"
+  )
+})
+
+test_that("rad_run chains prep + demux by default (position_map = TRUE)", {
+  skip_if_not_unix()
+  log <- tempfile(); file.create(log); on.exit(unlink(log), add = TRUE)
+  mock <- make_mock_rad(log); on.exit(unlink(mock), add = TRUE)
+  out_dir <- tempfile(); dir.create(out_dir); on.exit(unlink(out_dir, recursive = TRUE), add = TRUE)
+
+  rad_run(
+    layout = "five_prime", fastq = "reads.fq.gz",
+    out_dir = out_dir, output = "demo",
+    threads = 4L, rad = mock, capture = TRUE
+  )
+
+  got <- readLines(log)
+  expect_length(got, 2)                       # prep + demux, no reformat
+  expect_match(got[[1]], "^prep")
+  expect_match(got[[1]], "--position-map")
+  expect_match(got[[1]], "--fastq reads.fq.gz")
+  expect_match(got[[1]], paste0("--output ", out_dir, "/demo_prep"))
+  expect_match(got[[2]], "^demux")
+  expect_match(got[[2]], paste0("--dir ", out_dir))
+  expect_match(got[[2]], "--output demo")
+})
+
+test_that("rad_run with position_map = FALSE runs a lightweight prep", {
+  skip_if_not_unix()
+  log <- tempfile(); file.create(log); on.exit(unlink(log), add = TRUE)
+  mock <- make_mock_rad(log); on.exit(unlink(mock), add = TRUE)
+  out_dir <- tempfile(); dir.create(out_dir); on.exit(unlink(out_dir, recursive = TRUE), add = TRUE)
+
+  rad_run(
+    layout = "five_prime", fastq = "reads.fq.gz",
+    out_dir = out_dir, position_map = FALSE,
+    rad = mock, capture = TRUE
+  )
+
+  got <- readLines(log)
+  expect_length(got, 2)
+  expect_match(got[[1]], "^prep")
+  expect_match(got[[1]], "--read-layout")
+  expect_false(grepl("--position-map", got[[1]]))
+  expect_false(grepl("--fastq",        got[[1]]))
+})
+
+test_that("rad_run forwards `...` to demux", {
+  skip_if_not_unix()
+  log <- tempfile(); file.create(log); on.exit(unlink(log), add = TRUE)
+  mock <- make_mock_rad(log); on.exit(unlink(mock), add = TRUE)
+  out_dir <- tempfile(); dir.create(out_dir); on.exit(unlink(out_dir, recursive = TRUE), add = TRUE)
+
+  rad_run(
+    layout = "five_prime", fastq = "reads.fq.gz", out_dir = out_dir,
+    kit = "10xv3", bc_correction_mode = "offensive",
+    rad = mock, capture = TRUE
+  )
+
+  got <- readLines(log)
+  expect_match(got[[2]], "^demux")
+  expect_match(got[[2]], "--kit 10xv3")
+  expect_match(got[[2]], "--bc-correction-mode offensive")
+})
+
+test_that("rad_run runs all three steps when do_reformat = TRUE and demux output exists", {
+  skip_if_not_unix()
+  log <- tempfile(); file.create(log); on.exit(unlink(log), add = TRUE)
+  mock <- make_mock_rad(log); on.exit(unlink(mock), add = TRUE)
+  out_dir <- tempfile(); dir.create(out_dir); on.exit(unlink(out_dir, recursive = TRUE), add = TRUE)
+
+  # Touch the expected demux output so the reformat step proceeds.
+  file.create(file.path(out_dir, "demo.fq.gz"))
+
+  rad_run(
+    layout = "five_prime", fastq = "reads.fq.gz",
+    out_dir = out_dir, output = "demo",
+    do_reformat = TRUE,
+    reformat_args = list(split_bc = TRUE, out_dir = file.path(out_dir, "by_bc")),
+    rad = mock, capture = TRUE
+  )
+
+  got <- readLines(log)
+  expect_length(got, 3)
+  expect_match(got[[1]], "^prep")
+  expect_match(got[[2]], "^demux")
+  expect_match(got[[3]], "^reformat")
+  expect_match(got[[3]], "--split-bc")
+  expect_match(got[[3]], paste0("--fastq ", out_dir, "/demo.fq.gz"))
+})
+
+test_that("rad_run warns and skips reformat when demux output is missing", {
+  skip_if_not_unix()
+  log <- tempfile(); file.create(log); on.exit(unlink(log), add = TRUE)
+  mock <- make_mock_rad(log); on.exit(unlink(mock), add = TRUE)
+  out_dir <- tempfile(); dir.create(out_dir); on.exit(unlink(out_dir, recursive = TRUE), add = TRUE)
+
+  expect_warning(
+    rad_run(
+      layout = "five_prime", fastq = "reads.fq.gz",
+      out_dir = out_dir, do_reformat = TRUE,
+      reformat_args = list(split_bc = TRUE, out_dir = out_dir),
+      rad = mock, capture = TRUE
+    ),
+    "skipping reformat"
+  )
+
+  got <- readLines(log)
+  expect_length(got, 2)              # prep + demux only; reformat skipped
+})

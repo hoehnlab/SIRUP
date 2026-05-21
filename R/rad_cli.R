@@ -445,3 +445,127 @@ rad_help <- function(topic = NULL, rad = rad_path()) {
   args <- if (is.null(topic)) c("--help") else c("help", topic)
   .rad_call(args, rad = rad, capture = TRUE, echo = FALSE, check = FALSE)
 }
+
+#' Run the full rad CLI pipeline end-to-end
+#'
+#' Convenience wrapper that chains [rad_prep()] -> [rad_demux()] ->
+#' optionally [rad_reformat()] in sequence. Every step shells out to
+#' the same rad binary, writes into the same `out_dir`, and shares the
+#' same `threads` setting. A non-zero exit code from any step aborts
+#' the run.
+#'
+#' Demux is the main step, so additional named args (`...`) are
+#' forwarded to [rad_demux()] (e.g. `kit`, `global_whitelist`,
+#' `bc_correction_mode`, `chunk_size`, `write_dbg`, `bc_split`).
+#' Reformat is optional and disabled by default; pass its options as
+#' a named list via `reformat_args` (e.g. `list(split_bc = TRUE,
+#' coordinate = "vizHD-v1")`).
+#'
+#' @param layout Layout key or layout-CSV path.
+#' @param fastq Input FASTQ/FASTQ.gz path.
+#' @param out_dir Output directory; created if missing. All three
+#'   steps write here.
+#' @param output Filename prefix shared across steps. Default
+#'   `"demux"`. prep writes `<out_dir>/<output>_prep_layout.csv`
+#'   and (if `position_map = TRUE`) `<output>_prep_position_map.csv`;
+#'   demux writes its outputs under `<out_dir>` with `<output>` as
+#'   the filename prefix.
+#' @param threads Threads passed to every step.
+#' @param position_map Logical; compute a position map in the prep
+#'   step (i.e., run `rad prep --position-map -q <fastq>` in addition
+#'   to layout validation). Default `TRUE` for true end-to-end
+#'   semantics; set `FALSE` to skip the misalignment-stats scan on
+#'   subsequent runs.
+#' @param do_reformat Logical; run [rad_reformat()] after demux.
+#'   Default `FALSE`.
+#' @param reformat_args Named list of arguments forwarded to
+#'   [rad_reformat()] when `do_reformat = TRUE`. The `fastq` arg is
+#'   filled in automatically (assumed to be
+#'   `<out_dir>/<output>.fq.gz`); override by including `fastq` in
+#'   the list.
+#' @param verbose,max_verbose Verbosity controls, forwarded to all
+#'   three steps.
+#' @param ... Additional named args forwarded to [rad_demux()].
+#' @param capture Logical; capture stdout/stderr from each step into
+#'   the returned result instead of streaming to the R console.
+#' @param rad Path to the rad binary. Default [rad_path()].
+#' @return Invisible list with `prep`, `demux`, `reformat` slots;
+#'   each is the result-list returned by the corresponding wrapper
+#'   (or `NULL` for skipped steps).
+#' @seealso [rad_prep()], [rad_demux()], [rad_reformat()]
+#' @export
+rad_run <- function(layout, fastq,
+                    out_dir,
+                    output = "demux",
+                    threads = 1L,
+                    position_map = TRUE,
+                    do_reformat = FALSE,
+                    reformat_args = list(),
+                    verbose = FALSE,
+                    max_verbose = FALSE,
+                    ...,
+                    capture = FALSE,
+                    rad = rad_path()) {
+  if (missing(out_dir) || is.null(out_dir) || !nzchar(out_dir)) {
+    rlang::abort("`out_dir` is required.")
+  }
+  if (!dir.exists(out_dir)) {
+    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  }
+
+  # --- prep -------------------------------------------------------------
+  prep_base <- file.path(out_dir, paste0(output, "_prep"))
+  prep_res <- rad_prep(
+    layout       = layout,
+    read_layout  = TRUE,
+    position_map = isTRUE(position_map),
+    fastq        = if (isTRUE(position_map)) fastq else NULL,
+    output       = if (isTRUE(position_map)) prep_base else NULL,
+    threads      = threads,
+    verbose      = verbose,
+    max_verbose  = max_verbose,
+    capture      = capture,
+    rad          = rad
+  )
+
+  # --- demux ------------------------------------------------------------
+  demux_res <- rad_demux(
+    layout      = layout,
+    fastq       = fastq,
+    out_dir     = out_dir,
+    output      = output,
+    threads     = threads,
+    verbose     = verbose,
+    max_verbose = max_verbose,
+    ...,
+    capture     = capture,
+    rad         = rad
+  )
+
+  # --- reformat (optional) ----------------------------------------------
+  reformat_res <- NULL
+  if (isTRUE(do_reformat)) {
+    demux_fq <- file.path(out_dir, paste0(output, ".fq.gz"))
+    rfmt_call <- utils::modifyList(
+      list(
+        fastq   = demux_fq,
+        threads = threads,
+        verbose = verbose,
+        capture = capture,
+        rad     = rad
+      ),
+      reformat_args
+    )
+    if (!file.exists(rfmt_call$fastq)) {
+      rlang::warn(paste0(
+        "rad_run: demux output '", rfmt_call$fastq,
+        "' not found; skipping reformat. Pass `reformat_args = list(fastq = ...)` ",
+        "if rad wrote it elsewhere."
+      ))
+    } else {
+      reformat_res <- do.call(rad_reformat, rfmt_call)
+    }
+  }
+
+  invisible(list(prep = prep_res, demux = demux_res, reformat = reformat_res))
+}
