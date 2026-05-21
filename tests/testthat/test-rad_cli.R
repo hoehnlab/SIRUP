@@ -104,12 +104,12 @@ test_that("rad_demux maps named args to the right CLI flags", {
   mock <- make_mock_rad(log); on.exit(unlink(mock), add = TRUE)
 
   rad_demux(layout = "five_prime", fastq = "reads.fq.gz",
-            kit = "10xv3", out_dir = "results", output = "demo",
+            kit = "10x_3v3", out_dir = "results", output = "demo",
             threads = 8L, bc_split = TRUE,
             rad = mock, capture = TRUE)
   got <- paste(readLines(log), collapse = " ")
   expect_match(got, "^demux")
-  expect_match(got, "--kit 10xv3")
+  expect_match(got, "--kit 10x_3v3")
   expect_match(got, "--dir results")
   expect_match(got, "--output demo")
   expect_match(got, "--bc-split")
@@ -244,13 +244,13 @@ test_that("rad_run forwards `...` to demux", {
 
   rad_run(
     layout = "five_prime", fastq = "reads.fq.gz", out_dir = out_dir,
-    kit = "10xv3", bc_correction_mode = "offensive",
+    kit = "10x_3v3", bc_correction_mode = "offensive",
     rad = mock, capture = TRUE
   )
 
   got <- readLines(log)
   expect_match(got[[2]], "^demux")
-  expect_match(got[[2]], "--kit 10xv3")
+  expect_match(got[[2]], "--kit 10x_3v3")
   expect_match(got[[2]], "--bc-correction-mode offensive")
 })
 
@@ -266,8 +266,9 @@ test_that("rad_run runs all three steps when do_reformat = TRUE and demux output
   rad_run(
     layout = "five_prime", fastq = "reads.fq.gz",
     out_dir = out_dir, output = "demo",
-    do_reformat = TRUE,
-    reformat_args = list(split_bc = TRUE, out_dir = file.path(out_dir, "by_bc")),
+    do_reformat      = TRUE,
+    split_bc         = TRUE,
+    reformat_out_dir = file.path(out_dir, "by_bc"),
     rad = mock, capture = TRUE
   )
 
@@ -277,7 +278,33 @@ test_that("rad_run runs all three steps when do_reformat = TRUE and demux output
   expect_match(got[[2]], "^demux")
   expect_match(got[[3]], "^reformat")
   expect_match(got[[3]], "--split-bc")
+  expect_match(got[[3]], paste0("--outdir ", out_dir, "/by_bc"))
   expect_match(got[[3]], paste0("--fastq ", out_dir, "/demo.fq.gz"))
+})
+
+test_that("rad_run reformat-specific flags propagate", {
+  skip_if_not_unix()
+  log <- tempfile(); file.create(log); on.exit(unlink(log), add = TRUE)
+  mock <- make_mock_rad(log); on.exit(unlink(mock), add = TRUE)
+  out_dir <- tempfile(); dir.create(out_dir); on.exit(unlink(out_dir, recursive = TRUE), add = TRUE)
+  file.create(file.path(out_dir, "demo.fq.gz"))
+
+  rad_run(
+    layout = "five_prime", fastq = "reads.fq.gz",
+    out_dir = out_dir, output = "demo",
+    do_reformat     = TRUE,
+    reformat_header = TRUE,
+    reformat_delim  = "_",
+    coordinate      = "vizHD-v1",
+    bin_size        = 8L,
+    rad = mock, capture = TRUE
+  )
+
+  rfmt <- readLines(log)[[3]]
+  expect_match(rfmt, "--reformat-header")
+  expect_match(rfmt, "--reformat-delim _")
+  expect_match(rfmt, "--coordinate=vizHD-v1")
+  expect_match(rfmt, "--bin-size 8")
 })
 
 test_that("rad_run warns and skips reformat when demux output is missing", {
@@ -289,8 +316,10 @@ test_that("rad_run warns and skips reformat when demux output is missing", {
   expect_warning(
     rad_run(
       layout = "five_prime", fastq = "reads.fq.gz",
-      out_dir = out_dir, do_reformat = TRUE,
-      reformat_args = list(split_bc = TRUE, out_dir = out_dir),
+      out_dir = out_dir,
+      do_reformat      = TRUE,
+      split_bc         = TRUE,
+      reformat_out_dir = out_dir,
       rad = mock, capture = TRUE
     ),
     "skipping reformat"
@@ -298,4 +327,24 @@ test_that("rad_run warns and skips reformat when demux output is missing", {
 
   got <- readLines(log)
   expect_length(got, 2)              # prep + demux only; reformat skipped
+})
+
+test_that("rad_run honours reformat_fastq override", {
+  skip_if_not_unix()
+  log <- tempfile(); file.create(log); on.exit(unlink(log), add = TRUE)
+  mock <- make_mock_rad(log); on.exit(unlink(mock), add = TRUE)
+  out_dir <- tempfile(); dir.create(out_dir); on.exit(unlink(out_dir, recursive = TRUE), add = TRUE)
+  custom_fq <- file.path(out_dir, "elsewhere.fq.gz")
+  file.create(custom_fq)
+
+  rad_run(
+    layout = "five_prime", fastq = "reads.fq.gz",
+    out_dir = out_dir,
+    do_reformat    = TRUE,
+    reformat_fastq = custom_fq,
+    rad = mock, capture = TRUE
+  )
+
+  rfmt <- readLines(log)[[3]]
+  expect_match(rfmt, paste0("--fastq ", custom_fq))
 })

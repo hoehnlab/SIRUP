@@ -160,7 +160,14 @@ rad_prep <- function(layout,
 #'
 #' @param layout Layout key or path to a layout CSV.
 #' @param fastq Path to input FASTQ/FASTQ.gz.
-#' @param kit Use this kit's default whitelist.
+#' @param kit Use this kit's default whitelist. The canonical list
+#'   comes from `rad_list(whitelists = TRUE)`; at the time of writing
+#'   rad recognizes (note the underscores) `"10x_3v1"`, `"10x_3v2"`,
+#'   `"10x_3v3"`, `"10x_3HTv3.1"`, `"10x_3v3.1"`, `"10x_3v4"`,
+#'   `"10x_5v1"`, `"10x_5v2"`, `"10x_5HTv2"`, `"10x_5v3"`,
+#'   `"10x_Vis_V1"`..`"10x_Vis_V5"`, `"splitseq_bc1"`,
+#'   `"splitseq_bc2"`, `"visium_hd_bc1"`, `"visium_hd_bc2"`.
+#'   `"10xv3"` is NOT valid; use `"10x_3v3"`.
 #' @param global_whitelist Path to a custom global whitelist CSV.
 #' @param custom_whitelist Path to a custom whitelist CSV.
 #' @param bc_correction_mode `"offensive"` (default) or `"defensive"`.
@@ -450,26 +457,35 @@ rad_help <- function(topic = NULL, rad = rad_path()) {
 #'
 #' Convenience wrapper that chains [rad_prep()] -> [rad_demux()] ->
 #' optionally [rad_reformat()] in sequence. Every step shells out to
-#' the same rad binary, writes into the same `out_dir`, and shares the
-#' same `threads` setting. A non-zero exit code from any step aborts
-#' the run.
+#' the same rad binary, writes into the same `out_dir`, and shares
+#' the same `threads` setting. A non-zero exit code from any step
+#' aborts the run.
 #'
 #' Demux is the main step, so additional named args (`...`) are
 #' forwarded to [rad_demux()] (e.g. `kit`, `global_whitelist`,
 #' `bc_correction_mode`, `chunk_size`, `write_dbg`, `bc_split`).
-#' Reformat is optional and disabled by default; pass its options as
-#' a named list via `reformat_args` (e.g. `list(split_bc = TRUE,
-#' coordinate = "vizHD-v1")`).
+#' Reformat is optional and disabled by default; its arguments are
+#' available directly as top-level parameters on `rad_run()` —
+#' `reformat_out_dir`, `split_bc`, `reformat_header`,
+#' `reformat_delim`, `coordinate`, `bin_size` — and are only
+#' consulted when `do_reformat = TRUE`.
 #'
 #' @param layout Layout key or layout-CSV path.
 #' @param fastq Input FASTQ/FASTQ.gz path.
 #' @param out_dir Output directory; created if missing. All three
-#'   steps write here.
+#'   steps write here (reformat's per-barcode FASTQs go to
+#'   `reformat_out_dir` instead, which defaults to NULL).
 #' @param output Filename prefix shared across steps. Default
 #'   `"demux"`. prep writes `<out_dir>/<output>_prep_layout.csv`
 #'   and (if `position_map = TRUE`) `<output>_prep_position_map.csv`;
 #'   demux writes its outputs under `<out_dir>` with `<output>` as
 #'   the filename prefix.
+#' @param kit Whitelist kit key passed to [rad_demux()]. See
+#'   `rad_list(whitelists = TRUE)` for the canonical list — at the
+#'   time of writing, valid values include `"10x_3v3"`, `"10x_3v4"`,
+#'   `"10x_5v3"`, `"10x_Vis_V1"`..`"10x_Vis_V5"`, `"splitseq_bc1"`,
+#'   `"splitseq_bc2"`, `"visium_hd_bc1"`, `"visium_hd_bc2"`. Note the
+#'   underscores — rad does NOT accept `"10xv3"` etc.
 #' @param threads Threads passed to every step.
 #' @param position_map Logical; compute a position map in the prep
 #'   step (i.e., run `rad prep --position-map -q <fastq>` in addition
@@ -477,12 +493,23 @@ rad_help <- function(topic = NULL, rad = rad_path()) {
 #'   semantics; set `FALSE` to skip the misalignment-stats scan on
 #'   subsequent runs.
 #' @param do_reformat Logical; run [rad_reformat()] after demux.
-#'   Default `FALSE`.
-#' @param reformat_args Named list of arguments forwarded to
-#'   [rad_reformat()] when `do_reformat = TRUE`. The `fastq` arg is
-#'   filled in automatically (assumed to be
-#'   `<out_dir>/<output>.fq.gz`); override by including `fastq` in
-#'   the list.
+#'   Default `FALSE`. The following reformat-specific arguments are
+#'   only consulted when this is `TRUE`.
+#' @param reformat_out_dir Output directory passed to
+#'   [rad_reformat()]'s `out_dir`. Required by rad when
+#'   `split_bc = TRUE`. Defaults to `NULL` (caller's responsibility).
+#' @param split_bc Logical; split per-barcode FASTQs.
+#' @param reformat_header Logical; collapse headers to
+#'   `QNAME_CB_UB`.
+#' @param reformat_delim Single-character delimiter for collapsed
+#'   headers.
+#' @param coordinate `FALSE` (default), `TRUE` (rad mode
+#'   `"vizHD-v1"`), or a string mode.
+#' @param bin_size Target bin size in microns for coordinate mode.
+#'   rad default 2.
+#' @param reformat_fastq Path to the FASTQ fed to reformat. Defaults
+#'   to `<out_dir>/<output>.fq.gz` (what rad demux writes). Override
+#'   only if rad wrote it elsewhere.
 #' @param verbose,max_verbose Verbosity controls, forwarded to all
 #'   three steps.
 #' @param ... Additional named args forwarded to [rad_demux()].
@@ -492,15 +519,23 @@ rad_help <- function(topic = NULL, rad = rad_path()) {
 #' @return Invisible list with `prep`, `demux`, `reformat` slots;
 #'   each is the result-list returned by the corresponding wrapper
 #'   (or `NULL` for skipped steps).
-#' @seealso [rad_prep()], [rad_demux()], [rad_reformat()]
+#' @seealso [rad_prep()], [rad_demux()], [rad_reformat()],
+#'   [rad_list()] for kit names.
 #' @export
 rad_run <- function(layout, fastq,
                     out_dir,
                     output = "demux",
+                    kit = NULL,
                     threads = 1L,
                     position_map = TRUE,
                     do_reformat = FALSE,
-                    reformat_args = list(),
+                    reformat_out_dir = NULL,
+                    split_bc = FALSE,
+                    reformat_header = FALSE,
+                    reformat_delim = NULL,
+                    coordinate = FALSE,
+                    bin_size = NULL,
+                    reformat_fastq = NULL,
                     verbose = FALSE,
                     max_verbose = FALSE,
                     ...,
@@ -532,6 +567,7 @@ rad_run <- function(layout, fastq,
   demux_res <- rad_demux(
     layout      = layout,
     fastq       = fastq,
+    kit         = kit,
     out_dir     = out_dir,
     output      = output,
     threads     = threads,
@@ -545,25 +581,31 @@ rad_run <- function(layout, fastq,
   # --- reformat (optional) ----------------------------------------------
   reformat_res <- NULL
   if (isTRUE(do_reformat)) {
-    demux_fq <- file.path(out_dir, paste0(output, ".fq.gz"))
-    rfmt_call <- utils::modifyList(
-      list(
-        fastq   = demux_fq,
-        threads = threads,
-        verbose = verbose,
-        capture = capture,
-        rad     = rad
-      ),
-      reformat_args
-    )
-    if (!file.exists(rfmt_call$fastq)) {
+    rfmt_fastq <- if (is.null(reformat_fastq)) {
+      file.path(out_dir, paste0(output, ".fq.gz"))
+    } else {
+      reformat_fastq
+    }
+    if (!file.exists(rfmt_fastq)) {
       rlang::warn(paste0(
-        "rad_run: demux output '", rfmt_call$fastq,
-        "' not found; skipping reformat. Pass `reformat_args = list(fastq = ...)` ",
+        "rad_run: demux output '", rfmt_fastq,
+        "' not found; skipping reformat. Pass `reformat_fastq = ...` ",
         "if rad wrote it elsewhere."
       ))
     } else {
-      reformat_res <- do.call(rad_reformat, rfmt_call)
+      reformat_res <- rad_reformat(
+        fastq           = rfmt_fastq,
+        out_dir         = reformat_out_dir,
+        split_bc        = split_bc,
+        reformat_header = reformat_header,
+        reformat_delim  = reformat_delim,
+        coordinate      = coordinate,
+        bin_size        = bin_size,
+        threads         = threads,
+        verbose         = verbose,
+        capture         = capture,
+        rad             = rad
+      )
     }
   }
 

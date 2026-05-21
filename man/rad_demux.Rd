@@ -34,7 +34,14 @@ rad_demux(
 
 \item{fastq}{Path to input FASTQ/FASTQ.gz.}
 
-\item{kit}{Use this kit's default whitelist.}
+\item{kit}{Use this kit's default whitelist. The canonical list
+comes from \code{rad_list(whitelists = TRUE)}; at the time of writing
+rad recognizes (note the underscores) \code{"10x_3v1"}, \code{"10x_3v2"},
+\code{"10x_3v3"}, \code{"10x_3HTv3.1"}, \code{"10x_3v3.1"}, \code{"10x_3v4"},
+\code{"10x_5v1"}, \code{"10x_5v2"}, \code{"10x_5HTv2"}, \code{"10x_5v3"},
+\code{"10x_Vis_V1"}..\code{"10x_Vis_V5"}, \code{"splitseq_bc1"},
+\code{"splitseq_bc2"}, \code{"visium_hd_bc1"}, \code{"visium_hd_bc2"}.
+\code{"10xv3"} is NOT valid; use \code{"10x_3v3"}.}
 
 \item{global_whitelist}{Path to a custom global whitelist CSV.}
 
