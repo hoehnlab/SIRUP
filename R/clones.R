@@ -6,7 +6,7 @@
 #' @param ... Passed to `scoper::hierarchicalClones()`.
 #' @return Data frame with clone assignments.
 #' @export
-assignSpatialClones <- function(airr_df,
+assign_spatial_clones <- function(airr_df,
                                   threshold = 0.1,
                                   productive_only = TRUE,
                                   ...) {
@@ -25,7 +25,7 @@ assignSpatialClones <- function(airr_df,
 #' @param sparse Return a sparse Matrix when the optional `Matrix` package exists.
 #' @return Clone-by-barcode count matrix.
 #' @export
-buildCloneCountMatrix <- function(clones,
+build_clone_count_matrix <- function(clones,
                                      clone_col = "clone_id",
                                      barcode_col = "barcode",
                                      sparse = TRUE) {
@@ -43,7 +43,7 @@ buildCloneCountMatrix <- function(clones,
 #' @param c_call Character vector of constant-region allele calls.
 #' @return Character vector such as `IgM`, `IgG1`, or `unknown`.
 #' @export
-simplifyIghConstantCall <- function(c_call) {
+simplify_igh_constant_call <- function(c_call) {
   out <- dplyr::case_when(
     stringr::str_detect(c_call, "IGHM") ~ "IgM",
     stringr::str_detect(c_call, "IGHD") ~ "IgD",
@@ -74,7 +74,7 @@ simplifyIghConstantCall <- function(c_call) {
 #'   available, otherwise base R qualitative colors.
 #' @return Data frame with `tip_color_id` and `tip_color` columns.
 #' @export
-assignTipColors <- function(clones,
+assign_tip_colors <- function(clones,
                               clone_ids = NULL,
                               clone_col = "clone_id",
                               id_col = "sequence_id",
@@ -117,7 +117,7 @@ assignTipColors <- function(clones,
 #' @param ... Passed to `dowser::getTrees()`.
 #' @return A list with `formatted_clones` and `trees`.
 #' @export
-buildDowserTrees <- function(clones,
+build_dowser_trees <- function(clones,
                                clone_ids = NULL,
                                id = "sequence_id",
                                traits = c("tip_color_id", "tip_color"),

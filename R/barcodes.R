@@ -6,7 +6,7 @@
 #' @param path Path to a barcode mapping file.
 #' @return A data frame.
 #' @export
-readBarcodeMapping <- function(path) {
+read_barcode_mapping <- function(path) {
   ext <- tolower(tools::file_ext(path))
   if (ext == "parquet") {
     .require_namespace("arrow")
@@ -26,7 +26,7 @@ readBarcodeMapping <- function(path) {
 #' @param x Character vector of Visium HD square barcodes.
 #' @return Character vector with row/column components swapped.
 #' @export
-swapVisiumHdBarcode <- function(x) {
+swap_visium_hd_barcode <- function(x) {
   sub("^(.*_)(\\d+)_(\\d+)(-\\d+)$", "\\1\\3_\\2\\4", x)
 }
 
@@ -44,7 +44,7 @@ swapVisiumHdBarcode <- function(x) {
 #' @return Input data with `barcode_2um`, optional swapped barcode, `barcode_8um`,
 #'   and `barcode_16um` columns.
 #' @export
-addSpatialBarcodes <- function(airr_df,
+add_spatial_barcodes <- function(airr_df,
                                  barcode_map,
                                  sequence_id_col = "sequence_id",
                                  mode = c("raw_suffix", "presto_header"),
@@ -71,7 +71,7 @@ addSpatialBarcodes <- function(airr_df,
 
   match_key <- out$barcode_2um
   if (swap) {
-    out$barcode_2um_swapped <- swapVisiumHdBarcode(out$barcode_2um)
+    out$barcode_2um_swapped <- swap_visium_hd_barcode(out$barcode_2um)
     match_key <- out$barcode_2um_swapped
   }
 
@@ -100,7 +100,7 @@ addSpatialBarcodes <- function(airr_df,
 #' @param keep_position_cols Whether to retain all position columns.
 #' @return Data frame with `x` and `y` columns.
 #' @export
-addTissuePositions <- function(airr_df,
+add_tissue_positions <- function(airr_df,
                                  positions,
                                  barcode_col = "barcode_8um",
                                  position_barcode_col = "barcode",
@@ -109,7 +109,7 @@ addTissuePositions <- function(airr_df,
                                  keep_position_cols = TRUE) {
   .check_required_cols(airr_df, barcode_col, "airr_df")
   if (is.character(positions) && length(positions) == 1) {
-    positions <- readBarcodeMapping(positions)
+    positions <- read_barcode_mapping(positions)
   }
   .check_required_cols(positions, c(position_barcode_col, x_col, y_col), "positions")
 
