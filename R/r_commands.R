@@ -111,7 +111,8 @@ read_fastqas <- function(fn, type = "fq", full_id = FALSE, ...) {
     res <- data.table::fread(
       cmd = glue::glue("{cat_cmd} {path} | {awk_cmd}"),
       col.names = c("hdr", "seq"),
-      sep = "\t", data.table = TRUE, ...
+      sep = "\t", header = FALSE, quote = "",
+      data.table = TRUE, ...
     )
     res[, hdr := sub("^>", "", hdr)]
     res[, id := data.table::tstrsplit(hdr, " ", fixed = TRUE)[[1]]]
