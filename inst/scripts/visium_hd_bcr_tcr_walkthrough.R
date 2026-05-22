@@ -81,7 +81,7 @@ tcr_clone_ids_to_plot <- NULL
 
 # ---- Small helpers for this walkthrough -------------------------------------
 
-check_files <- function(paths) {
+checkFiles <- function(paths) {
   file_status <- data.frame(path = paths, exists = file.exists(paths))
   print(file_status)
   if (!all(file_status$exists)) {
@@ -90,7 +90,7 @@ check_files <- function(paths) {
   invisible(file_status)
 }
 
-expected_presto_paths <- function(input_fasta, output_dir, identity = 0.975, consensus_freq = 0.51) {
+expectedPrestoPaths <- function(input_fasta, output_dir, identity = 0.975, consensus_freq = 0.51) {
   stem <- tools::file_path_sans_ext(basename(input_fasta))
   consensus <- file.path(
     output_dir,
@@ -108,7 +108,7 @@ expected_presto_paths <- function(input_fasta, output_dir, identity = 0.975, con
   )
 }
 
-save_plot <- function(plot, filename, width = 8, height = 6) {
+savePlot <- function(plot, filename, width = 8, height = 6) {
   if (save_plots) {
     ggsave(file.path(plot_dir, filename), plot, width = width, height = height, dpi = 300)
   }
@@ -117,7 +117,7 @@ save_plot <- function(plot, filename, width = 8, height = 6) {
 
 # ---- Load the spatial metadata ----------------------------------------------
 
-check_files(c(raw_bcr_igblast_path, raw_tcr_igblast_path, barcode_map_path, positions_path))
+checkFiles(c(raw_bcr_igblast_path, raw_tcr_igblast_path, barcode_map_path, positions_path))
 
 barcode_map <- readBarcodeMapping(barcode_map_path)
 
@@ -176,7 +176,7 @@ pre_presto_qc_plot <- cowplot::plot_grid(
   ncol = 1
 )
 pre_presto_qc_plot
-save_plot(pre_presto_qc_plot, sprintf("%s_pre_presto_length_qc.png", sample_lower), width = 10, height = 8)
+savePlot(pre_presto_qc_plot, sprintf("%s_pre_presto_length_qc.png", sample_lower), width = 10, height = 8)
 
 # Things to inspect:
 head(bcr_length_spatial)
@@ -226,17 +226,17 @@ if (run_presto_igblast) {
 }
 
 if (!exists("bcr_presto_paths")) {
-  bcr_presto_paths <- expected_presto_paths(bcr_length_spatial_fasta, presto_output_dir, identity, consensus_freq)
+  bcr_presto_paths <- expectedPrestoPaths(bcr_length_spatial_fasta, presto_output_dir, identity, consensus_freq)
 }
 if (!exists("tcr_presto_paths")) {
-  tcr_presto_paths <- expected_presto_paths(tcr_length_spatial_fasta, presto_output_dir, identity, consensus_freq)
+  tcr_presto_paths <- expectedPrestoPaths(tcr_length_spatial_fasta, presto_output_dir, identity, consensus_freq)
 }
 
 bcr_presto_paths$db_pass
 tcr_presto_paths$db_pass
 
 # Notes:
-# - TODO: Should SIRAP expose expected_presto_paths() as a real package function?
+# - TODO: Should SIRAP expose expectedPrestoPaths() as a real package function?
 # - TODO: Should runPrestoIgblastSample() check all external executables first?
 
 # ---- Polish the pRESTO/IgBLAST consensus output -----------------------------
@@ -246,7 +246,7 @@ tcr_presto_paths$db_pass
 # swapped the 2 um barcode row/column order, remapped to 8 um/16 um, and kept
 # the top consensus sequence per 2 um barcode and locus.
 
-check_files(c(bcr_presto_paths$db_pass, tcr_presto_paths$db_pass))
+checkFiles(c(bcr_presto_paths$db_pass, tcr_presto_paths$db_pass))
 
 bcr_consensus <- readSpatialAirr(bcr_presto_paths$db_pass)
 tcr_consensus <- readSpatialAirr(tcr_presto_paths$db_pass)
@@ -315,7 +315,7 @@ post_presto_qc_plot <- cowplot::plot_grid(
   ncol = 1
 )
 post_presto_qc_plot
-save_plot(post_presto_qc_plot, sprintf("%s_post_presto_final_length_qc.png", sample_lower), width = 10, height = 8)
+savePlot(post_presto_qc_plot, sprintf("%s_post_presto_final_length_qc.png", sample_lower), width = 10, height = 8)
 
 # Things to inspect:
 head(bcr)
@@ -355,9 +355,9 @@ bcr_tcr_overlay <- ggplot(positions, aes(x = x, y = y)) +
   labs(title = paste(sample_id, "BCR and TCR locations"), x = "x", y = "y")
 bcr_tcr_overlay
 
-save_plot(all_bcr_plot, sprintf("%s_all_bcr_locations.png", sample_lower), width = 6, height = 5)
-save_plot(all_tcr_plot, sprintf("%s_all_tcr_locations.png", sample_lower), width = 6, height = 5)
-save_plot(bcr_tcr_overlay, sprintf("%s_bcr_tcr_locations.png", sample_lower), width = 6, height = 5)
+savePlot(all_bcr_plot, sprintf("%s_all_bcr_locations.png", sample_lower), width = 6, height = 5)
+savePlot(all_tcr_plot, sprintf("%s_all_tcr_locations.png", sample_lower), width = 6, height = 5)
+savePlot(bcr_tcr_overlay, sprintf("%s_bcr_tcr_locations.png", sample_lower), width = 6, height = 5)
 
 # Notes:
 # - TODO: Should plotReceptorOverlay() support BCR and TCR layers at the same time?
@@ -403,7 +403,7 @@ if (load_seurat_object && file.exists(seurat_path) && requireNamespace("SeuratOb
 
     gene_overlay_plots[[gene]] <- cowplot::plot_grid(bcr_gene_plot, tcr_gene_plot, ncol = 2)
     print(gene_overlay_plots[[gene]])
-    save_plot(gene_overlay_plots[[gene]], sprintf("%s_%s_receptor_gene_overlay.png", sample_lower, gene), width = 11, height = 5)
+    savePlot(gene_overlay_plots[[gene]], sprintf("%s_%s_receptor_gene_overlay.png", sample_lower, gene), width = 11, height = 5)
   }
 } else {
   message("Skipping gene overlays. Check load_seurat_object, seurat_path, and SeuratObject.")
@@ -463,7 +463,7 @@ if (exists("tcr_clones")) {
 
 # ---- Pick a couple of clones and plot them ----------------------------------
 
-choose_big_clones <- function(clones, clone_ids = NULL, n = 2) {
+chooseBigClones <- function(clones, clone_ids = NULL, n = 2) {
   if (!is.null(clone_ids)) {
     return(as.character(clone_ids))
   }
@@ -476,12 +476,12 @@ choose_big_clones <- function(clones, clone_ids = NULL, n = 2) {
 }
 
 if (exists("bcr_clones")) {
-  bcr_clone_ids <- choose_big_clones(bcr_clones, bcr_clone_ids_to_plot, n = 2)
+  bcr_clone_ids <- chooseBigClones(bcr_clones, bcr_clone_ids_to_plot, n = 2)
   bcr_clone_ids
 }
 
 if (exists("tcr_clones")) {
-  tcr_clone_ids <- choose_big_clones(tcr_clones, tcr_clone_ids_to_plot, n = 2)
+  tcr_clone_ids <- chooseBigClones(tcr_clones, tcr_clone_ids_to_plot, n = 2)
   tcr_clone_ids
 }
 
@@ -504,7 +504,7 @@ if (exists("bcr_clones") && exists("bcr_clone_ids")) {
   )
   selected_bcr_clone_plot <- cowplot::plot_grid(plotlist = bcr_clone_plots, ncol = 2)
   selected_bcr_clone_plot
-  save_plot(selected_bcr_clone_plot, sprintf("%s_selected_bcr_clones_spatial.png", sample_lower), width = 10, height = 5)
+  savePlot(selected_bcr_clone_plot, sprintf("%s_selected_bcr_clones_spatial.png", sample_lower), width = 10, height = 5)
 }
 
 if (exists("tcr_clones") && exists("tcr_clone_ids")) {
@@ -522,7 +522,7 @@ if (exists("tcr_clones") && exists("tcr_clone_ids")) {
   )
   selected_tcr_clone_plot <- cowplot::plot_grid(plotlist = tcr_clone_plots, ncol = 2)
   selected_tcr_clone_plot
-  save_plot(selected_tcr_clone_plot, sprintf("%s_selected_tcr_clones_spatial.png", sample_lower), width = 10, height = 5)
+  savePlot(selected_tcr_clone_plot, sprintf("%s_selected_tcr_clones_spatial.png", sample_lower), width = 10, height = 5)
 }
 
 # ---- Build BCR trees and match tips back to space ----------------------------

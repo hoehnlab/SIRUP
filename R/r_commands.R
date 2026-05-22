@@ -66,72 +66,23 @@ writeFastqas <- function(df, fn, type = "fq", header_col = "id",
 #' whitespace-delimited token of the header; `full_id` is the entire
 #' header.
 #'
-#' @param fn input path, or a character vector / list of paths.
+#' Thin wrapper around [streamFastqas()], which uses the kseq.h FASTQ
+#' parser on the C++ side. Previous shell-pipeline implementation
+#' (`paste - - - - | cut -f1,2,4`) misparsed tagged FASTQs whose
+#' headers contain TAB-separated SAM-style tags (`@id<TAB>CB:Z:...`),
+#' because the shell pipeline counted TABs not lines.
+#'
+#' @param fn input path, or a character vector of paths.
 #' @param type one of `"fq"`, `"fastq"`, `"fa"`, `"fasta"`.
 #' @param full_id include a `full_id` column with the full header.
-#' @param ... passed through to `data.table::fread`.
+#' @param max_reads maximum reads per file (`-1L` = all, default).
 #' @return data.table.
 #' @export
-readFastqas <- function(fn, type = "fq", full_id = FALSE, ...) {
+readFastqas <- function(fn, type = "fq", full_id = FALSE, max_reads = -1L) {
   type <- .fastqas_normalize_type(type)
-  include_full <- isTRUE(full_id)
-
-  rfq_single <- function(path) {
-    ext <- tools::file_ext(path)
-    sysname <- Sys.info()[["sysname"]]
-    cat_cmd <- if (ext == "gz") {
-      switch(sysname,
-             Linux  = "zcat",
-             Darwin = "gunzip -c",
-             stop("Unsupported OS: ", sysname))
-    } else {
-      "cat"
-    }
-
-    if (type == "fq") {
-      res <- data.table::fread(
-        cmd = glue::glue("{cat_cmd} {path} | paste - - - - | cut -f1,2,4"),
-        col.names = c("hdr", "seq", "qual"),
-        sep = "\t", header = FALSE, quote = "",
-        data.table = TRUE, ...
-      )
-      res[, hdr := sub("^@", "", hdr)]
-      res[, id := data.table::tstrsplit(hdr, " ", fixed = TRUE)[[1]]]
-      if (include_full) {
-        data.table::setnames(res, "hdr", "full_id")
-        data.table::setcolorder(res, c("id", "full_id", "seq", "qual"))
-      } else {
-        res[, hdr := NULL]
-        data.table::setcolorder(res, c("id", "seq", "qual"))
-      }
-      return(res[])
-    }
-
-    awk_cmd <- 'awk \'/^>/{if (NR>1) printf("\\n"); printf("%s\\t",$0); next} {printf("%s",$0);} END {printf("\\n");}\''
-    res <- data.table::fread(
-      cmd = glue::glue("{cat_cmd} {path} | {awk_cmd}"),
-      col.names = c("hdr", "seq"),
-      sep = "\t", header = FALSE, quote = "",
-      data.table = TRUE, ...
-    )
-    res[, hdr := sub("^>", "", hdr)]
-    res[, id := data.table::tstrsplit(hdr, " ", fixed = TRUE)[[1]]]
-    if (include_full) {
-      data.table::setnames(res, "hdr", "full_id")
-      data.table::setcolorder(res, c("id", "full_id", "seq"))
-    } else {
-      res[, hdr := NULL]
-      data.table::setcolorder(res, c("id", "seq"))
-    }
-    res[]
-  }
-
-  if (is.list(fn) || length(fn) > 1) {
-    out <- pbapply::pblapply(fn, rfq_single)
-    data.table::rbindlist(out)
-  } else {
-    rfq_single(fn)
-  }
+  if (is.list(fn)) fn <- unlist(fn)
+  streamFastqas(fn, type = type, full_id = isTRUE(full_id),
+                max_reads = as.integer(max_reads))
 }
 
 #' @export
