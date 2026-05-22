@@ -4,33 +4,6 @@ using namespace Rcpp;
 
 KSEQ_INIT(gzFile, gzread)
 
-std::string extract_corrected_barcode(const std::string& full_header) {
-  size_t start_pos = full_header.find("CB:Z:");
-  if (start_pos == std::string::npos) return "";
-  
-  size_t barcode_start = start_pos + 5; // Skip "CB:Z:"
-  
-  // Find the next space or tab after the barcode, stopping before any UB:Z: field
-  size_t barcode_end = full_header.find_first_of("\t ", barcode_start);
-  if (barcode_end == std::string::npos) {
-    barcode_end = full_header.length(); // In case there is no space/tab after the barcode
-  }
-  
-  return full_header.substr(barcode_start, barcode_end - barcode_start);
-}
-
-std::string extract_blaze_id(const std::string& header) {
-  size_t start_pos = header.find("#");
-  size_t end_pos = header.find("_", start_pos);
-  
-  if (start_pos != std::string::npos && end_pos != std::string::npos) {
-    return header.substr(start_pos + 1, end_pos - start_pos - 1);
-  }
-  
-  // Return the full header if the pattern is not found
-  return header;
-}
-
 //' @export
 // [[Rcpp::export]]
 Rcpp::DataFrame read_seqs_cpp(std::string filename, std::string type, bool full_id = false, int max_reads = -1) {
