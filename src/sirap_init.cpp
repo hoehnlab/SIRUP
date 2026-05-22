@@ -13,6 +13,6 @@
 //' @keywords internal
 //' @export
 // [[Rcpp::export]]
-bool sirap_rcpp_loaded() {
+bool sirapRcppLoaded() {
   return true;
 }

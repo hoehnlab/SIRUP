@@ -8,8 +8,8 @@ sequencing data. It is the R companion to the
 collects reusable pieces from the existing thymus BCR/TCR analysis scripts
 into package functions for:
 
-- driving the `rad` CLI (`rad_prep`, `rad_demux`, `rad_reformat`,
-  `rad_list`, `rad_modify`, `rad_scan_wl`) from R
+- driving the `rad` CLI (`radPrep`, `radDemux`, `radReformat`,
+  `radList`, `radModify`, `radScanWl`) from R
 - AIRR TSV reading/writing
 - receptor length and productivity QC
 - Visium HD 2 um to 8 um/16 um barcode mapping
@@ -27,9 +27,9 @@ remotes::install_local("/path/to/SIRAP")
 ```
 
 The CLI wrappers require the `rad` binary on `PATH`, or pointed at
-explicitly via `options(SIRAP.rad_path = "/path/to/rad")`, the
+explicitly via `options(SIRAP.radPath = "/path/to/rad")`, the
 `SIRAP_RAD_PATH` environment variable, or the `rad =` argument on each
-wrapper. See `?rad_path` for the resolution order.
+wrapper. See `?radPath` for the resolution order.
 
 ## Drive the rad CLI from R
 
@@ -37,10 +37,10 @@ wrapper. See `?rad_path` for the resolution order.
 library(SIRAP)
 
 # Inspect a built-in layout
-rad_prep(layout = "five_prime", read_layout = TRUE)
+radPrep(layout = "five_prime", read_layout = TRUE)
 
 # Layout + position map from a real FASTQ
-rad_prep(
+radPrep(
   layout       = "five_prime",
   position_map = TRUE,
   fastq        = "reads.fq.gz",
@@ -49,7 +49,7 @@ rad_prep(
 )
 
 # Full demux pipeline
-rad_demux(
+radDemux(
   layout  = "five_prime",
   fastq   = "reads.fq.gz",
   output  = "demo",
@@ -63,9 +63,9 @@ rad_demux(
 ```r
 library(SIRAP)
 
-bc_map <- read_barcode_mapping("M1_barcode_mappings.csv")
+bc_map <- readBarcodeMapping("M1_barcode_mappings.csv")
 
-m1_bcr_heavy <- preprocess_spatial_airr(
+m1_bcr_heavy <- preprocessSpatialAirr(
   input = "igblast_bcr.tsv",
   barcode_map = bc_map,
   loci = "IGH",
@@ -77,7 +77,7 @@ m1_bcr_heavy <- preprocess_spatial_airr(
 ## Generate the pRESTO/IgBLAST consensus script
 
 ```r
-write_presto_igblast_script(
+writePrestoIgblastScript(
   input_fastas = c("m1/igblast_bcr_pass_length_spatial_barcode.fasta",
                    "m5/igblast_bcr_pass_length_spatial_barcode.fasta"),
   output_db_paths = c("m1/processed/final_db-pass.tsv",
@@ -91,8 +91,8 @@ write_presto_igblast_script(
 ## Post-consensus filtering sketch
 
 ```r
-processed <- read_spatial_airr("processed_db-pass.tsv")
-processed <- filter_receptor_reads(
+processed <- readSpatialAirr("processed_db-pass.tsv")
+processed <- filterReceptorReads(
   processed,
   loci = "IGH",
   min_v_length = 250,
@@ -101,6 +101,6 @@ processed <- filter_receptor_reads(
   productive_only = TRUE,
   min_consensus_count = 2
 )
-processed <- add_spatial_barcodes(processed, bc_map, mode = "presto_header", swap = TRUE)
-top_per_barcode <- collapse_top_consensus_per_barcode(processed, ties = "all")
+processed <- addSpatialBarcodes(processed, bc_map, mode = "presto_header", swap = TRUE)
+top_per_barcode <- collapseTopConsensusPerBarcode(processed, ties = "all")
 ```

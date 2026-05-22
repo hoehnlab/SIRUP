@@ -6,7 +6,7 @@ KSEQ_INIT(gzFile, gzread)
 
 //' @export
 // [[Rcpp::export]]
-Rcpp::DataFrame read_seqs_cpp(std::string filename, std::string type, bool full_id = false, int max_reads = -1) {
+Rcpp::DataFrame readSeqsCpp(std::string filename, std::string type, bool full_id = false, int max_reads = -1) {
   std::vector<std::string> ids;
   std::vector<std::string> full_ids;
   std::vector<std::string> seqs;
@@ -97,7 +97,7 @@ Rcpp::DataFrame read_seqs_cpp(std::string filename, std::string type, bool full_
 
 //' @export
 // [[Rcpp::export]]
-SEXP stream_fastqas(SEXP fn, std::string type = "fq", bool full_id = false, int max_reads = -1) {
+SEXP streamFastqas(SEXP fn, std::string type = "fq", bool full_id = false, int max_reads = -1) {
   Rcpp::Function file_exists("file.exists");
   Rcpp::Function setDT("setDT", "data.table");
   Rcpp::Function pblapply("pblapply", "pbapply");
@@ -117,7 +117,7 @@ SEXP stream_fastqas(SEXP fn, std::string type = "fq", bool full_id = false, int 
       Rcpp::stop("File not found: " + filename);
     }
     
-    Rcpp::DataFrame res = read_seqs_cpp(filename, type, full_id, max_reads);
+    Rcpp::DataFrame res = readSeqsCpp(filename, type, full_id, max_reads);
     return setDT(res);
   };
   
@@ -141,7 +141,7 @@ SEXP stream_fastqas(SEXP fn, std::string type = "fq", bool full_id = false, int 
 
 //' @export
 // [[Rcpp::export]]
-NumericMatrix cmv_consensusMatrix(SEXP sequences) {
+NumericMatrix cmvConsensusMatrix(SEXP sequences) {
   CharacterVector seqs(sequences);
   int n_seq = seqs.length();
   if (n_seq == 0) return NumericMatrix(0);
@@ -186,7 +186,7 @@ NumericMatrix cmv_consensusMatrix(SEXP sequences) {
 
 //' @export
 // [[Rcpp::export]]
-Rcpp::IntegerVector find_longest_matches(Rcpp::StringVector cigars) {
+Rcpp::IntegerVector findLongestMatches(Rcpp::StringVector cigars) {
   std::vector<int> longest_matches;
   longest_matches.reserve(cigars.length());
   
@@ -220,7 +220,7 @@ Rcpp::IntegerVector find_longest_matches(Rcpp::StringVector cigars) {
 
 //' @export
 // [[Rcpp::export]]
-Rcpp::List analyze_cigar_patterns(Rcpp::StringVector cigars) {
+Rcpp::List analyzeCigarPatterns(Rcpp::StringVector cigars) {
   std::vector<int> longest_matches;
   std::vector<int> total_matches;
   std::vector<int> match_blocks;
@@ -268,7 +268,7 @@ Rcpp::List analyze_cigar_patterns(Rcpp::StringVector cigars) {
 
 //' @export
 // [[Rcpp::export]]
-bool has_minimum_match_length(const std::string& cigar, int min_length) {
+bool hasMinimumMatchLength(const std::string& cigar, int min_length) {
   std::string number_buffer;
   
   for(size_t i = 0; i < cigar.length(); i++) {
@@ -289,7 +289,7 @@ bool has_minimum_match_length(const std::string& cigar, int min_length) {
 
 //' @export
 // [[Rcpp::export]]
-List edlib_search(std::vector<std::string> queries, 
+List edlibSearch(std::vector<std::string> queries, 
                                  std::vector<std::string> targets,
                                  int max_distance = 3,
                                  int num_threads = 0) {

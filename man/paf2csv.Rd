@@ -22,9 +22,9 @@ paf2csv(
 
 \item{script_dir}{optional script directory when \code{engine = "shell"}}
 
-\item{include_rest}{passed to \code{paf2csv_r()} when \code{engine = "R"}}
+\item{include_rest}{passed to \code{paf2csvR()} when \code{engine = "R"}}
 
-\item{nthreads}{passed to \code{paf2csv_r()} when \code{engine = "R"}}
+\item{nthreads}{passed to \code{paf2csvR()} when \code{engine = "R"}}
 }
 \value{
 Invisible list of output paths

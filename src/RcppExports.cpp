@@ -10,9 +10,9 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// read_seqs_cpp
-Rcpp::DataFrame read_seqs_cpp(std::string filename, std::string type, bool full_id, int max_reads);
-RcppExport SEXP _SIRAP_read_seqs_cpp(SEXP filenameSEXP, SEXP typeSEXP, SEXP full_idSEXP, SEXP max_readsSEXP) {
+// readSeqsCpp
+Rcpp::DataFrame readSeqsCpp(std::string filename, std::string type, bool full_id, int max_reads);
+RcppExport SEXP _SIRAP_readSeqsCpp(SEXP filenameSEXP, SEXP typeSEXP, SEXP full_idSEXP, SEXP max_readsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -20,13 +20,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::string >::type type(typeSEXP);
     Rcpp::traits::input_parameter< bool >::type full_id(full_idSEXP);
     Rcpp::traits::input_parameter< int >::type max_reads(max_readsSEXP);
-    rcpp_result_gen = Rcpp::wrap(read_seqs_cpp(filename, type, full_id, max_reads));
+    rcpp_result_gen = Rcpp::wrap(readSeqsCpp(filename, type, full_id, max_reads));
     return rcpp_result_gen;
 END_RCPP
 }
-// stream_fastqas
-SEXP stream_fastqas(SEXP fn, std::string type, bool full_id, int max_reads);
-RcppExport SEXP _SIRAP_stream_fastqas(SEXP fnSEXP, SEXP typeSEXP, SEXP full_idSEXP, SEXP max_readsSEXP) {
+// streamFastqas
+SEXP streamFastqas(SEXP fn, std::string type, bool full_id, int max_reads);
+RcppExport SEXP _SIRAP_streamFastqas(SEXP fnSEXP, SEXP typeSEXP, SEXP full_idSEXP, SEXP max_readsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -34,58 +34,58 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::string >::type type(typeSEXP);
     Rcpp::traits::input_parameter< bool >::type full_id(full_idSEXP);
     Rcpp::traits::input_parameter< int >::type max_reads(max_readsSEXP);
-    rcpp_result_gen = Rcpp::wrap(stream_fastqas(fn, type, full_id, max_reads));
+    rcpp_result_gen = Rcpp::wrap(streamFastqas(fn, type, full_id, max_reads));
     return rcpp_result_gen;
 END_RCPP
 }
-// cmv_consensusMatrix
-NumericMatrix cmv_consensusMatrix(SEXP sequences);
-RcppExport SEXP _SIRAP_cmv_consensusMatrix(SEXP sequencesSEXP) {
+// cmvConsensusMatrix
+NumericMatrix cmvConsensusMatrix(SEXP sequences);
+RcppExport SEXP _SIRAP_cmvConsensusMatrix(SEXP sequencesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type sequences(sequencesSEXP);
-    rcpp_result_gen = Rcpp::wrap(cmv_consensusMatrix(sequences));
+    rcpp_result_gen = Rcpp::wrap(cmvConsensusMatrix(sequences));
     return rcpp_result_gen;
 END_RCPP
 }
-// find_longest_matches
-Rcpp::IntegerVector find_longest_matches(Rcpp::StringVector cigars);
-RcppExport SEXP _SIRAP_find_longest_matches(SEXP cigarsSEXP) {
+// findLongestMatches
+Rcpp::IntegerVector findLongestMatches(Rcpp::StringVector cigars);
+RcppExport SEXP _SIRAP_findLongestMatches(SEXP cigarsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::StringVector >::type cigars(cigarsSEXP);
-    rcpp_result_gen = Rcpp::wrap(find_longest_matches(cigars));
+    rcpp_result_gen = Rcpp::wrap(findLongestMatches(cigars));
     return rcpp_result_gen;
 END_RCPP
 }
-// analyze_cigar_patterns
-Rcpp::List analyze_cigar_patterns(Rcpp::StringVector cigars);
-RcppExport SEXP _SIRAP_analyze_cigar_patterns(SEXP cigarsSEXP) {
+// analyzeCigarPatterns
+Rcpp::List analyzeCigarPatterns(Rcpp::StringVector cigars);
+RcppExport SEXP _SIRAP_analyzeCigarPatterns(SEXP cigarsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::StringVector >::type cigars(cigarsSEXP);
-    rcpp_result_gen = Rcpp::wrap(analyze_cigar_patterns(cigars));
+    rcpp_result_gen = Rcpp::wrap(analyzeCigarPatterns(cigars));
     return rcpp_result_gen;
 END_RCPP
 }
-// has_minimum_match_length
-bool has_minimum_match_length(const std::string& cigar, int min_length);
-RcppExport SEXP _SIRAP_has_minimum_match_length(SEXP cigarSEXP, SEXP min_lengthSEXP) {
+// hasMinimumMatchLength
+bool hasMinimumMatchLength(const std::string& cigar, int min_length);
+RcppExport SEXP _SIRAP_hasMinimumMatchLength(SEXP cigarSEXP, SEXP min_lengthSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const std::string& >::type cigar(cigarSEXP);
     Rcpp::traits::input_parameter< int >::type min_length(min_lengthSEXP);
-    rcpp_result_gen = Rcpp::wrap(has_minimum_match_length(cigar, min_length));
+    rcpp_result_gen = Rcpp::wrap(hasMinimumMatchLength(cigar, min_length));
     return rcpp_result_gen;
 END_RCPP
 }
-// edlib_search
-List edlib_search(std::vector<std::string> queries, std::vector<std::string> targets, int max_distance, int num_threads);
-RcppExport SEXP _SIRAP_edlib_search(SEXP queriesSEXP, SEXP targetsSEXP, SEXP max_distanceSEXP, SEXP num_threadsSEXP) {
+// edlibSearch
+List edlibSearch(std::vector<std::string> queries, std::vector<std::string> targets, int max_distance, int num_threads);
+RcppExport SEXP _SIRAP_edlibSearch(SEXP queriesSEXP, SEXP targetsSEXP, SEXP max_distanceSEXP, SEXP num_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -93,13 +93,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::vector<std::string> >::type targets(targetsSEXP);
     Rcpp::traits::input_parameter< int >::type max_distance(max_distanceSEXP);
     Rcpp::traits::input_parameter< int >::type num_threads(num_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(edlib_search(queries, targets, max_distance, num_threads));
+    rcpp_result_gen = Rcpp::wrap(edlibSearch(queries, targets, max_distance, num_threads));
     return rcpp_result_gen;
 END_RCPP
 }
-// cigar_onehot_triplets
-Rcpp::List cigar_onehot_triplets(Rcpp::List cigars, Rcpp::IntegerVector aln_starts, Rcpp::IntegerVector aln_ends, int region_start, int region_end);
-RcppExport SEXP _SIRAP_cigar_onehot_triplets(SEXP cigarsSEXP, SEXP aln_startsSEXP, SEXP aln_endsSEXP, SEXP region_startSEXP, SEXP region_endSEXP) {
+// cigarOnehotTriplets
+Rcpp::List cigarOnehotTriplets(Rcpp::List cigars, Rcpp::IntegerVector aln_starts, Rcpp::IntegerVector aln_ends, int region_start, int region_end);
+RcppExport SEXP _SIRAP_cigarOnehotTriplets(SEXP cigarsSEXP, SEXP aln_startsSEXP, SEXP aln_endsSEXP, SEXP region_startSEXP, SEXP region_endSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -108,13 +108,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type aln_ends(aln_endsSEXP);
     Rcpp::traits::input_parameter< int >::type region_start(region_startSEXP);
     Rcpp::traits::input_parameter< int >::type region_end(region_endSEXP);
-    rcpp_result_gen = Rcpp::wrap(cigar_onehot_triplets(cigars, aln_starts, aln_ends, region_start, region_end));
+    rcpp_result_gen = Rcpp::wrap(cigarOnehotTriplets(cigars, aln_starts, aln_ends, region_start, region_end));
     return rcpp_result_gen;
 END_RCPP
 }
-// stream_paf2mat
-SEXP stream_paf2mat(std::string path, std::string target, double region_start, double region_end, int bin_bp, int min_mapq, int chunk_lines, bool symmetric, int threads, bool verbose);
-RcppExport SEXP _SIRAP_stream_paf2mat(SEXP pathSEXP, SEXP targetSEXP, SEXP region_startSEXP, SEXP region_endSEXP, SEXP bin_bpSEXP, SEXP min_mapqSEXP, SEXP chunk_linesSEXP, SEXP symmetricSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
+// streamPaf2mat
+SEXP streamPaf2mat(std::string path, std::string target, double region_start, double region_end, int bin_bp, int min_mapq, int chunk_lines, bool symmetric, int threads, bool verbose);
+RcppExport SEXP _SIRAP_streamPaf2mat(SEXP pathSEXP, SEXP targetSEXP, SEXP region_startSEXP, SEXP region_endSEXP, SEXP bin_bpSEXP, SEXP min_mapqSEXP, SEXP chunk_linesSEXP, SEXP symmetricSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -128,13 +128,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type symmetric(symmetricSEXP);
     Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(stream_paf2mat(path, target, region_start, region_end, bin_bp, min_mapq, chunk_lines, symmetric, threads, verbose));
+    rcpp_result_gen = Rcpp::wrap(streamPaf2mat(path, target, region_start, region_end, bin_bp, min_mapq, chunk_lines, symmetric, threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
-// stream_paf2mat_anch
-SEXP stream_paf2mat_anch(std::string path, std::string target, double region_start, double region_end, int bin_bp, int min_mapq, int min_anchor_bp, int chunk_lines, bool symmetric, int threads, bool verbose);
-RcppExport SEXP _SIRAP_stream_paf2mat_anch(SEXP pathSEXP, SEXP targetSEXP, SEXP region_startSEXP, SEXP region_endSEXP, SEXP bin_bpSEXP, SEXP min_mapqSEXP, SEXP min_anchor_bpSEXP, SEXP chunk_linesSEXP, SEXP symmetricSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
+// streamPaf2matAnch
+SEXP streamPaf2matAnch(std::string path, std::string target, double region_start, double region_end, int bin_bp, int min_mapq, int min_anchor_bp, int chunk_lines, bool symmetric, int threads, bool verbose);
+RcppExport SEXP _SIRAP_streamPaf2matAnch(SEXP pathSEXP, SEXP targetSEXP, SEXP region_startSEXP, SEXP region_endSEXP, SEXP bin_bpSEXP, SEXP min_mapqSEXP, SEXP min_anchor_bpSEXP, SEXP chunk_linesSEXP, SEXP symmetricSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -149,13 +149,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type symmetric(symmetricSEXP);
     Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(stream_paf2mat_anch(path, target, region_start, region_end, bin_bp, min_mapq, min_anchor_bp, chunk_lines, symmetric, threads, verbose));
+    rcpp_result_gen = Rcpp::wrap(streamPaf2matAnch(path, target, region_start, region_end, bin_bp, min_mapq, min_anchor_bp, chunk_lines, symmetric, threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
-// splice_contacts_from_paf
-SEXP splice_contacts_from_paf(std::string paf_path, std::string target, double region_start, double region_end, int bin_bp, int min_mapq, int chunk_lines, bool symmetric, int threads, bool verbose);
-RcppExport SEXP _SIRAP_splice_contacts_from_paf(SEXP paf_pathSEXP, SEXP targetSEXP, SEXP region_startSEXP, SEXP region_endSEXP, SEXP bin_bpSEXP, SEXP min_mapqSEXP, SEXP chunk_linesSEXP, SEXP symmetricSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
+// spliceContactsFromPaf
+SEXP spliceContactsFromPaf(std::string paf_path, std::string target, double region_start, double region_end, int bin_bp, int min_mapq, int chunk_lines, bool symmetric, int threads, bool verbose);
+RcppExport SEXP _SIRAP_spliceContactsFromPaf(SEXP paf_pathSEXP, SEXP targetSEXP, SEXP region_startSEXP, SEXP region_endSEXP, SEXP bin_bpSEXP, SEXP min_mapqSEXP, SEXP chunk_linesSEXP, SEXP symmetricSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -169,13 +169,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type symmetric(symmetricSEXP);
     Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(splice_contacts_from_paf(paf_path, target, region_start, region_end, bin_bp, min_mapq, chunk_lines, symmetric, threads, verbose));
+    rcpp_result_gen = Rcpp::wrap(spliceContactsFromPaf(paf_path, target, region_start, region_end, bin_bp, min_mapq, chunk_lines, symmetric, threads, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
-// splice_contacts_from_paf_dt
-SEXP splice_contacts_from_paf_dt(DataFrame df, std::string target, double region_start, double region_end, int bin_bp, int min_mapq, int min_anchor_bp, int chunk_rows, bool symmetric, int threads, bool verbose, std::string col_tname, std::string col_tstart, std::string col_tend, std::string col_cg, std::string col_mapq, std::string col_strand);
-RcppExport SEXP _SIRAP_splice_contacts_from_paf_dt(SEXP dfSEXP, SEXP targetSEXP, SEXP region_startSEXP, SEXP region_endSEXP, SEXP bin_bpSEXP, SEXP min_mapqSEXP, SEXP min_anchor_bpSEXP, SEXP chunk_rowsSEXP, SEXP symmetricSEXP, SEXP threadsSEXP, SEXP verboseSEXP, SEXP col_tnameSEXP, SEXP col_tstartSEXP, SEXP col_tendSEXP, SEXP col_cgSEXP, SEXP col_mapqSEXP, SEXP col_strandSEXP) {
+// spliceContactsFromPafDt
+SEXP spliceContactsFromPafDt(DataFrame df, std::string target, double region_start, double region_end, int bin_bp, int min_mapq, int min_anchor_bp, int chunk_rows, bool symmetric, int threads, bool verbose, std::string col_tname, std::string col_tstart, std::string col_tend, std::string col_cg, std::string col_mapq, std::string col_strand);
+RcppExport SEXP _SIRAP_spliceContactsFromPafDt(SEXP dfSEXP, SEXP targetSEXP, SEXP region_startSEXP, SEXP region_endSEXP, SEXP bin_bpSEXP, SEXP min_mapqSEXP, SEXP min_anchor_bpSEXP, SEXP chunk_rowsSEXP, SEXP symmetricSEXP, SEXP threadsSEXP, SEXP verboseSEXP, SEXP col_tnameSEXP, SEXP col_tstartSEXP, SEXP col_tendSEXP, SEXP col_cgSEXP, SEXP col_mapqSEXP, SEXP col_strandSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -196,7 +196,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::string >::type col_cg(col_cgSEXP);
     Rcpp::traits::input_parameter< std::string >::type col_mapq(col_mapqSEXP);
     Rcpp::traits::input_parameter< std::string >::type col_strand(col_strandSEXP);
-    rcpp_result_gen = Rcpp::wrap(splice_contacts_from_paf_dt(df, target, region_start, region_end, bin_bp, min_mapq, min_anchor_bp, chunk_rows, symmetric, threads, verbose, col_tname, col_tstart, col_tend, col_cg, col_mapq, col_strand));
+    rcpp_result_gen = Rcpp::wrap(spliceContactsFromPafDt(df, target, region_start, region_end, bin_bp, min_mapq, min_anchor_bp, chunk_rows, symmetric, threads, verbose, col_tname, col_tstart, col_tend, col_cg, col_mapq, col_strand));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -211,108 +211,108 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// sequence_to_bits
-Rcpp::NumericVector sequence_to_bits(Rcpp::StringVector sequences);
-RcppExport SEXP _SIRAP_sequence_to_bits(SEXP sequencesSEXP) {
+// sequenceToBits
+Rcpp::NumericVector sequenceToBits(Rcpp::StringVector sequences);
+RcppExport SEXP _SIRAP_sequenceToBits(SEXP sequencesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::StringVector >::type sequences(sequencesSEXP);
-    rcpp_result_gen = Rcpp::wrap(sequence_to_bits(sequences));
+    rcpp_result_gen = Rcpp::wrap(sequenceToBits(sequences));
     return rcpp_result_gen;
 END_RCPP
 }
-// sequence_to_bitlist
-List sequence_to_bitlist(Rcpp::StringVector sequences);
-RcppExport SEXP _SIRAP_sequence_to_bitlist(SEXP sequencesSEXP) {
+// sequenceToBitlist
+List sequenceToBitlist(Rcpp::StringVector sequences);
+RcppExport SEXP _SIRAP_sequenceToBitlist(SEXP sequencesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::StringVector >::type sequences(sequencesSEXP);
-    rcpp_result_gen = Rcpp::wrap(sequence_to_bitlist(sequences));
+    rcpp_result_gen = Rcpp::wrap(sequenceToBitlist(sequences));
     return rcpp_result_gen;
 END_RCPP
 }
-// bits_to_sequence
-Rcpp::StringVector bits_to_sequence(Rcpp::NumericVector input, Rcpp::IntegerVector sequence_length);
-RcppExport SEXP _SIRAP_bits_to_sequence(SEXP inputSEXP, SEXP sequence_lengthSEXP) {
+// bitsToSequence
+Rcpp::StringVector bitsToSequence(Rcpp::NumericVector input, Rcpp::IntegerVector sequence_length);
+RcppExport SEXP _SIRAP_bitsToSequence(SEXP inputSEXP, SEXP sequence_lengthSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type input(inputSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type sequence_length(sequence_lengthSEXP);
-    rcpp_result_gen = Rcpp::wrap(bits_to_sequence(input, sequence_length));
+    rcpp_result_gen = Rcpp::wrap(bitsToSequence(input, sequence_length));
     return rcpp_result_gen;
 END_RCPP
 }
-// bits_to_hex
-StringVector bits_to_hex(Rcpp::NumericVector input, int sequence_length);
-RcppExport SEXP _SIRAP_bits_to_hex(SEXP inputSEXP, SEXP sequence_lengthSEXP) {
+// bitsToHex
+StringVector bitsToHex(Rcpp::NumericVector input, int sequence_length);
+RcppExport SEXP _SIRAP_bitsToHex(SEXP inputSEXP, SEXP sequence_lengthSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type input(inputSEXP);
     Rcpp::traits::input_parameter< int >::type sequence_length(sequence_lengthSEXP);
-    rcpp_result_gen = Rcpp::wrap(bits_to_hex(input, sequence_length));
+    rcpp_result_gen = Rcpp::wrap(bitsToHex(input, sequence_length));
     return rcpp_result_gen;
 END_RCPP
 }
-// revcomp_bits
-Rcpp::NumericVector revcomp_bits(Rcpp::NumericVector input, Rcpp::IntegerVector sequence_length);
-RcppExport SEXP _SIRAP_revcomp_bits(SEXP inputSEXP, SEXP sequence_lengthSEXP) {
+// revcompBits
+Rcpp::NumericVector revcompBits(Rcpp::NumericVector input, Rcpp::IntegerVector sequence_length);
+RcppExport SEXP _SIRAP_revcompBits(SEXP inputSEXP, SEXP sequence_lengthSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type input(inputSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type sequence_length(sequence_lengthSEXP);
-    rcpp_result_gen = Rcpp::wrap(revcomp_bits(input, sequence_length));
+    rcpp_result_gen = Rcpp::wrap(revcompBits(input, sequence_length));
     return rcpp_result_gen;
 END_RCPP
 }
-// hamming_distance_rcpp
-int hamming_distance_rcpp(Rcpp::NumericVector a, Rcpp::NumericVector b);
-RcppExport SEXP _SIRAP_hamming_distance_rcpp(SEXP aSEXP, SEXP bSEXP) {
+// hammingDistanceRcpp
+int hammingDistanceRcpp(Rcpp::NumericVector a, Rcpp::NumericVector b);
+RcppExport SEXP _SIRAP_hammingDistanceRcpp(SEXP aSEXP, SEXP bSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type a(aSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type b(bSEXP);
-    rcpp_result_gen = Rcpp::wrap(hamming_distance_rcpp(a, b));
+    rcpp_result_gen = Rcpp::wrap(hammingDistanceRcpp(a, b));
     return rcpp_result_gen;
 END_RCPP
 }
-// sirap_rcpp_loaded
-bool sirap_rcpp_loaded();
-RcppExport SEXP _SIRAP_sirap_rcpp_loaded() {
+// sirapRcppLoaded
+bool sirapRcppLoaded();
+RcppExport SEXP _SIRAP_sirapRcppLoaded() {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(sirap_rcpp_loaded());
+    rcpp_result_gen = Rcpp::wrap(sirapRcppLoaded());
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_SIRAP_read_seqs_cpp", (DL_FUNC) &_SIRAP_read_seqs_cpp, 4},
-    {"_SIRAP_stream_fastqas", (DL_FUNC) &_SIRAP_stream_fastqas, 4},
-    {"_SIRAP_cmv_consensusMatrix", (DL_FUNC) &_SIRAP_cmv_consensusMatrix, 1},
-    {"_SIRAP_find_longest_matches", (DL_FUNC) &_SIRAP_find_longest_matches, 1},
-    {"_SIRAP_analyze_cigar_patterns", (DL_FUNC) &_SIRAP_analyze_cigar_patterns, 1},
-    {"_SIRAP_has_minimum_match_length", (DL_FUNC) &_SIRAP_has_minimum_match_length, 2},
-    {"_SIRAP_edlib_search", (DL_FUNC) &_SIRAP_edlib_search, 4},
-    {"_SIRAP_cigar_onehot_triplets", (DL_FUNC) &_SIRAP_cigar_onehot_triplets, 5},
-    {"_SIRAP_stream_paf2mat", (DL_FUNC) &_SIRAP_stream_paf2mat, 10},
-    {"_SIRAP_stream_paf2mat_anch", (DL_FUNC) &_SIRAP_stream_paf2mat_anch, 11},
-    {"_SIRAP_splice_contacts_from_paf", (DL_FUNC) &_SIRAP_splice_contacts_from_paf, 10},
-    {"_SIRAP_splice_contacts_from_paf_dt", (DL_FUNC) &_SIRAP_splice_contacts_from_paf_dt, 17},
+    {"_SIRAP_readSeqsCpp", (DL_FUNC) &_SIRAP_readSeqsCpp, 4},
+    {"_SIRAP_streamFastqas", (DL_FUNC) &_SIRAP_streamFastqas, 4},
+    {"_SIRAP_cmvConsensusMatrix", (DL_FUNC) &_SIRAP_cmvConsensusMatrix, 1},
+    {"_SIRAP_findLongestMatches", (DL_FUNC) &_SIRAP_findLongestMatches, 1},
+    {"_SIRAP_analyzeCigarPatterns", (DL_FUNC) &_SIRAP_analyzeCigarPatterns, 1},
+    {"_SIRAP_hasMinimumMatchLength", (DL_FUNC) &_SIRAP_hasMinimumMatchLength, 2},
+    {"_SIRAP_edlibSearch", (DL_FUNC) &_SIRAP_edlibSearch, 4},
+    {"_SIRAP_cigarOnehotTriplets", (DL_FUNC) &_SIRAP_cigarOnehotTriplets, 5},
+    {"_SIRAP_streamPaf2mat", (DL_FUNC) &_SIRAP_streamPaf2mat, 10},
+    {"_SIRAP_streamPaf2matAnch", (DL_FUNC) &_SIRAP_streamPaf2matAnch, 11},
+    {"_SIRAP_spliceContactsFromPaf", (DL_FUNC) &_SIRAP_spliceContactsFromPaf, 10},
+    {"_SIRAP_spliceContactsFromPafDt", (DL_FUNC) &_SIRAP_spliceContactsFromPafDt, 17},
     {"_SIRAP_revcomp", (DL_FUNC) &_SIRAP_revcomp, 1},
-    {"_SIRAP_sequence_to_bits", (DL_FUNC) &_SIRAP_sequence_to_bits, 1},
-    {"_SIRAP_sequence_to_bitlist", (DL_FUNC) &_SIRAP_sequence_to_bitlist, 1},
-    {"_SIRAP_bits_to_sequence", (DL_FUNC) &_SIRAP_bits_to_sequence, 2},
-    {"_SIRAP_bits_to_hex", (DL_FUNC) &_SIRAP_bits_to_hex, 2},
-    {"_SIRAP_revcomp_bits", (DL_FUNC) &_SIRAP_revcomp_bits, 2},
-    {"_SIRAP_hamming_distance_rcpp", (DL_FUNC) &_SIRAP_hamming_distance_rcpp, 2},
-    {"_SIRAP_sirap_rcpp_loaded", (DL_FUNC) &_SIRAP_sirap_rcpp_loaded, 0},
+    {"_SIRAP_sequenceToBits", (DL_FUNC) &_SIRAP_sequenceToBits, 1},
+    {"_SIRAP_sequenceToBitlist", (DL_FUNC) &_SIRAP_sequenceToBitlist, 1},
+    {"_SIRAP_bitsToSequence", (DL_FUNC) &_SIRAP_bitsToSequence, 2},
+    {"_SIRAP_bitsToHex", (DL_FUNC) &_SIRAP_bitsToHex, 2},
+    {"_SIRAP_revcompBits", (DL_FUNC) &_SIRAP_revcompBits, 2},
+    {"_SIRAP_hammingDistanceRcpp", (DL_FUNC) &_SIRAP_hammingDistanceRcpp, 2},
+    {"_SIRAP_sirapRcppLoaded", (DL_FUNC) &_SIRAP_sirapRcppLoaded, 0},
     {NULL, NULL, 0}
 };
 

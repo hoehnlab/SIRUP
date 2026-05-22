@@ -1,7 +1,7 @@
 .datatable.aware = TRUE
 
-# Shared FASTQ/FASTA header contract for read_fastqas / write_fastqas /
-# stream_fastqas:
+# Shared FASTQ/FASTA header contract for readFastqas / writeFastqas /
+# streamFastqas:
 #   - `id`      always present; short id (everything before first space),
 #               with no leading `@` (fastq) or `>` (fasta).
 #   - `full_id` present only when `full_id = TRUE`; full header (name +
@@ -29,7 +29,7 @@
 #' @param nthreads `data.table::fwrite` thread count.
 #' @return Invisibly returns `fn`.
 #' @export
-write_fastqas <- function(df, fn, type = "fq", header_col = "id",
+writeFastqas <- function(df, fn, type = "fq", header_col = "id",
                           append = FALSE, nthreads = 1) {
   type <- .fastqas_normalize_type(type)
   if (!header_col %in% names(df)) {
@@ -72,7 +72,7 @@ write_fastqas <- function(df, fn, type = "fq", header_col = "id",
 #' @param ... passed through to `data.table::fread`.
 #' @return data.table.
 #' @export
-read_fastqas <- function(fn, type = "fq", full_id = FALSE, ...) {
+readFastqas <- function(fn, type = "fq", full_id = FALSE, ...) {
   type <- .fastqas_normalize_type(type)
   include_full <- isTRUE(full_id)
 
@@ -135,7 +135,7 @@ read_fastqas <- function(fn, type = "fq", full_id = FALSE, ...) {
 }
 
 #' @export
-read_paf<-function(path, ...){
+readPaf<-function(path, ...){
   df<-data.table::fread(input = path, 
     fill = Inf, sep = "\t", strip.white = FALSE, header = FALSE, na.strings = "")
   df[df == '']<-NA
@@ -180,7 +180,7 @@ aggc <- function() {
 }
 
 #' @export
-substring_odds<-function(subsequence_length, sequence_length){
+substringOdds<-function(subsequence_length, sequence_length){
   return((mapply(sequence_length, subsequence_length, FUN = 
                    function(seq_len, sub_seq){
                      1-(1-(0.25)^sub_seq)^(seq_len-sub_seq+1)
@@ -189,7 +189,7 @@ substring_odds<-function(subsequence_length, sequence_length){
 
 # ---- R helper to build a sparse matrix ----
 #' @export
-sparse_onehot_matrix <- function(cigars, aln_starts, aln_ends,
+sparseOnehotMatrix <- function(cigars, aln_starts, aln_ends,
                                  region_start, region_end,
                                  rownames = NULL,
                                  logical_matrix = FALSE,
@@ -199,7 +199,7 @@ sparse_onehot_matrix <- function(cigars, aln_starts, aln_ends,
   agg <- match.arg(agg)
   if (!is.integer(bin)) bin <- as.integer(bin)
   
-  trip <- cigar_onehot_triplets(cigars, aln_starts, aln_ends, region_start, region_end)
+  trip <- cigarOnehotTriplets(cigars, aln_starts, aln_ends, region_start, region_end)
   i  <- trip$i
   j  <- trip$j
   nr <- trip$nrow

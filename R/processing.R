@@ -12,7 +12,7 @@
 #' @param sequence_alignment_col Sequence alignment column for gap filtering.
 #' @return Filtered data frame with `vlength` and `jlength` columns.
 #' @export
-filter_receptor_reads <- function(airr_df,
+filterReceptorReads <- function(airr_df,
                                   loci = NULL,
                                   exclude_loci = FALSE,
                                   min_v_length = 100,
@@ -60,7 +60,7 @@ filter_receptor_reads <- function(airr_df,
   }
   if (!is.null(max_opening_gap)) {
     .check_required_cols(out, sequence_alignment_col, "airr_df")
-    gaps <- vapply(out[[sequence_alignment_col]], opening_gap_length, integer(1))
+    gaps <- vapply(out[[sequence_alignment_col]], openingGapLength, integer(1))
     out <- out[gaps <= max_opening_gap, , drop = FALSE]
   }
   out
@@ -71,7 +71,7 @@ filter_receptor_reads <- function(airr_df,
 #' @param seq Character sequence, typically `sequence_alignment`.
 #' @return Integer length of the longest run of periods.
 #' @export
-max_gap_length <- function(seq) {
+maxGapLength <- function(seq) {
   seq <- as.character(seq)
   if (is.na(seq)) {
     return(NA_integer_)
@@ -89,7 +89,7 @@ max_gap_length <- function(seq) {
 #' @param seq Character sequence, typically `sequence_alignment`.
 #' @return Integer length of the leading run of periods.
 #' @export
-opening_gap_length <- function(seq) {
+openingGapLength <- function(seq) {
   seq <- as.character(seq)
   if (is.na(seq)) {
     return(NA_integer_)
@@ -103,8 +103,8 @@ opening_gap_length <- function(seq) {
 
 #' Collapse to the most abundant consensus per barcode and locus
 #'
-#' Adds `prop_total_consensus`, `non_N_nucleotide_prop`, `max_gap_length`, and
-#' `opening_gap_length`, then keeps the highest-consensus row per barcode/locus.
+#' Adds `prop_total_consensus`, `non_N_nucleotide_prop`, `maxGapLength`, and
+#' `openingGapLength`, then keeps the highest-consensus row per barcode/locus.
 #'
 #' @param airr_df AIRR-style data frame.
 #' @param barcode_col,locus_col,consensus_col Column names for grouping/ranking.
@@ -113,7 +113,7 @@ opening_gap_length <- function(seq) {
 #' @param ties Keep all tied top rows or only the first tied row.
 #' @return Collapsed data frame.
 #' @export
-collapse_top_consensus_per_barcode <- function(airr_df,
+collapseTopConsensusPerBarcode <- function(airr_df,
                                                barcode_col = "barcode_2um",
                                                locus_col = "locus",
                                                consensus_col = "consensus_count",
@@ -137,8 +137,8 @@ collapse_top_consensus_per_barcode <- function(airr_df,
     out$non_N_nucleotide_prop <- stringr::str_count(out[[sequence_col]], "[ACGT]") / nchar(out[[sequence_col]])
   }
   if (alignment_col %in% colnames(out)) {
-    out$max_gap_length <- vapply(out[[alignment_col]], max_gap_length, integer(1))
-    out$opening_gap_length <- vapply(out[[alignment_col]], opening_gap_length, integer(1))
+    out$maxGapLength <- vapply(out[[alignment_col]], maxGapLength, integer(1))
+    out$openingGapLength <- vapply(out[[alignment_col]], openingGapLength, integer(1))
   }
   out
 }
@@ -157,7 +157,7 @@ collapse_top_consensus_per_barcode <- function(airr_df,
 #' @param sequence_col Column used for FASTA sequences.
 #' @return Processed spatial AIRR data frame.
 #' @export
-preprocess_spatial_airr <- function(input,
+preprocessSpatialAirr <- function(input,
                                     barcode_map,
                                     loci,
                                     exclude_loci = FALSE,
@@ -168,17 +168,17 @@ preprocess_spatial_airr <- function(input,
                                     min_junction_length = 1,
                                     sequence_col = "sequence_alignment") {
   airr_df <- if (is.character(input) && length(input) == 1) {
-    read_spatial_airr(input)
+    readSpatialAirr(input)
   } else {
     input
   }
   barcode_map <- if (is.character(barcode_map) && length(barcode_map) == 1) {
-    read_barcode_mapping(barcode_map)
+    readBarcodeMapping(barcode_map)
   } else {
     barcode_map
   }
 
-  out <- filter_receptor_reads(
+  out <- filterReceptorReads(
     airr_df,
     loci = loci,
     exclude_loci = exclude_loci,
@@ -186,14 +186,14 @@ preprocess_spatial_airr <- function(input,
     min_j_length = min_j_length,
     min_junction_length = min_junction_length
   )
-  out <- add_spatial_barcodes(out, barcode_map, mode = "raw_suffix")
+  out <- addSpatialBarcodes(out, barcode_map, mode = "raw_suffix")
   out$full_id <- paste0(
     "sequence_id=", out$sequence_id,
     "|barcode2um=", out$barcode_2um,
     "|barcode8um=", out$barcode_8um
   )
 
-  write_spatial_outputs(out, out_tsv = out_tsv, out_fasta = out_fasta, sequence_col = sequence_col)
+  writeSpatialOutputs(out, out_tsv = out_tsv, out_fasta = out_fasta, sequence_col = sequence_col)
   out
 }
 
@@ -205,7 +205,7 @@ preprocess_spatial_airr <- function(input,
 #' @param path Path to AIRR TSV.
 #' @return Data frame.
 #' @export
-read_spatial_airr <- function(path) {
+readSpatialAirr <- function(path) {
   if (requireNamespace("airr", quietly = TRUE)) {
     return(.as_data_frame(airr::read_rearrangement(path)))
   }
@@ -220,7 +220,7 @@ read_spatial_airr <- function(path) {
 #' @param sequence_col FASTA sequence column.
 #' @return Invisibly returns `airr_df`.
 #' @export
-write_spatial_outputs <- function(airr_df,
+writeSpatialOutputs <- function(airr_df,
                                   out_tsv = NULL,
                                   out_fasta = NULL,
                                   id_col = "full_id",
@@ -252,7 +252,7 @@ write_spatial_outputs <- function(airr_df,
 #' @param barcode_col Barcode column to count.
 #' @return One-row tibble of basic counts.
 #' @export
-spatial_receptor_summary <- function(airr_df, barcode_col = "barcode_2um") {
+spatialReceptorSummary <- function(airr_df, barcode_col = "barcode_2um") {
   .check_required_cols(airr_df, barcode_col, "airr_df")
   tibble::tibble(
     n_sequences = nrow(airr_df),

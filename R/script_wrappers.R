@@ -39,7 +39,7 @@
 #' @param intern whether to capture combined stdout/stderr and return it
 #' @return If `intern = FALSE`, an invisible list with script path and status. If `intern = TRUE`, captured output lines.
 #' @export
-run_shell_script <- function(script,
+runShellScript <- function(script,
                              args = character(),
                              script_dir = NULL,
                              env = character(),
@@ -83,7 +83,7 @@ run_shell_script <- function(script,
 #' @param nthreads `data.table::fread` thread count
 #' @return Invisible list with output paths and row count
 #' @export
-paf2csv_r <- function(input_paf,
+paf2csvR <- function(input_paf,
                       output_dir,
                       include_rest = TRUE,
                       nthreads = 1L) {
@@ -184,8 +184,8 @@ paf2csv_r <- function(input_paf,
 #' @param output_dir output directory
 #' @param engine either `"R"` (native parser) or `"shell"` (runs `paf2csv.sh`)
 #' @param script_dir optional script directory when `engine = "shell"`
-#' @param include_rest passed to `paf2csv_r()` when `engine = "R"`
-#' @param nthreads passed to `paf2csv_r()` when `engine = "R"`
+#' @param include_rest passed to `paf2csvR()` when `engine = "R"`
+#' @param nthreads passed to `paf2csvR()` when `engine = "R"`
 #' @return Invisible list of output paths
 #' @export
 paf2csv <- function(input_paf,
@@ -197,7 +197,7 @@ paf2csv <- function(input_paf,
   engine <- match.arg(engine)
 
   if (engine == "R") {
-    return(paf2csv_r(
+    return(paf2csvR(
       input_paf = input_paf,
       output_dir = output_dir,
       include_rest = include_rest,
@@ -205,7 +205,7 @@ paf2csv <- function(input_paf,
     ))
   }
 
-  run_shell_script(
+  runShellScript(
     script = "paf2csv.sh",
     args = c(input_paf, output_dir),
     script_dir = script_dir
