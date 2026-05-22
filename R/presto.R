@@ -151,7 +151,7 @@ writePrestoIgblastScript <- function(input_fastas,
 #' command-line tools. Output from each command is printed directly to the R
 #' console via `system2(stdout = "", stderr = "")`.
 #'
-#' @param input_fasta Spatial FASTA from `preprocessSpatialAirr()`.
+#' @param input_fasta Spatial FASTA written from preprocessed receptor reads.
 #' @param output_dir Directory for pRESTO/IgBLAST outputs. Defaults to the
 #'   input FASTA directory.
 #' @param receptor Either `ig` for BCR or `tr` for TCR IgBLAST loci.

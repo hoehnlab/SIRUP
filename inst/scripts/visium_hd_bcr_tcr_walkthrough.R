@@ -26,28 +26,39 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(ggplot2)
   library(cowplot)
+  library(data.table)
+  library(airr)
 })
 
 # Notes while testing:
-# - TODO:
+# - TODO: Let's assume people have the airr package
 # - TODO:
 # - TODO:
 
 # ---- Things to change --------------------------------------------------------
 
+# Settings
 sampleId <- "M5" # M1 uses demuxed_bc23; M5 uses demuxed_bc24.
 sampleLower <- tolower(sampleId)
 
+# Directory and paths for data
 thymusDir <- normalizePath("../../Thymus_VisiumHD", mustWork = TRUE)
-demuxBySample <- c(M1 = "022526_Visium_demuxed_bc23", M5 = "022526_Visium_demuxed_bc24")
+demuxBySample <- c(M1 = "022526_Visium_demuxed_bc23", M5 = "022526_Visium_demuxed_bc24") # Names of demuxed samples
 demuxDir <- file.path("/dartfs/rc/lab/H/HoehnK/Chinmay/022126_Visium_HD", demuxBySample[[sampleId]])
 
-rawBcrIgblastPath <- file.path(demuxDir, "igblast_out", "igblast_bcr.tsv")
-rawTcrIgblastPath <- file.path(demuxDir, "igblast_out", "igblast_tcr.tsv")
-barcodeMapPath <- file.path(thymusDir, sprintf("%s_barcode_mappings.csv", sampleId))
-positionsPath <- file.path(thymusDir, sprintf("%s_tissue_positions_8um.csv", sampleId))
+# Using 1M example files from RAD output for speed
+rawBcrIgblastPath <- file.path(demuxDir, "igblast_out", "igblast_bcr_1M_example.tsv")
+rawTcrIgblastPath <- file.path(demuxDir, "igblast_out", "igblast_tcr_1M_example.tsv")
+visiumOutsDir <- file.path(thymusDir, "analysis", sprintf("%s_260129", sampleId), "outs")
+
+# Either specify the parquet file or, as we've done here, a csv that is saved from the parquet so we don't have to use arrow.
+barcodeMapPath <- file.path(thymusDir, "M5_barcode_mappings.csv")
+positionsPath2um <- file.path(thymusDir, sprintf("%s_tissue_positions_2um.csv", sampleId))
+positionsPath8um <- file.path(thymusDir, sprintf("%s_tissue_positions_8um.csv", sampleId))
+positionsPath16um <- file.path(thymusDir, sprintf("%s_tissue_positions_16um.csv", sampleId))
 seuratPath <- file.path(thymusDir, "data", sprintf("Thymus_VisiumHD_%s_8um_hires_sr_processed.rds", sampleId))
 
+# Set paths for output from this walkthrough.
 outDir <- file.path(thymusDir, "SIRAP_walkthrough", sampleId)
 prestoInputDir <- file.path(outDir, "01_length_filtered_spatial_fastas")
 prestoOutputDir <- file.path(outDir, "02_presto_igblast")
@@ -57,75 +68,40 @@ for (dir in c(prestoInputDir, prestoOutputDir, finalAirrDir, plotDir)) {
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
 }
 
+# Set number of processes for parallel steps
 nproc <- 4
-genesToShow <- c("CD79A", "CD3E")
 
 # pRESTO/IgBLAST can take a while, so leave this FALSE until the input FASTAs
 # look right. When FALSE, the script will look for db-pass TSVs from a prior run.
-runPrestoIgblast <- FALSE
-runCloneCalling <- FALSE
-buildBcrTrees <- FALSE
+runPrestoIgblast <- TRUE
+runCloneCalling <- TRUE
+buildBcrTrees <- TRUE
 savePlots <- TRUE
 loadSeuratObject <- TRUE
 
-identity <- 0.975
-consensusFreq <- 0.51
-germlineGlob <- "~/software/germlines/imgt/human/vdj/imgt_human_*.fasta"
-germlineDir <- path.expand("~/software/germlines/imgt/human/vdj")
-igblastBase <- "~/software/igblast"
-igblastExec <- "~/software/igblast/bin/igblastn"
-muscleExec <- "~/software/muscle3.8.31_i86linux64"
 
 bcrCloneIdsToPlot <- NULL
 tcrCloneIdsToPlot <- NULL
 
-# ---- Small helpers for this walkthrough -------------------------------------
 
-checkFiles <- function(paths) {
-  fileStatus <- data.frame(path = paths, exists = file.exists(paths))
-  print(fileStatus)
-  if (!all(fileStatus$exists)) {
-    stop("Some input files are missing. Edit the paths above, then rerun this section.")
-  }
-  invisible(fileStatus)
-}
-
-expectedPrestoPaths <- function(input_fasta, output_dir, identity = 0.975, consensus_freq = 0.51) {
-  stem <- tools::file_path_sans_ext(basename(input_fasta))
-  consensus <- file.path(
-    output_dir,
-    sprintf(
-      "%s_ident_%s_barcode_cluster_freq_%s_cluster-pass_reheader_align-pass_consensus-pass.fasta",
-      stem,
-      identity,
-      consensus_freq
-    )
-  )
-  list(
-    consensus = consensus,
-    fmt7 = sub("\\.fasta$", "_igblast.fmt7", consensus),
-    db_pass = sub("\\.fasta$", "_igblast_db-pass.tsv", consensus)
-  )
-}
-
-savePlot <- function(plot, filename, width = 8, height = 6) {
-  if (savePlots) {
-    ggsave(file.path(plotDir, filename), plot, width = width, height = height, dpi = 300)
-  }
-  invisible(plot)
-}
 
 # ---- Load the spatial metadata ----------------------------------------------
 
-checkFiles(c(rawBcrIgblastPath, rawTcrIgblastPath, barcodeMapPath, positionsPath))
+all(file.exists(c(rawBcrIgblastPath, rawTcrIgblastPath, barcodeMapPath, positionsPath2um, positionsPath8um, positionsPath16um)))
 
 barcodeMap <- readBarcodeMapping(barcodeMapPath)
 
-positions <- readBarcodeMapping(positionsPath) |>
+positions2um <- readBarcodeMapping(positionsPath2um) %>%
+  mutate(
+    barcode_2um = barcode,
+    x = pxl_col_in_fullres,
+    y = max(pxl_row_in_fullres) - pxl_row_in_fullres
+  )
+positions8um <- readBarcodeMapping(positionsPath8um) %>%
   mutate(
     barcode_8um = barcode,
     x = pxl_col_in_fullres,
-    y = pxl_row_in_fullres
+    y = max(pxl_row_in_fullres) - pxl_row_in_fullres
   )
 
 head(barcodeMap)
@@ -133,58 +109,95 @@ head(positions)
 
 # ---- Start from raw IgBLAST output ------------------------------------------
 
-# The original script first kept IGH and TRB reads with V >= 100, J >= 10, and
-# a real junction. Then it pulled the 2 um barcode from sequence_id, mapped it
-# to 8 um and 16 um barcodes, and wrote both AIRR TSVs and FASTAs for pRESTO.
+# Extract the 2 um barcode before pRESTO. We add the 8 um and 16 um
+# barcodes after pRESTO by joining to the Visium HD barcode mapping file.
 
-bcrRaw <- readSpatialAirr(rawBcrIgblastPath)
-tcrRaw <- readSpatialAirr(rawTcrIgblastPath)
+bcrRaw <- data.table::fread(rawBcrIgblastPath)
+tcrRaw <- data.table::fread(rawTcrIgblastPath)
 
 dim(bcrRaw)
 dim(tcrRaw)
 
-bcrLengthSpatial <- preprocessSpatialAirr(
-  input = bcrRaw,
-  barcode_map = barcodeMap,
+bcrRaw <- extractSpatialBarcode(
+  bcrRaw,
+  sequence_id_col = "sequence_id",
+  barcode_col = "barcode_2um",
+  regex = "[0-9]+_[0-9]+$",
+  prefix = "s_002um_",
+  suffix = "-1"
+)
+
+tcrRaw <- extractSpatialBarcode(
+  tcrRaw,
+  sequence_id_col = "sequence_id",
+  barcode_col = "barcode_2um",
+  regex = "[0-9]+_[0-9]+$",
+  prefix = "s_002um_",
+  suffix = "-1"
+)
+
+bcrHeavy <- processSpatialAirr(
+  bcrRaw,
   loci = "IGH",
-  out_tsv = file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_barcode.tsv", sampleLower)),
-  out_fasta = file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_barcode.fasta", sampleLower)),
   min_v_length = 100,
   min_j_length = 10,
   min_junction_length = 1,
-  sequence_col = "sequence_alignment"
+  barcode_col = "barcode_2um",
+  add_full_id = TRUE
 )
+cat("Kept BCR heavy chains: ", nrow(bcrHeavy), "\n")
 
-tcrLengthSpatial <- preprocessSpatialAirr(
-  input = tcrRaw,
-  barcode_map = barcodeMap,
+tcrBeta <- processSpatialAirr(
+  tcrRaw,
   loci = "TRB",
-  out_tsv = file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_barcode.tsv", sampleLower)),
-  out_fasta = file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_barcode.fasta", sampleLower)),
   min_v_length = 100,
   min_j_length = 10,
   min_junction_length = 1,
-  sequence_col = "sequence_alignment"
+  barcode_col = "barcode_2um",
+  add_full_id = TRUE
 )
+cat("Kept TCR beta chains: ", nrow(tcrBeta), "\n")
 
-spatialReceptorSummary(bcrLengthSpatial, barcode_col = "barcode_2um")
-spatialReceptorSummary(tcrLengthSpatial, barcode_col = "barcode_2um")
 
-prePrestoQcPlot <- cowplot::plot_grid(
-  plotLengthQc(bcrLengthSpatial, title = paste(sampleId, "raw IGH reads after length/spatial filtering")),
-  plotLengthQc(tcrLengthSpatial, title = paste(sampleId, "raw TRB reads after length/spatial filtering")),
-  ncol = 1
-)
-prePrestoQcPlot
-savePlot(prePrestoQcPlot, sprintf("%s_pre_presto_length_qc.png", sampleLower), width = 10, height = 8)
+# Save the processed BCRs and TCRs as airr.tsvs and FASTAs for pRESTO/IgBLAST
+bcrHeavySpatialTsv <- file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_barcode.tsv", sampleLower))
+bcrHeavySpatialFasta <- file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_barcode.fasta", sampleLower))
+tcrBetaSpatialTsv <- file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_barcode.tsv", sampleLower))
+tcrBetaSpatialFasta <- file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_barcode.fasta", sampleLower))
+
+airr::write_rearrangement(bcrHeavy, bcrHeavySpatialTsv)
+airr::write_rearrangement(tcrBeta, tcrBetaSpatialTsv)
+
+dowser::dfToFasta(bcrHeavy, file = bcrHeavySpatialFasta, id = "full_id", seq = "sequence_alignment")
+dowser::dfToFasta(tcrBeta, file = tcrBetaSpatialFasta, id = "full_id", seq = "sequence_alignment")
+
+# Summarize pre and post filtering
+spatialReceptorSummary(bcrRaw, barcode_col = "barcode_2um")
+spatialReceptorSummary(bcrHeavy, barcode_col = "barcode_2um")
+spatialReceptorSummary(tcrRaw, barcode_col = "barcode_2um")
+spatialReceptorSummary(bcrHeavy, barcode_col = "barcode_2um")
+
+# Plot the distribution of v, j, and junction lengths before and after filtering if requested
+if (savePlots) {
+  prePrestoQcPlot <- cowplot::plot_grid(
+    plotLengthQc(bcrRaw, title = paste(sampleId, "raw IGH reads before filtering")),
+    plotLengthQc(bcrHeavy, title = paste(sampleId, "raw IGH reads after filtering")),
+    plotLengthQc(tcrRaw, title = paste(sampleId, "raw TRB reads before filtering")),
+    plotLengthQc(tcrBeta, title = paste(sampleId, "raw TRB reads after filtering")),
+    ncol = 2
+  )
+  ggsave(file.path(plotDir, sprintf("%s_pre_presto_length_qc.png", sampleLower)), prePrestoQcPlot, width = 10, height = 8, dpi = 300)
+}
 
 # Things to inspect:
 head(bcrLengthSpatial)
 head(tcrLengthSpatial)
 
 # Notes:
-# - TODO: Should preprocessSpatialAirr() print a drop-count summary?
+# - TODO: Should processSpatialAirr() print a drop-count summary?
+# Yes
 # - TODO: Should full_id include barcode16um too?
+#  No, I think we only include other barcodes after presto and igblast because only visiumHD has multiple of our datasets
 
 # ---- Run pRESTO and IgBLAST from R ------------------------------------------
 
@@ -192,16 +205,24 @@ head(tcrLengthSpatial)
 # ClusterSets.py -> ParseHeaders.py -> AlignSets.py -> BuildConsensus.py ->
 # AssignGenes.py -> MakeDb.py. The command output prints to the R console.
 
-bcrLengthSpatialFasta <- file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_barcode.fasta", sampleLower))
-tcrLengthSpatialFasta <- file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_barcode.fasta", sampleLower))
+# Presto and IgBLAST settings and locations
+identityThreshold <- 0.975 # How similar sequences have to be to be clustered together by pRESTO within same barcode
+consensusFreqThreshold <- 0.51 # What proportion of nucleotides in a sequence cluster need to match to call a consensus at that position
+germlineGlob <- "~/software/germlines/imgt/human/vdj/imgt_human_*.fasta"
+germlineDir <- path.expand("~/software/germlines/imgt/human/vdj")
+igblastBase <- "~/software/igblast"
+igblastExec <- "~/software/igblast/bin/igblastn"
+muscleExec <- "~/software/muscle3.8.31_i86linux64"
 
 if (runPrestoIgblast) {
+  # This function both runs the external presto/igblast commands and returns the paths to the key output files
+  # Try dry_run = TRUE first to check the commands and paths without actually running
   bcrPrestoPaths <- runPrestoIgblastSample(
-    input_fasta = bcrLengthSpatialFasta,
+    input_fasta = bcrHeavySpatialFasta,
     output_dir = prestoOutputDir,
     receptor = "ig",
-    identity = identity,
-    consensus_freq = consensusFreq,
+    identity = identityThreshold,
+    consensus_freq = consensusFreqThreshold,
     germline_glob = germlineGlob,
     igblast_base = igblastBase,
     igblast_exec = igblastExec,
@@ -210,11 +231,11 @@ if (runPrestoIgblast) {
   )
 
   tcrPrestoPaths <- runPrestoIgblastSample(
-    input_fasta = tcrLengthSpatialFasta,
+    input_fasta = tcrBetaSpatialFasta,
     output_dir = prestoOutputDir,
     receptor = "tr",
-    identity = identity,
-    consensus_freq = consensusFreq,
+    identity = identityThreshold,
+    consensus_freq = consensusFreqThreshold,
     germline_glob = germlineGlob,
     igblast_base = igblastBase,
     igblast_exec = igblastExec,
@@ -226,58 +247,224 @@ if (runPrestoIgblast) {
 }
 
 if (!exists("bcrPrestoPaths")) {
-  bcrPrestoPaths <- expectedPrestoPaths(bcrLengthSpatialFasta, prestoOutputDir, identity, consensusFreq)
+  bcrConsensusFasta <- file.path(
+    prestoOutputDir,
+    sprintf(
+      "%s_igblast_bcr_pass_length_spatial_barcode_ident_%s_barcode_cluster_freq_%s_cluster-pass_reheader_align-pass_consensus-pass.fasta",
+      sampleLower,
+      identityThreshold,
+      consensusFreqThreshold
+    )
+  )
+  bcrPrestoPaths <- list(
+    consensus = bcrConsensusFasta,
+    fmt7 = sub("\\.fasta$", "_igblast.fmt7", bcrConsensusFasta),
+    db_pass = sub("\\.fasta$", "_igblast_db-pass.tsv", bcrConsensusFasta)
+  )
 }
 if (!exists("tcrPrestoPaths")) {
-  tcrPrestoPaths <- expectedPrestoPaths(tcrLengthSpatialFasta, prestoOutputDir, identity, consensusFreq)
+  tcrConsensusFasta <- file.path(
+    prestoOutputDir,
+    sprintf(
+      "%s_igblast_tcr_pass_length_spatial_barcode_ident_%s_barcode_cluster_freq_%s_cluster-pass_reheader_align-pass_consensus-pass.fasta",
+      sampleLower,
+      identity,
+      consensusFreq
+    )
+  )
+  tcrPrestoPaths <- list(
+    consensus = tcrConsensusFasta,
+    fmt7 = sub("\\.fasta$", "_igblast.fmt7", tcrConsensusFasta),
+    db_pass = sub("\\.fasta$", "_igblast_db-pass.tsv", tcrConsensusFasta)
+  )
 }
 
 bcrPrestoPaths$db_pass
 tcrPrestoPaths$db_pass
 
 # Notes:
-# - TODO: Should SIRAP expose expectedPrestoPaths() as a real package function?
 # - TODO: Should runPrestoIgblastSample() check all external executables first?
+# No, but it should print helpful error messages if they are not found when it tries to run them.
 
-# ---- Polish the pRESTO/IgBLAST consensus output -----------------------------
+# ---- Continue processing the presto/igblast consensus output -----------------------------
 
 # Now we are back in R. The original script read the db-pass TSVs, kept strong
 # productive consensus sequences, recovered the barcode from the pRESTO header,
 # swapped the 2 um barcode row/column order, remapped to 8 um/16 um, and kept
 # the top consensus sequence per 2 um barcode and locus.
 
-checkFiles(c(bcrPrestoPaths$db_pass, tcrPrestoPaths$db_pass))
+bcrPrestoFullDbPassPath <- "/dartfs/rc/lab/H/HoehnK/Chinmay/022126_Visium_HD/022526_Visium_demuxed_bc24/processed/igblast_bcr_pass_length_ident_0.975_barcode_cluster_freq_0.51_cluster-pass_reheader_align-pass_consensus-pass_igblast_db-pass.tsv"
+tcrPrestoFullDbPassPath <- "/dartfs/rc/lab/H/HoehnK/Chinmay/022126_Visium_HD/022526_Visium_demuxed_bc24/processed/igblast_tcr_pass_length_ident_0.975_barcode_cluster_freq_0.51_cluster-pass_reheader_align-pass_consensus-pass_igblast_db-pass.tsv"
 
-bcrConsensus <- readSpatialAirr(bcrPrestoPaths$db_pass)
-tcrConsensus <- readSpatialAirr(tcrPrestoPaths$db_pass)
+all(file.exists(c(bcrPrestoFullDbPassPath, tcrPrestoFullDbPassPath)))
 
-bcrConsensusFiltered <- filterReceptorReads(
+# Load in the consensus output
+# Read in the full data instead of this version so that we have more sequences
+if (requireNamespace("airr", quietly = TRUE)) {
+  bcrConsensus <- airr::read_rearrangement(bcrPrestoFullDbPassPath)
+  tcrConsensus <- airr::read_rearrangement(tcrPrestoFullDbPassPath)
+} else {
+  bcrConsensus <- data.table::fread(bcrPrestoFullDbPassPath)
+  tcrConsensus <- data.table::fread(tcrPrestoFullDbPassPath)
+}
+
+# Get the spatial barcode back out of the sequence_id
+bcrConsensus <- extractSpatialBarcode(
+  bcrConsensus,
+  sequence_id_col = "sequence_id",
+  barcode_col = "barcode_2um",
+  regex = ",([^,]+)"
+)
+
+tcrConsensus <- extractSpatialBarcode(
+  tcrConsensus,
+  sequence_id_col = "sequence_id",
+  barcode_col = "barcode_2um",
+  regex = ",([^,]+)"
+)
+
+# Filter the consensus output further based on sequence v_length, j_length, junction length, productivity, and consensus cluster count
+# Also don't accept any sequences with an opening gap of more than 2
+bcrConsensusFiltered <- processSpatialAirr(
   bcrConsensus,
   loci = "IGH",
   min_v_length = 250,
   min_j_length = 30,
-  min_junction_length = 11,
+  min_junction_length = 10,
   productive_only = TRUE,
   min_consensus_count = 2,
-  max_opening_gap = 2
+  max_opening_gap = 2,
+  barcode_col = "barcode_2um"
 )
+cat("Kept BCR consensus sequences after filtering: ", nrow(bcrConsensusFiltered), "\n")
 
-tcrConsensusFiltered <- filterReceptorReads(
+tcrConsensusFiltered <- processSpatialAirr(
   tcrConsensus,
   loci = "TRB",
   min_v_length = 250,
   min_j_length = 30,
-  min_junction_length = 11,
+  min_junction_length = 10,
   productive_only = TRUE,
   min_consensus_count = 2,
-  max_opening_gap = 2
+  max_opening_gap = 2,
+  barcode_col = "barcode_2um"
+)
+cat("Kept TCR consensus sequences after filtering: ", nrow(tcrConsensusFiltered), "\n")
+
+# The barcodes are somehow in the wrong order out of RAD, so swap them
+# Also use the barcode map to get the 8 um and 16 um barcodes for each consensus sequence
+bcrConsensusFiltered <- bcrConsensusFiltered %>%
+  mutate(barcode_2um_swapped = sub("^(.*_)(\\d+)_(\\d+)(-\\d+)$", "\\1\\3_\\2\\4", barcode_2um)) %>%
+  left_join(
+    barcodeMap %>% select(square_002um, square_008um, square_016um),
+    by = c("barcode_2um_swapped" = "square_002um")
+  ) %>%
+  rename(barcode_8um = square_008um, barcode_16um = square_016um)
+
+tcrConsensusFiltered <- tcrConsensusFiltered %>%
+  mutate(barcode_2um_swapped = sub("^(.*_)(\\d+)_(\\d+)(-\\d+)$", "\\1\\3_\\2\\4", barcode_2um)) %>%
+  left_join(
+    barcodeMap %>% select(square_002um, square_008um, square_016um),
+    by = c("barcode_2um_swapped" = "square_002um")
+  ) %>%
+  rename(barcode_8um = square_008um, barcode_16um = square_016um)
+
+# Add tissue positions to the consensus sequences
+bcrConsensusFilteredPos <- addTissuePositions(
+  bcrConsensusFiltered,
+  positions8um,
+  barcode_col = "barcode_8um",
+  position_barcode_col = "barcode_8um",
+  x_col = "x",
+  y_col = "y"
+) %>% filter(!is.na(x), !is.na(y))
+
+#####################################################################
+# WARNING: ACTIVE DEVELOPMENT ZONE. LEAVE THIS ALONE FOR NOW @CODEX #
+#####################################################################
+
+# We want to collapse identical sequences in contiguous clusters together so as to remove bleedover from sequencing
+
+# As an example, grab the 10 most widely expressed heavy chains and plot them in space so we can see if we have little clusters
+bcrConsensusBigSeqs <- bcrConsensusFilteredPos %>%
+  group_by(sequence_alignment) %>%
+  summarize(n_bc = n(), total_consensus_count = sum(consensus_count)) %>%
+  arrange(desc(n_bc), desc(total_consensus_count)) %>%
+  slice_head(n = 10) %>%
+  pull(sequence_alignment)
+
+# For each of these sequences, highlight the locations of all the consensus sequences that are identical to it
+plots <- list()
+for (seq in bcrConsensusBigSeqs) {
+  seqMatches <- bcrConsensusFilteredPos %>%
+    filter(sequence_alignment == seq)
+  seqName <- paste0("seq_", which(bcrConsensusBigSeqs == seq))
+
+  seqPlot <- plotReceptorOverlay(
+    tissue_positions = positions8um,
+    receptors = seqMatches,
+    receptor_color = "#2c7fb8",
+    receptor_size = 1.2,
+    title = paste("Identical sequence:", seq)
+  )
+  plots[[seqName]] <- seqPlot
+  ggsave(file.path(plotDir, sprintf("%s_identical_sequence_%s_bcr_spatial.png", sampleLower, seqName)), seqPlot, width = 6, height = 5, dpi = 300)
+  cat("Plotted identical sequence ", seqName, "\n")
+  # pdf(file.path(plotDir, sprintf("%s_identical_sequence_%s_bcr_spatial.pdf", sampleLower, seqName)), width = 6, height = 5)
+  #   print(seqPlot)
+  # dev.off()
+}
+# pdf(file.path(plotDir, sprintf("%s_identical_sequences_bcr_spatial.pdf", sampleLower)), width = 6, height = 5)
+#   for (seqPlot in plots) {
+#     print(seqPlot)
+#   }
+# dev.off()
+
+# Try filtering spatially
+# Goal is to collapse identical sequences in contiguous clusters onto the most present location
+# Get the adjacency matrix 
+
+bcrConsensusFilteredPosSpatialCollapse <- collapseSpatial(
+  data = bcrConsensusFilteredPos,
+  tissue_positions = positions8um,
+  barcode = "barcode_8um",
+  x = "x",
+  y = "y",
+  sequence = "sequence_alignment",
+  consensus_count = "consensus_count",
+  num_neighbors_non_boundary = 8L
 )
 
-bcrSpatialConsensus <- addSpatialBarcodes(bcrConsensusFiltered, barcodeMap, mode = "presto_header", swap = TRUE)
-tcrSpatialConsensus <- addSpatialBarcodes(tcrConsensusFiltered, barcodeMap, mode = "presto_header", swap = TRUE)
+# Check bcrConsensusBigSeqs again but from this set
 
-bcrTopBarcode <- collapseTopConsensusPerBarcode(bcrSpatialConsensus, barcode_col = "barcode_2um", locus_col = "locus", ties = "all")
-tcrTopBarcode <- collapseTopConsensusPerBarcode(tcrSpatialConsensus, barcode_col = "barcode_2um", locus_col = "locus", ties = "all")
+plotsCollapsed <- list()
+for (seq in bcrConsensusBigSeqs) {
+  seqMatches <- bcrConsensusFilteredPosSpatialCollapse %>%
+    filter(sequence_alignment == seq)
+  seqName <- paste0("seq_", which(bcrConsensusBigSeqs == seq))
+  
+  seqPlot <- plotReceptorOverlay(
+    tissue_positions = positions8um,
+    receptors = seqMatches,
+    receptor_color = "#2c7fb8",
+    receptor_size = 1.2,
+    title = paste("Identical sequence:", seq)
+  )
+  plots[[seqName]] <- seqPlot
+  ggsave(file.path(plotDir, sprintf("%s_identical_sequence_%s_bcr_spatial_collapsed.png", sampleLower, seqName)), seqPlot, width = 6, height = 5, dpi = 300)
+  cat("Plotted identical sequence ", seqName, "\n")
+}
+
+###############################
+# END ACTIVE DEVELOPMENT ZONE #
+###############################
+
+
+
+
+
+bcrTopBarcode <- collapseTopConsensusPerBarcode(bcrConsensusFiltered, barcode_col = "barcode_2um", locus_col = "locus", ties = "all")
+tcrTopBarcode <- collapseTopConsensusPerBarcode(tcrConsensusFiltered, barcode_col = "barcode_2um", locus_col = "locus", ties = "all")
 
 bcr <- addTissuePositions(
   bcrTopBarcode,
@@ -286,7 +473,7 @@ bcr <- addTissuePositions(
   position_barcode_col = "barcode_8um",
   x_col = "x",
   y_col = "y"
-) |>
+) %>%
   filter(!is.na(x), !is.na(y))
 
 tcr <- addTissuePositions(
@@ -296,13 +483,18 @@ tcr <- addTissuePositions(
   position_barcode_col = "barcode_8um",
   x_col = "x",
   y_col = "y"
-) |>
+) %>%
   filter(!is.na(x), !is.na(y))
 
 finalBcrPath <- file.path(finalAirrDir, sprintf("%s_bcrs_heavy_final_spatial_airr.tsv", sampleLower))
 finalTcrPath <- file.path(finalAirrDir, sprintf("%s_tcrs_beta_final_spatial_airr.tsv", sampleLower))
-writeSpatialOutputs(bcr, out_tsv = finalBcrPath)
-writeSpatialOutputs(tcr, out_tsv = finalTcrPath)
+if (requireNamespace("airr", quietly = TRUE)) {
+  airr::write_rearrangement(bcr, finalBcrPath)
+  airr::write_rearrangement(tcr, finalTcrPath)
+} else {
+  data.table::fwrite(bcr, finalBcrPath, sep = "\t")
+  data.table::fwrite(tcr, finalTcrPath, sep = "\t")
+}
 
 list(
   bcr = spatialReceptorSummary(bcr, barcode_col = "barcode_8um"),
@@ -315,7 +507,9 @@ postPrestoQcPlot <- cowplot::plot_grid(
   ncol = 1
 )
 postPrestoQcPlot
-savePlot(postPrestoQcPlot, sprintf("%s_post_presto_final_length_qc.png", sampleLower), width = 10, height = 8)
+if (savePlots) {
+  ggsave(file.path(plotDir, sprintf("%s_post_presto_final_length_qc.png", sampleLower)), postPrestoQcPlot, width = 10, height = 8, dpi = 300)
+}
 
 # Things to inspect:
 head(bcr)
@@ -355,9 +549,11 @@ bcrTcrOverlay <- ggplot(positions, aes(x = x, y = y)) +
   labs(title = paste(sampleId, "BCR and TCR locations"), x = "x", y = "y")
 bcrTcrOverlay
 
-savePlot(allBcrPlot, sprintf("%s_all_bcr_locations.png", sampleLower), width = 6, height = 5)
-savePlot(allTcrPlot, sprintf("%s_all_tcr_locations.png", sampleLower), width = 6, height = 5)
-savePlot(bcrTcrOverlay, sprintf("%s_bcr_tcr_locations.png", sampleLower), width = 6, height = 5)
+if (savePlots) {
+  ggsave(file.path(plotDir, sprintf("%s_all_bcr_locations.png", sampleLower)), allBcrPlot, width = 6, height = 5, dpi = 300)
+  ggsave(file.path(plotDir, sprintf("%s_all_tcr_locations.png", sampleLower)), allTcrPlot, width = 6, height = 5, dpi = 300)
+  ggsave(file.path(plotDir, sprintf("%s_bcr_tcr_locations.png", sampleLower)), bcrTcrOverlay, width = 6, height = 5, dpi = 300)
+}
 
 # Notes:
 # - TODO: Should plotReceptorOverlay() support BCR and TCR layers at the same time?
@@ -366,6 +562,7 @@ savePlot(bcrTcrOverlay, sprintf("%s_bcr_tcr_locations.png", sampleLower), width 
 
 thymus <- NULL
 geneOverlayPlots <- list()
+genesToShow <- c("CD79A", "CD3E")
 
 if (loadSeuratObject && file.exists(seuratPath) && requireNamespace("SeuratObject", quietly = TRUE)) {
   thymus <- readRDS(seuratPath)
@@ -379,8 +576,8 @@ if (loadSeuratObject && file.exists(seuratPath) && requireNamespace("SeuratObjec
     expr <- SeuratObject::FetchData(thymus, vars = gene)
     expr$barcode_8um <- rownames(expr)
 
-    tissueGene <- positions |>
-      left_join(expr, by = "barcode_8um") |>
+    tissueGene <- positions %>%
+      left_join(expr, by = "barcode_8um") %>%
       mutate(expression = .data[[gene]])
 
     bcrGenePlot <- plotReceptorOverlay(
@@ -403,7 +600,15 @@ if (loadSeuratObject && file.exists(seuratPath) && requireNamespace("SeuratObjec
 
     geneOverlayPlots[[gene]] <- cowplot::plot_grid(bcrGenePlot, tcrGenePlot, ncol = 2)
     print(geneOverlayPlots[[gene]])
-    savePlot(geneOverlayPlots[[gene]], sprintf("%s_%s_receptor_gene_overlay.png", sampleLower, gene), width = 11, height = 5)
+    if (savePlots) {
+      ggsave(
+        file.path(plotDir, sprintf("%s_%s_receptor_gene_overlay.png", sampleLower, gene)),
+        geneOverlayPlots[[gene]],
+        width = 11,
+        height = 5,
+        dpi = 300
+      )
+    }
   }
 } else {
   message("Skipping gene overlays. Check loadSeuratObject, seuratPath, and SeuratObject.")
@@ -419,19 +624,23 @@ tcrClonesPath <- file.path(outDir, sprintf("%s_tcr_hierarchical_clones.rds", sam
 bcrTreesPath <- file.path(outDir, sprintf("%s_bcr_pml_trees.rds", sampleLower))
 
 if (runCloneCalling) {
-  bcrClones <- assignSpatialClones(
-    bcr,
+  if (!requireNamespace("scoper", quietly = TRUE)) {
+    stop("Install scoper to call clones.")
+  }
+
+  bcrClones <- scoper::hierarchicalClones(
+    filter(bcr, productive %in% c(TRUE, "TRUE", "T")),
     threshold = 0.1,
-    productive_only = TRUE,
     cell_id = "sequence_id",
+    summarize_clones = FALSE,
     nproc = nproc
   )
 
-  tcrClones <- assignSpatialClones(
-    tcr,
+  tcrClones <- scoper::hierarchicalClones(
+    filter(tcr, productive %in% c(TRUE, "TRUE", "T")),
     threshold = 0.1,
-    productive_only = TRUE,
     cell_id = "sequence_id",
+    summarize_clones = FALSE,
     nproc = nproc
   )
 
@@ -445,21 +654,18 @@ if (runCloneCalling) {
 }
 
 if (exists("bcrClones")) {
-  bcrCloneCounts <- bcrClones |>
-    filter(!is.na(clone_id)) |>
+  bcrCloneCounts <- bcrClones %>%
+    filter(!is.na(clone_id)) %>%
     count(clone_id, sort = TRUE)
   head(bcrCloneCounts, 20)
 }
 
 if (exists("tcrClones")) {
-  tcrCloneCounts <- tcrClones |>
-    filter(!is.na(clone_id)) |>
+  tcrCloneCounts <- tcrClones %>%
+    filter(!is.na(clone_id)) %>%
     count(clone_id, sort = TRUE)
   head(tcrCloneCounts, 20)
 }
-
-# Notes:
-# - TODO: Should assignSpatialClones() have better defaults for spatial data?
 
 # ---- Pick a couple of clones and plot them ----------------------------------
 
@@ -467,11 +673,11 @@ chooseBigClones <- function(clones, cloneIds = NULL, n = 2) {
   if (!is.null(cloneIds)) {
     return(as.character(cloneIds))
   }
-  clones |>
-    filter(!is.na(clone_id)) |>
-    count(clone_id, sort = TRUE) |>
-    slice_head(n = n) |>
-    pull(clone_id) |>
+  clones %>%
+    filter(!is.na(clone_id)) %>%
+    count(clone_id, sort = TRUE) %>%
+    slice_head(n = n) %>%
+    pull(clone_id) %>%
     as.character()
 }
 
@@ -504,7 +710,9 @@ if (exists("bcrClones") && exists("bcrCloneIds")) {
   )
   selectedBcrClonePlot <- cowplot::plot_grid(plotlist = bcrClonePlots, ncol = 2)
   selectedBcrClonePlot
-  savePlot(selectedBcrClonePlot, sprintf("%s_selected_bcr_clones_spatial.png", sampleLower), width = 10, height = 5)
+  if (savePlots) {
+    ggsave(file.path(plotDir, sprintf("%s_selected_bcr_clones_spatial.png", sampleLower)), selectedBcrClonePlot, width = 10, height = 5, dpi = 300)
+  }
 }
 
 if (exists("tcrClones") && exists("tcrCloneIds")) {
@@ -522,7 +730,9 @@ if (exists("tcrClones") && exists("tcrCloneIds")) {
   )
   selectedTcrClonePlot <- cowplot::plot_grid(plotlist = tcrClonePlots, ncol = 2)
   selectedTcrClonePlot
-  savePlot(selectedTcrClonePlot, sprintf("%s_selected_tcr_clones_spatial.png", sampleLower), width = 10, height = 5)
+  if (savePlots) {
+    ggsave(file.path(plotDir, sprintf("%s_selected_tcr_clones_spatial.png", sampleLower)), selectedTcrClonePlot, width = 10, height = 5, dpi = 300)
+  }
 }
 
 # ---- Build BCR trees and match tips back to space ----------------------------
@@ -540,25 +750,39 @@ if (buildBcrTrees) {
 
   refs <- alakazam::readIMGT(germlineDir)
 
-  bcrTreeInput <- bcrClones |>
-    filter(clone_id %in% bcrCloneIds, !is.na(clone_id)) |>
+  bcrTreeInput <- bcrClones %>%
+    filter(clone_id %in% bcrCloneIds, !is.na(clone_id)) %>%
     mutate(
       sequence_id_tree = make.unique(as.character(sequence_id)),
-      c_call_simple = simplifyIghConstantCall(c_call)
-    ) |>
+      c_call_simple = case_when(
+        stringr::str_detect(c_call, "IGHM") ~ "IgM",
+        stringr::str_detect(c_call, "IGHD") ~ "IgD",
+        stringr::str_detect(c_call, "IGHG1") ~ "IgG1",
+        stringr::str_detect(c_call, "IGHG2") ~ "IgG2",
+        stringr::str_detect(c_call, "IGHG3") ~ "IgG3",
+        stringr::str_detect(c_call, "IGHG4") ~ "IgG4",
+        stringr::str_detect(c_call, "IGHA1") ~ "IgA1",
+        stringr::str_detect(c_call, "IGHA2") ~ "IgA2",
+        stringr::str_detect(c_call, "IGHE") ~ "IgE",
+        TRUE ~ "unknown"
+      )
+    ) %>%
     assignTipColors(clone_ids = bcrCloneIds, id_col = "sequence_id_tree")
 
   bcrTreeInput <- dowser::createGermlines(bcrTreeInput, refs, id = "sequence_id_tree")
 
-  bcrTreeResult <- buildDowserTrees(
+  bcrFormattedClones <- dowser::formatClones(
     bcrTreeInput,
-    clone_ids = bcrCloneIds,
     id = "sequence_id_tree",
     traits = c("tip_color_id", "tip_color", "c_call_simple", "barcode_8um"),
     columns = c("x", "y", "barcode_8um"),
-    method = "pml",
-    nproc = nproc
+    filterstop = FALSE,
+    collapse = TRUE,
+    add_count = "consensus_count" %in% colnames(bcrTreeInput),
+    num_fields = if ("consensus_count" %in% colnames(bcrTreeInput)) "consensus_count" else NULL
   )
+  bcrTrees <- dowser::getTrees(bcrFormattedClones, build = "pml", nproc = nproc)
+  bcrTreeResult <- list(formatted_clones = bcrFormattedClones, trees = bcrTrees)
 
   saveRDS(bcrTreeResult, bcrTreesPath)
 } else if (file.exists(bcrTreesPath)) {
@@ -604,7 +828,6 @@ if (exists("bcrTreeResult") && exists("bcrTreeInput")) {
 }
 
 # Notes:
-# - TODO: Should buildDowserTrees() handle createGermlines()?
 # - TODO: Should plotTreeSpatialPairs() become a package function?
 
 # ---- Done -------------------------------------------------------------------

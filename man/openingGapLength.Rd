@@ -2,7 +2,7 @@
 % Please edit documentation in R/processing.R
 \name{openingGapLength}
 \alias{openingGapLength}
-\title{Opening gap run length}
+\title{Check the opening gap run length}
 \usage{
 openingGapLength(seq)
 }
@@ -13,5 +13,5 @@ openingGapLength(seq)
 Integer length of the leading run of periods.
 }
 \description{
-Opening gap run length
+Check the opening gap run length
 }

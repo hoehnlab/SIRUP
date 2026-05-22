@@ -1,27 +1,39 @@
-#' Filter receptor reads by locus and alignment quality
+#' Process spatial AIRR seq data by filtering for productivity, v/j/junction length, a minimum 
+#' consensus count, optional max opening gap length, and optionally adding a full_id combining sequence_id and
+#' spatial barcode.
 #'
 #' @param airr_df AIRR-style data frame.
 #' @param loci Character vector of loci to keep. Use `NULL` to skip locus
-#'   filtering, or set `exclude_loci = TRUE` to remove these loci.
-#' @param exclude_loci Whether `loci` should be excluded rather than retained.
-#' @param min_v_length,min_j_length,min_junction_length Minimum accepted lengths.
-#' @param productive_only Keep only productive rearrangements when a `productive`
-#'   column is present.
-#' @param min_consensus_count Optional minimum `consensus_count`.
+#'   filtering.
+#' @param min_v_length Minimum accepted V gene length.
+#' @param min_j_length Minimum accepted J gene length.
+#' @param min_junction_length Minimum accepted junction length.
+#' @param productive_only Keep only productive rearrangements.
+#' @param min_consensus_count Optional minimum consensus_count.
 #' @param max_opening_gap Optional maximum opening gap in `sequence_alignment`.
 #' @param sequence_alignment_col Sequence alignment column for gap filtering.
-#' @return Filtered data frame with `vlength` and `jlength` columns.
+#' @param sequence_id_col Column containing read or consensus identifiers.
+#' @param barcode_col Optional name of a spatial barcode column that is already
+#'   present in `airr_df`.
+#' @param add_full_id Add a combined id with the original sequence id 
+#' and the spatial barcode. barcode_col must be provided if TRUE.
+#' @param full_id_barcode_key Barcode field name to use in `full_id`.
+#' @return Preprocessed data frame with `vlength`, `jlength`, and optional
+#'   `full_id` columns.
 #' @export
-filterReceptorReads <- function(airr_df,
-                                  loci = NULL,
-                                  exclude_loci = FALSE,
-                                  min_v_length = 100,
-                                  min_j_length = 10,
-                                  min_junction_length = 1,
-                                  productive_only = FALSE,
-                                  min_consensus_count = NULL,
-                                  max_opening_gap = NULL,
-                                  sequence_alignment_col = "sequence_alignment") {
+processSpatialAirr <- function(airr_df,
+                                 loci = NULL,
+                                 min_v_length = 100,
+                                 min_j_length = 10,
+                                 min_junction_length = 1,
+                                 productive_only = TRUE,
+                                 min_consensus_count = 2,
+                                 max_opening_gap = NULL,
+                                 sequence_alignment_col = "sequence_alignment",
+                                 sequence_id_col = "sequence_id",
+                                 barcode_col = NULL,
+                                 add_full_id = FALSE,
+                                 full_id_barcode_key = "barcode2um") {
   required <- c(
     "v_sequence_end", "v_sequence_start",
     "j_sequence_end", "j_sequence_start",
@@ -34,11 +46,7 @@ filterReceptorReads <- function(airr_df,
 
   if (!is.null(loci)) {
     .check_required_cols(out, "locus", "airr_df")
-    if (exclude_loci) {
-      out <- out[!(out$locus %in% loci), , drop = FALSE]
-    } else {
-      out <- out[out$locus %in% loci, , drop = FALSE]
-    }
+    out <- out[out$locus %in% loci, , drop = FALSE]
   }
 
   out <- out[
@@ -63,10 +71,26 @@ filterReceptorReads <- function(airr_df,
     gaps <- vapply(out[[sequence_alignment_col]], openingGapLength, integer(1))
     out <- out[gaps <= max_opening_gap, , drop = FALSE]
   }
+
+  if (!is.null(barcode_col)) {
+    .check_required_cols(out, barcode_col, "airr_df")
+  }
+
+  if (add_full_id) {
+    if (is.null(barcode_col)) {
+      rlang::abort("barcode_col is required when add_full_id is TRUE.")
+    }
+    .check_required_cols(out, c(sequence_id_col, barcode_col), "airr_df")
+    out$full_id <- paste0(
+      "sequence_id=", out[[sequence_id_col]],
+      "|", full_id_barcode_key, "=", out[[barcode_col]]
+    )
+  }
+
   out
 }
 
-#' Maximum internal gap run length
+#' Check the maximum internal gap run length
 #'
 #' @param seq Character sequence, typically `sequence_alignment`.
 #' @return Integer length of the longest run of periods.
@@ -84,7 +108,7 @@ maxGapLength <- function(seq) {
   max(nchar(matches))
 }
 
-#' Opening gap run length
+#' Check the opening gap run length
 #'
 #' @param seq Character sequence, typically `sequence_alignment`.
 #' @return Integer length of the leading run of periods.
@@ -123,16 +147,16 @@ collapseTopConsensusPerBarcode <- function(airr_df,
   ties <- match.arg(ties)
   .check_required_cols(airr_df, c(barcode_col, locus_col, consensus_col), "airr_df")
   out <- .as_data_frame(airr_df)
-  out <- out |>
-    dplyr::group_by(dplyr::across(dplyr::all_of(c(barcode_col, locus_col)))) |>
-    dplyr::mutate(prop_total_consensus = .data[[consensus_col]] / sum(.data[[consensus_col]], na.rm = TRUE)) |>
+  out <- out %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(c(barcode_col, locus_col)))) %>%
+    dplyr::mutate(prop_total_consensus = .data[[consensus_col]] / sum(.data[[consensus_col]], na.rm = TRUE)) %>%
     dplyr::filter(.data[[consensus_col]] == max(.data[[consensus_col]], na.rm = TRUE))
 
   if (ties == "first") {
-    out <- out |> dplyr::slice_head(n = 1)
+    out <- out %>% dplyr::slice_head(n = 1)
   }
 
-  out <- out |> dplyr::ungroup()
+  out <- out %>% dplyr::ungroup()
   if (sequence_col %in% colnames(out)) {
     out$non_N_nucleotide_prop <- stringr::str_count(out[[sequence_col]], "[ACGT]") / nchar(out[[sequence_col]])
   }
@@ -141,109 +165,6 @@ collapseTopConsensusPerBarcode <- function(airr_df,
     out$opening_gap_length <- vapply(out[[alignment_col]], openingGapLength, integer(1))
   }
   out
-}
-
-#' Preprocess an IgBLAST AIRR table into spatial AIRR and FASTA outputs
-#'
-#' This wraps the first step of the original processing script: locus/length QC,
-#' Visium HD barcode mapping, and writing AIRR TSV plus FASTA for pRESTO.
-#'
-#' @param input AIRR data frame or path to TSV.
-#' @param barcode_map Barcode mapping data frame or path.
-#' @param loci Loci to keep, for example `"IGH"` or `"TRB"`.
-#' @param exclude_loci Whether to exclude `loci`.
-#' @param out_tsv,out_fasta Optional output paths.
-#' @param min_v_length,min_j_length,min_junction_length Length cutoffs.
-#' @param sequence_col Column used for FASTA sequences.
-#' @return Processed spatial AIRR data frame.
-#' @export
-preprocessSpatialAirr <- function(input,
-                                    barcode_map,
-                                    loci,
-                                    exclude_loci = FALSE,
-                                    out_tsv = NULL,
-                                    out_fasta = NULL,
-                                    min_v_length = 100,
-                                    min_j_length = 10,
-                                    min_junction_length = 1,
-                                    sequence_col = "sequence_alignment") {
-  airr_df <- if (is.character(input) && length(input) == 1) {
-    readSpatialAirr(input)
-  } else {
-    input
-  }
-  barcode_map <- if (is.character(barcode_map) && length(barcode_map) == 1) {
-    readBarcodeMapping(barcode_map)
-  } else {
-    barcode_map
-  }
-
-  out <- filterReceptorReads(
-    airr_df,
-    loci = loci,
-    exclude_loci = exclude_loci,
-    min_v_length = min_v_length,
-    min_j_length = min_j_length,
-    min_junction_length = min_junction_length
-  )
-  out <- addSpatialBarcodes(out, barcode_map, mode = "raw_suffix")
-  out$full_id <- paste0(
-    "sequence_id=", out$sequence_id,
-    "|barcode2um=", out$barcode_2um,
-    "|barcode8um=", out$barcode_8um
-  )
-
-  writeSpatialOutputs(out, out_tsv = out_tsv, out_fasta = out_fasta, sequence_col = sequence_col)
-  out
-}
-
-#' Read an AIRR TSV file
-#'
-#' Uses `airr::read_rearrangement()` when available, falling back to
-#' `data.table::fread()`.
-#'
-#' @param path Path to AIRR TSV.
-#' @return Data frame.
-#' @export
-readSpatialAirr <- function(path) {
-  if (requireNamespace("airr", quietly = TRUE)) {
-    return(.as_data_frame(airr::read_rearrangement(path)))
-  }
-  .as_data_frame(data.table::fread(path, sep = "\t"))
-}
-
-#' Write spatial AIRR and FASTA outputs
-#'
-#' @param airr_df AIRR-style data frame.
-#' @param out_tsv,out_fasta Optional output paths.
-#' @param id_col FASTA identifier column.
-#' @param sequence_col FASTA sequence column.
-#' @return Invisibly returns `airr_df`.
-#' @export
-writeSpatialOutputs <- function(airr_df,
-                                  out_tsv = NULL,
-                                  out_fasta = NULL,
-                                  id_col = "full_id",
-                                  sequence_col = "sequence_alignment") {
-  if (!is.null(out_tsv)) {
-    .ensure_dir(out_tsv)
-    if (requireNamespace("airr", quietly = TRUE)) {
-      airr::write_rearrangement(airr_df, out_tsv)
-    } else {
-      data.table::fwrite(airr_df, out_tsv, sep = "\t")
-    }
-  }
-  if (!is.null(out_fasta)) {
-    .check_required_cols(airr_df, c(id_col, sequence_col), "airr_df")
-    .ensure_dir(out_fasta)
-    .require_namespace("seqinr")
-    seqinr::write.fasta(
-      sequences = as.list(airr_df[[sequence_col]]),
-      names = airr_df[[id_col]],
-      file.out = out_fasta
-    )
-  }
-  invisible(airr_df)
 }
 
 #' Summarize a spatial receptor table

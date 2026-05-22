@@ -2,7 +2,7 @@
 % Please edit documentation in R/barcodes.R
 \name{addTissuePositions}
 \alias{addTissuePositions}
-\title{Add tissue-position coordinates to spatial AIRR records}
+\title{Add tissue-position coordinates to airr.tsv style data frames}
 \usage{
 addTissuePositions(
   airr_df,
@@ -31,5 +31,5 @@ addTissuePositions(
 Data frame with \code{x} and \code{y} columns.
 }
 \description{
-Add tissue-position coordinates to spatial AIRR records
+Add tissue-position coordinates to airr.tsv style data frames
 }
