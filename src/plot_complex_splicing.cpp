@@ -56,7 +56,7 @@ static inline std::string_view normalize_cg(std::string_view cg) {
 
 //' @export
 // [[Rcpp::export]]
-SEXP splice_contacts_from_paf(std::string paf_path,
+SEXP spliceContactsFromPaf(std::string paf_path,
                               std::string target = "",
                               double region_start = 1.0,
                               double region_end = 0.0,
@@ -91,7 +91,7 @@ SEXP splice_contacts_from_paf(std::string paf_path,
 
 //' @export
 // [[Rcpp::export]]
-SEXP splice_contacts_from_paf_dt(
+SEXP spliceContactsFromPafDt(
     DataFrame df,
     std::string target = "",
     double region_start = 1.0,

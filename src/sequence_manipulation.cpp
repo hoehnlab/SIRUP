@@ -69,7 +69,7 @@ std::vector<int64_t> sequence_to_bits_cpp(const std::string& sequence) {
 
 //' @export
 // [[Rcpp::export]]
-Rcpp::NumericVector sequence_to_bits(Rcpp::StringVector sequences) {
+Rcpp::NumericVector sequenceToBits(Rcpp::StringVector sequences) {
   int n = sequences.size();
   std::vector<int64_t> results;
   for(int i = 0; i < n; ++i) {
@@ -82,7 +82,7 @@ Rcpp::NumericVector sequence_to_bits(Rcpp::StringVector sequences) {
 
 //' @export
 // [[Rcpp::export]]
-List sequence_to_bitlist(Rcpp::StringVector sequences) {
+List sequenceToBitlist(Rcpp::StringVector sequences) {
   int n = sequences.size();
   List results(n);
   for(int i = 0; i < n; ++i) {
@@ -135,7 +135,7 @@ std::vector<unsigned int> bits_to_uint_cpp(const std::vector<int64_t>& input, in
 
 //' @export
 // [[Rcpp::export]]
-Rcpp::StringVector bits_to_sequence(Rcpp::NumericVector input, Rcpp::IntegerVector sequence_length = 16) {
+Rcpp::StringVector bitsToSequence(Rcpp::NumericVector input, Rcpp::IntegerVector sequence_length = 16) {
   // Convert the entire NumericVector to std::vector<int64_t>
   std::vector<int64_t> cpp_input_list = Rcpp::as<std::vector<int64_t>>(input);
   int n = cpp_input_list.size(); // Number of sequences to process
@@ -178,7 +178,7 @@ std::string bits_to_hex_cpp(const std::vector<int64_t>& input, int sequence_leng
 
 //' @export
 // [[Rcpp::export]]
-StringVector bits_to_hex(Rcpp::NumericVector input, int sequence_length = 16) {
+StringVector bitsToHex(Rcpp::NumericVector input, int sequence_length = 16) {
   Rcpp::StringVector hex_sequences(input.size());
   std::vector<int64_t> cpp_input = Rcpp::as<std::vector<int64_t>>(input);
   int slen = sequence_length/2; 
@@ -214,7 +214,7 @@ std::vector<int64_t> revcomp_bits_cpp(const std::vector<int64_t>& input, int seq
 
 //' @export
 // [[Rcpp::export]]
-Rcpp::NumericVector revcomp_bits(Rcpp::NumericVector input, Rcpp::IntegerVector sequence_length = 16) {
+Rcpp::NumericVector revcompBits(Rcpp::NumericVector input, Rcpp::IntegerVector sequence_length = 16) {
   std::vector<int64_t> cpp_input_list = Rcpp::as<std::vector<int64_t>>(input);
   int n = cpp_input_list.size(); // Number of sequences to process
   bool use_sl = sequence_length.size() == 1;
@@ -249,7 +249,7 @@ int hamming_distance(int64_t a, int64_t b) {
 
 //' @export
 // [[Rcpp::export]]
-int hamming_distance_rcpp(Rcpp::NumericVector a, Rcpp::NumericVector b) {
+int hammingDistanceRcpp(Rcpp::NumericVector a, Rcpp::NumericVector b) {
   // Convert Rcpp::NumericVector (integer64) to std::vector<int64_t>
   std::vector<int64_t> a_int = Rcpp::fromInteger64(a);
   std::vector<int64_t> b_int = Rcpp::fromInteger64(b);

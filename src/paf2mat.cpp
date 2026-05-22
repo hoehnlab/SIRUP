@@ -10,7 +10,7 @@ using namespace Rcpp;
 
 //' @export
 // [[Rcpp::export]]
-SEXP stream_paf2mat(std::string path,
+SEXP streamPaf2mat(std::string path,
                     std::string target = "",
                     double region_start = 1.0,
                     double region_end = 0.0,
@@ -45,7 +45,7 @@ SEXP stream_paf2mat(std::string path,
 
 //' @export
 // [[Rcpp::export]]
-SEXP stream_paf2mat_anch(std::string path,
+SEXP streamPaf2matAnch(std::string path,
                          std::string target = "",
                          double region_start = 1.0,
                          double region_end = 0.0,

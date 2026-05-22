@@ -2,13 +2,13 @@
 #'
 #' Resolution order: explicit `path` argument, then
 #' `getOption("SIRAP.rad_src")`, then the `SIRAP_RAD_SRC` environment
-#' variable, then walk up from [rad_path()] looking for a directory
+#' variable, then walk up from [radPath()] looking for a directory
 #' that contains both `.git/` and `CMakeLists.txt`.
 #'
 #' @param path Optional explicit path to the rad source tree.
 #' @return Absolute path to the rad source tree.
 #' @export
-rad_src_path <- function(path = NULL) {
+radSrcPath <- function(path = NULL) {
   is_rad_src <- function(d) {
     dir.exists(file.path(d, ".git")) && file.exists(file.path(d, "CMakeLists.txt"))
   }
@@ -25,7 +25,7 @@ rad_src_path <- function(path = NULL) {
   env <- Sys.getenv("SIRAP_RAD_SRC", unset = "")
   if (nzchar(env) && is_rad_src(env)) return(normalizePath(env))
 
-  bin <- tryCatch(rad_path(), error = function(e) NULL)
+  bin <- tryCatch(radPath(), error = function(e) NULL)
   if (!is.null(bin)) {
     # Resolve symlink chain (a common setup is `~/bin/rad` symlinked into a
     # source clone like `~/code/rad/build/rad`).
@@ -69,7 +69,7 @@ rad_src_path <- function(path = NULL) {
 #' Requires `git`, `cmake`, and a C++ compiler on PATH (the same
 #' tools needed for the initial install).
 #'
-#' @param path Path to the rad source tree (see [rad_src_path()] for
+#' @param path Path to the rad source tree (see [radSrcPath()] for
 #'   resolution rules).
 #' @param branch Optional git branch to check out before pulling.
 #'   Defaults to whatever is currently checked out.
@@ -84,28 +84,28 @@ rad_src_path <- function(path = NULL) {
 #' @return Invisible list with `src`, `old_commit`, `new_commit`,
 #'   `built` (logical — did the rebuild actually happen?), and
 #'   `binary` (path to the rebuilt rad).
-#' @seealso [rad_path()], [rad_src_path()]
+#' @seealso [radPath()], [radSrcPath()]
 #' @export
-update_rad <- function(path = NULL,
+updateRad <- function(path = NULL,
                        branch = NULL,
                        build_type = "Release",
                        jobs = NULL,
                        clean = FALSE,
                        force_rebuild = FALSE,
                        quiet = FALSE) {
-  src <- rad_src_path(path)
+  src <- radSrcPath(path)
   build_dir <- file.path(src, "build")
   binary <- file.path(build_dir, "rad")
 
   stream <- function(label, cmd, args) {
-    if (!isTRUE(quiet)) message("[update_rad] ", label, ": ", cmd, " ", paste(args, collapse = " "))
+    if (!isTRUE(quiet)) message("[updateRad] ", label, ": ", cmd, " ", paste(args, collapse = " "))
     status <- system2(
       cmd, args,
       stdout = if (isTRUE(quiet)) FALSE else "",
       stderr = if (isTRUE(quiet)) FALSE else ""
     )
     if (!identical(as.integer(status), 0L)) {
-      rlang::abort(paste0("[update_rad] ", label, " failed (status ", status, ")."))
+      rlang::abort(paste0("[updateRad] ", label, " failed (status ", status, ")."))
     }
     invisible(status)
   }
@@ -114,14 +114,14 @@ update_rad <- function(path = NULL,
     out <- suppressWarnings(system2(cmd, args, stdout = TRUE, stderr = TRUE))
     status <- attr(out, "status")
     if (!is.null(status) && status != 0) {
-      rlang::abort(paste0("[update_rad] '", cmd, " ", paste(args, collapse = " "),
+      rlang::abort(paste0("[updateRad] '", cmd, " ", paste(args, collapse = " "),
                           "' failed: ", paste(out, collapse = "\n")))
     }
     trimws(paste(out, collapse = "\n"))
   }
 
-  if (Sys.which("git") == "")   rlang::abort("`git` not found on PATH; required by update_rad().")
-  if (Sys.which("cmake") == "") rlang::abort("`cmake` not found on PATH; required by update_rad().")
+  if (Sys.which("git") == "")   rlang::abort("`git` not found on PATH; required by updateRad().")
+  if (Sys.which("cmake") == "") rlang::abort("`cmake` not found on PATH; required by updateRad().")
 
   old_commit <- capture("git", c("-C", src, "rev-parse", "--short", "HEAD"))
 
@@ -141,7 +141,7 @@ update_rad <- function(path = NULL,
 
   if (!needs_build) {
     if (!isTRUE(quiet)) {
-      message("[update_rad] rad already at ", old_commit, "; binary present; nothing to do.")
+      message("[updateRad] rad already at ", old_commit, "; binary present; nothing to do.")
     }
     return(invisible(list(
       src = src, old_commit = old_commit, new_commit = new_commit,
@@ -164,11 +164,11 @@ update_rad <- function(path = NULL,
   stream("build", "cmake", build_args)
 
   if (!file.exists(binary)) {
-    rlang::abort(paste0("[update_rad] build finished but no binary at ", binary))
+    rlang::abort(paste0("[updateRad] build finished but no binary at ", binary))
   }
 
   if (!isTRUE(quiet)) {
-    message("[update_rad] done: ", old_commit, " -> ", new_commit, "  (", binary, ")")
+    message("[updateRad] done: ", old_commit, " -> ", new_commit, "  (", binary, ")")
   }
   invisible(list(
     src = src, old_commit = old_commit, new_commit = new_commit,
@@ -186,7 +186,7 @@ update_rad <- function(path = NULL,
 #'   normalized.
 #' @return Absolute path to the rad binary.
 #' @export
-rad_path <- function(path = NULL) {
+radPath <- function(path = NULL) {
   if (!is.null(path)) {
     if (!nzchar(path) || !file.exists(path)) {
       rlang::abort(paste0("rad binary not found at: ", path))
@@ -233,7 +233,7 @@ rad_path <- function(path = NULL) {
 }
 
 .rad_call <- function(args,
-                      rad = rad_path(),
+                      rad = radPath(),
                       capture = FALSE,
                       echo = TRUE,
                       check = TRUE) {
@@ -293,11 +293,11 @@ rad_path <- function(path = NULL) {
 #' @param ... Additional raw CLI tokens appended verbatim.
 #' @param capture Logical; capture stdout/stderr into the return list instead
 #'   of streaming to the console.
-#' @param rad Path to the rad binary. Defaults to [rad_path()].
+#' @param rad Path to the rad binary. Defaults to [radPath()].
 #' @return Invisible list with `status`, `stdout`, `stderr`, `command`.
-#' @seealso [rad_demux()], [rad_reformat()]
+#' @seealso [radDemux()], [radReformat()]
 #' @export
-rad_prep <- function(layout,
+radPrep <- function(layout,
                      read_layout = TRUE,
                      position_map = FALSE,
                      fastq = NULL,
@@ -308,7 +308,7 @@ rad_prep <- function(layout,
                      max_verbose = FALSE,
                      ...,
                      capture = FALSE,
-                     rad = rad_path()) {
+                     rad = radPath()) {
   if (!isTRUE(read_layout) && !isTRUE(position_map)) {
     rlang::abort("Set read_layout = TRUE and/or position_map = TRUE.")
   }
@@ -339,7 +339,7 @@ rad_prep <- function(layout,
 #' @param layout Layout key or path to a layout CSV.
 #' @param fastq Path to input FASTQ/FASTQ.gz.
 #' @param kit Use this kit's default whitelist. The canonical list
-#'   comes from `rad_list(whitelists = TRUE)`; at the time of writing
+#'   comes from `radList(whitelists = TRUE)`; at the time of writing
 #'   rad recognizes (note the underscores) `"10x_3v1"`, `"10x_3v2"`,
 #'   `"10x_3v3"`, `"10x_3HTv3.1"`, `"10x_3v3.1"`, `"10x_3v4"`,
 #'   `"10x_5v1"`, `"10x_5v2"`, `"10x_5HTv2"`, `"10x_5v3"`,
@@ -364,10 +364,10 @@ rad_prep <- function(layout,
 #' @param threads Number of threads.
 #' @param verbose,max_verbose Verbosity controls.
 #' @param ... Additional raw CLI tokens.
-#' @param capture,rad See [rad_prep()].
+#' @param capture,rad See [radPrep()].
 #' @return Invisible list with `status`, `stdout`, `stderr`, `command`.
 #' @export
-rad_demux <- function(layout,
+radDemux <- function(layout,
                       fastq,
                       kit = NULL,
                       global_whitelist = NULL,
@@ -388,7 +388,7 @@ rad_demux <- function(layout,
                       max_verbose = FALSE,
                       ...,
                       capture = FALSE,
-                      rad = rad_path()) {
+                      rad = radPath()) {
   args <- c(
     "demux",
     .rad_flag("--layout", layout),
@@ -435,10 +435,10 @@ rad_demux <- function(layout,
 #' @param threads Number of worker threads. rad default 2.
 #' @param verbose Logical; verbose logging.
 #' @param ... Additional raw CLI tokens.
-#' @param capture,rad See [rad_prep()].
+#' @param capture,rad See [radPrep()].
 #' @return Invisible list with `status`, `stdout`, `stderr`, `command`.
 #' @export
-rad_reformat <- function(fastq,
+radReformat <- function(fastq,
                          out_dir = NULL,
                          split_bc = FALSE,
                          reformat_header = FALSE,
@@ -449,7 +449,7 @@ rad_reformat <- function(fastq,
                          verbose = FALSE,
                          ...,
                          capture = FALSE,
-                         rad = rad_path()) {
+                         rad = radPath()) {
   if (isTRUE(split_bc) && is.null(out_dir)) {
     rlang::abort("split_bc = TRUE requires `out_dir`.")
   }
@@ -483,16 +483,16 @@ rad_reformat <- function(fastq,
 #' @param layouts Logical; list read-layout keys and resolved paths.
 #' @param whitelists Logical; list whitelist kit keys and resolved paths.
 #' @param ... Additional raw CLI tokens.
-#' @param capture,rad See [rad_prep()]. Defaults to `capture = TRUE` because
+#' @param capture,rad See [radPrep()]. Defaults to `capture = TRUE` because
 #'   the output is structured table-like text most callers want to keep.
 #' @return Invisible list with `status`, `stdout` (the listing), `stderr`,
 #'   `command`.
 #' @export
-rad_list <- function(layouts = FALSE,
+radList <- function(layouts = FALSE,
                      whitelists = FALSE,
                      ...,
                      capture = TRUE,
-                     rad = rad_path()) {
+                     rad = radPath()) {
   args <- c(
     "list",
     if (isTRUE(layouts))    "--layouts"    else character(),
@@ -515,16 +515,16 @@ rad_list <- function(layouts = FALSE,
 #'   `remove`.
 #' @param remove Logical; remove the mapping. Mutually exclusive with `add`.
 #' @param ... Additional raw CLI tokens.
-#' @param capture,rad See [rad_prep()].
+#' @param capture,rad See [radPrep()].
 #' @return Invisible list with `status`, `stdout`, `stderr`, `command`.
 #' @export
-rad_modify <- function(layout_key = NULL,
+radModify <- function(layout_key = NULL,
                        whitelist_kit = NULL,
                        add = NULL,
                        remove = FALSE,
                        ...,
                        capture = FALSE,
-                       rad = rad_path()) {
+                       rad = radPath()) {
   if (is.null(layout_key) == is.null(whitelist_kit)) {
     rlang::abort("Provide exactly one of `layout_key` or `whitelist_kit`.")
   }
@@ -565,10 +565,10 @@ rad_modify <- function(layout_key = NULL,
 #'   search. rad defaults 0 and 3.
 #' @param verbose Logical; verbose logging.
 #' @param ... Additional raw CLI tokens.
-#' @param capture,rad See [rad_prep()].
+#' @param capture,rad See [radPrep()].
 #' @return Invisible list with `status`, `stdout`, `stderr`, `command`.
 #' @export
-rad_scan_wl <- function(adapter_seq,
+radScanWl <- function(adapter_seq,
                         input = NULL,
                         batch_csv = NULL,
                         output_prefix = NULL,
@@ -588,7 +588,7 @@ rad_scan_wl <- function(adapter_seq,
                         verbose = FALSE,
                         ...,
                         capture = FALSE,
-                        rad = rad_path()) {
+                        rad = radPath()) {
   if (is.null(input) && is.null(batch_csv)) {
     rlang::abort("Provide either `input` (single run) or `batch_csv` (batched).")
   }
@@ -624,26 +624,26 @@ rad_scan_wl <- function(adapter_seq,
 #' @param topic One of `"prep"`, `"demux"`, `"reformat"`, `"list"`,
 #'   `"modify"`, `"scan-wl"`, or `NULL` for top-level help.
 #' @param rad Path to the rad binary.
-#' @return Invisible list (see [rad_prep()]).
+#' @return Invisible list (see [radPrep()]).
 #' @export
-rad_help <- function(topic = NULL, rad = rad_path()) {
+radHelp <- function(topic = NULL, rad = radPath()) {
   args <- if (is.null(topic)) c("--help") else c("help", topic)
   .rad_call(args, rad = rad, capture = TRUE, echo = FALSE, check = FALSE)
 }
 
 #' Run the full rad CLI pipeline end-to-end
 #'
-#' Convenience wrapper that chains [rad_prep()] -> [rad_demux()] ->
-#' optionally [rad_reformat()] in sequence. Every step shells out to
+#' Convenience wrapper that chains [radPrep()] -> [radDemux()] ->
+#' optionally [radReformat()] in sequence. Every step shells out to
 #' the same rad binary, writes into the same `out_dir`, and shares
 #' the same `threads` setting. A non-zero exit code from any step
 #' aborts the run.
 #'
 #' Demux is the main step, so additional named args (`...`) are
-#' forwarded to [rad_demux()] (e.g. `kit`, `global_whitelist`,
+#' forwarded to [radDemux()] (e.g. `kit`, `global_whitelist`,
 #' `bc_correction_mode`, `chunk_size`, `write_dbg`, `bc_split`).
 #' Reformat is optional and disabled by default; its arguments are
-#' available directly as top-level parameters on `rad_run()` —
+#' available directly as top-level parameters on `radRun()` —
 #' `reformat_out_dir`, `split_bc`, `reformat_header`,
 #' `reformat_delim`, `coordinate`, `bin_size` — and are only
 #' consulted when `do_reformat = TRUE`.
@@ -658,8 +658,8 @@ rad_help <- function(topic = NULL, rad = rad_path()) {
 #'   and (if `position_map = TRUE`) `<output>_prep_position_map.csv`;
 #'   demux writes its outputs under `<out_dir>` with `<output>` as
 #'   the filename prefix.
-#' @param kit Whitelist kit key passed to [rad_demux()]. See
-#'   `rad_list(whitelists = TRUE)` for the canonical list — at the
+#' @param kit Whitelist kit key passed to [radDemux()]. See
+#'   `radList(whitelists = TRUE)` for the canonical list — at the
 #'   time of writing, valid values include `"10x_3v3"`, `"10x_3v4"`,
 #'   `"10x_5v3"`, `"10x_Vis_V1"`..`"10x_Vis_V5"`, `"splitseq_bc1"`,
 #'   `"splitseq_bc2"`, `"visium_hd_bc1"`, `"visium_hd_bc2"`. Note the
@@ -670,11 +670,11 @@ rad_help <- function(topic = NULL, rad = rad_path()) {
 #'   to layout validation). Default `TRUE` for true end-to-end
 #'   semantics; set `FALSE` to skip the misalignment-stats scan on
 #'   subsequent runs.
-#' @param do_reformat Logical; run [rad_reformat()] after demux.
+#' @param do_reformat Logical; run [radReformat()] after demux.
 #'   Default `FALSE`. The following reformat-specific arguments are
 #'   only consulted when this is `TRUE`.
 #' @param reformat_out_dir Output directory passed to
-#'   [rad_reformat()]'s `out_dir`. Required by rad when
+#'   [radReformat()]'s `out_dir`. Required by rad when
 #'   `split_bc = TRUE`. Defaults to `NULL` (caller's responsibility).
 #' @param split_bc Logical; split per-barcode FASTQs.
 #' @param reformat_header Logical; collapse headers to
@@ -690,17 +690,17 @@ rad_help <- function(topic = NULL, rad = rad_path()) {
 #'   only if rad wrote it elsewhere.
 #' @param verbose,max_verbose Verbosity controls, forwarded to all
 #'   three steps.
-#' @param ... Additional named args forwarded to [rad_demux()].
+#' @param ... Additional named args forwarded to [radDemux()].
 #' @param capture Logical; capture stdout/stderr from each step into
 #'   the returned result instead of streaming to the R console.
-#' @param rad Path to the rad binary. Default [rad_path()].
+#' @param rad Path to the rad binary. Default [radPath()].
 #' @return Invisible list with `prep`, `demux`, `reformat` slots;
 #'   each is the result-list returned by the corresponding wrapper
 #'   (or `NULL` for skipped steps).
-#' @seealso [rad_prep()], [rad_demux()], [rad_reformat()],
-#'   [rad_list()] for kit names.
+#' @seealso [radPrep()], [radDemux()], [radReformat()],
+#'   [radList()] for kit names.
 #' @export
-rad_run <- function(layout, fastq,
+radRun <- function(layout, fastq,
                     out_dir,
                     output = "demux",
                     kit = NULL,
@@ -718,7 +718,7 @@ rad_run <- function(layout, fastq,
                     max_verbose = FALSE,
                     ...,
                     capture = FALSE,
-                    rad = rad_path()) {
+                    rad = radPath()) {
   if (missing(out_dir) || is.null(out_dir) || !nzchar(out_dir)) {
     rlang::abort("`out_dir` is required.")
   }
@@ -728,7 +728,7 @@ rad_run <- function(layout, fastq,
 
   # --- prep -------------------------------------------------------------
   prep_base <- file.path(out_dir, paste0(output, "_prep"))
-  prep_res <- rad_prep(
+  prep_res <- radPrep(
     layout       = layout,
     read_layout  = TRUE,
     position_map = isTRUE(position_map),
@@ -742,7 +742,7 @@ rad_run <- function(layout, fastq,
   )
 
   # --- demux ------------------------------------------------------------
-  demux_res <- rad_demux(
+  demux_res <- radDemux(
     layout      = layout,
     fastq       = fastq,
     kit         = kit,
@@ -766,12 +766,12 @@ rad_run <- function(layout, fastq,
     }
     if (!file.exists(rfmt_fastq)) {
       rlang::warn(paste0(
-        "rad_run: demux output '", rfmt_fastq,
+        "radRun: demux output '", rfmt_fastq,
         "' not found; skipping reformat. Pass `reformat_fastq = ...` ",
         "if rad wrote it elsewhere."
       ))
     } else {
-      reformat_res <- rad_reformat(
+      reformat_res <- radReformat(
         fastq           = rfmt_fastq,
         out_dir         = reformat_out_dir,
         split_bc        = split_bc,

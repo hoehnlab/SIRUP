@@ -67,7 +67,7 @@ inline void emit_cigar_triplets(const std::string& cigar,
 
 //' @export
 // [[Rcpp::export]]
-Rcpp::List cigar_onehot_triplets(Rcpp::List cigars,
+Rcpp::List cigarOnehotTriplets(Rcpp::List cigars,
                                  Rcpp::IntegerVector aln_starts,
                                  Rcpp::IntegerVector aln_ends,
                                  int region_start,

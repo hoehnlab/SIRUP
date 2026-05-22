@@ -2,63 +2,63 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #' @export
-read_seqs_cpp <- function(filename, type, full_id = FALSE, max_reads = -1L) {
-    .Call(`_SIRAP_read_seqs_cpp`, filename, type, full_id, max_reads)
+readSeqsCpp <- function(filename, type, full_id = FALSE, max_reads = -1L) {
+    .Call(`_SIRAP_readSeqsCpp`, filename, type, full_id, max_reads)
 }
 
 #' @export
-stream_fastqas <- function(fn, type = "fq", full_id = FALSE, max_reads = -1L) {
-    .Call(`_SIRAP_stream_fastqas`, fn, type, full_id, max_reads)
+streamFastqas <- function(fn, type = "fq", full_id = FALSE, max_reads = -1L) {
+    .Call(`_SIRAP_streamFastqas`, fn, type, full_id, max_reads)
 }
 
 #' @export
-cmv_consensusMatrix <- function(sequences) {
-    .Call(`_SIRAP_cmv_consensusMatrix`, sequences)
+cmvConsensusMatrix <- function(sequences) {
+    .Call(`_SIRAP_cmvConsensusMatrix`, sequences)
 }
 
 #' @export
-find_longest_matches <- function(cigars) {
-    .Call(`_SIRAP_find_longest_matches`, cigars)
+findLongestMatches <- function(cigars) {
+    .Call(`_SIRAP_findLongestMatches`, cigars)
 }
 
 #' @export
-analyze_cigar_patterns <- function(cigars) {
-    .Call(`_SIRAP_analyze_cigar_patterns`, cigars)
+analyzeCigarPatterns <- function(cigars) {
+    .Call(`_SIRAP_analyzeCigarPatterns`, cigars)
 }
 
 #' @export
-has_minimum_match_length <- function(cigar, min_length) {
-    .Call(`_SIRAP_has_minimum_match_length`, cigar, min_length)
+hasMinimumMatchLength <- function(cigar, min_length) {
+    .Call(`_SIRAP_hasMinimumMatchLength`, cigar, min_length)
 }
 
 #' @export
-edlib_search <- function(queries, targets, max_distance = 3L, num_threads = 0L) {
-    .Call(`_SIRAP_edlib_search`, queries, targets, max_distance, num_threads)
+edlibSearch <- function(queries, targets, max_distance = 3L, num_threads = 0L) {
+    .Call(`_SIRAP_edlibSearch`, queries, targets, max_distance, num_threads)
 }
 
 #' @export
-cigar_onehot_triplets <- function(cigars, aln_starts, aln_ends, region_start, region_end) {
-    .Call(`_SIRAP_cigar_onehot_triplets`, cigars, aln_starts, aln_ends, region_start, region_end)
+cigarOnehotTriplets <- function(cigars, aln_starts, aln_ends, region_start, region_end) {
+    .Call(`_SIRAP_cigarOnehotTriplets`, cigars, aln_starts, aln_ends, region_start, region_end)
 }
 
 #' @export
-stream_paf2mat <- function(path, target = "", region_start = 1.0, region_end = 0.0, bin_bp = 250L, min_mapq = 0L, chunk_lines = 200000L, symmetric = TRUE, threads = 0L, verbose = FALSE) {
-    .Call(`_SIRAP_stream_paf2mat`, path, target, region_start, region_end, bin_bp, min_mapq, chunk_lines, symmetric, threads, verbose)
+streamPaf2mat <- function(path, target = "", region_start = 1.0, region_end = 0.0, bin_bp = 250L, min_mapq = 0L, chunk_lines = 200000L, symmetric = TRUE, threads = 0L, verbose = FALSE) {
+    .Call(`_SIRAP_streamPaf2mat`, path, target, region_start, region_end, bin_bp, min_mapq, chunk_lines, symmetric, threads, verbose)
 }
 
 #' @export
-stream_paf2mat_anch <- function(path, target = "", region_start = 1.0, region_end = 0.0, bin_bp = 250L, min_mapq = 0L, min_anchor_bp = 1L, chunk_lines = 200000L, symmetric = TRUE, threads = 0L, verbose = FALSE) {
-    .Call(`_SIRAP_stream_paf2mat_anch`, path, target, region_start, region_end, bin_bp, min_mapq, min_anchor_bp, chunk_lines, symmetric, threads, verbose)
+streamPaf2matAnch <- function(path, target = "", region_start = 1.0, region_end = 0.0, bin_bp = 250L, min_mapq = 0L, min_anchor_bp = 1L, chunk_lines = 200000L, symmetric = TRUE, threads = 0L, verbose = FALSE) {
+    .Call(`_SIRAP_streamPaf2matAnch`, path, target, region_start, region_end, bin_bp, min_mapq, min_anchor_bp, chunk_lines, symmetric, threads, verbose)
 }
 
 #' @export
-splice_contacts_from_paf <- function(paf_path, target = "", region_start = 1.0, region_end = 0.0, bin_bp = 250L, min_mapq = 0L, chunk_lines = 200000L, symmetric = TRUE, threads = 0L, verbose = FALSE) {
-    .Call(`_SIRAP_splice_contacts_from_paf`, paf_path, target, region_start, region_end, bin_bp, min_mapq, chunk_lines, symmetric, threads, verbose)
+spliceContactsFromPaf <- function(paf_path, target = "", region_start = 1.0, region_end = 0.0, bin_bp = 250L, min_mapq = 0L, chunk_lines = 200000L, symmetric = TRUE, threads = 0L, verbose = FALSE) {
+    .Call(`_SIRAP_spliceContactsFromPaf`, paf_path, target, region_start, region_end, bin_bp, min_mapq, chunk_lines, symmetric, threads, verbose)
 }
 
 #' @export
-splice_contacts_from_paf_dt <- function(df, target = "", region_start = 1.0, region_end = 0.0, bin_bp = 250L, min_mapq = 0L, min_anchor_bp = 1L, chunk_rows = 1000000L, symmetric = TRUE, threads = 0L, verbose = FALSE, col_tname = "tname", col_tstart = "tstart", col_tend = "tend", col_cg = "cg", col_mapq = "mapq", col_strand = "strand") {
-    .Call(`_SIRAP_splice_contacts_from_paf_dt`, df, target, region_start, region_end, bin_bp, min_mapq, min_anchor_bp, chunk_rows, symmetric, threads, verbose, col_tname, col_tstart, col_tend, col_cg, col_mapq, col_strand)
+spliceContactsFromPafDt <- function(df, target = "", region_start = 1.0, region_end = 0.0, bin_bp = 250L, min_mapq = 0L, min_anchor_bp = 1L, chunk_rows = 1000000L, symmetric = TRUE, threads = 0L, verbose = FALSE, col_tname = "tname", col_tstart = "tstart", col_tend = "tend", col_cg = "cg", col_mapq = "mapq", col_strand = "strand") {
+    .Call(`_SIRAP_spliceContactsFromPafDt`, df, target, region_start, region_end, bin_bp, min_mapq, min_anchor_bp, chunk_rows, symmetric, threads, verbose, col_tname, col_tstart, col_tend, col_cg, col_mapq, col_strand)
 }
 
 #' @export
@@ -67,33 +67,33 @@ revcomp <- function(sequences) {
 }
 
 #' @export
-sequence_to_bits <- function(sequences) {
-    .Call(`_SIRAP_sequence_to_bits`, sequences)
+sequenceToBits <- function(sequences) {
+    .Call(`_SIRAP_sequenceToBits`, sequences)
 }
 
 #' @export
-sequence_to_bitlist <- function(sequences) {
-    .Call(`_SIRAP_sequence_to_bitlist`, sequences)
+sequenceToBitlist <- function(sequences) {
+    .Call(`_SIRAP_sequenceToBitlist`, sequences)
 }
 
 #' @export
-bits_to_sequence <- function(input, sequence_length = 16L) {
-    .Call(`_SIRAP_bits_to_sequence`, input, sequence_length)
+bitsToSequence <- function(input, sequence_length = 16L) {
+    .Call(`_SIRAP_bitsToSequence`, input, sequence_length)
 }
 
 #' @export
-bits_to_hex <- function(input, sequence_length = 16L) {
-    .Call(`_SIRAP_bits_to_hex`, input, sequence_length)
+bitsToHex <- function(input, sequence_length = 16L) {
+    .Call(`_SIRAP_bitsToHex`, input, sequence_length)
 }
 
 #' @export
-revcomp_bits <- function(input, sequence_length = 16L) {
-    .Call(`_SIRAP_revcomp_bits`, input, sequence_length)
+revcompBits <- function(input, sequence_length = 16L) {
+    .Call(`_SIRAP_revcompBits`, input, sequence_length)
 }
 
 #' @export
-hamming_distance_rcpp <- function(a, b) {
-    .Call(`_SIRAP_hamming_distance_rcpp`, a, b)
+hammingDistanceRcpp <- function(a, b) {
+    .Call(`_SIRAP_hammingDistanceRcpp`, a, b)
 }
 
 #' Confirm the SIRAP shared object loaded
@@ -104,7 +104,7 @@ hamming_distance_rcpp <- function(a, b) {
 #' @return `TRUE`
 #' @keywords internal
 #' @export
-sirap_rcpp_loaded <- function() {
-    .Call(`_SIRAP_sirap_rcpp_loaded`)
+sirapRcppLoaded <- function() {
+    .Call(`_SIRAP_sirapRcppLoaded`)
 }
 

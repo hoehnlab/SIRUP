@@ -1,6 +1,6 @@
 # NCPM (library-size) scaling on sparse
 #' @export
-scale_ncpm <- function(M, per = 1e6) {
+scaleNcpm <- function(M, per = 1e6) {
   M <- Matrix::forceSymmetric(M, uplo = "U")
   s <- sum(M@x); if (s > 0) M@x <- M@x / (s / per)
   M
@@ -8,7 +8,7 @@ scale_ncpm <- function(M, per = 1e6) {
 
 # Observed/Expected by band distance on a DENSE matrix (upper & lower together)
 #' @export
-obs_exp_dense <- function(A) {
+obsExpDense <- function(A) {
   n <- nrow(A)
   for (k in 1:(n - 1L)) {
     idx_i <- 1:(n - k); idx_j <- idx_i + k
@@ -25,7 +25,7 @@ obs_exp_dense <- function(A) {
 
 # 1D Gaussian kernel in *bins*
 #' @export
-gaussian_kernel <- function(sigma_bins, radius = ceiling(3 * sigma_bins)) {
+gaussianKernel <- function(sigma_bins, radius = ceiling(3 * sigma_bins)) {
   if (!is.finite(sigma_bins) || sigma_bins <= 0) return(1)
   x <- -radius:radius
   k <- exp(-0.5 * (x / sigma_bins)^2)
@@ -34,7 +34,7 @@ gaussian_kernel <- function(sigma_bins, radius = ceiling(3 * sigma_bins)) {
 
 # separable Gaussian blur with simple reflect padding
 #' @export
-gauss_blur_dense <- function(mat, krow) {
+gaussBlurDense <- function(mat, krow) {
   if (length(krow) == 1L) return(mat)
   r <- (length(krow) - 1L) %/% 2L
   nr <- nrow(mat); nc <- ncol(mat)
@@ -62,7 +62,7 @@ gauss_blur_dense <- function(mat, krow) {
 }
 
 #' @export
-bin_labels_from_coords <- function(
+binLabelsFromCoords <- function(
     n_bins, 
     region_start, 
     bin_bp, 
@@ -97,7 +97,7 @@ bin_labels_from_coords <- function(
 }
 
 #' @export
-gene_contact_matrix_sparse <- function(
+geneContactMatrixSparse <- function(
     M,                      # dsCMatrix/dgCMatrix or base matrix (n_bins x n_bins)
     lab,                    # character vector length n_bins (one label per bin)
     drop_labels = "intergenic",  # bins with these labels are excluded
@@ -131,7 +131,7 @@ gene_contact_matrix_sparse <- function(
 }
 
 #' @export
-normalize_gene_contacts <- function(G, method = c("none","ncpm","oe"), scale = 1e6) {
+normalizeGeneContacts <- function(G, method = c("none","ncpm","oe"), scale = 1e6) {
   method <- match.arg(method)
   if (method == "none") return(G)
   if (method == "ncpm") {
@@ -163,7 +163,7 @@ normalize_gene_contacts <- function(G, method = c("none","ncpm","oe"), scale = 1
   out
 }
 #' @export
-blur_gene_matrix <- function(G, sigma_genes = 0) {
+blurGeneMatrix <- function(G, sigma_genes = 0) {
   if (!is.finite(sigma_genes) || sigma_genes <= 0) return(G)
   k <- .gauss_k(sigma_genes)
   X <- if (inherits(G,"Matrix")) as.matrix(G) else G
@@ -174,7 +174,7 @@ blur_gene_matrix <- function(G, sigma_genes = 0) {
 }
 
 #' @export
-plot_gene_contact_heatmap <- function(
+plotGeneContactHeatmap <- function(
     G, palette = NULL, cap_q = 0.995, gamma = 1,
     legend_title = "signal", cluster = FALSE
 ) {
@@ -232,7 +232,7 @@ plot_gene_contact_heatmap <- function(
 }
 
 #' @export
-locus_blocks_df <- function(
+locusBlocksDf <- function(
     coords_db, 
     region_start, 
     bin_bp, 
@@ -276,7 +276,7 @@ locus_blocks_df <- function(
 }
 
 #' @export
-prep_heatmap_matrix <- function(
+prepHeatmapMatrix <- function(
     M,
     bin_bp,
     norm   = c("ncpm", "oe", "none"),
@@ -298,21 +298,21 @@ prep_heatmap_matrix <- function(
   cn <- if (inherits(Msym, "Matrix")) colnames(Msym) else colnames(M)
   
   # Normalization before densify
-  if (inherits(Msym, "Matrix") && norm == "ncpm") Msym <- scale_ncpm(Msym)
+  if (inherits(Msym, "Matrix") && norm == "ncpm") Msym <- scaleNcpm(Msym)
   
   # Densify + O/E if requested
   A <- if (inherits(Msym, "Matrix")) Matrix::as.matrix(Msym) else as.matrix(Msym)
   nr <- nrow(A); nc <- ncol(A); dim(A) <- c(nr, nc)
   
   if (norm == "oe") {
-    A <- obs_exp_dense(A)           # ensures matrix + dims
+    A <- obsExpDense(A)           # ensures matrix + dims
   }
   
   # KDE smoothing
   if (is.finite(sigma_bp) && sigma_bp > 0) {
     sigma_bins <- sigma_bp / bin_bp
-    krow <- gaussian_kernel(sigma_bins)
-    A <- gauss_blur_dense(A, krow)  # ensures matrix + dims
+    krow <- gaussianKernel(sigma_bins)
+    A <- gaussBlurDense(A, krow)  # ensures matrix + dims
   } else {
     dim(A) <- c(nr, nc)             # reassert
   }
@@ -346,7 +346,7 @@ prep_heatmap_matrix <- function(
 }
 
 #' @export
-plot_splicing_matrix<-function(
+plotSplicingMatrix<-function(
     large_matrix,
     coords_db,
     annotate_on = "name",
@@ -365,7 +365,7 @@ plot_splicing_matrix<-function(
   show_ticks <- match.arg(show_ticks)
   
   # --- symmetrize, log1p, (optionally) mask lower triangle ---
-  mat<-prep_heatmap_matrix(
+  mat<-prepHeatmapMatrix(
     M = large_matrix,
     bin_bp = bin_bp, 
     upper_only = upper_only, 
@@ -438,7 +438,7 @@ plot_splicing_matrix<-function(
 }
 
 #' @export
-heatmap_wr <- function(
+heatmapWr <- function(
     H, 
     lab, 
     title = "Splice map"
@@ -472,7 +472,7 @@ heatmap_wr <- function(
 }
 
 #' @export
-plot_splice_arcs <- function(
+plotSpliceArcs <- function(
     large_matrix,
     k_top          = 200,
     min_dist_bp    = 0,
@@ -508,7 +508,7 @@ plot_splice_arcs <- function(
 }
 
 #' @export
-arcs_from_matrix <- function(
+arcsFromMatrix <- function(
     H,
     k = 200,
     min_dist_bins = 1L,
@@ -531,13 +531,13 @@ arcs_from_matrix <- function(
 }
 
 #' @export
-arcs_panel <- function(
+arcsPanel <- function(
     H, 
     k = 200, 
     min_dist_bins = 5L
 ) {
   n <- ncol(H)
-  S <- arcs_from_matrix(H, k = k, min_dist_bins = min_dist_bins)
+  S <- arcsFromMatrix(H, k = k, min_dist_bins = min_dist_bins)
   if (!nrow(S)) {
     return(ggplot2::ggplot() + 
              ggplot2::xlim(1, n) + ggplot2::ylim(0, 1) +
@@ -555,7 +555,7 @@ arcs_panel <- function(
 }
 
 #' @export
-plot_locus_track_bins <- function(
+plotLocusTrackBins <- function(
     blocks, 
     n_bins, 
     pal = NULL, 
@@ -589,7 +589,7 @@ plot_locus_track_bins <- function(
 }
 
 #' @export
-plot_splice_arcs_colored <- function(
+plotSpliceArcsColored <- function(
     large_matrix,
     k_top        = 200,
     min_dist_bp  = 0,
@@ -626,7 +626,7 @@ plot_splice_arcs_colored <- function(
   if (is.null(lab)) {
     if (is.null(coords_db) || is.null(region_start))
       stop("Provide `lab` or (`coords_db` + `region_start`) to color arcs by genes.")
-    lab <- bin_labels_from_coords(n_bins = max(n, ncol(Msym)),
+    lab <- binLabelsFromCoords(n_bins = max(n, ncol(Msym)),
                                   region_start = region_start,
                                   bin_bp = bin_bp,
                                   coords = coords_db,
@@ -688,7 +688,7 @@ plot_splice_arcs_colored <- function(
 }
 
 #' @export
-compose_heatmap_with_arcs <- function(
+composeHeatmapWithArcs <- function(
     heatmap_obj,
     arcs_plot,
     heights = c(1, 4)
@@ -697,7 +697,7 @@ compose_heatmap_with_arcs <- function(
 }
 
 #' @export
-compose_locus_and_arcs <- function(
+composeLocusAndArcs <- function(
     arcs_plot, 
     coords_db, 
     region_start, 
@@ -710,9 +710,9 @@ compose_locus_and_arcs <- function(
     locus_title = "Locus", 
     arcs_title = NULL) 
 {
-  blocks <- locus_blocks_df(coords_db, region_start, bin_bp, n_bins,
+  blocks <- locusBlocksDf(coords_db, region_start, bin_bp, n_bins,
                             annotate_on = annotate_on, collapse = TRUE)
-  p_locus <- plot_locus_track_bins(blocks, n_bins, pal = pal, title = locus_title)
+  p_locus <- plotLocusTrackBins(blocks, n_bins, pal = pal, title = locus_title)
   
   # apply optional title override to arcs
   if (!is.null(arcs_title)) arcs_plot <- arcs_plot + ggplot2::ggtitle(arcs_title)
@@ -724,7 +724,7 @@ compose_locus_and_arcs <- function(
 }
 
 #' @export
-plot_splicing_matrix_ggalign2 <- function(
+plotSplicingMatrixGgalign2 <- function(
     large_matrix,
     coords_db,
     annotate_on      = "name",
@@ -755,7 +755,7 @@ plot_splicing_matrix_ggalign2 <- function(
   diag_color_by <- match.arg(diag_color_by)
   
   # --- 1) prep display matrix ---
-  H <- prep_heatmap_matrix(
+  H <- prepHeatmapMatrix(
     M = large_matrix, bin_bp = bin_bp, norm = norm,
     sigma_bp = sigma_bp, cap_q = cap_q, gamma = gamma, upper_only = upper_only
   )
@@ -861,7 +861,7 @@ plot_splicing_matrix_ggalign2 <- function(
         ) +
         ggplot2::scale_fill_manual(values = pal, guide = "none"),
       error = function(e) {
-        warning("plot_splicing_matrix_ggalign2: ggnewscale incompatible with the loaded ggalign; skipping gene-shading overlay.", call. = FALSE)
+        warning("plotSplicingMatrixGgalign2: ggnewscale incompatible with the loaded ggalign; skipping gene-shading overlay.", call. = FALSE)
         p
       }
     )
@@ -882,7 +882,7 @@ plot_splicing_matrix_ggalign2 <- function(
         ) +
         ggplot2::scale_fill_manual(values = pal, guide = "none"),
       error = function(e) {
-        warning("plot_splicing_matrix_ggalign2: ggnewscale incompatible with the loaded ggalign; skipping diagonal-ribbon overlay.", call. = FALSE)
+        warning("plotSplicingMatrixGgalign2: ggnewscale incompatible with the loaded ggalign; skipping diagonal-ribbon overlay.", call. = FALSE)
         p
       }
     )
@@ -975,7 +975,7 @@ plot_splicing_matrix_ggalign2 <- function(
 }
 
 #' @export
-plot_gene_contacts_gg <- function(
+plotGeneContactsGg <- function(
     large_matrix,                 # dsCMatrix/dgCMatrix or base matrix (bins × bins)
     coords_db,                    # data.frame/data.table with start, stop, and annotate_on
     annotate_on   = "name",

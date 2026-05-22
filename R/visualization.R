@@ -4,7 +4,7 @@
 #' @param title Optional plot title prefix.
 #' @return A ggplot object.
 #' @export
-plot_length_qc <- function(airr_df, title = NULL) {
+plotLengthQc <- function(airr_df, title = NULL) {
   .check_required_cols(airr_df, c("v_sequence_end", "v_sequence_start", "j_sequence_end", "j_sequence_start", "junction_length"), "airr_df")
   out <- .as_data_frame(airr_df)
   out$vlength <- out$v_sequence_end - out$v_sequence_start
@@ -33,7 +33,7 @@ plot_length_qc <- function(airr_df, title = NULL) {
 #' @param color_col Optional color/shape annotation column.
 #' @return A ggplot object.
 #' @export
-plot_clone_spatial_points <- function(clones,
+plotCloneSpatialPoints <- function(clones,
                                       clone_id = NULL,
                                       x_col = "x",
                                       y_col = "y",
@@ -69,7 +69,7 @@ plot_clone_spatial_points <- function(clones,
 #' @param default_assay Whether to make the clone assay the default.
 #' @return Modified Seurat object.
 #' @export
-add_clone_assay <- function(seurat_obj,
+addCloneAssay <- function(seurat_obj,
                             clone_matrix,
                             assay_name = "VDJ_Clonal",
                             default_assay = TRUE) {
@@ -94,7 +94,7 @@ add_clone_assay <- function(seurat_obj,
 #' @param title Optional plot title.
 #' @return A ggplot object.
 #' @export
-plot_receptor_overlay <- function(tissue_positions,
+plotReceptorOverlay <- function(tissue_positions,
                                   receptors,
                                   gene_col = NULL,
                                   x_col = "x",
@@ -138,14 +138,14 @@ plot_receptor_overlay <- function(tissue_positions,
 
 #' Plot a clone with tip colors on tissue coordinates
 #'
-#' @param colored_clones Output from `assign_tip_colors()`.
+#' @param colored_clones Output from `assignTipColors()`.
 #' @param clone_id Clone ID to plot.
 #' @param tissue_positions Optional background tissue coordinates.
 #' @param x_col,y_col Coordinate columns.
 #' @param clone_col Clone ID column.
 #' @return A ggplot object.
 #' @export
-plot_colored_clone_spatial <- function(colored_clones,
+plotColoredCloneSpatial <- function(colored_clones,
                                        clone_id,
                                        tissue_positions = NULL,
                                        x_col = "x",

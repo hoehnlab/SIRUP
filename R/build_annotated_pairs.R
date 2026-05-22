@@ -15,7 +15,7 @@
 #'     possible 2 um sub-bins with any RAD signal)
 #'   - Normalized counts: `ncpm`, `log1p_ncpm` at the 2 / 8 / 16 um levels.
 #'
-#' R port of `rad_paper/visium_hd_mapping/build_annotated_pairs.py`.
+#' R port of `rad_paper/visium_hd_mapping/buildAnnotatedPairs.py`.
 #'
 #' @param valid_pairs Path to RAD's whitelist output CSV (or a
 #'   `data.table`). Must contain columns `bc1`, `bc2`, `pair`, `count`.
@@ -53,7 +53,7 @@
 #'   count_16um, n_spots_16um, ncpm_16um, log1p_ncpm_16um,
 #'   rad_valid_16um`.
 #' @export
-build_annotated_pairs <- function(valid_pairs,
+buildAnnotatedPairs <- function(valid_pairs,
                                   rad_coords,
                                   spaceranger_dir = NULL,
                                   tissue_positions = NULL,
