@@ -603,7 +603,11 @@ radScanWl <- function(adapter_seq,
     .rad_flag("--right-margin",  right_margin),
     .rad_flag("--max-reads",     max_reads),
     .rad_flag("--max-error",     max_error),
-    .rad_flag("--whitelist",     whitelist),
+    # rad's scan-wl declares --whitelist as `optional_argument`; under
+    # getopt_long that requires --flag=VALUE syntax. Space-separated
+    # --whitelist VALUE leaves optarg=NULL and rad segfaults. Workaround
+    # until the upstream is fixed: emit `--whitelist=<value>` directly.
+    if (is.null(whitelist)) character() else paste0("--whitelist=", whitelist),
     .rad_flag("--threads",       threads),
     .rad_flag("--chunk-size",    chunk_size),
     .rad_flag("--bc1-whitelist", bc1_whitelist),
