@@ -127,8 +127,8 @@ openingGapLength <- function(seq) {
 
 #' Collapse to the most abundant consensus per barcode and locus
 #'
-#' Adds `prop_total_consensus`, `non_N_nucleotide_prop`, `maxGapLength`, and
-#' `openingGapLength`, then keeps the highest-consensus row per barcode/locus.
+#' Adds `prop_total_consensus`, `non_N_nucleotide_prop`, `max_gap_length`, and
+#' `opening_gap_length`, then keeps the highest-consensus row per barcode/locus.
 #'
 #' @param airr_df AIRR-style data frame.
 #' @param barcode_col,locus_col,consensus_col Column names for grouping/ranking.
@@ -161,8 +161,8 @@ collapseTopConsensusPerBarcode <- function(airr_df,
     out$non_N_nucleotide_prop <- stringr::str_count(out[[sequence_col]], "[ACGT]") / nchar(out[[sequence_col]])
   }
   if (alignment_col %in% colnames(out)) {
-    out$maxGapLength <- vapply(out[[alignment_col]], maxGapLength, integer(1))
-    out$openingGapLength <- vapply(out[[alignment_col]], openingGapLength, integer(1))
+    out$max_gap_length <- vapply(out[[alignment_col]], maxGapLength, integer(1))
+    out$opening_gap_length <- vapply(out[[alignment_col]], openingGapLength, integer(1))
   }
   out
 }
