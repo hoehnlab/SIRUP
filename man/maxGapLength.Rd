@@ -2,7 +2,7 @@
 % Please edit documentation in R/processing.R
 \name{maxGapLength}
 \alias{maxGapLength}
-\title{Maximum internal gap run length}
+\title{Check the maximum internal gap run length}
 \usage{
 maxGapLength(seq)
 }
@@ -13,5 +13,5 @@ maxGapLength(seq)
 Integer length of the longest run of periods.
 }
 \description{
-Maximum internal gap run length
+Check the maximum internal gap run length
 }
