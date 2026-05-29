@@ -21,14 +21,19 @@ Depends:
     R (>= 4.1.0)
 Imports:
     bit64,
+    cli,
     data.table,
     dplyr,
     ggalign,
     ggplot2,
     glue,
+    igraph,
+    kedd,
+    KernSmooth,
     magrittr,
     Matrix,
     pbapply,
+    RANN,
     Rcpp,
     rlang,
     scales,
@@ -54,5 +59,6 @@ Suggests:
     Seurat,
     SeuratObject,
     seqinr,
+    stats,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

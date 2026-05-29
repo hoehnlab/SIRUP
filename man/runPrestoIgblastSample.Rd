@@ -21,7 +21,7 @@ runPrestoIgblastSample(
 )
 }
 \arguments{
-\item{input_fasta}{Spatial FASTA from \code{preprocessSpatialAirr()}.}
+\item{input_fasta}{Spatial FASTA written from preprocessed receptor reads.}
 
 \item{output_dir}{Directory for pRESTO/IgBLAST outputs. Defaults to the
 input FASTA directory.}

@@ -16,7 +16,6 @@ into package functions for:
 - adding tissue coordinates (`barcode`, `x`, `y`)
 - generating pRESTO/IgBLAST shell scripts for barcode-cluster consensus calling
 - collapsing consensus calls to top sequences per barcode
-- clone calling helpers
 - lightweight clone/spatial visualization helpers
 
 ## Development install
@@ -63,14 +62,20 @@ radDemux(
 ```r
 library(SIRAP)
 
-bc_map <- readBarcodeMapping("M1_barcode_mappings.csv")
-
-m1_bcr_heavy <- preprocessSpatialAirr(
-  input = "igblast_bcr.tsv",
-  barcode_map = bc_map,
+m1_bcr_heavy <- data.table::fread("igblast_bcr.tsv")
+m1_bcr_heavy <- extractSpatialBarcode(
+  m1_bcr_heavy,
+  sequence_id_col = "sequence_id",
+  barcode_col = "barcode_2um",
+  regex = "[0-9]+_[0-9]+$",
+  prefix = "s_002um_",
+  suffix = "-1"
+)
+m1_bcr_heavy <- processSpatialAirr(
+  m1_bcr_heavy,
   loci = "IGH",
-  out_tsv = "igblast_bcr_pass_length_spatial_barcode.tsv",
-  out_fasta = "igblast_bcr_pass_length_spatial_barcode.fasta"
+  barcode_col = "barcode_2um",
+  add_full_id = TRUE
 )
 ```
 
@@ -91,16 +96,30 @@ writePrestoIgblastScript(
 ## Post-consensus filtering sketch
 
 ```r
-processed <- readSpatialAirr("processed_db-pass.tsv")
-processed <- filterReceptorReads(
+processed <- airr::read_rearrangement("processed_db-pass.tsv")
+processed <- extractSpatialBarcode(
+  processed,
+  sequence_id_col = "sequence_id",
+  barcode_col = "barcode_2um",
+  regex = ",([^,]+)"
+)
+processed <- processSpatialAirr(
   processed,
   loci = "IGH",
   min_v_length = 250,
   min_j_length = 30,
   min_junction_length = 10,
   productive_only = TRUE,
-  min_consensus_count = 2
+  min_consensus_count = 2,
+  barcode_col = "barcode_2um"
 )
-processed <- addSpatialBarcodes(processed, bc_map, mode = "presto_header", swap = TRUE)
+bc_map <- readBarcodeMapping("barcode_mappings.parquet")
+processed <- processed |>
+  dplyr::mutate(barcode_2um_swapped = sub("^(.*_)(\\d+)_(\\d+)(-\\d+)$", "\\1\\3_\\2\\4", barcode_2um)) |>
+  dplyr::left_join(
+    bc_map |> dplyr::select(square_002um, square_008um, square_016um),
+    by = c("barcode_2um_swapped" = "square_002um")
+  ) |>
+  dplyr::rename(barcode_8um = square_008um, barcode_16um = square_016um)
 top_per_barcode <- collapseTopConsensusPerBarcode(processed, ties = "all")
 ```

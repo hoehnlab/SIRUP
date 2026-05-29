@@ -14,10 +14,11 @@ plotLengthQc <- function(airr_df, title = NULL) {
     cols = dplyr::all_of(c("vlength", "jlength", "junction_length")),
     names_to = "metric",
     values_to = "length"
-  )
+  ) %>%
+    dplyr::mutate(metric = factor(.data$metric, levels = c("vlength", "jlength", "junction_length"), labels = c("V Length", "J Length", "Junction Length")))
   ggplot2::ggplot(long, ggplot2::aes(x = .data$length)) +
     ggplot2::geom_histogram(binwidth = 5, na.rm = TRUE) +
-    ggplot2::facet_wrap(~metric, scales = "free_x") +
+    ggplot2::facet_wrap(ggplot2::vars(.data$metric), scales = "free_x") +
     ggplot2::theme_minimal() +
     ggplot2::labs(title = title, x = "Length", y = "Count")
 }
