@@ -29,6 +29,6 @@ collapseTopConsensusPerBarcode(
 Collapsed data frame.
 }
 \description{
-Adds \code{prop_total_consensus}, \code{non_N_nucleotide_prop}, \code{maxGapLength}, and
-\code{openingGapLength}, then keeps the highest-consensus row per barcode/locus.
+Adds \code{prop_total_consensus}, \code{non_N_nucleotide_prop}, \code{max_gap_length}, and
+\code{opening_gap_length}, then keeps the highest-consensus row per barcode/locus.
 }
