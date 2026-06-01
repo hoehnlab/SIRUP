@@ -125,7 +125,7 @@ openingGapLength <- function(seq) {
   attr(gap_match, "match.length")
 }
 
-#' Collapse to the most abundant consensus per barcode and locus
+#' Collapse to the most abundant consensus sequence per barcode and locus
 #'
 #' Adds `prop_total_consensus`, `non_N_nucleotide_prop`, `max_gap_length`, and
 #' `opening_gap_length`, then keeps the highest-consensus row per barcode/locus.
