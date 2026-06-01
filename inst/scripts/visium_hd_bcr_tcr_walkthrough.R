@@ -78,6 +78,7 @@ runCloneCalling <- TRUE
 buildBcrTrees <- TRUE
 savePlots <- TRUE
 loadSeuratObject <- TRUE
+remove_bleed_example <- TRUE
 
 
 bcrCloneIdsToPlot <- NULL
@@ -105,7 +106,8 @@ positions8um <- readBarcodeMapping(positionsPath8um) %>%
   )
 
 head(barcodeMap)
-head(positions)
+head(positions2um)
+head(positions8um)
 
 # ---- Start from raw IgBLAST output ------------------------------------------
 
@@ -198,6 +200,7 @@ head(tcrLengthSpatial)
 # Yes
 # - TODO: Should full_id include barcode16um too?
 #  No, I think we only include other barcodes after presto and igblast because only visiumHD has multiple of our datasets
+# TODO: Change name from runPrestoIgblastSample to processSpatialSample
 
 # ---- Run pRESTO and IgBLAST from R ------------------------------------------
 
@@ -217,7 +220,7 @@ muscleExec <- "~/software/muscle3.8.31_i86linux64"
 if (runPrestoIgblast) {
   # This function both runs the external presto/igblast commands and returns the paths to the key output files
   # Try dry_run = TRUE first to check the commands and paths without actually running
-  bcrPrestoPaths <- runPrestoIgblastSample(
+  bcrPrestoPaths <- processSpatialSample(
     input_fasta = bcrHeavySpatialFasta,
     output_dir = prestoOutputDir,
     receptor = "ig",
@@ -230,7 +233,7 @@ if (runPrestoIgblast) {
     nproc = nproc
   )
 
-  tcrPrestoPaths <- runPrestoIgblastSample(
+  tcrPrestoPaths <- processSpatialSample(
     input_fasta = tcrBetaSpatialFasta,
     output_dir = prestoOutputDir,
     receptor = "tr",
@@ -379,52 +382,83 @@ bcrConsensusFilteredPos <- addTissuePositions(
   y_col = "y"
 ) %>% filter(!is.na(x), !is.na(y))
 
-#####################################################################
-# WARNING: ACTIVE DEVELOPMENT ZONE. LEAVE THIS ALONE FOR NOW @CODEX #
-#####################################################################
+tcrConsensusFilteredPos <- addTissuePositions(
+  tcrConsensusFiltered,
+  positions8um,
+  barcode_col = "barcode_8um",
+  position_barcode_col = "barcode_8um",
+  x_col = "x",
+  y_col = "y"
+) %>% filter(!is.na(x), !is.na(y))
 
+# TODO: @Codex update this section and clean it up
 # We want to collapse identical sequences in contiguous clusters together so as to remove bleedover from sequencing
+# Do at 8um level, because at 2um level could be within same cell
 
-# As an example, grab the 10 most widely expressed heavy chains and plot them in space so we can see if we have little clusters
-bcrConsensusBigSeqs <- bcrConsensusFilteredPos %>%
-  group_by(sequence_alignment) %>%
-  summarize(n_bc = n(), total_consensus_count = sum(consensus_count)) %>%
-  arrange(desc(n_bc), desc(total_consensus_count)) %>%
-  slice_head(n = 10) %>%
-  pull(sequence_alignment)
+if (remove_bleed_example) {
+  # As an example, grab the 10 most widely expressed heavy chains and plot them in space so we can see if we have little clusters
+  bcrConsensusBigSeqs <- bcrConsensusFilteredPos %>%
+    group_by(sequence_alignment) %>%
+    summarize(n_bc = n(), total_consensus_count = sum(consensus_count)) %>%
+    arrange(desc(n_bc), desc(total_consensus_count)) %>%
+    slice_head(n = 10) %>%
+    pull(sequence_alignment)
 
-# For each of these sequences, highlight the locations of all the consensus sequences that are identical to it
-plots <- list()
-for (seq in bcrConsensusBigSeqs) {
-  seqMatches <- bcrConsensusFilteredPos %>%
-    filter(sequence_alignment == seq)
-  seqName <- paste0("seq_", which(bcrConsensusBigSeqs == seq))
+  # For each of these sequences, highlight the locations of all the consensus sequences that are identical to it
+  plots <- list()
+  for (seq in bcrConsensusBigSeqs) {
+    seqMatches <- bcrConsensusFilteredPos %>%
+      filter(sequence_alignment == seq)
+    seqName <- paste0("seq_", which(bcrConsensusBigSeqs == seq))
 
-  seqPlot <- plotReceptorOverlay(
+    seqPlot <- plotReceptorOverlay(
+      tissue_positions = positions8um,
+      receptors = seqMatches,
+      receptor_color = "#2c7fb8",
+      receptor_size = 1.2,
+      title = paste("Identical sequence:", seq)
+    )
+    plots[[seqName]] <- seqPlot
+    ggsave(file.path(plotDir, sprintf("%s_identical_sequence_%s_bcr_spatial.png", sampleLower, seqName)), seqPlot, width = 6, height = 5, dpi = 300)
+    cat("Plotted identical sequence ", seqName, "\n")
+  }
+  # Try filtering spatially
+  # Goal is to collapse identical sequences in contiguous clusters onto the most present location
+  # Get the adjacency matrix 
+
+  bcrConsensusFilteredPosSpatialCollapse <- collapseIdenticalNeighbors(
+    data = bcrConsensusFilteredPos,
     tissue_positions = positions8um,
-    receptors = seqMatches,
-    receptor_color = "#2c7fb8",
-    receptor_size = 1.2,
-    title = paste("Identical sequence:", seq)
+    barcode = "barcode_8um",
+    x = "x",
+    y = "y",
+    sequence = "sequence_alignment",
+    consensus_count = "consensus_count",
+    num_neighbors_non_boundary = 8L
   )
-  plots[[seqName]] <- seqPlot
-  ggsave(file.path(plotDir, sprintf("%s_identical_sequence_%s_bcr_spatial.png", sampleLower, seqName)), seqPlot, width = 6, height = 5, dpi = 300)
-  cat("Plotted identical sequence ", seqName, "\n")
-  # pdf(file.path(plotDir, sprintf("%s_identical_sequence_%s_bcr_spatial.pdf", sampleLower, seqName)), width = 6, height = 5)
-  #   print(seqPlot)
-  # dev.off()
+
+  # Check bcrConsensusBigSeqs again but from this set
+  plotsCollapsed <- list()
+  for (seq in bcrConsensusBigSeqs) {
+    seqMatches <- bcrConsensusFilteredPosSpatialCollapse %>%
+      filter(sequence_alignment == seq)
+    seqName <- paste0("seq_", which(bcrConsensusBigSeqs == seq))
+    
+    seqPlot <- plotReceptorOverlay(
+      tissue_positions = positions8um,
+      receptors = seqMatches,
+      receptor_color = "#2c7fb8",
+      receptor_size = 1.2,
+      title = paste("Identical sequence:", seq)
+    )
+    plots[[seqName]] <- seqPlot
+    ggsave(file.path(plotDir, sprintf("%s_identical_sequence_%s_bcr_spatial_collapsed.png", sampleLower, seqName)), seqPlot, width = 6, height = 5, dpi = 300)
+    cat("Plotted identical sequence ", seqName, "\n")
+  }
 }
-# pdf(file.path(plotDir, sprintf("%s_identical_sequences_bcr_spatial.pdf", sampleLower)), width = 6, height = 5)
-#   for (seqPlot in plots) {
-#     print(seqPlot)
-#   }
-# dev.off()
 
-# Try filtering spatially
-# Goal is to collapse identical sequences in contiguous clusters onto the most present location
-# Get the adjacency matrix 
-
-bcrConsensusFilteredPosSpatialCollapse <- collapseSpatial(
+# TODO: @Codex move collapseIdenticalNeighbors to thhe processing.R file
+bcrConsensusFilteredPosSpatialCollapse <- collapseIdenticalNeighbors(
   data = bcrConsensusFilteredPos,
   tissue_positions = positions8um,
   barcode = "barcode_8um",
@@ -435,75 +469,41 @@ bcrConsensusFilteredPosSpatialCollapse <- collapseSpatial(
   num_neighbors_non_boundary = 8L
 )
 
-# Check bcrConsensusBigSeqs again but from this set
-
-plotsCollapsed <- list()
-for (seq in bcrConsensusBigSeqs) {
-  seqMatches <- bcrConsensusFilteredPosSpatialCollapse %>%
-    filter(sequence_alignment == seq)
-  seqName <- paste0("seq_", which(bcrConsensusBigSeqs == seq))
-  
-  seqPlot <- plotReceptorOverlay(
-    tissue_positions = positions8um,
-    receptors = seqMatches,
-    receptor_color = "#2c7fb8",
-    receptor_size = 1.2,
-    title = paste("Identical sequence:", seq)
-  )
-  plots[[seqName]] <- seqPlot
-  ggsave(file.path(plotDir, sprintf("%s_identical_sequence_%s_bcr_spatial_collapsed.png", sampleLower, seqName)), seqPlot, width = 6, height = 5, dpi = 300)
-  cat("Plotted identical sequence ", seqName, "\n")
-}
-
-###############################
-# END ACTIVE DEVELOPMENT ZONE #
-###############################
+tcrConsensusFilteredPosSpatialCollapse <- collapseIdenticalNeighbors(
+  data = tcrConsensusFilteredPos,
+  tissue_positions = positions8um,
+  barcode = "barcode_8um",
+  x = "x",
+  y = "y",
+  sequence = "sequence_alignment",
+  consensus_count = "consensus_count",
+  num_neighbors_non_boundary = 8L
+)
 
 
+# Get one consensus sequence per barcode (most present in barcode) at 2um level
+bcrTopBarcode <- collapseTopConsensusPerBarcode(bcrConsensusFilteredPosSpatialCollapse, barcode_col = "barcode_2um", locus_col = "locus", ties = "all")
+tcrTopBarcode <- collapseTopConsensusPerBarcode(tcrConsensusFilteredPosSpatialCollapse, barcode_col = "barcode_2um", locus_col = "locus", ties = "all")
 
-
-
-bcrTopBarcode <- collapseTopConsensusPerBarcode(bcrConsensusFiltered, barcode_col = "barcode_2um", locus_col = "locus", ties = "all")
-tcrTopBarcode <- collapseTopConsensusPerBarcode(tcrConsensusFiltered, barcode_col = "barcode_2um", locus_col = "locus", ties = "all")
-
-bcr <- addTissuePositions(
-  bcrTopBarcode,
-  positions,
-  barcode_col = "barcode_8um",
-  position_barcode_col = "barcode_8um",
-  x_col = "x",
-  y_col = "y"
-) %>%
-  filter(!is.na(x), !is.na(y))
-
-tcr <- addTissuePositions(
-  tcrTopBarcode,
-  positions,
-  barcode_col = "barcode_8um",
-  position_barcode_col = "barcode_8um",
-  x_col = "x",
-  y_col = "y"
-) %>%
-  filter(!is.na(x), !is.na(y))
 
 finalBcrPath <- file.path(finalAirrDir, sprintf("%s_bcrs_heavy_final_spatial_airr.tsv", sampleLower))
 finalTcrPath <- file.path(finalAirrDir, sprintf("%s_tcrs_beta_final_spatial_airr.tsv", sampleLower))
 if (requireNamespace("airr", quietly = TRUE)) {
-  airr::write_rearrangement(bcr, finalBcrPath)
-  airr::write_rearrangement(tcr, finalTcrPath)
+  airr::write_rearrangement(bcrTopBarcode, finalBcrPath)
+  airr::write_rearrangement(tcrTopBarcode, finalTcrPath)
 } else {
-  data.table::fwrite(bcr, finalBcrPath, sep = "\t")
-  data.table::fwrite(tcr, finalTcrPath, sep = "\t")
+  data.table::fwrite(bcrTopBarcode, finalBcrPath, sep = "\t")
+  data.table::fwrite(tcrTopBarcode, finalTcrPath, sep = "\t")
 }
 
 list(
-  bcr = spatialReceptorSummary(bcr, barcode_col = "barcode_8um"),
-  tcr = spatialReceptorSummary(tcr, barcode_col = "barcode_8um")
+  bcr = spatialReceptorSummary(bcrTopBarcode, barcode_col = "barcode_2um"),
+  tcr = spatialReceptorSummary(tcrTopBarcode, barcode_col = "barcode_2um")
 )
 
 postPrestoQcPlot <- cowplot::plot_grid(
-  plotLengthQc(bcr, title = paste(sampleId, "final BCRs")),
-  plotLengthQc(tcr, title = paste(sampleId, "final TCRs")),
+  plotLengthQc(bcrTopBarcode, title = paste(sampleId, "final BCRs")),
+  plotLengthQc(tcrTopBarcode, title = paste(sampleId, "final TCRs")),
   ncol = 1
 )
 postPrestoQcPlot
@@ -512,51 +512,55 @@ if (savePlots) {
 }
 
 # Things to inspect:
-head(bcr)
-head(tcr)
+head(bcrTopBarcode)
+head(tcrTopBarcode)
 
 # Notes:
 # - TODO: Should the post-pRESTO block become a single high-level function?
+# Answer: No, I think those are all different enough steps and not hard to do so we should let people do theme
 # - TODO: Should collapseTopConsensusPerBarcode() have built-in diagnostics for ties?
+# Answer: Sure
 
 # ---- Put every BCR and TCR on the tissue slice -------------------------------
-
+# TODO: @Codex update plotReceptorOverlay to use Seurat's spatial plotting so that we can actually see the tissue underneath
 allBcrPlot <- plotReceptorOverlay(
-  tissue_positions = positions,
-  receptors = bcr,
+  tissue_positions = positions8um,
+  receptors = bcrTopBarcode,
   receptor_color = "#2c7fb8",
   receptor_size = 1.2,
   title = paste(sampleId, "all BCR-positive spots")
 )
-allBcrPlot
+if (savePlots) {
+  ggsave(file.path(plotDir, sprintf("%s_all_bcr_locations.png", sampleLower)), allBcrPlot, width = 6, height = 5, dpi = 300)
+}
+
 
 allTcrPlot <- plotReceptorOverlay(
-  tissue_positions = positions,
-  receptors = tcr,
+  tissue_positions = positions8um,
+  receptors = tcrTopBarcode,
   receptor_color = "#d95f02",
   receptor_size = 1.2,
   title = paste(sampleId, "all TCR-positive spots")
 )
-allTcrPlot
+if (savePlots) {
+  ggsave(file.path(plotDir, sprintf("%s_all_tcr_locations.png", sampleLower)), allTcrPlot, width = 6, height = 5, dpi = 300)
+}
 
-bcrTcrOverlay <- ggplot(positions, aes(x = x, y = y)) +
+bcrTcrOverlay <- ggplot(positions8um, aes(x = x, y = y)) +
   geom_point(color = "grey88", size = 0.55, alpha = 0.75) +
-  geom_point(data = bcr, aes(x = x, y = y), inherit.aes = FALSE, shape = 21, fill = NA, color = "#2c7fb8", stroke = 0.45, size = 1.4) +
-  geom_point(data = tcr, aes(x = x, y = y), inherit.aes = FALSE, shape = 21, fill = NA, color = "#d95f02", stroke = 0.45, size = 1.4) +
+  geom_point(data = bcrTopBarcode, aes(x = x, y = y), inherit.aes = FALSE, shape = 21, fill = NA, color = "#2c7fb8", stroke = 0.45, size = 1.4) +
+  geom_point(data = tcrTopBarcode, aes(x = x, y = y), inherit.aes = FALSE, shape = 21, fill = NA, color = "#d95f02", stroke = 0.45, size = 1.4) +
   coord_fixed() +
   scale_y_reverse() +
   theme_minimal() +
   labs(title = paste(sampleId, "BCR and TCR locations"), x = "x", y = "y")
-bcrTcrOverlay
-
 if (savePlots) {
-  ggsave(file.path(plotDir, sprintf("%s_all_bcr_locations.png", sampleLower)), allBcrPlot, width = 6, height = 5, dpi = 300)
-  ggsave(file.path(plotDir, sprintf("%s_all_tcr_locations.png", sampleLower)), allTcrPlot, width = 6, height = 5, dpi = 300)
   ggsave(file.path(plotDir, sprintf("%s_bcr_tcr_locations.png", sampleLower)), bcrTcrOverlay, width = 6, height = 5, dpi = 300)
 }
 
 # Notes:
 # - TODO: Should plotReceptorOverlay() support BCR and TCR layers at the same time?
+# Answer: Yes, but I think it's easier to do that with ggplot directly since then we can control the colors and legend better. We can add a helper that makes it easy to plot two sets of receptors with ggplot though.
 
 # ---- Add gene expression underneath receptor locations -----------------------
 
@@ -614,9 +618,14 @@ if (loadSeuratObject && file.exists(seuratPath) && requireNamespace("SeuratObjec
   message("Skipping gene overlays. Check loadSeuratObject, seuratPath, and SeuratObject.")
 }
 
+
+
 # Notes:
 # - TODO: Should SIRAP include a helper that fetches Seurat expression and joins tissue positions?
+# No, we should just already be working with seurat
 
+
+# @Codex I haven't looked at the below yet, so make updates as you see fit, but that's why I haven't left any comments below here
 # ---- Call clones -------------------------------------------------------------
 
 bcrClonesPath <- file.path(outDir, sprintf("%s_bcr_hierarchical_clones.rds", sampleLower))

@@ -3,9 +3,14 @@
 Spatial Immune Receptor Analysis and Processing: how sweet is that?
 
 `SIRAP` is an R package-in-progress for long-read spatial immune receptor
-sequencing data. It collects reusable pieces from the existing thymus BCR/TCR
-analysis scripts into package functions for:
+sequencing data. It is the R companion to the
+[rad](https://github.com/indianewok/rad) command-line demultiplexer, and
+collects reusable pieces from the existing thymus BCR/TCR analysis scripts
+into package functions for:
 
+- driving the `rad` CLI (`radPrep`, `radDemux`, `radReformat`,
+  `radList`, `radModify`, `radScanWl`) from R
+- AIRR TSV reading/writing
 - receptor length and productivity QC
 - Visium HD 2 um to 8 um/16 um barcode mapping
 - adding tissue coordinates (`barcode`, `x`, `y`)
@@ -17,7 +22,39 @@ analysis scripts into package functions for:
 
 ```r
 install.packages("remotes")
-remotes::install_local("/Volumes/HoehnK/Hunter/spatial_bcr_tcr_package/SIRAP")
+remotes::install_local("/path/to/SIRAP")
+```
+
+The CLI wrappers require the `rad` binary on `PATH`, or pointed at
+explicitly via `options(SIRAP.radPath = "/path/to/rad")`, the
+`SIRAP_RAD_PATH` environment variable, or the `rad =` argument on each
+wrapper. See `?radPath` for the resolution order.
+
+## Drive the rad CLI from R
+
+```r
+library(SIRAP)
+
+# Inspect a built-in layout
+radPrep(layout = "five_prime", read_layout = TRUE)
+
+# Layout + position map from a real FASTQ
+radPrep(
+  layout       = "five_prime",
+  position_map = TRUE,
+  fastq        = "reads.fq.gz",
+  output       = "run/demo",
+  threads      = 8
+)
+
+# Full demux pipeline
+radDemux(
+  layout  = "five_prime",
+  fastq   = "reads.fq.gz",
+  output  = "demo",
+  out_dir = "run",
+  threads = 8
+)
 ```
 
 ## Minimal preprocessing example

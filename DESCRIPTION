@@ -2,43 +2,59 @@ Package: SIRAP
 Title: Spatial Immune Receptor Analysis and Processing
 Version: 0.0.0.9000
 Authors@R: c(
-    person("Hunter J.", "Melton", role = c("aut", "cre"), email = "Hunter.J.Melton@dartmouth.edu")
+    person("Hunter J.", "Melton", role = c("aut", "cre"), email = "Hunter.J.Melton@dartmouth.edu"),
+    person("Chinmay", "Vaidya", role = "aut", email = "chinmay.m.vaidya.gr@dartmouth.edu")
   )
-Author: Hunter J. Melton [aut, cre]
-Maintainer: Hunter J. Melton <Hunter.J.Melton@dartmouth.edu>
 Description: Spatial Immune Receptor Analysis and Processing. How sweet is
-    that? Utilities for processing and visualizing (and maybe some minor analyses) of
-    spatial BCR and TCR sequencing data.
+    that? An R interface to the 'rad' command-line demultiplexer plus a
+    consolidated toolkit for long-read spatial immune receptor sequencing:
+    AIRR-style rearrangement tables with spatial barcodes and coordinates,
+    Visium HD barcode mapping, pRESTO/IgBLAST shell pipeline generation,
+    clonal summaries, Seurat clone assays, tree plotting, int64-packed DNA
+    primitives, and PAF parsing utilities.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
+SystemRequirements: rad CLI (https://github.com/indianewok/rad)
 Depends:
     R (>= 4.1.0)
 Imports:
+    bit64,
     cli,
     data.table,
     dplyr,
+    ggalign,
     ggplot2,
+    glue,
     igraph,
-    KernSmooth,
     kedd,
-    Matrix,
+    KernSmooth,
     magrittr,
+    Matrix,
+    pbapply,
     RANN,
+    Rcpp,
     rlang,
     scales,
     stringr,
     tibble,
     tidyr
+LinkingTo:
+    BH,
+    Rcpp
 Suggests:
     alakazam,
     airr,
     arrow,
     cowplot,
     dowser,
+    ggnewscale,
+    ggrepel,
     ggtree,
+    patchwork,
     pals,
+    pheatmap,
     scoper,
     Seurat,
     SeuratObject,
