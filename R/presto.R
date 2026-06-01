@@ -167,7 +167,7 @@ writePrestoIgblastScript <- function(input_fastas,
 #' @param echo Print each command before running it.
 #' @return A named list of output paths, invisibly.
 #' @export
-runPrestoIgblastSample <- function(input_fasta,
+processSpatialSample <- function(input_fasta,
                                       output_dir = NULL,
                                       receptor = c("ig", "tr"),
                                       identity = 0.975,

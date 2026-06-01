@@ -66,7 +66,7 @@ calculateNeighborDistanceThreshold <- function(tissue_positions, num_neighbors_n
 #' @return bcr_data with bleedover rows removed, retaining only the representative
 #'         spot for each contiguous group of identical sequences
 #' @export
-collapseSpatial <- function(
+collapseIdenticalNeighbors <- function(
     data,
     tissue_positions,
     barcode                    = "barcode",
@@ -282,7 +282,7 @@ collapseSpatial <- function(
 
   cli::cli_progress_done()
   cli::cli_alert_success(
-    "Done! Retained {n_result_pretty} rows from {n_data_pretty} ({n_removed_pretty} bleedover rows removed)"
+    "Done! Retained {n_result_pretty} rows from {n_data_pretty} ({n_removed_pretty} bleedover sequences removed)"
   )
 
   return(result)
