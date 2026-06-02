@@ -4,16 +4,16 @@
 \alias{readFastqas}
 \title{Read FASTQ/FASTA into a data.table}
 \usage{
-readFastqas(fn, type = "fq", full_id = FALSE, ...)
+readFastqas(fn, type = "fq", full_id = FALSE, max_reads = -1L)
 }
 \arguments{
-\item{fn}{input path, or a character vector / list of paths.}
+\item{fn}{input path, or a character vector of paths.}
 
 \item{type}{one of \code{"fq"}, \code{"fastq"}, \code{"fa"}, \code{"fasta"}.}
 
 \item{full_id}{include a \code{full_id} column with the full header.}
 
-\item{...}{passed through to \code{data.table::fread}.}
+\item{max_reads}{maximum reads per file (\code{-1L} = all, default).}
 }
 \value{
 data.table.
@@ -24,4 +24,11 @@ columns \code{id}, optionally \code{full_id}, then \code{seq}, then \code{qual} 
 Headers are stripped of their leading \code{@} / \code{>}. \code{id} is the first
 whitespace-delimited token of the header; \code{full_id} is the entire
 header.
+}
+\details{
+Thin wrapper around \code{streamFastqas()}, which uses the kseq.h FASTQ
+parser on the C++ side. Previous shell-pipeline implementation
+(\verb{paste - - - - | cut -f1,2,4}) misparsed tagged FASTQs whose
+headers contain TAB-separated SAM-style tags (\verb{@id<TAB>CB:Z:...}),
+because the shell pipeline counted TABs not lines.
 }

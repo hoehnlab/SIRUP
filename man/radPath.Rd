@@ -15,6 +15,6 @@ Absolute path to the rad binary.
 }
 \description{
 Resolves the path to the \code{rad} command-line binary. Resolution order:
-explicit \code{path} argument, then \code{getOption("SIRAP.radPath")}, then the
+explicit \code{path} argument, then \code{getOption("SIRAP.rad_path")}, then the
 \code{SIRAP_RAD_PATH} environment variable, then \code{Sys.which("rad")}.
 }

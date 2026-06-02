@@ -282,7 +282,7 @@ processSpatialSample <- function(input_fasta,
 #'
 #' @param input_fastas Character vector of spatial FASTA files.
 #' @param output_dirs Optional vector of output directories, one per FASTA.
-#' @param ... Passed to `runPrestoIgblastSample()`.
+#' @param ... Passed to `processSpatialSample()`.
 #' @return A list of output path lists, invisibly.
 #' @export
 runPrestoIgblastPipeline <- function(input_fastas,
@@ -302,7 +302,7 @@ runPrestoIgblastPipeline <- function(input_fastas,
       output_dir <- NULL
     }
     message("Processing spatial FASTA ", i, " of ", length(input_fastas), ": ", input_fastas[[i]])
-    results[[i]] <- runPrestoIgblastSample(
+    results[[i]] <- processSpatialSample(
       input_fasta = input_fastas[[i]],
       output_dir = output_dir,
       ...

@@ -2,7 +2,7 @@
 % Please edit documentation in R/processing.R
 \name{collapseTopConsensusPerBarcode}
 \alias{collapseTopConsensusPerBarcode}
-\title{Collapse to the most abundant consensus per barcode and locus}
+\title{Collapse to the most abundant consensus sequence per barcode and locus}
 \usage{
 collapseTopConsensusPerBarcode(
   airr_df,

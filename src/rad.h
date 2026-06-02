@@ -38,7 +38,13 @@
 #include <algorithm>
 #include <utility>
 #include <functional>
+#ifdef _OPENMP
 #include <omp.h>
+#else
+inline int omp_get_max_threads() { return 1; }
+inline void omp_set_num_threads(int) {}
+inline int omp_get_thread_num() { return 0; }
+#endif
 #include <set>
 #include <unordered_set>
 #include <cstdint>

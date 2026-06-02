@@ -66,7 +66,7 @@ writeFastqas <- function(df, fn, type = "fq", header_col = "id",
 #' whitespace-delimited token of the header; `full_id` is the entire
 #' header.
 #'
-#' Thin wrapper around [streamFastqas()], which uses the kseq.h FASTQ
+#' Thin wrapper around `streamFastqas()`, which uses the kseq.h FASTQ
 #' parser on the C++ side. Previous shell-pipeline implementation
 #' (`paste - - - - | cut -f1,2,4`) misparsed tagged FASTQs whose
 #' headers contain TAB-separated SAM-style tags (`@id<TAB>CB:Z:...`),

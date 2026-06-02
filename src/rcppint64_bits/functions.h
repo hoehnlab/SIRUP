@@ -137,8 +137,6 @@ inline Rcpp::NumericVector toNanotime(const std::vector<int64_t>& v) {
 
     n.attr(".S3Class") = "integer64";
     n.attr("class") = cl;
-    SET_S4_OBJECT(n);
-
     return(n);
 }
 
@@ -154,8 +152,6 @@ inline Rcpp::NumericVector toNanotime(const int64_t& v) {
 
     n.attr(".S3Class") = "integer64";
     n.attr("class") = cl;
-    SET_S4_OBJECT(n);
-
     return(n);
 }
 

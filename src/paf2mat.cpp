@@ -4,7 +4,7 @@
 
 #include <Rcpp.h>
 
-#include "paf_contact_core.hpp"
+#include "paf_contact_core.h"
 
 using namespace Rcpp;
 
@@ -78,4 +78,3 @@ SEXP streamPaf2matAnch(std::string path,
 
   return rad_paf::stream_paf_contacts_to_sparse(path, cfg, symmetric);
 }
-
