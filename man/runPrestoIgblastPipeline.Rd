@@ -11,7 +11,7 @@ runPrestoIgblastPipeline(input_fastas, output_dirs = NULL, ...)
 
 \item{output_dirs}{Optional vector of output directories, one per FASTA.}
 
-\item{...}{Passed to \code{runPrestoIgblastSample()}.}
+\item{...}{Passed to \code{processSpatialSample()}.}
 }
 \value{
 A list of output path lists, invisibly.

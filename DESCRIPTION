@@ -15,7 +15,6 @@ Description: Spatial Immune Receptor Analysis and Processing. How sweet is
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 SystemRequirements: rad CLI (https://github.com/indianewok/rad)
 Depends:
     R (>= 4.1.0)
@@ -26,7 +25,6 @@ Imports:
     dplyr,
     ggalign,
     ggplot2,
-    glue,
     igraph,
     kedd,
     KernSmooth,
@@ -51,7 +49,9 @@ Suggests:
     dowser,
     ggnewscale,
     ggrepel,
+    ggtext,
     ggtree,
+    mallinfo,
     patchwork,
     pals,
     pheatmap,
@@ -59,6 +59,12 @@ Suggests:
     Seurat,
     SeuratObject,
     seqinr,
+    sf,
+    spatstat.explore,
+    spatstat.geom,
+    spatstat.random,
+    spdep,
     stats,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0

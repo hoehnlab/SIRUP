@@ -400,7 +400,7 @@ plotSplicingMatrix<-function(
   bins <- bins[start <= end]
   data.table::setkey(bins, start, end)
   
-  # coords → label per bin
+  # coords -> label per bin
   cd <- data.table::as.data.table(coords_db)[
     , .(start = as.integer(start),
         end   = as.integer(end),
@@ -637,8 +637,8 @@ plotSpliceArcsColored <- function(
   S$g_i <- lab[S$i]
   S$g_j <- lab[S$j]
   S$pair <- ifelse(S$g_i <= S$g_j,
-                   paste0(S$g_i, "↔", S$g_j),
-                   paste0(S$g_j, "↔", S$g_i))
+                   paste0(S$g_i, "<->", S$g_j),
+                   paste0(S$g_j, "<->", S$g_i))
   S$class <- ifelse(S$g_i == S$g_j, "intra", "inter")
   
   # --- aesthetics: weight by count; precompute alpha/width ---
@@ -717,7 +717,7 @@ composeLocusAndArcs <- function(
   # apply optional title override to arcs
   if (!is.null(arcs_title)) arcs_plot <- arcs_plot + ggplot2::ggtitle(arcs_title)
   
-  # Use ggalign's align_plots if you’re already in that ecosystem; otherwise patchwork
+  # Use ggalign's align_plots if you're already in that ecosystem; otherwise patchwork
   # With base ggplot2, patchwork is simplest:
   suppressPackageStartupMessages(requireNamespace("patchwork"))
   patchwork::wrap_plots(p_locus, arcs_plot, ncol = 1, heights = c(locus_height, arcs_height))
@@ -770,7 +770,7 @@ plotSplicingMatrixGgalign2 <- function(
   if (triangle == "upper") {
     H[lower.tri(H, diag = FALSE)] <- NA_real_
   } else if (triangle == "lower") {
-    H[upper.tri(H, diag = FALSE)] <- NA_real_   # <— upper white
+    H[upper.tri(H, diag = FALSE)] <- NA_real_   # <- upper white
   } # "full" shows both
   
   # optional near-diagonal mask
@@ -848,7 +848,7 @@ plotSplicingMatrixGgalign2 <- function(
     }
   }
   
-  # optional vertical shading by gene (main panel) – separate fill scale
+  # optional vertical shading by gene (main panel) - separate fill scale
   shade_only_non_intergenic<-TRUE
   if (isTRUE(shade_by_gene) && nrow(blocks)) {
     bg_blocks <- if (shade_only_non_intergenic) blocks[label != "intergenic"] else blocks
@@ -867,7 +867,7 @@ plotSplicingMatrixGgalign2 <- function(
     )
   }
 
-  # optional gene-colored diagonal ribbon (main panel) – separate fill scale
+  # optional gene-colored diagonal ribbon (main panel) - separate fill scale
   if (is.numeric(diag_band_bp) && diag_band_bp > 0) {
     k <- max(1L, ceiling(diag_band_bp / bin_bp))
     idx <- seq_len(n)
@@ -976,7 +976,7 @@ plotSplicingMatrixGgalign2 <- function(
 
 #' @export
 plotGeneContactsGg <- function(
-    large_matrix,                 # dsCMatrix/dgCMatrix or base matrix (bins × bins)
+    large_matrix,                 # dsCMatrix/dgCMatrix or base matrix (bins x bins)
     coords_db,                    # data.frame/data.table with start, stop, and annotate_on
     annotate_on   = "name",
     bin_bp        = 1000L,
@@ -986,13 +986,13 @@ plotGeneContactsGg <- function(
     # normalization at gene level
     norm          = c("ncpm","oe","none"),
     # small blur in *gene index* space (NOT bin space)
-    sigma_genes   = 0,            # e.g. 0.6–1.0 genes
+    sigma_genes   = 0,            # e.g. 0.6-1.0 genes
     # display shaping
     cap_q         = 0.995,
     gamma         = 1,
     cluster       = FALSE,        # cluster genes instead of genomic order
     palette       = NULL,         # named vector gene->color; NULL auto "Spectral"
-    title         = "Gene×gene splice contacts"
+    title         = "Gene x gene splice contacts"
 ) {
   stopifnot(all(c("start","end", annotate_on) %in% names(coords_db)))
   norm <- match.arg(norm)
@@ -1002,7 +1002,7 @@ plotGeneContactsGg <- function(
   if (!inherits(M, "Matrix")) M <- Matrix::Matrix(M, sparse = TRUE)
   M <- Matrix::forceSymmetric(M, uplo = "U")
   n_bins <- ncol(M)
-  if (n_bins != nrow(M)) stop("Matrix must be square (bins × bins).")
+  if (n_bins != nrow(M)) stop("Matrix must be square (bins x bins).")
   
   # --- 1) per-bin labels from coords (like your other fn) ---
   if (is.null(region_start)) region_start <- as.integer(min(coords_db$start, na.rm = TRUE))
@@ -1116,7 +1116,7 @@ plotGeneContactsGg <- function(
   genes_i <- rownames(X)
   genes_j <- colnames(X)
   if (length(genes_i) == 0L || length(genes_j) == 0L)
-    stop("Gene×gene matrix has no dimnames; likely no genes remained after filtering (drop_labels?).")
+    stop("Gene x gene matrix has no dimnames; likely no genes remained after filtering (drop_labels?).")
   
   if (cluster) {
     ord <- stats::hclust(stats::dist(X + t(X)))$order
@@ -1142,7 +1142,7 @@ plotGeneContactsGg <- function(
   df$gene_i <- factor(df$gene_i, levels = genes_i)
   df$gene_j <- factor(df$gene_j, levels = genes_j)
   
-  # --- 8) plot (white→red; colored tick labels if ggtext present) ---
+  # --- 8) plot (white->red; colored tick labels if ggtext present) ---
   p <- ggplot2::ggplot(df, ggplot2::aes(x = gene_j, y = gene_i, fill = value)) +
     ggplot2::geom_tile() +
     ggplot2::coord_fixed() +

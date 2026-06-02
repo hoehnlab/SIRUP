@@ -30,11 +30,6 @@ suppressPackageStartupMessages({
   library(airr)
 })
 
-# Notes while testing:
-# - TODO: Let's assume people have the airr package
-# - TODO:
-# - TODO:
-
 # ---- Things to change --------------------------------------------------------
 
 # Settings
@@ -47,8 +42,8 @@ demuxBySample <- c(M1 = "022526_Visium_demuxed_bc23", M5 = "022526_Visium_demuxe
 demuxDir <- file.path("/dartfs/rc/lab/H/HoehnK/Chinmay/022126_Visium_HD", demuxBySample[[sampleId]])
 
 # Using 1M example files from RAD output for speed
-rawBcrIgblastPath <- file.path(demuxDir, "igblast_out", "igblast_bcr_1M_example.tsv")
-rawTcrIgblastPath <- file.path(demuxDir, "igblast_out", "igblast_tcr_1M_example.tsv")
+rawBCRIgblastPath <- file.path(demuxDir, "igblast_out", "igblast_bcr_1M_example.tsv")
+rawTCRIgblastPath <- file.path(demuxDir, "igblast_out", "igblast_tcr_1M_example.tsv")
 visiumOutsDir <- file.path(thymusDir, "analysis", sprintf("%s_260129", sampleId), "outs")
 
 # Either specify the parquet file or, as we've done here, a csv that is saved from the parquet so we don't have to use arrow.
@@ -56,26 +51,28 @@ barcodeMapPath <- file.path(thymusDir, "M5_barcode_mappings.csv")
 positionsPath2um <- file.path(thymusDir, sprintf("%s_tissue_positions_2um.csv", sampleId))
 positionsPath8um <- file.path(thymusDir, sprintf("%s_tissue_positions_8um.csv", sampleId))
 positionsPath16um <- file.path(thymusDir, sprintf("%s_tissue_positions_16um.csv", sampleId))
-seuratPath <- file.path(thymusDir, "data", sprintf("Thymus_VisiumHD_%s_8um_hires_sr_processed.rds", sampleId))
+seuratPath <- file.path(thymusDir, "data", sprintf("Thymus_VisiumHD_%s_8um_hires.rds", sampleId))
 
 # Set paths for output from this walkthrough.
 outDir <- file.path(thymusDir, "SIRAP_walkthrough", sampleId)
 prestoInputDir <- file.path(outDir, "01_length_filtered_spatial_fastas")
 prestoOutputDir <- file.path(outDir, "02_presto_igblast")
 finalAirrDir <- file.path(outDir, "03_final_spatial_airr")
+finalBCRPath <- file.path(finalAirrDir, sprintf("%s_bcrs_heavy_final_spatial_airr.tsv", sampleLower))
+finalTCRPath <- file.path(finalAirrDir, sprintf("%s_tcrs_beta_final_spatial_airr.tsv", sampleLower))
 plotDir <- file.path(outDir, "plots")
 for (dir in c(prestoInputDir, prestoOutputDir, finalAirrDir, plotDir)) {
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
 }
 
 # Set number of processes for parallel steps
-nproc <- 4
+nproc <- 8
 
 # pRESTO/IgBLAST can take a while, so leave this FALSE until the input FASTAs
 # look right. When FALSE, the script will look for db-pass TSVs from a prior run.
 runPrestoIgblast <- TRUE
 runCloneCalling <- TRUE
-buildBcrTrees <- TRUE
+buildBCRTrees <- TRUE
 savePlots <- TRUE
 loadSeuratObject <- TRUE
 remove_bleed_example <- TRUE
@@ -88,7 +85,7 @@ tcrCloneIdsToPlot <- NULL
 
 # ---- Load the spatial metadata ----------------------------------------------
 
-all(file.exists(c(rawBcrIgblastPath, rawTcrIgblastPath, barcodeMapPath, positionsPath2um, positionsPath8um, positionsPath16um)))
+all(file.exists(c(rawBCRIgblastPath, rawTCRIgblastPath, barcodeMapPath, positionsPath2um, positionsPath8um, positionsPath16um)))
 
 barcodeMap <- readBarcodeMapping(barcodeMapPath)
 
@@ -114,8 +111,8 @@ head(positions8um)
 # Extract the 2 um barcode before pRESTO. We add the 8 um and 16 um
 # barcodes after pRESTO by joining to the Visium HD barcode mapping file.
 
-bcrRaw <- data.table::fread(rawBcrIgblastPath)
-tcrRaw <- data.table::fread(rawTcrIgblastPath)
+bcrRaw <- data.table::fread(rawBCRIgblastPath)
+tcrRaw <- data.table::fread(rawTCRIgblastPath)
 
 dim(bcrRaw)
 dim(tcrRaw)
@@ -194,13 +191,6 @@ if (savePlots) {
 # Things to inspect:
 head(bcrLengthSpatial)
 head(tcrLengthSpatial)
-
-# Notes:
-# - TODO: Should processSpatialAirr() print a drop-count summary?
-# Yes
-# - TODO: Should full_id include barcode16um too?
-#  No, I think we only include other barcodes after presto and igblast because only visiumHD has multiple of our datasets
-# TODO: Change name from runPrestoIgblastSample to processSpatialSample
 
 # ---- Run pRESTO and IgBLAST from R ------------------------------------------
 
@@ -284,10 +274,6 @@ if (!exists("tcrPrestoPaths")) {
 
 bcrPrestoPaths$db_pass
 tcrPrestoPaths$db_pass
-
-# Notes:
-# - TODO: Should runPrestoIgblastSample() check all external executables first?
-# No, but it should print helpful error messages if they are not found when it tries to run them.
 
 # ---- Continue processing the presto/igblast consensus output -----------------------------
 
@@ -391,7 +377,6 @@ tcrConsensusFilteredPos <- addTissuePositions(
   y_col = "y"
 ) %>% filter(!is.na(x), !is.na(y))
 
-# TODO: @Codex update this section and clean it up
 # We want to collapse identical sequences in contiguous clusters together so as to remove bleedover from sequencing
 # Do at 8um level, because at 2um level could be within same cell
 
@@ -411,16 +396,19 @@ if (remove_bleed_example) {
       filter(sequence_alignment == seq)
     seqName <- paste0("seq_", which(bcrConsensusBigSeqs == seq))
 
-    seqPlot <- plotReceptorOverlay(
-      tissue_positions = positions8um,
-      receptors = seqMatches,
-      receptor_color = "#2c7fb8",
-      receptor_size = 1.2,
-      title = paste("Identical sequence:", seq)
-    )
-    plots[[seqName]] <- seqPlot
-    ggsave(file.path(plotDir, sprintf("%s_identical_sequence_%s_bcr_spatial.png", sampleLower, seqName)), seqPlot, width = 6, height = 5, dpi = 300)
-    cat("Plotted identical sequence ", seqName, "\n")
+    if (!is.null(thymus)) {
+      seqPlot <- plotReceptorExpression(
+        object = thymus,
+        receptors = seqMatches,
+        barcode_col = "barcode_8um",
+        receptor_color = "#2c7fb8",
+        receptor_size = 1.2,
+        title = paste("Identical sequence:", seq)
+      )
+      plots[[seqName]] <- seqPlot
+      ggsave(file.path(plotDir, sprintf("%s_identical_sequence_%s_bcr_spatial.png", sampleLower, seqName)), seqPlot, width = 6, height = 5, dpi = 300)
+      cat("Plotted identical sequence ", seqName, "\n")
+    }
   }
   # Try filtering spatially
   # Goal is to collapse identical sequences in contiguous clusters onto the most present location
@@ -444,20 +432,22 @@ if (remove_bleed_example) {
       filter(sequence_alignment == seq)
     seqName <- paste0("seq_", which(bcrConsensusBigSeqs == seq))
     
-    seqPlot <- plotReceptorOverlay(
-      tissue_positions = positions8um,
-      receptors = seqMatches,
-      receptor_color = "#2c7fb8",
-      receptor_size = 1.2,
-      title = paste("Identical sequence:", seq)
-    )
-    plots[[seqName]] <- seqPlot
-    ggsave(file.path(plotDir, sprintf("%s_identical_sequence_%s_bcr_spatial_collapsed.png", sampleLower, seqName)), seqPlot, width = 6, height = 5, dpi = 300)
-    cat("Plotted identical sequence ", seqName, "\n")
+    if (!is.null(thymus)) {
+      seqPlot <- plotReceptorExpression(
+        object = thymus,
+        receptors = seqMatches,
+        barcode_col = "barcode_8um",
+        receptor_color = "#2c7fb8",
+        receptor_size = 1.2,
+        title = paste("Identical sequence:", seq)
+      )
+      plots[[seqName]] <- seqPlot
+      ggsave(file.path(plotDir, sprintf("%s_identical_sequence_%s_bcr_spatial_collapsed.png", sampleLower, seqName)), seqPlot, width = 6, height = 5, dpi = 300)
+      cat("Plotted identical sequence ", seqName, "\n")
+    }
   }
 }
 
-# TODO: @Codex move collapseIdenticalNeighbors to thhe processing.R file
 bcrConsensusFilteredPosSpatialCollapse <- collapseIdenticalNeighbors(
   data = bcrConsensusFilteredPos,
   tissue_positions = positions8um,
@@ -486,14 +476,12 @@ bcrTopBarcode <- collapseTopConsensusPerBarcode(bcrConsensusFilteredPosSpatialCo
 tcrTopBarcode <- collapseTopConsensusPerBarcode(tcrConsensusFilteredPosSpatialCollapse, barcode_col = "barcode_2um", locus_col = "locus", ties = "all")
 
 
-finalBcrPath <- file.path(finalAirrDir, sprintf("%s_bcrs_heavy_final_spatial_airr.tsv", sampleLower))
-finalTcrPath <- file.path(finalAirrDir, sprintf("%s_tcrs_beta_final_spatial_airr.tsv", sampleLower))
 if (requireNamespace("airr", quietly = TRUE)) {
-  airr::write_rearrangement(bcrTopBarcode, finalBcrPath)
-  airr::write_rearrangement(tcrTopBarcode, finalTcrPath)
+  airr::write_rearrangement(bcrTopBarcode, finalBCRPath)
+  airr::write_rearrangement(tcrTopBarcode, finalTCRPath)
 } else {
-  data.table::fwrite(bcrTopBarcode, finalBcrPath, sep = "\t")
-  data.table::fwrite(tcrTopBarcode, finalTcrPath, sep = "\t")
+  data.table::fwrite(bcrTopBarcode, finalBCRPath, sep = "\t")
+  data.table::fwrite(tcrTopBarcode, finalTCRPath, sep = "\t")
 }
 
 list(
@@ -515,95 +503,116 @@ if (savePlots) {
 head(bcrTopBarcode)
 head(tcrTopBarcode)
 
-# Notes:
-# - TODO: Should the post-pRESTO block become a single high-level function?
-# Answer: No, I think those are all different enough steps and not hard to do so we should let people do theme
-# - TODO: Should collapseTopConsensusPerBarcode() have built-in diagnostics for ties?
-# Answer: Sure
-
 # ---- Put every BCR and TCR on the tissue slice -------------------------------
-# TODO: @Codex update plotReceptorOverlay to use Seurat's spatial plotting so that we can actually see the tissue underneath
-allBcrPlot <- plotReceptorOverlay(
-  tissue_positions = positions8um,
-  receptors = bcrTopBarcode,
-  receptor_color = "#2c7fb8",
-  receptor_size = 1.2,
-  title = paste(sampleId, "all BCR-positive spots")
-)
-if (savePlots) {
-  ggsave(file.path(plotDir, sprintf("%s_all_bcr_locations.png", sampleLower)), allBcrPlot, width = 6, height = 5, dpi = 300)
+# Load thymus data if requested
+if (requireNamespace("airr", quietly = TRUE)){
+  bcrTopBarcode <- airr::read_rearrangement(finalBCRPath)
+  tcrTopBarcode <- airr::read_rearrangement(finalTCRPath)
+} else {
+  bcrTopBarcode <- data.table::fread(finalBCRPath) %>% as.data.frame()
+  tcrTopBarcode <- data.table::fread(finalTCRPath) %>% as.data.frame()
 }
 
 
-allTcrPlot <- plotReceptorOverlay(
-  tissue_positions = positions8um,
-  receptors = tcrTopBarcode,
-  receptor_color = "#d95f02",
-  receptor_size = 1.2,
-  title = paste(sampleId, "all TCR-positive spots")
-)
-if (savePlots) {
-  ggsave(file.path(plotDir, sprintf("%s_all_tcr_locations.png", sampleLower)), allTcrPlot, width = 6, height = 5, dpi = 300)
+thymus <- NULL
+if (loadSeuratObject && file.exists(seuratPath)) {
+  library(Seurat)
+  library(SeuratObject)
+  thymus <- readRDS(seuratPath)
 }
 
-bcrTcrOverlay <- ggplot(positions8um, aes(x = x, y = y)) +
-  geom_point(color = "grey88", size = 0.55, alpha = 0.75) +
-  geom_point(data = bcrTopBarcode, aes(x = x, y = y), inherit.aes = FALSE, shape = 21, fill = NA, color = "#2c7fb8", stroke = 0.45, size = 1.4) +
-  geom_point(data = tcrTopBarcode, aes(x = x, y = y), inherit.aes = FALSE, shape = 21, fill = NA, color = "#d95f02", stroke = 0.45, size = 1.4) +
-  coord_fixed() +
-  scale_y_reverse() +
-  theme_minimal() +
-  labs(title = paste(sampleId, "BCR and TCR locations"), x = "x", y = "y")
-if (savePlots) {
-  ggsave(file.path(plotDir, sprintf("%s_bcr_tcr_locations.png", sampleLower)), bcrTcrOverlay, width = 6, height = 5, dpi = 300)
+if (!is.null(thymus)) {
+  allBCRPlot <- plotReceptorExpression(
+    object = thymus,
+    receptors = bcrTopBarcode,
+    barcode_col = "barcode_8um",
+    receptor_color = "white",
+    receptor_size = 0.5,
+    title = paste(sampleId, "all BCR-positive spots")
+  )
+  if (savePlots) {
+    ggsave(file.path(plotDir, sprintf("%s_all_bcr_locations.png", sampleLower)), allBCRPlot, width = 6, height = 5, dpi = 300)
+  }
+
+  allTCRPlot <- plotReceptorExpression(
+    object = thymus,
+    receptors = tcrTopBarcode,
+    barcode_col = "barcode_8um",
+    receptor_color = "#d95f02",
+    receptor_size = 0.5,
+    title = paste(sampleId, "all TCR-positive spots")
+  )
+  if (savePlots) {
+    ggsave(file.path(plotDir, sprintf("%s_all_tcr_locations.png", sampleLower)), allTCRPlot, width = 6, height = 5, dpi = 300)
+  }
+
+  bcr_spots <- unique(bcrTopBarcode$barcode_8um)
+  tcr_spots <- unique(tcrTopBarcode$barcode_8um)
+  receptor_type <- dplyr::case_when(
+    colnames(thymus) %in% bcr_spots & colnames(thymus) %in% tcr_spots ~ "BCR + TCR",
+    colnames(thymus) %in% bcr_spots ~ "BCR",
+    colnames(thymus) %in% tcr_spots ~ "TCR",
+    TRUE ~ "0"
+  )
+  thymus[["sirap_receptor_type"]] <- receptor_type
+  bcrTCROverlay <- spatialDiscretePlot(
+    thymus,
+    meta_col = "sirap_receptor_type",
+    zero_value = "0",
+    image.scale = "hires",
+    pt.size.factor = 0.5,
+    cols = c("BCR" = "#2c7fb8", "TCR" = "#d95f02", "BCR + TCR" = "white")
+  ) +
+    ggtitle(paste(sampleId, "BCR and TCR locations"))
+  if (savePlots) {
+    ggsave(file.path(plotDir, sprintf("%s_bcr_tcr_locations.png", sampleLower)), bcrTCROverlay, width = 6, height = 5, dpi = 300)
+  }
+} else {
+  message("Skipping receptor spatial plots because the Seurat object was not loaded.")
 }
 
-# Notes:
-# - TODO: Should plotReceptorOverlay() support BCR and TCR layers at the same time?
-# Answer: Yes, but I think it's easier to do that with ggplot directly since then we can control the colors and legend better. We can add a helper that makes it easy to plot two sets of receptors with ggplot though.
 
 # ---- Add gene expression underneath receptor locations -----------------------
 
-thymus <- NULL
 geneOverlayPlots <- list()
 genesToShow <- c("CD79A", "CD3E")
 
-if (loadSeuratObject && file.exists(seuratPath) && requireNamespace("SeuratObject", quietly = TRUE)) {
-  thymus <- readRDS(seuratPath)
-
+if (!is.null(thymus)) {
   for (gene in genesToShow) {
     if (!gene %in% rownames(thymus)) {
       message("Skipping ", gene, ": not found in the Seurat object.")
       next
     }
 
-    expr <- SeuratObject::FetchData(thymus, vars = gene)
-    expr$barcode_8um <- rownames(expr)
-
-    tissueGene <- positions %>%
-      left_join(expr, by = "barcode_8um") %>%
-      mutate(expression = .data[[gene]])
-
-    bcrGenePlot <- plotReceptorOverlay(
-      tissue_positions = tissueGene,
-      receptors = bcr,
-      gene_col = "expression",
+    bcrGenePlot <- plotReceptorExpression(
+      object = thymus,
+      receptors = bcrTopBarcode,
+      gene = gene,
+      barcode_col = "barcode_8um",
       receptor_color = "#2c7fb8",
-      receptor_size = 1.25,
+      receptor_size = 0.5,
+      receptor_stroke = 0.25,
+      receptor_alpha = 0.8,
+      feature_size = 0.5,
+      feature_alpha = 0.8,
       title = paste(gene, "expression with BCR spots")
-    )
+    ) 
 
-    tcrGenePlot <- plotReceptorOverlay(
-      tissue_positions = tissueGene,
-      receptors = tcr,
-      gene_col = "expression",
+    tcrGenePlot <- plotReceptorExpression(
+      object = thymus,
+      receptors = tcrTopBarcode,
+      gene = gene,
+      barcode_col = "barcode_8um",
       receptor_color = "#d95f02",
-      receptor_size = 1.25,
+      receptor_size = 0.5,
+      receptor_stroke = 0.25,
+      receptor_alpha = 0.8,
+      feature_size = 0.5,
+      feature_alpha = 0.8,
       title = paste(gene, "expression with TCR spots")
     )
 
     geneOverlayPlots[[gene]] <- cowplot::plot_grid(bcrGenePlot, tcrGenePlot, ncol = 2)
-    print(geneOverlayPlots[[gene]])
     if (savePlots) {
       ggsave(
         file.path(plotDir, sprintf("%s_%s_receptor_gene_overlay.png", sampleLower, gene)),
@@ -615,39 +624,203 @@ if (loadSeuratObject && file.exists(seuratPath) && requireNamespace("SeuratObjec
     }
   }
 } else {
-  message("Skipping gene overlays. Check loadSeuratObject, seuratPath, and SeuratObject.")
+  message("Skipping Seurat gene overlays. Check loadSeuratObject and seuratPath.")
 }
 
+if (!is.null(thymus)) {
+  blendedGenePlot <- spatialExpressionBlendPlot(
+    thymus,
+    features = c("CXCR4", "CXCR5"),
+    assay = "Spatial.008um",
+    slot = "counts",
+    image.scale = "hires",
+    pt.size.factor = 0.2,
+    only_blended = TRUE,
+    top_left = "blue",
+    bottom_left = "grey50",
+    bottom_right = "yellow",
+    top_right = "green"
+  ) +
+    ggtitle(paste(sampleId, "CXCR4 + CXCR5"))
+  print(blendedGenePlot)
+  if (savePlots) {
+    ggsave(file.path(plotDir, sprintf("%s_CXCR4_CXCR5_blended_no_zeros.png", sampleLower)), blendedGenePlot, width = 6, height = 5, dpi = 300)
+  }
+}
+
+# ---- Spatial autocorrelation and colocalization ------------------------------
+
+spatialStatsRadius <- 200
+spatialStatsK <- 24 # Two loops around spot
+ripleyNsim <- 10 
+
+if (!is.null(thymus)) {
+  bcrMoran <- spatialMoran(
+    thymus,
+    variable = "BCR presence",
+    variable_type = "receptor",
+    receptors = bcrTopBarcode,
+    barcode_col = "barcode_8um",
+    # radius = spatialStatsRadius # Unadvisable to use the radius for visium HD data since nSpots is so high
+    k = spatialStatsK # Instead use k-nearest neighbors
+  )
+  bcrMoran$test
+
+  if ("CD79A" %in% rownames(thymus)) {
+    cd79aExpressionMoran <- spatialMoran(
+      thymus,
+      variable = "CD79A",
+      variable_type = "feature",
+      layer = "counts",
+      k = spatialStatsK
+    )
+    cd79aExpressionMoran$test
+
+    cd79aPositiveMoran <- spatialMoran(
+      thymus,
+      variable = "CD79A",
+      variable_type = "feature",
+      positive = TRUE,
+      layer = "counts",
+      k = spatialStatsK
+    )
+    cd79aPositiveMoran$test
+
+    aicdaLocalMoran <- spatialLocalMoran( # slower than global Moran's I but gives spot-level values we can plot
+      thymus,
+      variable = "AICDA",
+      variable_type = "feature",
+      layer = "counts",
+      k = spatialStatsK
+    )
+    aicdaLocalMoranPlot <- plotSpatialLocalMoran(
+      thymus,
+      aicdaLocalMoran,
+      point_size = 0.55,
+      title = paste(sampleId, "AICDA local Moran's I z-score")
+    )
+    
+    if (savePlots) {
+      ggsave(file.path(plotDir, sprintf("%s_AICDA_local_moran.png", sampleLower)), aicdaLocalMoranPlot, width = 6, height = 5, dpi = 300)
+    }
+  }
+
+  if ("seurat_clusters" %in% colnames(thymus@meta.data)) {
+    clusterToTest <- as.character(thymus@meta.data$seurat_clusters[!is.na(thymus@meta.data$seurat_clusters)][1])
+    clusterMoran <- spatialMoran(
+      thymus,
+      variable = "seurat_clusters",
+      variable_type = "metadata",
+      value = clusterToTest,
+      radius = spatialStatsRadius
+    )
+    clusterMoran$test
+  }
+
+  bcrTcrColocalizationPlot <- spatialDiscretePlot(
+    thymus,
+    meta_col = "sirap_receptor_type",
+    zero_value = "0",
+    cols = c("BCR" = "#2c7fb8", "TCR" = "#d95f02", "BCR + TCR" = "white"),
+    pt.size.factor = 0.5
+  ) +
+    ggtitle(paste(sampleId, "BCR, TCR, and dual-positive spots"))
+  if (savePlots) {
+    ggsave(file.path(plotDir, sprintf("%s_bcr_tcr_k_marks.png", sampleLower)), bcrTcrColocalizationPlot, width = 6, height = 5, dpi = 300)
+  }
+
+  bcrTcrK <- spatialRipleyCrossK(
+    thymus,
+    mark_col = "sirap_receptor_type",
+    i = "BCR",
+    j = "TCR",
+    nsim = ripleyNsim,
+    max_r = 1000
+  )
+  bcrTcrKPlot <- plotRipleyCrossK(bcrTcrK, title = paste(sampleId, "Ripley's cross K: BCR to TCR"))
+  if (savePlots) {
+      ggsave(file.path(plotDir, sprintf("%s_bcr_tcr_ripley_cross_k.png", sampleLower)), bcrTcrKPlot, width = 6, height = 4, dpi = 300)
+  }
 
 
-# Notes:
-# - TODO: Should SIRAP include a helper that fetches Seurat expression and joins tissue positions?
-# No, we should just already be working with seurat
+
+W_thy2 <- owin(xrange = c(900, 11100), yrange = c(700, 11000))
+spatial_data_thy2 <- spatial_data %>% filter(patient == "m5") %>% mutate(cell_type = factor(cell_type))
+thy2K <- spatialRipleyCrossK(
+  thy_merged_harmonized_spatial_only,
+  mark_col = "cell_type",
+  i = "GC B",
+  j = "CHRNA1+ mTEC",
+  nsim = 99,
+  max_r = 2500
+)
+thy2KPlot <- plotRipleyCrossK(thy2K, title = paste(sampleId, "Ripley's cross K: GC B to CHRNA1+ mTEC"))
+ggsave(file.path(plotDir, sprintf("%s_thy2_gc_b_chrna1_mtec_ripley_cross_k.png", sampleLower)), thy2KPlot, width = 6, height = 4, dpi = 300)
+
+kcross_data_thy2_ppp <- ppp(x = spatial_data_thy2$y, y = -spatial_data_thy2$x, marks = spatial_data_thy2$cell_type, window = W_thy2)
+kcross_thy2 <- Kcross(kcross_data_thy2_ppp, i = "GC B", j = "CHRNA1+ mTEC")
+
+# Test this against a simulated version
+shuffle_thy2 <- expression(rlabel(kcross_data_thy2_ppp))
+kcross_thy2_sim <- envelope(kcross_data_thy2_ppp, Kcross, nsim = 99, simulate = shuffle_thy2, i = "GC B", j = "CHRNA1+ mTEC")
+
+# Check against other TECs as a comparison
+kcross_thy2_mtecs <- Kcross(kcross_data_thy2_ppp, i = "GC B", j = "mTEC")
+shuffle_thy2_mtecs <- expression(rlabel(kcross_data_thy2_ppp))
+kcross_thy2_mtecs_sim <- envelope(kcross_data_thy2_ppp, Kcross, nsim = 99, simulate = shuffle_thy2_mtecs, i = "GC B", j = "mTEC")
+
+kcross_thy2_ctecs <- Kcross(kcross_data_thy2_ppp, i = "GC B", j = "cTEC")
+shuffle_thy2_ctecs <- expression(rlabel(kcross_data_thy2_ppp))
+kcross_thy2_ctecs_sim <- envelope(kcross_data_thy2_ppp, Kcross, nsim = 99, simulate = shuffle_thy2_ctecs, i = "GC B", j = "cTEC")
+
+pdf("GEX_plots/kcross_GCB_CHRNA1+mTECs_thy2.pdf")
+plot(kcross_thy2)
+plot(kcross_thy2_sim)
+plot(kcross_thy2_mtecs_sim)
+plot(kcross_thy2_ctecs_sim)
+dev.off()
 
 
-# @Codex I haven't looked at the below yet, so make updates as you see fit, but that's why I haven't left any comments below here
+
+
+
+  if ("BCR + TCR" %in% thymus$sirap_receptor_type) {
+    bcrDualPositiveK <- spatialRipleyCrossK(
+      thymus,
+      mark_col = "sirap_receptor_type",
+      i = "BCR",
+      j = "BCR + TCR",
+      nsim = ripleyNsim
+    )
+    bcrDualPositiveKPlot <- plotRipleyCrossK(bcrDualPositiveK, title = paste(sampleId, "Ripley's cross K: BCR to BCR + TCR"))
+    if (savePlots) {
+      ggsave(file.path(plotDir, sprintf("%s_bcr_dual_positive_ripley_cross_k.png", sampleLower)), bcrDualPositiveKPlot, width = 6, height = 4, dpi = 300)
+    }
+  }
+}
+
 # ---- Call clones -------------------------------------------------------------
 
 bcrClonesPath <- file.path(outDir, sprintf("%s_bcr_hierarchical_clones.rds", sampleLower))
 tcrClonesPath <- file.path(outDir, sprintf("%s_tcr_hierarchical_clones.rds", sampleLower))
 bcrTreesPath <- file.path(outDir, sprintf("%s_bcr_pml_trees.rds", sampleLower))
 
+runCloneCalling <- FALSE # Set to TRUE to run clone calling, which can take a while. When FALSE, will look for RDS files from a prior run.
 if (runCloneCalling) {
   if (!requireNamespace("scoper", quietly = TRUE)) {
     stop("Install scoper to call clones.")
   }
 
   bcrClones <- scoper::hierarchicalClones(
-    filter(bcr, productive %in% c(TRUE, "TRUE", "T")),
+    filter(bcrTopBarcode, productive),
     threshold = 0.1,
     cell_id = "sequence_id",
     summarize_clones = FALSE,
     nproc = nproc
   )
 
-  tcrClones <- scoper::hierarchicalClones(
-    filter(tcr, productive %in% c(TRUE, "TRUE", "T")),
-    threshold = 0.1,
+  tcrClones <- scoper::identicalClones(
+    filter(tcrTopBarcode, productive),
     cell_id = "sequence_id",
     summarize_clones = FALSE,
     nproc = nproc
@@ -659,97 +832,80 @@ if (runCloneCalling) {
   bcrClones <- readRDS(bcrClonesPath)
   tcrClones <- readRDS(tcrClonesPath)
 } else {
-  message("Clone RDS files not found. Set runCloneCalling <- TRUE and rerun this section.")
+  stop("Clone RDS files not found. Set runCloneCalling <- TRUE and rerun this section.")
 }
 
-if (exists("bcrClones")) {
-  bcrCloneCounts <- bcrClones %>%
-    filter(!is.na(clone_id)) %>%
-    count(clone_id, sort = TRUE)
-  head(bcrCloneCounts, 20)
-}
+bcrCloneCounts <- bcrClones %>%
+  filter(!is.na(clone_id)) %>%
+  count(clone_id, sort = TRUE)
+head(bcrCloneCounts, 20)
 
-if (exists("tcrClones")) {
-  tcrCloneCounts <- tcrClones %>%
-    filter(!is.na(clone_id)) %>%
-    count(clone_id, sort = TRUE)
-  head(tcrCloneCounts, 20)
-}
+tcrCloneCounts <- tcrClones %>%
+  filter(!is.na(clone_id)) %>%
+  count(clone_id, sort = TRUE)
+head(tcrCloneCounts, 20)
 
 # ---- Pick a couple of clones and plot them ----------------------------------
+# Grab a few clones with 30-50 sequences
+bcrCloneIds <- bcrCloneCounts %>%
+  filter(n >= 30, n <= 50) %>%
+  slice_head(n = 2) %>%
+  pull(clone_id)
+tcrCloneIds <- tcrCloneCounts %>%
+  filter(n >= 30, n <= 50) %>%
+  slice_head(n = 2) %>%
+  pull(clone_id)
 
-chooseBigClones <- function(clones, cloneIds = NULL, n = 2) {
-  if (!is.null(cloneIds)) {
-    return(as.character(cloneIds))
-  }
-  clones %>%
-    filter(!is.na(clone_id)) %>%
-    count(clone_id, sort = TRUE) %>%
-    slice_head(n = n) %>%
-    pull(clone_id) %>%
-    as.character()
-}
 
-if (exists("bcrClones")) {
-  bcrCloneIds <- chooseBigClones(bcrClones, bcrCloneIdsToPlot, n = 2)
-  bcrCloneIds
-}
-
-if (exists("tcrClones")) {
-  tcrCloneIds <- chooseBigClones(tcrClones, tcrCloneIdsToPlot, n = 2)
-  tcrCloneIds
-}
-
-# After inspecting clone counts, set these manually if you want:
-# bcrCloneIdsToPlot <- c("123", "456")
-# tcrCloneIdsToPlot <- c("789", "101")
-
-if (exists("bcrClones") && exists("bcrCloneIds")) {
+if (!is.null(thymus)) {
   bcrClonePlots <- lapply(
     bcrCloneIds,
     function(cloneId) {
-      plotReceptorOverlay(
-        tissue_positions = positions,
+      plotReceptorExpression(
+        object = thymus,
         receptors = filter(bcrClones, .data$clone_id == .env$cloneId),
+        barcode_col = "barcode_8um",
         receptor_color = "#2c7fb8",
         receptor_size = 1.7,
         title = paste("BCR clone", cloneId)
       )
     }
   )
-  selectedBcrClonePlot <- cowplot::plot_grid(plotlist = bcrClonePlots, ncol = 2)
-  selectedBcrClonePlot
+  selectedBCRClonePlot <- cowplot::plot_grid(plotlist = bcrClonePlots, ncol = 2)
+  selectedBCRClonePlot
   if (savePlots) {
-    ggsave(file.path(plotDir, sprintf("%s_selected_bcr_clones_spatial.png", sampleLower)), selectedBcrClonePlot, width = 10, height = 5, dpi = 300)
+    ggsave(file.path(plotDir, sprintf("%s_selected_bcr_clones_spatial.png", sampleLower)), selectedBCRClonePlot, width = 10, height = 5, dpi = 300)
   }
+} else {
+  message("Skipping BCR clone plots because the Seurat object was not loaded.")
 }
 
-if (exists("tcrClones") && exists("tcrCloneIds")) {
+if (!is.null(thymus)) {
   tcrClonePlots <- lapply(
     tcrCloneIds,
     function(cloneId) {
-      plotReceptorOverlay(
-        tissue_positions = positions,
+      plotReceptorExpression(
+        object = thymus,
         receptors = filter(tcrClones, .data$clone_id == .env$cloneId),
+        barcode_col = "barcode_8um",
         receptor_color = "#d95f02",
         receptor_size = 1.7,
         title = paste("TCR clone", cloneId)
       )
     }
   )
-  selectedTcrClonePlot <- cowplot::plot_grid(plotlist = tcrClonePlots, ncol = 2)
-  selectedTcrClonePlot
+  selectedTCRClonePlot <- cowplot::plot_grid(plotlist = tcrClonePlots, ncol = 2)
+  selectedTCRClonePlot
   if (savePlots) {
-    ggsave(file.path(plotDir, sprintf("%s_selected_tcr_clones_spatial.png", sampleLower)), selectedTcrClonePlot, width = 10, height = 5, dpi = 300)
+    ggsave(file.path(plotDir, sprintf("%s_selected_tcr_clones_spatial.png", sampleLower)), selectedTCRClonePlot, width = 10, height = 5, dpi = 300)
   }
+} else {
+  message("Skipping TCR clone plots because the Seurat object was not loaded.")
 }
 
 # ---- Build BCR trees and match tips back to space ----------------------------
-
-if (buildBcrTrees) {
-  if (!exists("bcrClones") || !exists("bcrCloneIds")) {
-    stop("Run clone calling/loading and clone selection before tree building.")
-  }
+buildBCRTrees <- FALSE
+if (buildBCRTrees) {
   if (!requireNamespace("dowser", quietly = TRUE)) {
     stop("Install dowser to build BCR lineage trees.")
   }
@@ -757,89 +913,53 @@ if (buildBcrTrees) {
     stop("Install alakazam to read IMGT germlines for dowser tree building.")
   }
 
-  refs <- alakazam::readIMGT(germlineDir)
+  refs <- dowser::readIMGT(germlineDir)
 
   bcrTreeInput <- bcrClones %>%
-    filter(clone_id %in% bcrCloneIds, !is.na(clone_id)) %>%
-    mutate(
-      sequence_id_tree = make.unique(as.character(sequence_id)),
-      c_call_simple = case_when(
-        stringr::str_detect(c_call, "IGHM") ~ "IgM",
-        stringr::str_detect(c_call, "IGHD") ~ "IgD",
-        stringr::str_detect(c_call, "IGHG1") ~ "IgG1",
-        stringr::str_detect(c_call, "IGHG2") ~ "IgG2",
-        stringr::str_detect(c_call, "IGHG3") ~ "IgG3",
-        stringr::str_detect(c_call, "IGHG4") ~ "IgG4",
-        stringr::str_detect(c_call, "IGHA1") ~ "IgA1",
-        stringr::str_detect(c_call, "IGHA2") ~ "IgA2",
-        stringr::str_detect(c_call, "IGHE") ~ "IgE",
-        TRUE ~ "unknown"
-      )
-    ) %>%
-    assignTipColors(clone_ids = bcrCloneIds, id_col = "sequence_id_tree")
+    filter(clone_id %in% bcrCloneIds, !is.na(clone_id))
 
-  bcrTreeInput <- dowser::createGermlines(bcrTreeInput, refs, id = "sequence_id_tree")
+  bcrTreeInput <- dowser::createGermlines(bcrTreeInput, refs, id = "sequence_id")
 
   bcrFormattedClones <- dowser::formatClones(
     bcrTreeInput,
-    id = "sequence_id_tree",
-    traits = c("tip_color_id", "tip_color", "c_call_simple", "barcode_8um"),
+    id = "sequence_id",
+    germ = "germline_alignment",
+    traits = c("barcode_8um"),
     columns = c("x", "y", "barcode_8um"),
     filterstop = FALSE,
     collapse = TRUE,
     add_count = "consensus_count" %in% colnames(bcrTreeInput),
     num_fields = if ("consensus_count" %in% colnames(bcrTreeInput)) "consensus_count" else NULL
   )
-  bcrTrees <- dowser::getTrees(bcrFormattedClones, build = "pml", nproc = nproc)
-  bcrTreeResult <- list(formatted_clones = bcrFormattedClones, trees = bcrTrees)
+  bcrTrees <- dowser::getTrees(bcrFormattedClones, nproc = nproc)
 
-  saveRDS(bcrTreeResult, bcrTreesPath)
+  saveRDS(bcrTrees, bcrTreesPath)
 } else if (file.exists(bcrTreesPath)) {
-  bcrTreeResult <- readRDS(bcrTreesPath)
+  bcrTrees <- readRDS(bcrTreesPath)
+} else {
+  stop("BCR tree RDS file not found. Set buildBCRTrees <- TRUE and rerun this section.")
 }
 
-if (exists("bcrTreeResult") && exists("bcrTreeInput")) {
-  treePalette <- unique(bcrTreeInput$tip_color)
-  names(treePalette) <- unique(bcrTreeInput$tip_color_id)
-
-  bcrTreePlots <- dowser::plotTrees(
-    bcrTreeResult$trees,
-    tips = "tip_color_id",
-    palette = treePalette,
-    tipsize = if ("consensus_count" %in% colnames(bcrTreeInput)) "consensus_count" else NULL
+if (is.null(thymus)) {
+  message("Skipping tree/spatial pairs because the Seurat object was not loaded.")
+} else {
+  pairedTreeSpatialPlots <- plotSpatialCloneTreePairs(
+    bcrTrees,
+    object = thymus,
+    barcode_col = "barcode_8um",
+    clone_ids = bcrCloneIds,
+    id_col = "sequence_id",
+    zoom = FALSE
   )
-
-  pairedTreeSpatialPlots <- list()
-  for (i in seq_along(bcrCloneIds)) {
-    cloneId <- bcrCloneIds[[i]]
-    spatialPlot <- plotColoredCloneSpatial(
-      bcrTreeInput,
-      clone_id = cloneId,
-      tissue_positions = positions
-    )
-
-    pairedTreeSpatialPlots[[i]] <- cowplot::plot_grid(
-      bcrTreePlots[[i]] + ggplot2::ggtitle(paste("BCR clone", cloneId, "tree")),
-      spatialPlot + ggplot2::ggtitle(paste("BCR clone", cloneId, "matched tissue colors")),
-      ncol = 2,
-      rel_widths = c(1.2, 1)
-    )
-    print(pairedTreeSpatialPlots[[i]])
-  }
-
-  if (savePlots) {
-    pdf(file.path(plotDir, sprintf("%s_bcr_tree_spatial_pairs.pdf", sampleLower)), width = 12, height = 6)
-    for (page in pairedTreeSpatialPlots) {
-      print(page)
-    }
-    dev.off()
-  }
 }
 
-# Notes:
-# - TODO: Should plotTreeSpatialPairs() become a package function?
+if (savePlots && exists("pairedTreeSpatialPlots")) {
+  spatialCloneTreePairsToPDF(
+    pairedTreeSpatialPlots,
+    file.path(plotDir, sprintf("%s_bcr_tree_spatial_pairs.pdf", sampleLower)),
+    width = 12,
+    height = 6
+  )
+}
 
 # ---- Done -------------------------------------------------------------------
-
-message("Walkthrough objects are loaded in the current R session.")
-message("Output directory: ", outDir)

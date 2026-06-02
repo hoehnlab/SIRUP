@@ -1,9 +1,9 @@
 CXX_STD = CXX17
 
 PKG_CPPFLAGS = -I. -I./include -I./include/external -I./include/external/edlib/include \
-               -DSTRICT_R_HEADERS -DBUILDING_R_PACKAGE
+               -DBUILDING_R_PACKAGE
 
-PKG_CXXFLAGS = -O3 $(SHLIB_OPENMP_CXXFLAGS)
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
 PKG_LIBS     = ssw.o edlib.o -lz $(SHLIB_OPENMP_CXXFLAGS)
 
 # Build the vendored SSW (C) and edlib (C++) translation units into

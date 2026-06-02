@@ -4,7 +4,7 @@
 
 #include <Rcpp.h>
 
-#include "paf_contact_core.hpp"
+#include "paf_contact_core.h"
 
 using namespace Rcpp;
 
@@ -277,4 +277,3 @@ SEXP spliceContactsFromPafDt(
   const uint32_t n_bins = rad_paf::infer_n_bins(cfg, max_bin_seen);
   return rad_paf::pairs_to_sparse_matrix(global_agg, n_bins, symmetric);
 }
-

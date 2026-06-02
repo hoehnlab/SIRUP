@@ -18,6 +18,7 @@ primitives, and PAF parsing utilities.
 
 Authors:
 \itemize{
+  \item Hunter J. Melton \email{Hunter.J.Melton@dartmouth.edu}
   \item Chinmay Vaidya \email{chinmay.m.vaidya.gr@dartmouth.edu}
 }
 
