@@ -403,23 +403,23 @@ thy_m5 &lt;- Load10X_Spatial(
 saveRDS(thy_m5, file.path(thymusDir, &quot;data&quot;, &quot;Thymus_VisiumHD_M5_8um_hires.rds&quot;))
 
 # Resave tissue locations as .csvs
-m5_barcode_mapping &lt;- read_parquet(file_path(m5_path, &quot;barcode_mappings.parquet&quot;))
+m5_barcode_mapping &lt;- read_parquet(file.path(m5_path, &quot;barcode_mappings.parquet&quot;))
 write.csv(m5_barcode_mapping, file.path(thymusDir, &quot;M5_barcode_mappings.csv&quot;), 
           row.names = FALSE)
 
-m5_pos_2um &lt;- read_parquet(file_path(
+m5_pos_2um &lt;- read_parquet(file.path(
   m5_path, &quot;binned_outputs&quot;, &quot;square_002um&quot;, &quot;spatial&quot;, &quot;tissue_positions.parquet&quot;
   ))
 write.csv(m5_pos_2um, file.path(thymusDir, sprintf(&quot;%s_tissue_positions_2um.csv&quot;, sampleId)),
           row.names = FALSE)
 
-m5_pos_8um &lt;- read_parquet(file_path(
+m5_pos_8um &lt;- read_parquet(file.path(
   m5_path, &quot;binned_outputs&quot;, &quot;square_008um&quot;, &quot;spatial&quot;, &quot;tissue_positions.parquet&quot;
   ))
 write.csv(m5_pos_8um, file.path(thymusDir, sprintf(&quot;%s_tissue_positions_8um.csv&quot;, sampleId)),
           row.names = FALSE)
 
-m5_pos_16um &lt;- read_parquet(file_path(
+m5_pos_16um &lt;- read_parquet(file.path(
   m5_path, &quot;binned_outputs&quot;, &quot;square_016um&quot;, &quot;spatial&quot;, &quot;tissue_positions.parquet&quot;
   ))
 write.csv(m5_pos_16um, file.path(thymusDir, sprintf(&quot;%s_tissue_positions_16um.csv&quot;, sampleId)),
