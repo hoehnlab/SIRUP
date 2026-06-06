@@ -1,0 +1,396 @@
+This vignette drives the [`rad`](https://github.com/indianewok/rad)
+command-line demultiplexer from R using SIRAP’s `rad*()` wrappers. It is
+the upstream step that produces the demultiplexed, barcode-corrected
+reads the rest of the package builds on: the [Visium HD processing
+guide](visium-hd-processing.html) *starts from* RAD output, and this
+guide shows how to get there.
+
+SIRAP does not vendor or reimplement rad — every wrapper shells out to
+the same `rad` binary you would call from a terminal, so you get rad’s
+exact behavior with R-friendly argument handling, path resolution, and
+error reporting. The wrappers covered here are `radPath()`, `radList()`,
+`radPrep()`, `radScanWl()`, `radDemux()`, `radReformat()`, and the
+one-call `radRun()`, plus `radSrcPath()` and `updateRad()` for building
+rad from source.
+
+Unlike the other guides, this one uses rad’s **public simulated test
+dataset**, so the whole thing is runnable on any machine that has a
+built `rad` binary — no private data required.
+
+This guide intentionally does not evaluate code during rendering, even
+in the read-the-docs version, because every step shells out to the
+external `rad` binary, downloads data, and writes files.
+
+## Setup
+
+``` r
+library(SIRAP)
+
+# Everything in this guide writes under one scratch directory.
+runDir <- file.path(tempdir(), "rad_demo")
+dir.create(runDir, recursive = TRUE, showWarnings = FALSE)
+
+nproc <- 4
+```
+
+## Point R at the rad Binary
+
+Every wrapper calls `radPath()` to find the `rad` executable. The
+resolution order is: an explicit `rad =` argument, then
+`getOption("SIRAP.rad_path")`, then the `SIRAP_RAD_PATH` environment
+variable, then `Sys.which("rad")` (i.e. rad on your `PATH`). Confirm R
+can see rad before running anything else.
+
+``` r
+radPath()
+#> "/Users/you/code/rad/build/rad"
+```
+
+If rad is not on your `PATH`, point SIRAP at it once per session and
+every wrapper will pick it up:
+
+``` r
+options(SIRAP.rad_path = "/path/to/rad/build/rad")
+# or, in your shell before launching R:
+#   export SIRAP_RAD_PATH=/path/to/rad/build/rad
+```
+
+Don’t have rad built yet? If you have a git clone of the [rad
+repo](https://github.com/indianewok/rad), `updateRad()` will pull the
+latest commit and (re)build the binary for you. `radSrcPath()` finds the
+source tree the same way `radPath()` finds the binary (explicit
+argument, `options(SIRAP.rad_src=)`, `SIRAP_RAD_SRC`, or by walking up
+from the binary’s location). Building rad needs `git`, `cmake`, and a
+C++17 compiler on `PATH` — see rad’s [installation
+guide](https://github.com/indianewok/rad/blob/main/docs/installation.md)
+for the one-line dependency install on macOS / conda.
+
+``` r
+updateRad(path = "/path/to/rad")  # git pull --ff-only + cmake build
+```
+
+## Inspect Layouts and Whitelists
+
+rad ships read-layout templates and barcode whitelists by *key*.
+`radList()` prints the registered keys and the file each one resolves to
+— start here so you know what to pass as `layout =` and `kit =`.
+
+``` r
+radList(layouts = TRUE)$stdout
+#> [layouts]
+#> five_prime          .../resources/read_layout/five_prime_read_layout.csv
+#> three_prime         .../resources/read_layout/three_prime_read_layout.csv
+#> sctagger            .../resources/read_layout/sctagger_sim_read_layout.csv
+#> splitseq            .../resources/read_layout/splitseq_read_layout.csv
+#> visium              .../resources/read_layout/visium_three_prime_read_layout.csv
+#> visium_hd           .../resources/read_layout/visium_hd_read_layout.csv
+#> nanopore_rapid_bc   .../resources/read_layout/nanopore_bulk_rapid_bc_read_layout.csv
+
+radList(whitelists = TRUE)$stdout
+#> [whitelists]
+#> 10x_3v1 10x_3v2 10x_3v3 10x_3v3.1 10x_3HTv3.1 10x_3v4
+#> 10x_5v1 10x_5v2 10x_5HTv2 10x_5v3
+#> 10x_Vis_V1 ... 10x_Vis_V5
+#> splitseq_bc1 splitseq_bc2 visium_hd_bc1 visium_hd_bc2
+```
+
+`radList()` returns the listing as a string in `$stdout` (it captures by
+default), so you can also grep it programmatically. Quick layout/kit
+pairings: `three_prime` + `10x_3v3` for a 10x 3’ library, `five_prime` +
+`10x_5v3` for 10x 5’, `splitseq` + `splitseq_bc1`/`splitseq_bc2`,
+`visium` + `10x_Vis_V1`..`V5`. Note the underscores — rad expects
+`"10x_3v3"`, not `"10xv3"`. For an unusual chemistry, pass a path to
+your own layout CSV instead of a key; rad’s [layouts-and-whitelists
+guide](https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md)
+documents the CSV schema
+(`id, seq, expected_length, type, class, whitelist`).
+
+## Get the Example Reads
+
+rad publishes a small simulated scTagger long-read dataset: ~98,873
+reads from 50 known cells, with each read’s true 16 bp barcode embedded
+in its header. It is the ideal thing to demultiplex first.
+
+``` r
+testFastq <- file.path(runDir, "test.fq.gz")
+download.file(
+  "https://github.com/indianewok/rad/releases/download/test-data-v1/shuffled_S_lr_synth.fq.gz",
+  destfile = testFastq,
+  mode = "wb"
+)
+```
+
+## Check the Read Layout
+
+Before demultiplexing, have rad parse the layout and show you how it
+will interpret each read. `read_layout = TRUE` just prints the
+structure; nothing is written.
+
+``` r
+radPrep(layout = "sctagger", read_layout = TRUE)
+```
+
+Adding `position_map = TRUE` samples reads and estimates where each
+layout element actually lands, with misalignment statistics. This mode
+needs a FASTQ and an output base path; rad writes `<output>_layout.csv`
+and `<output>_position_map.csv`, which demux will reuse on later runs to
+the same directory.
+
+``` r
+radPrep(
+  layout       = "sctagger",
+  position_map = TRUE,
+  fastq        = testFastq,
+  output       = file.path(runDir, "sctagger_prep"),
+  threads      = nproc
+)
+```
+
+## Discover Barcodes De Novo (Optional)
+
+`radScanWl()` scans a FASTQ for the barcodes sitting immediately
+downstream of an adapter/primer and writes a whitelist
+(`<output_prefix>.csv` and `.txt`). For the scTagger reads the anchoring
+primer is `CTACACGACGCTCTTCCGATCT` and the barcode is 16 bp. Passing
+`whitelist = "10x_3v3"` validates the discovered barcodes against that
+kit. On this dataset you should recover the 50 true cell barcodes.
+
+``` r
+radScanWl(
+  adapter_seq    = "CTACACGACGCTCTTCCGATCT",
+  input          = testFastq,
+  barcode_length = 16,
+  whitelist      = "10x_3v3",
+  output_prefix  = file.path(runDir, "scan"),
+  threads        = nproc
+)
+#> ... Final barcodes (TRUE): 50
+```
+
+`radScanWl()` also drives rad’s split-barcode mode (BC1 + BC2) — set
+`bc1_whitelist` (and optionally `bc2_whitelist`, `umi_length`,
+`offset_min`, `offset_max`) to scan paired barcodes such as Visium HD.
+(Internally the wrapper emits `--whitelist=KIT` rather than a
+space-separated value, working around a rad option-parsing quirk so you
+don’t have to think about it.)
+
+## Demultiplex
+
+`radDemux()` is the main event: it loads the layout and whitelists, runs
+rad’s chunked alignment/extraction, corrects each barcode, and writes
+the passing reads with corrected `CB:Z` (cell barcode) and `UB:Z` (UMI)
+tags in every header. The `sctagger` layout already names `10x_3v3` as
+its default whitelist, so the minimal run needs only a layout, a FASTQ,
+an output directory, and a prefix.
+
+``` r
+radDemux(
+  layout  = "sctagger",
+  fastq   = testFastq,
+  out_dir = runDir,
+  output  = "demo",
+  threads = nproc
+)
+```
+
+This writes `demo.fq.gz` (the corrected, tagged reads) plus the
+whitelist summaries `demo_whitelist_true.csv` and
+`demo_whitelist_global.csv` under `runDir`. On this dataset roughly
+**33,700 reads pass** the filter, ~71% of them an exact `CB:Z` match to
+the barcode in the read header.
+
+When you have a trusted list of real barcodes, hand it to rad as a
+custom whitelist to sharpen correction. The scTagger headers carry the
+ground-truth barcode (`@<16bp>-<counter>`), so you can build one in a
+couple of lines of shell and pass it through:
+
+``` r
+# Pull the 50 ground-truth barcodes out of the read headers:
+#   gunzip -c test.fq.gz | awk 'NR%4==1{sub(/^@/,"");sub(/-.*/,"");print}' \
+#     | sort -u | (echo barcode; cat) > true_50.csv
+
+radDemux(
+  layout           = "sctagger",
+  fastq            = testFastq,
+  kit              = "10x_3v3",
+  custom_whitelist = file.path(runDir, "true_50.csv"),
+  out_dir          = runDir,
+  output           = "demo_true",
+  threads          = nproc
+)
+#> ~55,700 reads pass, ~99.9% exact CB:Z match, 50 unique CBs
+```
+
+Other knobs worth knowing (all optional arguments to `radDemux()`):
+
+- `bc_correction_mode = "offensive"` (default) or `"defensive"` — how
+  aggressively rad reassigns near-miss barcodes.
+- `joint_bc_mode = "strict"` — for paired barcodes (e.g. Visium HD),
+  require *all* barcode parts to pass. Default is permissive.
+- `global_whitelist =` — a custom global whitelist CSV, as an
+  alternative to a bundled `kit`.
+- `whitelist_mutation` / `generated_mutation` — edit-distance search
+  space (rad default 2 each).
+- `write_dbg = TRUE` — also emit `*_dbg.sig.gz`, `*_dbg.csv.gz`,
+  `*_dbg.fq.gz`, and a `*.metrics.tsv` for inspecting why reads were
+  kept or dropped.
+- `max_reads`, `chunk_size`, `log_file` — throughput and logging
+  controls.
+
+Every wrapper returns an invisible list with `status`, `stdout`,
+`stderr`, and the `command` it ran. Pass `capture = TRUE` to collect
+rad’s console output into that list instead of streaming it live — handy
+in scripts and reports:
+
+``` r
+res <- radDemux(
+  layout = "sctagger", fastq = testFastq,
+  out_dir = runDir, output = "demo", threads = nproc,
+  capture = TRUE
+)
+res$status        # 0 on success
+cat(res$stdout)   # rad's full console output
+```
+
+A non-zero exit aborts with an informative error by default; set
+`check = FALSE` on the low-level path only if you want to inspect
+failures yourself.
+
+## Reformat the Output
+
+`radReformat()` post-processes a demuxed FASTQ. Two common operations:
+
+Collapse each header down to `QNAME_CB_UB` so the barcode and UMI travel
+with the read name through tools that only keep the identifier.
+`--reformat-header` rewrites the file in place:
+
+``` r
+radReformat(
+  fastq           = file.path(runDir, "demo.fq.gz"),
+  reformat_header = TRUE,
+  threads         = nproc
+)
+```
+
+Or split the reads into one `.fq.gz` per cell barcode (keyed off the
+`CB:Z` tag), which requires an output directory:
+
+``` r
+radReformat(
+  fastq    = file.path(runDir, "demo.fq.gz"),
+  split_bc = TRUE,
+  out_dir  = file.path(runDir, "by_barcode"),
+  threads  = nproc
+)
+```
+
+Use `reformat_delim = " "` to join headers with a space instead of an
+underscore.
+
+## One-Call Pipeline
+
+`radRun()` chains `radPrep()` → `radDemux()` → (optionally)
+`radReformat()` in one call, sharing `out_dir` and `threads` across
+steps. Extra named arguments are forwarded to `radDemux()`. This is the
+convenient front door once you know your layout and kit.
+
+``` r
+result <- radRun(
+  layout          = "sctagger",
+  fastq           = testFastq,
+  out_dir         = runDir,
+  output          = "demo",
+  threads         = nproc,
+  do_reformat     = TRUE,
+  reformat_header = TRUE
+)
+
+result$prep      # radPrep() result
+result$demux     # radDemux() result
+result$reformat  # radReformat() result (NULL if do_reformat = FALSE)
+```
+
+## Visium HD BCR/TCR — the Spatial Case
+
+The reason SIRAP exists is the wonky end of rad’s range: long-read
+targeted enrichment of BCR/TCR from **Visium HD** data, where each read
+carries a *paired* spatial barcode (BC1 + BC2) instead of a single cell
+barcode. The flow is the same wrappers with a spatial layout and a
+couple of HD-specific switches.
+
+The `visium_hd` layout already names `visium_hd_bc1` and `visium_hd_bc2`
+as the whitelists for its two barcode elements and flags them as a joint
+barcode, so you don’t pass a `kit` — just switch on
+`joint_bc_mode = "strict"` so a read is only kept when *both* barcode
+halves correct cleanly:
+
+``` r
+visiumFastq <- "spatial_bcr_tcr_reads.fq.gz"  # your enriched long reads
+
+radDemux(
+  layout        = "visium_hd",
+  fastq         = visiumFastq,
+  joint_bc_mode = "strict",   # require BOTH paired-barcode halves to correct
+  out_dir       = "visium_hd_run",
+  output        = "spatial",
+  threads       = nproc
+)
+```
+
+Then rewrite the headers in coordinate mode so the spatial barcode
+becomes a tissue coordinate downstream. `coordinate = TRUE` uses rad’s
+default mode (`vizHD-v1`); `bin_size` sets the target bin in microns
+(rad default 2 µm — the finest Visium HD grid):
+
+``` r
+radReformat(
+  fastq      = "visium_hd_run/spatial.fq.gz",
+  coordinate = TRUE,   # or coordinate = "vizHD-v1"
+  bin_size   = 2,
+  threads    = nproc
+)
+```
+
+The Visium HD layout and its paired-barcode whitelists are
+**experimental** — validate on a pilot before scaling up.
+
+From here the demultiplexed reads carry their 2 µm spatial barcode in
+the read header. They go through your aligner / IgBLAST step (outside
+rad and SIRAP) to produce AIRR-style rearrangement tables, at which
+point the [Visium HD processing guide](visium-hd-processing.html) takes
+over: `extractSpatialBarcode()` lifts the barcode back out of the
+`sequence_id`, `processSpatialAirr()` does length/locus QC, and the 2 µm
+barcode is remapped to the 8 µm/16 µm grid for plotting.
+
+## Keeping rad Up to Date
+
+rad moves quickly, and newer builds grow capabilities beyond the ones
+wrapped here — for example a `correct-umi` subcommand for per-cell UMI
+correction, and support for seqspec YAML layout files in `prep`/`demux`.
+`updateRad()` keeps your binary current:
+
+``` r
+updateRad()                 # git pull --ff-only + rebuild if the commit changed
+updateRad(force_rebuild = TRUE)
+```
+
+Any rad subcommand — wrapped or not — is reachable: `radHelp("demux")`
+prints a subcommand’s help from R, and the wrappers accept extra raw CLI
+tokens through `...` for flags SIRAP hasn’t surfaced yet.
+
+## Where to Next
+
+- [Visium HD processing](visium-hd-processing.html) — pick up from RAD
+  output: spatial barcodes through pRESTO/IgBLAST to spatial AIRR
+  tables.
+- [Spatial clones and BCR trees](spatial-clones-and-trees.html) — call
+  clones and build lineage trees over tissue.
+- [Spatial expression and
+  colocalization](spatial-expression-and-colocalization.html) — plot
+  expression and test spatial autocorrelation.
+- rad’s own docs:
+  [installation](https://github.com/indianewok/rad/blob/main/docs/installation.md),
+  [CLI
+  reference](https://github.com/indianewok/rad/blob/main/docs/cli-reference.md),
+  [layouts and
+  whitelists](https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md).
