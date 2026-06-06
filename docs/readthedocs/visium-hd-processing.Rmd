@@ -90,23 +90,23 @@ thy_m5 <- Load10X_Spatial(
 saveRDS(thy_m5, file.path(thymusDir, "data", "Thymus_VisiumHD_M5_8um_hires.rds"))
 
 # Resave tissue locations as .csvs
-m5_barcode_mapping <- read_parquet(file_path(m5_path, "barcode_mappings.parquet"))
+m5_barcode_mapping <- read_parquet(file.path(m5_path, "barcode_mappings.parquet"))
 write.csv(m5_barcode_mapping, file.path(thymusDir, "M5_barcode_mappings.csv"), 
           row.names = FALSE)
 
-m5_pos_2um <- read_parquet(file_path(
+m5_pos_2um <- read_parquet(file.path(
   m5_path, "binned_outputs", "square_002um", "spatial", "tissue_positions.parquet"
   ))
 write.csv(m5_pos_2um, file.path(thymusDir, sprintf("%s_tissue_positions_2um.csv", sampleId)),
           row.names = FALSE)
 
-m5_pos_8um <- read_parquet(file_path(
+m5_pos_8um <- read_parquet(file.path(
   m5_path, "binned_outputs", "square_008um", "spatial", "tissue_positions.parquet"
   ))
 write.csv(m5_pos_8um, file.path(thymusDir, sprintf("%s_tissue_positions_8um.csv", sampleId)),
           row.names = FALSE)
 
-m5_pos_16um <- read_parquet(file_path(
+m5_pos_16um <- read_parquet(file.path(
   m5_path, "binned_outputs", "square_016um", "spatial", "tissue_positions.parquet"
   ))
 write.csv(m5_pos_16um, file.path(thymusDir, sprintf("%s_tissue_positions_16um.csv", sampleId)),
