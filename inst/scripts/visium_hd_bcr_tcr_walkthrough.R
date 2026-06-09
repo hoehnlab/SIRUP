@@ -781,9 +781,6 @@ plot(kcross_thy2_ctecs_sim)
 dev.off()
 
 
-
-
-
   if ("BCR + TCR" %in% thymus$sirap_receptor_type) {
     bcrDualPositiveK <- spatialRipleyCrossK(
       thymus,
@@ -805,8 +802,8 @@ bcrClonesPath <- file.path(outDir, sprintf("%s_bcr_hierarchical_clones.rds", sam
 tcrClonesPath <- file.path(outDir, sprintf("%s_tcr_hierarchical_clones.rds", sampleLower))
 bcrTreesPath <- file.path(outDir, sprintf("%s_bcr_pml_trees.rds", sampleLower))
 
-runCloneCalling <- FALSE # Set to TRUE to run clone calling, which can take a while. When FALSE, will look for RDS files from a prior run.
-if (runCloneCalling) {
+buildClones <- FALSE # Set to TRUE to build clones, which can take a while. When FALSE, will look for RDS files from a prior run.
+if (buildClones) {
   if (!requireNamespace("scoper", quietly = TRUE)) {
     stop("Install scoper to call clones.")
   }
@@ -940,6 +937,21 @@ if (buildBCRTrees) {
   stop("BCR tree RDS file not found. Set buildBCRTrees <- TRUE and rerun this section.")
 }
 
+# ---- Cluster BCR tree tips into genetically similar subtrees -----------------
+
+# This cuts the k - 1 longest branches in each tree, which gives k connected
+# subtrees. We can then color the tree and spatial plot by subtree instead of
+# giving every tip a unique color.
+treeTipClusterK <- 6
+
+bcrTreesClustered <- clusterTreesTips(
+  bcrTrees,
+  k = treeTipClusterK,
+  id_col = "sequence_id",
+  cluster_col = "tree_cluster"
+)
+bcrTreesClustered$tree_cluster_k
+
 if (is.null(thymus)) {
   message("Skipping tree/spatial pairs because the Seurat object was not loaded.")
 } else {
@@ -951,12 +963,31 @@ if (is.null(thymus)) {
     id_col = "sequence_id",
     zoom = FALSE
   )
+
+  pairedTreeSpatialClusterPlots <- plotSpatialCloneTreePairs(
+    bcrTreesClustered,
+    object = thymus,
+    barcode_col = "barcode_8um",
+    clone_ids = bcrCloneIds,
+    id_col = "sequence_id",
+    color_by = "tree_cluster",
+    zoom = FALSE
+  )
 }
 
 if (savePlots && exists("pairedTreeSpatialPlots")) {
   spatialCloneTreePairsToPDF(
     pairedTreeSpatialPlots,
     file.path(plotDir, sprintf("%s_bcr_tree_spatial_pairs.pdf", sampleLower)),
+    width = 12,
+    height = 6
+  )
+}
+
+if (savePlots && exists("pairedTreeSpatialClusterPlots")) {
+  spatialCloneTreePairsToPDF(
+    pairedTreeSpatialClusterPlots,
+    file.path(plotDir, sprintf("%s_bcr_tree_spatial_pairs_tree_clusters.pdf", sampleLower)),
     width = 12,
     height = 6
   )

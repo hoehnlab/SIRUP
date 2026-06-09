@@ -201,8 +201,8 @@ bcrTrees <- readRDS(bcrTreesPath)
 ## Pair BCR Trees with Spatial Tip Locations
 
 `plotSpatialCloneTreePairs()` assigns tip colors, draws the BCR tree with
-`ggtree`, and creates a matching spatial plot over the tissue. Tips in the same
-spatial location share a color.
+`ggtree`, and creates a matching spatial plot over the tissue. By default,
+each tip gets its own color.
 
 ```{r tree-spatial-pairs}
 pairedTreeSpatialPlots <- plotSpatialCloneTreePairs(
@@ -221,6 +221,55 @@ cowplot::plot_grid(
   ncol = 2,
   rel_widths = c(1.2, 1)
 )
+```
+
+For larger clones, coloring every tip can be hard to read. `clusterTreesTips()`
+cuts the `k - 1` longest branches in each tree, creating `k` connected
+subtrees. Passing that new column to `plotSpatialCloneTreePairs()` colors the
+tree and spatial plot by genetically similar tip groups.
+
+```{r tree-tip-clusters}
+bcrTreesClustered <- clusterTreesTips(
+  bcrTrees,
+  k = 6,
+  id_col = "sequence_id",
+  cluster_col = "tree_cluster"
+)
+
+pairedTreeSpatialClusterPlots <- plotSpatialCloneTreePairs(
+  bcrTreesClustered,
+  object = thymus,
+  barcode_col = "barcode_8um",
+  clone_ids = bcrCloneIds,
+  id_col = "sequence_id",
+  color_by = "tree_cluster",
+  zoom = FALSE
+)
+
+firstCloneId <- names(pairedTreeSpatialClusterPlots)[1]
+cowplot::plot_grid(
+  pairedTreeSpatialClusterPlots[[firstCloneId]]$tree,
+  pairedTreeSpatialClusterPlots[[firstCloneId]]$spatial_clone,
+  ncol = 2,
+  rel_widths = c(1.2, 1)
+)
+```
+
+If you want SIRAP to choose a separate cluster number for each tree, set
+`k = "auto"` and adjust `k_range` or `improvement_threshold` as needed.
+
+```{r tree-tip-clusters-auto}
+bcrTreesAutoClustered <- clusterTreesTips(
+  bcrTrees,
+  k = "auto",
+  id_col = "sequence_id",
+  cluster_col = "tree_cluster",
+  k_range = 1:8,
+  improvement_threshold = 0.10
+)
+
+bcrTreesAutoClustered$tree_cluster_k
+attr(bcrTreesAutoClustered, "tree_cluster_scores")
 ```
 
 Export all paired tree/spatial plots to a single PDF.

@@ -5,6 +5,9 @@ Authors@R: c(
     person("Hunter J.", "Melton", role = c("aut", "cre"), email = "Hunter.J.Melton@dartmouth.edu"),
     person("Chinmay", "Vaidya", role = "aut", email = "chinmay.m.vaidya.gr@dartmouth.edu")
   )
+Author: Hunter J. Melton [aut, cre],
+    Chinmay Vaidya [aut]
+Maintainer: Hunter J. Melton <Hunter.J.Melton@dartmouth.edu>
 Description: Spatial Immune Receptor Analysis and Processing. How sweet is
     that? An R interface to the 'rad' command-line demultiplexer plus a
     consolidated toolkit for long-read spatial immune receptor sequencing:
