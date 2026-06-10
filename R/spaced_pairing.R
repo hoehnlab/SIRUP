@@ -1,0 +1,870 @@
+#' Build a SPaCeD-style clone spatial table
+#'
+#' SPaCeD pairs heavy and light chain clones by solving a linear assignment
+#' problem over a weighted combination of spatial evidence and a REPAIR model
+#' matrix. These helpers implement the same pairing surface while using sparse
+#' native spatial-bin operations that scale better for Visium HD-sized data.
+#'
+#' The method follows the SPaCeD repository by H. J. Melton et al.
+#' (https://github.com/hjm2217/spaced) and its use of a REPAIR model matrix
+#' (https://github.com/almaan/star-repair; modified SPaCeD notes reference
+#' https://github.com/Floraliu7/star-repair). The original SPaCeD spatial term
+#' was computed with `spatstat::pppdist(type = "mat")`; SIRAP's default spatial
+#' term uses sparse clone-by-barcode matrices. For Visium HD, use the Space
+#' Ranger 8um barcodes as the native spatial bins rather than adding another
+#' coordinate downsampling step.
+#'
+#' @param data Clone-assigned data frame.
+#' @param positions Optional spatial positions data frame. If supplied, it is
+#'   joined to `data` by barcode.
+#' @param barcode_col,position_barcode_col Barcode columns in `data` and
+#'   `positions`.
+#' @param clone_col Clone identifier column in `data`.
+#' @param x_col,y_col Spatial coordinate columns. If `positions` is supplied,
+#'   these are read after the join.
+#' @param count_col Optional count column. When `NULL`, each row contributes 1.
+#' @param clone_prefix Optional prefix added to clone IDs, for example
+#'   `"heavy_"` or `"light_kappa_"`.
+#' @param drop_missing_coords Drop rows missing spatial coordinates.
+#' @return Data frame with `clone_id`, `barcode`, `x`, `y`, and `n`.
+#' @export
+buildSpacedCloneTable <- function(data,
+                                  positions = NULL,
+                                  barcode_col = "barcode",
+                                  clone_col = "clone_id",
+                                  x_col = "x",
+                                  y_col = "y",
+                                  count_col = NULL,
+                                  position_barcode_col = "barcode",
+                                  clone_prefix = NULL,
+                                  drop_missing_coords = TRUE) {
+  .check_required_cols(data, c(barcode_col, clone_col), "data")
+  data <- .as_data_frame(data)
+
+  if (!is.null(positions)) {
+    .check_required_cols(positions, c(position_barcode_col, x_col, y_col), "positions")
+    pos <- .as_data_frame(positions)
+    join_cols <- stats::setNames(position_barcode_col, barcode_col)
+    data <- dplyr::left_join(data, pos, by = join_cols)
+  }
+
+  .check_required_cols(data, c(barcode_col, clone_col, x_col, y_col), "data")
+  if (!is.null(count_col)) {
+    .check_required_cols(data, count_col, "data")
+  }
+
+  clone_id <- as.character(data[[clone_col]])
+  if (!is.null(clone_prefix)) {
+    clone_id <- paste0(clone_prefix, clone_id)
+  }
+
+  counts <- if (is.null(count_col)) {
+    rep(1, nrow(data))
+  } else {
+    as.numeric(data[[count_col]])
+  }
+  counts[is.na(counts)] <- 0
+
+  out <- data.frame(
+    clone_id = clone_id,
+    barcode = as.character(data[[barcode_col]]),
+    x = as.numeric(data[[x_col]]),
+    y = as.numeric(data[[y_col]]),
+    n = counts,
+    stringsAsFactors = FALSE
+  )
+  out <- out[!is.na(out$clone_id) & out$clone_id != "" & !is.na(out$barcode), , drop = FALSE]
+  if (drop_missing_coords) {
+    out <- out[!is.na(out$x) & !is.na(out$y), , drop = FALSE]
+  }
+  out <- out[out$n > 0, , drop = FALSE]
+
+  out <- stats::aggregate(
+    n ~ clone_id + barcode + x + y,
+    data = out,
+    FUN = sum
+  )
+  out[order(out$clone_id, out$barcode), c("clone_id", "barcode", "x", "y", "n")]
+}
+
+#' Convert a wide SPaCeD expression table to clone spatial points
+#'
+#' @param df Wide table with barcode, coordinate, and clone count columns.
+#' @param barcode_col,x_col,y_col Column names.
+#' @param clone_cols Optional clone columns. Defaults to all non-barcode and
+#'   non-coordinate columns.
+#' @param clone_prefix Optional prefix added to clone IDs.
+#' @return Data frame with `clone_id`, `barcode`, `x`, `y`, and `n`.
+#' @export
+spacedCloneTableFromWide <- function(df,
+                                     barcode_col = colnames(df)[[1]],
+                                     x_col = "x",
+                                     y_col = "y",
+                                     clone_cols = NULL,
+                                     clone_prefix = NULL) {
+  df <- .as_data_frame(df)
+  .check_required_cols(df, c(barcode_col, x_col, y_col), "df")
+  if (is.null(clone_cols)) {
+    clone_cols <- setdiff(colnames(df), c(barcode_col, x_col, y_col))
+  }
+  .check_required_cols(df, clone_cols, "df")
+
+  pieces <- lapply(clone_cols, function(clone_col) {
+    counts <- as.numeric(df[[clone_col]])
+    keep <- !is.na(counts) & counts > 0
+    if (!any(keep)) {
+      return(NULL)
+    }
+    clone_id <- if (is.null(clone_prefix)) clone_col else paste0(clone_prefix, clone_col)
+    data.frame(
+      clone_id = clone_id,
+      barcode = as.character(df[[barcode_col]][keep]),
+      x = as.numeric(df[[x_col]][keep]),
+      y = as.numeric(df[[y_col]][keep]),
+      n = counts[keep],
+      stringsAsFactors = FALSE
+    )
+  })
+  out <- do.call(rbind, pieces[!vapply(pieces, is.null, logical(1))])
+  if (is.null(out)) {
+    out <- data.frame(clone_id = character(), barcode = character(), x = numeric(), y = numeric(), n = numeric())
+  }
+  rownames(out) <- NULL
+  out
+}
+
+#' Compute scalable SPaCeD spatial affinity
+#'
+#' Builds clone-by-spatial-feature matrices and compares heavy/light clones by a
+#' spatial method. The default `method = "weighted_overlap"` is a scalable
+#' distance-aware overlap score: nearby 8um barcodes receive partial credit
+#' through a sparse Gaussian spatial kernel. `method = "ot"` uses the original
+#' SPaCeD-style point-pattern optimal-transport distance through
+#' `spatstat::pppdist()`.
+#'
+#' @param heavy_points,light_points Output from `buildSpacedCloneTable()` or any
+#'   data frame with `clone_id`, `barcode`, and `n`.
+#' @param method Spatial scoring method. `"weighted_overlap"` is the scalable
+#'   SIRAP default, and `"ot"` is the original SPaCeD optimal-transport
+#'   point-pattern distance.
+#' @param feature_col Column containing the native spatial feature/bin ID.
+#' @param kernel_sigma Gaussian kernel scale for `method = "weighted_overlap"`,
+#'   in the same units as `x_col` and `y_col`. When `NULL`, SIRAP estimates the
+#'   median nearest-neighbor feature spacing and uses twice that value.
+#' @param kernel_radius Maximum feature-feature distance retained in the sparse
+#'   spatial kernel. Defaults to `3 * kernel_sigma`.
+#' @param kernel_max_neighbors Maximum nearby features retained per feature when
+#'   building the sparse kernel.
+#' @param x_col,y_col Spatial coordinate columns.
+#' @param ot_cutoff Maximum transport distance passed to `pppdist()` when
+#'   `method = "ot"`.
+#' @param ot_scale Distance scale used by `transformSpacedDistances()` for
+#'   `method = "ot"`.
+#' @param nproc Number of workers used by the slow `method = "ot"` clone-pair
+#'   distance loop. The sparse methods ignore this argument.
+#' @param top_n Optional number of top light candidates retained per heavy
+#'   clone. Non-retained affinities are set to zero.
+#' @param min_affinity Optional lower threshold for retained affinities.
+#' @return Heavy-by-light numeric affinity matrix with rows normalized to sum to
+#'   one when a row has nonzero affinity.
+#' @export
+spacedSpatialAffinity <- function(heavy_points,
+                                  light_points,
+                                  method = c("weighted_overlap", "ot"),
+                                  feature_col = "barcode",
+                                  kernel_sigma = NULL,
+                                  kernel_radius = NULL,
+                                  kernel_max_neighbors = 500L,
+                                  x_col = "x",
+                                  y_col = "y",
+                                  ot_cutoff = 1e6,
+                                  ot_scale = 1,
+                                  nproc = 1L,
+                                  top_n = NULL,
+                                  min_affinity = 0) {
+  if (!requireNamespace("Matrix", quietly = TRUE)) {
+    rlang::abort("Package 'Matrix' is required for `spacedSpatialAffinity()`.")
+  }
+  method <- match.arg(method)
+  if (!is.character(feature_col) || length(feature_col) != 1L || is.na(feature_col) || feature_col == "") {
+    rlang::abort("`feature_col` must be a single non-empty column name.")
+  }
+
+  sim <- switch(
+    method,
+    weighted_overlap = .sirap_spaced_weighted_overlap_affinity(
+      heavy_points = heavy_points,
+      light_points = light_points,
+      feature_col = feature_col,
+      kernel_sigma = kernel_sigma,
+      kernel_radius = kernel_radius,
+      kernel_max_neighbors = kernel_max_neighbors,
+      x_col = x_col,
+      y_col = y_col
+    ),
+    ot = .sirap_spaced_ot_affinity(
+      heavy_points = heavy_points,
+      light_points = light_points,
+      x_col = x_col,
+      y_col = y_col,
+      cutoff = ot_cutoff,
+      scale = ot_scale,
+      nproc = nproc
+    )
+  )
+
+  if (!is.null(top_n)) {
+    top_n <- as.integer(top_n)
+    if (is.na(top_n) || top_n < 1L) {
+      rlang::abort("`top_n` must be a positive integer when supplied.")
+    }
+    sim <- .sirap_spaced_prune_top_n(sim, top_n)
+  }
+  if (!is.null(min_affinity) && min_affinity > 0) {
+    sim[sim < min_affinity] <- 0
+  }
+
+  .sirap_spaced_row_normalize(sim)
+}
+
+#' Transform SPaCeD spatial distances into affinities
+#'
+#' @param dist_matrix Heavy-by-light distance matrix.
+#' @param scale Optional divisor applied before exponentiation. Use a larger
+#'   value when distances are in pixel units.
+#' @return Row-normalized heavy-by-light affinity matrix.
+#' @export
+transformSpacedDistances <- function(dist_matrix, scale = 1) {
+  dist_matrix <- as.matrix(dist_matrix)
+  if (!is.numeric(dist_matrix)) {
+    storage.mode(dist_matrix) <- "numeric"
+  }
+  if (!is.numeric(scale) || length(scale) != 1L || is.na(scale) || scale <= 0) {
+    rlang::abort("`scale` must be a positive number.")
+  }
+  affinity <- exp(-dist_matrix / scale)
+  affinity[!is.finite(affinity)] <- 0
+  .sirap_spaced_row_normalize(affinity)
+}
+
+#' Pair heavy and light clones with SPaCeD's weighted assignment
+#'
+#' This function requires the `clue` package for Hungarian/linear-sum
+#' assignment. SIRAP does not silently fall back to another solver because
+#' different assignment behavior would make SPaCeD results harder to compare.
+#'
+#' @param spatial_affinity Heavy-by-light spatial affinity matrix, data frame,
+#'   or path to a delimited matrix file.
+#' @param mapping_matrix Optional heavy-by-light REPAIR model matrix, data
+#'   frame, or path to a delimited matrix file. If `NULL`, only spatial affinity
+#'   is used. Unnamed matrices are aligned positionally to `spatial_affinity`,
+#'   matching the current SPaCeD behavior.
+#' @param weights Numeric vector of omega values. `1` is spatial-only; `0` is
+#'   mapping-only.
+#' @param maximum Maximize assignment scores.
+#' @return If one weight is supplied, a data frame with one assigned light clone
+#'   per heavy clone. If multiple weights are supplied, a named list of those
+#'   data frames. Each data frame includes spatial score, REPAIR score, combined
+#'   score, and a row-normalized pairing score for the assigned pair.
+#' @export
+pairHeavyLightSpaced <- function(spatial_affinity,
+                                 mapping_matrix = NULL,
+                                 weights = seq(0, 1, by = 0.1),
+                                 maximum = TRUE) {
+  if (!requireNamespace("clue", quietly = TRUE)) {
+    rlang::abort("Package 'clue' is required for SPaCeD linear assignment. Install it before calling `pairHeavyLightSpaced()`.")
+  }
+  spatial_affinity <- .sirap_spaced_matrix_arg(spatial_affinity, "spatial_affinity")
+  if (is.null(rownames(spatial_affinity)) || is.null(colnames(spatial_affinity))) {
+    rlang::abort("`spatial_affinity` must have rownames for heavy clones and colnames for light clones.")
+  }
+  if (nrow(spatial_affinity) > ncol(spatial_affinity)) {
+    rlang::abort(paste0(
+      "SPaCeD assignment expects no more heavy clones than light clones. Found ",
+      nrow(spatial_affinity),
+      " heavy and ",
+      ncol(spatial_affinity),
+      " light clones."
+    ))
+  }
+  if (anyDuplicated(rownames(spatial_affinity)) || anyDuplicated(colnames(spatial_affinity))) {
+    rlang::abort("`spatial_affinity` rownames and colnames must be unique clone IDs.")
+  }
+  mapping_matrix <- .sirap_spaced_prepare_mapping(mapping_matrix, spatial_affinity)
+  weights <- as.numeric(weights)
+  if (any(is.na(weights) | weights < 0 | weights > 1)) {
+    rlang::abort("`weights` must contain values between 0 and 1.")
+  }
+
+  out <- lapply(weights, function(w) {
+    score <- (w * spatial_affinity) + ((1 - w) * mapping_matrix)
+    assignment <- .sirap_spaced_solve_assignment(score, maximum = maximum)
+    probability <- .sirap_spaced_row_normalize(score)
+    index <- cbind(seq_along(assignment), assignment)
+    data.frame(
+      weight = w,
+      heavy_id = rownames(score),
+      light_id = colnames(score)[assignment],
+      spatial_affinity_score = spatial_affinity[index],
+      repair_score = mapping_matrix[index],
+      combined_score = score[index],
+      normalized_pairing_score = probability[index],
+      stringsAsFactors = FALSE
+    )
+  })
+  names(out) <- paste0("w=", format(weights, trim = TRUE, scientific = FALSE))
+  if (length(out) == 1L) {
+    return(out[[1L]])
+  }
+  out
+}
+
+#' Build REPAIR input for SPaCeD
+#'
+#' REPAIR expects a spatial observation-by-clone expression table with heavy and
+#' light clone columns distinguishable by regex patterns such as `"^heavy"` and
+#' `"^light"`. This helper builds that matrix directly from SPaCeD/SIRAP clone
+#' point tables.
+#'
+#' @param heavy_points,light_points Clone spatial tables with `clone_id`,
+#'   `barcode`, and `n`.
+#' @param sparse Return a sparse `Matrix` instead of a dense data frame.
+#' @return Barcode-by-clone count table. Dense output includes a `barcode`
+#'   column; sparse output has barcodes as row names and clones as column names.
+#' @export
+buildRepairInputMatrix <- function(heavy_points,
+                                   light_points,
+                                   sparse = FALSE) {
+  if (!requireNamespace("Matrix", quietly = TRUE)) {
+    rlang::abort("Package 'Matrix' is required for `buildRepairInputMatrix()`.")
+  }
+  heavy_points <- .sirap_spaced_check_repair_points(heavy_points, "heavy_points")
+  light_points <- .sirap_spaced_check_repair_points(light_points, "light_points")
+  points <- rbind(heavy_points, light_points)
+
+  barcodes <- sort(unique(points$barcode))
+  clones <- sort(unique(points$clone_id))
+  mat <- Matrix::sparseMatrix(
+    i = match(points$barcode, barcodes),
+    j = match(points$clone_id, clones),
+    x = points$n,
+    dims = c(length(barcodes), length(clones)),
+    dimnames = list(barcodes, clones)
+  )
+  mat <- Matrix::drop0(mat)
+  if (sparse) {
+    return(mat)
+  }
+  out <- as.data.frame(as.matrix(mat), check.names = FALSE)
+  out <- cbind(barcode = rownames(out), out)
+  rownames(out) <- NULL
+  out
+}
+
+#' Write REPAIR input matrix
+#'
+#' @param repair_input Output from `buildRepairInputMatrix()`.
+#' @param path Output TSV path.
+#' @param include_barcode Include row/barcode IDs as the first column.
+#' @return Invisibly, `path`.
+#' @export
+writeRepairInputMatrix <- function(repair_input,
+                                   path,
+                                   include_barcode = TRUE) {
+  .ensure_dir(path)
+  if (inherits(repair_input, "Matrix")) {
+    df <- as.data.frame(as.matrix(repair_input), check.names = FALSE)
+    if (include_barcode) {
+      df <- cbind(barcode = rownames(df), df)
+    }
+  } else {
+    df <- as.data.frame(repair_input, check.names = FALSE)
+    if (!include_barcode && "barcode" %in% colnames(df)) {
+      rownames(df) <- df$barcode
+      df$barcode <- NULL
+    }
+  }
+  utils::write.table(
+    df,
+    file = path,
+    sep = "\t",
+    quote = FALSE,
+    row.names = FALSE,
+    col.names = TRUE
+  )
+  invisible(path)
+}
+
+#' Construct a REPAIR analyze command for SPaCeD
+#'
+#' @param input_path REPAIR input TSV path.
+#' @param output_dir REPAIR output directory.
+#' @param a_pattern Heavy clone column regex.
+#' @param b_pattern Light clone column regex.
+#' @param mxo,x,b,nb Arguments passed to `repair analyze`.
+#' @param repair_bin REPAIR executable.
+#' @return Shell command string.
+#' @export
+repairAnalyzeCommand <- function(input_path,
+                                 output_dir,
+                                 a_pattern = "^heavy",
+                                 b_pattern = "^light",
+                                 mxo = 2,
+                                 x = 1,
+                                 b = 100,
+                                 nb = 1,
+                                 repair_bin = "repair") {
+  paste(
+    shQuote(repair_bin),
+    "analyze",
+    "-i", shQuote(input_path),
+    "-o", shQuote(output_dir),
+    "-ap", shQuote(a_pattern),
+    "-bp", shQuote(b_pattern),
+    "-mxo", shQuote(as.character(mxo)),
+    "-x", shQuote(as.character(x)),
+    "-b", shQuote(as.character(b)),
+    "-nb", shQuote(as.character(nb))
+  )
+}
+
+.sirap_spaced_check_repair_points <- function(points, name) {
+  points <- .as_data_frame(points)
+  .check_required_cols(points, c("clone_id", "barcode", "n"), name)
+  points$clone_id <- as.character(points$clone_id)
+  points$barcode <- as.character(points$barcode)
+  points$n <- as.numeric(points$n)
+  points <- points[
+    !is.na(points$clone_id) &
+      !is.na(points$barcode) &
+      !is.na(points$n) &
+      points$n > 0,
+    ,
+    drop = FALSE
+  ]
+  if (nrow(points) == 0L) {
+    rlang::abort(paste0("`", name, "` has no usable clone counts."))
+  }
+  stats::aggregate(n ~ clone_id + barcode, data = points, FUN = sum)
+}
+
+.sirap_spaced_matrix_arg <- function(x, name) {
+  if (is.character(x) && length(x) == 1L) {
+    if (!file.exists(x)) {
+      rlang::abort(paste0("`", name, "` path does not exist: ", x))
+    }
+    x <- .sirap_spaced_read_matrix_file(x)
+  } else if (is.data.frame(x)) {
+    x <- .sirap_spaced_data_frame_to_matrix(x)
+  } else {
+    x <- as.matrix(x)
+  }
+  if (!is.numeric(x)) {
+    storage.mode(x) <- "numeric"
+  }
+  if (any(!is.finite(x))) {
+    x[!is.finite(x)] <- 0
+  }
+  x
+}
+
+.sirap_spaced_read_matrix_file <- function(path) {
+  first_line <- readLines(path, n = 1L, warn = FALSE)
+  if (length(first_line) == 0L) {
+    rlang::abort(paste0("Matrix file is empty: ", path))
+  }
+  fields <- strsplit(first_line, "\t", fixed = TRUE)[[1]]
+  fields_numeric <- suppressWarnings(!is.na(as.numeric(fields)))
+  header <- !all(fields != "" & fields_numeric)
+  df <- utils::read.delim(path, header = header, check.names = FALSE)
+  .sirap_spaced_data_frame_to_matrix(df)
+}
+
+.sirap_spaced_data_frame_to_matrix <- function(df) {
+  df <- as.data.frame(df, check.names = FALSE)
+  if (ncol(df) > 1L) {
+    first_col_numeric <- suppressWarnings(!any(is.na(as.numeric(df[[1L]]))))
+    if (!first_col_numeric) {
+      row_names <- as.character(df[[1L]])
+      df <- df[-1L]
+      mat <- as.matrix(df)
+      rownames(mat) <- row_names
+      return(mat)
+    }
+  }
+  as.matrix(df)
+}
+
+.sirap_spaced_has_matching_dimnames <- function(mat, target) {
+  !is.null(rownames(mat)) &&
+    !is.null(colnames(mat)) &&
+    setequal(rownames(target), rownames(mat)) &&
+    setequal(colnames(target), colnames(mat))
+}
+
+.sirap_spaced_native_features <- function(points, name, feature_col) {
+  points <- .as_data_frame(points)
+  .check_required_cols(points, c("clone_id", feature_col, "n"), name)
+  points$clone_id <- as.character(points$clone_id)
+  points$feature <- as.character(points[[feature_col]])
+  points$n <- as.numeric(points$n)
+  points <- points[
+    !is.na(points$clone_id) &
+      points$clone_id != "" &
+      !is.na(points$feature) &
+      points$feature != "" &
+      !is.na(points$n) &
+      points$n > 0,
+    ,
+    drop = FALSE
+  ]
+  if (nrow(points) == 0L) {
+    rlang::abort(paste0("`", name, "` has no usable clone counts in `", feature_col, "`."))
+  }
+  stats::aggregate(n ~ clone_id + feature, data = points, FUN = sum) |>
+    stats::setNames(c("clone_id", "feature", "value"))
+}
+
+.sirap_spaced_spatial_features <- function(points, name, feature_col, x_col, y_col) {
+  points <- .as_data_frame(points)
+  .check_required_cols(points, c("clone_id", feature_col, "n", x_col, y_col), name)
+  points$clone_id <- as.character(points$clone_id)
+  points$feature <- as.character(points[[feature_col]])
+  points$n <- as.numeric(points$n)
+  points$x <- as.numeric(points[[x_col]])
+  points$y <- as.numeric(points[[y_col]])
+  points <- points[
+    !is.na(points$clone_id) &
+      points$clone_id != "" &
+      !is.na(points$feature) &
+      points$feature != "" &
+      !is.na(points$n) &
+      points$n > 0 &
+      is.finite(points$x) &
+      is.finite(points$y),
+    ,
+    drop = FALSE
+  ]
+  if (nrow(points) == 0L) {
+    rlang::abort(paste0("`", name, "` has no usable clone counts with finite spatial coordinates."))
+  }
+  stats::aggregate(
+    n ~ clone_id + feature + x + y,
+    data = points,
+    FUN = sum
+  ) |>
+    stats::setNames(c("clone_id", "feature", "x", "y", "value"))
+}
+
+.sirap_spaced_sparse_clone_matrix <- function(features, feature_levels) {
+  clone_levels <- sort(unique(features$clone_id))
+  i <- match(features$clone_id, clone_levels)
+  j <- match(features$feature, feature_levels)
+  mat <- Matrix::sparseMatrix(
+    i = i,
+    j = j,
+    x = features$value,
+    dims = c(length(clone_levels), length(feature_levels)),
+    dimnames = list(clone_levels, feature_levels)
+  )
+  mat
+}
+
+.sirap_spaced_weighted_overlap_affinity <- function(heavy_points,
+                                                    light_points,
+                                                    feature_col,
+                                                    kernel_sigma,
+                                                    kernel_radius,
+                                                    kernel_max_neighbors,
+                                                    x_col,
+                                                    y_col) {
+  heavy_features <- .sirap_spaced_spatial_features(heavy_points, "heavy_points", feature_col, x_col, y_col)
+  light_features <- .sirap_spaced_spatial_features(light_points, "light_points", feature_col, x_col, y_col)
+  feature_levels <- union(heavy_features$feature, light_features$feature)
+  coords <- .sirap_spaced_feature_coordinates(rbind(heavy_features, light_features), feature_levels)
+
+  if (is.null(kernel_sigma)) {
+    kernel_sigma <- 2 * .sirap_spaced_median_nn_distance(coords)
+  }
+  kernel_sigma <- as.numeric(kernel_sigma)
+  if (!is.finite(kernel_sigma) || kernel_sigma <= 0) {
+    rlang::abort("`kernel_sigma` must be a positive finite number.")
+  }
+  if (is.null(kernel_radius)) {
+    kernel_radius <- 3 * kernel_sigma
+  }
+  kernel_radius <- as.numeric(kernel_radius)
+  if (!is.finite(kernel_radius) || kernel_radius <= 0) {
+    rlang::abort("`kernel_radius` must be a positive finite number.")
+  }
+
+  heavy_mat <- .sirap_spaced_sparse_clone_matrix(heavy_features, feature_levels)
+  light_mat <- .sirap_spaced_sparse_clone_matrix(light_features, feature_levels)
+  kernel <- .sirap_spaced_spatial_kernel(
+    coords = coords,
+    sigma = kernel_sigma,
+    radius = kernel_radius,
+    max_neighbors = kernel_max_neighbors
+  )
+  .sirap_spaced_kernel_similarity(heavy_mat, light_mat, kernel)
+}
+
+.sirap_spaced_kernel_similarity <- function(heavy_mat, light_mat, kernel) {
+  heavy_kernel <- heavy_mat %*% kernel
+  light_kernel <- light_mat %*% kernel
+  sim <- as.matrix(heavy_kernel %*% Matrix::t(light_mat))
+  row_norm <- sqrt(Matrix::rowSums(heavy_kernel * heavy_mat))
+  col_norm <- sqrt(Matrix::rowSums(light_kernel * light_mat))
+  denom <- as.numeric(row_norm) %o% as.numeric(col_norm)
+  sim[denom > 0] <- sim[denom > 0] / denom[denom > 0]
+  sim[denom <= 0] <- 0
+  sim[!is.finite(sim)] <- 0
+  sim
+}
+
+.sirap_spaced_feature_coordinates <- function(features, feature_levels) {
+  coords <- unique(features[, c("feature", "x", "y")])
+  duplicated_features <- coords$feature[duplicated(coords$feature)]
+  if (length(duplicated_features) > 0L) {
+    bad <- unique(duplicated_features)
+    rlang::abort(paste0(
+      "Spatial feature coordinates are not unique for: ",
+      paste(utils::head(bad, 5), collapse = ", "),
+      if (length(bad) > 5L) ", ..." else "",
+      ". Use one coordinate per `feature_col` value."
+    ))
+  }
+  coords <- coords[match(feature_levels, coords$feature), , drop = FALSE]
+  if (anyNA(coords$x) || anyNA(coords$y)) {
+    rlang::abort("Could not find finite coordinates for every spatial feature.")
+  }
+  rownames(coords) <- coords$feature
+  coords[, c("x", "y"), drop = FALSE]
+}
+
+.sirap_spaced_median_nn_distance <- function(coords) {
+  if (nrow(coords) < 2L) {
+    rlang::abort("At least two spatial features are required to estimate `kernel_sigma`; supply `kernel_sigma` directly.")
+  }
+  if (!requireNamespace("RANN", quietly = TRUE)) {
+    rlang::abort("Package 'RANN' is required to estimate `kernel_sigma`.")
+  }
+  nn <- RANN::nn2(as.matrix(coords), k = 2L)
+  d <- nn$nn.dists[, 2L]
+  d <- d[is.finite(d) & d > 0]
+  if (length(d) == 0L) {
+    rlang::abort("Could not estimate spatial feature spacing; supply `kernel_sigma` directly.")
+  }
+  stats::median(d)
+}
+
+.sirap_spaced_spatial_kernel <- function(coords, sigma, radius, max_neighbors) {
+  if (!requireNamespace("RANN", quietly = TRUE)) {
+    rlang::abort("Package 'RANN' is required for `method = \"weighted_overlap\"`.")
+  }
+  max_neighbors <- as.integer(max_neighbors)
+  if (is.na(max_neighbors) || max_neighbors < 1L) {
+    rlang::abort("`kernel_max_neighbors` must be a positive integer.")
+  }
+  coords_mat <- as.matrix(coords)
+  nn <- RANN::nn2(
+    data = coords_mat,
+    query = coords_mat,
+    k = min(max_neighbors, nrow(coords_mat)),
+    searchtype = "radius",
+    radius = radius
+  )
+  i <- rep(seq_len(nrow(coords_mat)), ncol(nn$nn.idx))
+  j <- as.vector(nn$nn.idx)
+  d <- as.vector(nn$nn.dists)
+  keep <- j > 0L & is.finite(d) & d <= radius
+  i <- i[keep]
+  j <- j[keep]
+  d <- d[keep]
+  weights <- exp(-(d ^ 2) / (2 * sigma ^ 2))
+  Matrix::sparseMatrix(
+    i = i,
+    j = j,
+    x = weights,
+    dims = c(nrow(coords_mat), nrow(coords_mat)),
+    dimnames = list(rownames(coords), rownames(coords))
+  )
+}
+
+.sirap_spaced_ot_affinity <- function(heavy_points,
+                                      light_points,
+                                      x_col,
+                                      y_col,
+                                      cutoff,
+                                      scale,
+                                      nproc) {
+  pppdist <- .sirap_spaced_pppdist()
+  heavy <- .sirap_spaced_ot_points(heavy_points, "heavy_points", x_col, y_col)
+  light <- .sirap_spaced_ot_points(light_points, "light_points", x_col, y_col)
+  heavy_ids <- sort(unique(heavy$clone_id))
+  light_ids <- sort(unique(light$clone_id))
+  win <- .sirap_spaced_ppp_window(rbind(heavy, light))
+  nproc <- .sirap_spaced_check_nproc(nproc)
+
+  distance_row <- function(i) {
+    heavy_id <- heavy_ids[[i]]
+    heavy_ppp <- .sirap_spaced_as_ppp(heavy[heavy$clone_id == heavy_id, , drop = FALSE], win)
+    row <- numeric(length(light_ids))
+    for (j in seq_along(light_ids)) {
+      light_id <- light_ids[[j]]
+      light_ppp <- .sirap_spaced_as_ppp(light[light$clone_id == light_id, , drop = FALSE], win)
+      row[[j]] <- tryCatch(
+        pppdist(heavy_ppp, light_ppp, type = "mat", matching = FALSE, auction = FALSE, cutoff = cutoff),
+        error = function(e) {
+          rlang::abort(
+            paste0("`pppdist()` failed for heavy clone ", heavy_id, " and light clone ", light_id, ": ", conditionMessage(e)),
+            parent = e
+          )
+        }
+      )
+    }
+    row
+  }
+
+  rows <- .sirap_spaced_lapply(seq_along(heavy_ids), distance_row, nproc)
+  dist_matrix <- do.call(rbind, rows)
+  dimnames(dist_matrix) <- list(heavy_ids, light_ids)
+  transformSpacedDistances(dist_matrix, scale = scale)
+}
+
+.sirap_spaced_check_nproc <- function(nproc) {
+  nproc <- as.integer(nproc)
+  if (is.na(nproc) || nproc < 1L) {
+    rlang::abort("`nproc` must be a positive integer.")
+  }
+  nproc
+}
+
+.sirap_spaced_lapply <- function(x, fun, nproc) {
+  if (nproc == 1L || length(x) <= 1L) {
+    return(lapply(x, fun))
+  }
+  if (.Platform$OS.type == "windows") {
+    cl <- parallel::makeCluster(nproc)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+    return(parallel::parLapply(cl, x, fun))
+  }
+  parallel::mclapply(x, fun, mc.cores = nproc)
+}
+
+.sirap_spaced_ot_points <- function(points, name, x_col, y_col) {
+  points <- .as_data_frame(points)
+  .check_required_cols(points, c("clone_id", x_col, y_col), name)
+  points$clone_id <- as.character(points$clone_id)
+  points$x <- as.numeric(points[[x_col]])
+  points$y <- as.numeric(points[[y_col]])
+  points <- unique(points[
+    !is.na(points$clone_id) &
+      points$clone_id != "" &
+      is.finite(points$x) &
+      is.finite(points$y),
+    c("clone_id", "x", "y"),
+    drop = FALSE
+  ])
+  if (nrow(points) == 0L) {
+    rlang::abort(paste0("`", name, "` has no usable point-pattern coordinates."))
+  }
+  points
+}
+
+.sirap_spaced_pppdist <- function() {
+  if (!requireNamespace("spatstat.geom", quietly = TRUE)) {
+    rlang::abort("Package 'spatstat.geom' is required for `method = \"ot\"`.")
+  }
+  if (exists("pppdist", envir = asNamespace("spatstat.geom"), inherits = FALSE)) {
+    return(get("pppdist", envir = asNamespace("spatstat.geom"), inherits = FALSE))
+  }
+  if (requireNamespace("spatstat.explore", quietly = TRUE) &&
+      exists("pppdist", envir = asNamespace("spatstat.explore"), inherits = FALSE)) {
+    return(get("pppdist", envir = asNamespace("spatstat.explore"), inherits = FALSE))
+  }
+  rlang::abort("Could not find `pppdist()` in installed spatstat packages.")
+}
+
+.sirap_spaced_ppp_window <- function(points) {
+  xrange <- range(points$x, finite = TRUE)
+  yrange <- range(points$y, finite = TRUE)
+  if (diff(xrange) == 0) {
+    xrange <- xrange + c(-0.5, 0.5)
+  }
+  if (diff(yrange) == 0) {
+    yrange <- yrange + c(-0.5, 0.5)
+  }
+  spatstat.geom::owin(xrange = xrange, yrange = yrange)
+}
+
+.sirap_spaced_as_ppp <- function(points, window) {
+  spatstat.geom::ppp(x = points$x, y = points$y, window = window)
+}
+
+.sirap_spaced_prune_top_n <- function(mat, top_n) {
+  if (top_n >= ncol(mat)) {
+    return(mat)
+  }
+  out <- matrix(0, nrow = nrow(mat), ncol = ncol(mat), dimnames = dimnames(mat))
+  for (i in seq_len(nrow(mat))) {
+    row <- mat[i, ]
+    positive <- which(row > 0)
+    if (length(positive) == 0L) {
+      next
+    }
+    keep <- positive[order(row[positive], decreasing = TRUE)[seq_len(min(top_n, length(positive)))]]
+    out[i, keep] <- row[keep]
+  }
+  out
+}
+
+.sirap_spaced_row_normalize <- function(mat) {
+  rows <- rowSums(mat)
+  keep <- rows > 0
+  if (any(keep)) {
+    mat[keep, ] <- mat[keep, , drop = FALSE] / rows[keep]
+  }
+  mat
+}
+
+.sirap_spaced_prepare_mapping <- function(mapping_matrix, spatial_affinity) {
+  if (is.null(mapping_matrix)) {
+    mapping_matrix <- matrix(
+      0,
+      nrow = nrow(spatial_affinity),
+      ncol = ncol(spatial_affinity),
+      dimnames = dimnames(spatial_affinity)
+    )
+    return(mapping_matrix)
+  }
+  mapping_matrix <- .sirap_spaced_matrix_arg(mapping_matrix, "mapping_matrix")
+  if (!identical(dim(mapping_matrix), dim(spatial_affinity))) {
+    rlang::abort(paste0(
+      "`mapping_matrix` dimensions must match `spatial_affinity`. Found ",
+      nrow(mapping_matrix),
+      "x",
+      ncol(mapping_matrix),
+      " mapping and ",
+      nrow(spatial_affinity),
+      "x",
+      ncol(spatial_affinity),
+      " spatial."
+    ))
+  }
+  if (.sirap_spaced_has_matching_dimnames(mapping_matrix, spatial_affinity)) {
+    if (anyDuplicated(rownames(mapping_matrix)) || anyDuplicated(colnames(mapping_matrix))) {
+      rlang::abort("`mapping_matrix` rownames and colnames must be unique clone IDs.")
+    }
+    mapping_matrix <- mapping_matrix[rownames(spatial_affinity), colnames(spatial_affinity), drop = FALSE]
+  } else {
+    # TODO: replace SPaCeD's positional convention with mandatory named model
+    # matrices once the REPAIR export is stable across environments.
+    dimnames(mapping_matrix) <- dimnames(spatial_affinity)
+  }
+  .sirap_spaced_row_normalize(mapping_matrix)
+}
+
+.sirap_spaced_solve_assignment <- function(score, maximum = TRUE) {
+  as.integer(clue::solve_LSAP(score, maximum = maximum))
+}

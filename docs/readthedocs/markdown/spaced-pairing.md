@@ -1,0 +1,253 @@
+SPaCeD Heavy-Light Chain Pairing
+================
+
+SIRAP includes SPaCeD-style heavy-light chain pairing helpers for
+spatial BCR data. The implementation follows the SPaCeD idea of
+combining spatial evidence with a REPAIR model matrix, then solving a
+linear assignment problem across omega weights.
+
+The original SPaCeD repository is <https://github.com/hjm2217/spaced>.
+SPaCeD uses REPAIR (<https://github.com/almaan/star-repair>) and notes a
+modified REPAIR fork (<https://github.com/Floraliu7/star-repair>) that
+exports the fitted model matrix needed for downstream pairing.
+
+By default, this page shows runnable code but does not execute it. To
+run the toy REPAIR command while rendering, set
+`SIRAP_RUN_SPACED_EXAMPLES=true` in an environment with the modified
+REPAIR conda environment available.
+
+## Method Overview
+
+Let `H` be a heavy-clone by spatial-bin count matrix and `L` be a
+light-clone by spatial-bin count matrix. For Visium HD, use Space Ranger
+8um barcodes as the native spatial bins.
+
+SIRAP’s scalable default builds a sparse Gaussian spatial kernel `K`
+over the 8um barcode coordinates:
+
+``` text
+K_ab = exp(-d_ab^2 / (2 sigma^2))
+```
+
+with entries outside `kernel_radius` dropped to zero. The spatial score
+between heavy clone `i` and light clone `j` is a kernel-normalized
+weighted overlap:
+
+``` text
+S_ij = (h_i^T K l_j) / sqrt((h_i^T K h_i) * (l_j^T K l_j))
+```
+
+Rows are normalized before combining with REPAIR. For each omega weight
+`w`, SIRAP forms:
+
+``` text
+O_ij(w) = w * S_ij + (1 - w) * R_ij
+```
+
+where `R` is the row-normalized REPAIR model matrix. Pairing is then
+solved with the Hungarian linear assignment algorithm.
+
+SIRAP also keeps a faithful `method = "ot"` option that computes
+SPaCeD-style point-pattern distances with `spatstat::pppdist()`. This is
+much slower but can be parallelized with `nproc`.
+
+## Setup
+
+``` r
+library(SIRAP)
+
+repair_conda_env <- Sys.getenv("REPAIR_CONDA_ENV", "repair")
+repair_conda_bin <- Sys.getenv("CONDA_EXE", "conda")
+```
+
+The `repair` conda environment should point to the modified REPAIR
+version that exports a `*_model_matrix.tsv` file. A typical installation
+looks like:
+
+``` bash
+git clone https://github.com/Floraliu7/star-repair.git
+cd star-repair
+conda env create -f conda/repair.yml
+conda activate repair
+pip install --no-deps -e .
+```
+
+## Toy Clone Tables
+
+This toy dataset has two heavy clones and two light clones. The intended
+pairs are spatially close, but not necessarily exactly
+barcode-overlapping.
+
+``` r
+toyPositions <- data.frame(
+  barcode = paste0("toy_", 1:6),
+  x = c(0, 2, 4, 100, 102, 104),
+  y = c(0, 1, 0, 100, 101, 100)
+)
+
+toyHeavyClones <- data.frame(
+  barcode = c("toy_1", "toy_2", "toy_3", "toy_4", "toy_5"),
+  clone_id = c("1", "1", "1", "2", "2")
+)
+
+toyLightClones <- data.frame(
+  barcode = c("toy_2", "toy_3", "toy_5", "toy_6"),
+  clone_id = c("1", "1", "2", "2")
+)
+
+toyHeavyPoints <- buildSpacedCloneTable(
+  toyHeavyClones,
+  positions = toyPositions,
+  clone_prefix = "heavy_"
+)
+
+toyLightPoints <- buildSpacedCloneTable(
+  toyLightClones,
+  positions = toyPositions,
+  clone_prefix = "light_"
+)
+```
+
+## Spatial Affinity
+
+The scalable default is `method = "weighted_overlap"`. It uses sparse
+matrix multiplication over local barcode neighborhoods.
+
+``` r
+toySpatialAffinity <- spacedSpatialAffinity(
+  heavy_points = toyHeavyPoints,
+  light_points = toyLightPoints,
+  method = "weighted_overlap"
+)
+
+toySpatialAffinity
+```
+
+For small subsets, use original SPaCeD-style optimal transport:
+
+``` r
+toySpatialAffinityOt <- spacedSpatialAffinity(
+  heavy_points = toyHeavyPoints,
+  light_points = toyLightPoints,
+  method = "ot",
+  ot_scale = 1,
+  nproc = 2
+)
+```
+
+## REPAIR Input
+
+REPAIR expects a barcode-by-clone expression matrix with heavy and light
+clone columns separated by regex patterns.
+
+``` r
+toyRepairInput <- buildRepairInputMatrix(toyHeavyPoints, toyLightPoints)
+toyRepairInput
+
+toyRepairDir <- file.path(tempdir(), "toy_spaced_repair")
+toyRepairInputPath <- file.path(toyRepairDir, "toy_spaced_repair_input.tsv")
+toyRepairOutputDir <- file.path(toyRepairDir, "repair_out")
+dir.create(toyRepairOutputDir, recursive = TRUE, showWarnings = FALSE)
+
+writeRepairInputMatrix(toyRepairInput, toyRepairInputPath)
+```
+
+Build the REPAIR command. Running through `conda run` keeps the Python
+dependencies isolated from the R session.
+
+``` r
+toyRepairCommand <- repairAnalyzeCommand(
+  input_path = toyRepairInputPath,
+  output_dir = toyRepairOutputDir,
+  a_pattern = "^heavy",
+  b_pattern = "^light"
+)
+
+toyRepairCondaCommand <- paste(
+  shQuote(repair_conda_bin),
+  "run",
+  "-n",
+  shQuote(repair_conda_env),
+  toyRepairCommand
+)
+
+toyRepairCondaCommand
+```
+
+Run REPAIR and find the model matrix:
+
+``` r
+toyRepairStatus <- system(toyRepairCondaCommand)
+if (toyRepairStatus != 0) {
+  stop("Toy REPAIR command failed with exit status ", toyRepairStatus)
+}
+
+toyRepairModelFiles <- list.files(
+  toyRepairOutputDir,
+  pattern = "_model_matrix\\.tsv$",
+  full.names = TRUE
+)
+
+if (length(toyRepairModelFiles) != 1L) {
+  stop("Expected exactly one REPAIR model matrix in ", toyRepairOutputDir)
+}
+```
+
+If the model matrix is unnamed, SIRAP follows the current SPaCeD
+convention and aligns it positionally to the spatial affinity matrix.
+This assumes REPAIR rows follow the heavy-clone order in the input
+matrix and columns follow the light-clone order. Prefer named model
+matrices when the REPAIR export supports them consistently.
+
+## Pair Heavy and Light Clones
+
+`pairHeavyLightSpaced()` accepts a matrix, data frame, or path for both
+`spatial_affinity` and `mapping_matrix`.
+
+``` r
+toySpacedPairs <- pairHeavyLightSpaced(
+  spatial_affinity = toySpatialAffinity,
+  mapping_matrix = toyRepairModelFiles[[1]],
+  weights = c(0, 0.5, 1)
+)
+
+toySpacedPairs
+```
+
+When one weight is supplied, the function returns a data frame. When
+multiple weights are supplied, it returns a named list with one data
+frame per weight. Each result includes:
+
+- `heavy_id`
+- `light_id`
+- `spatial_affinity_score`
+- `repair_score`
+- `combined_score`
+- `normalized_pairing_score`
+
+`normalized_pairing_score` is not a calibrated biological probability.
+It is the assigned pair’s row-normalized combined score for that heavy
+clone.
+
+## Visium HD Notes
+
+For Visium HD, we recommend using the 8um Space Ranger barcodes as the
+spatial features. Do not add another coordinate-binning step before
+pairing.
+
+Useful defaults:
+
+``` r
+spatial_affinity <- spacedSpatialAffinity(
+  heavy_points = toyHeavyPoints,
+  light_points = toyLightPoints,
+  method = "weighted_overlap",
+  kernel_sigma = NULL,
+  kernel_radius = NULL,
+  top_n = 250
+)
+```
+
+With `kernel_sigma = NULL`, SIRAP estimates the median nearest-neighbor
+spacing among spatial features and uses twice that value.
+`kernel_radius` defaults to `3 * kernel_sigma`.
