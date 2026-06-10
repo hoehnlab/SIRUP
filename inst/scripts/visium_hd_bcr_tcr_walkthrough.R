@@ -76,6 +76,9 @@ buildBCRTrees <- TRUE
 savePlots <- TRUE
 loadSeuratObject <- TRUE
 remove_bleed_example <- TRUE
+runToyRepair <- TRUE
+toyRepairCondaEnv <- Sys.getenv("REPAIR_CONDA_ENV", "repair")
+toyRepairCondaBin <- Sys.getenv("CONDA_EXE", "conda")
 
 
 bcrCloneIdsToPlot <- NULL
@@ -992,5 +995,103 @@ if (savePlots && exists("pairedTreeSpatialClusterPlots")) {
     height = 6
   )
 }
+
+
+# ---- Toy SPaCeD heavy/light pairing example ---------------------------------
+
+# This small example is intentionally explicit. Heavy clone 1 is near light
+# clone 1, and heavy clone 2 is near light clone 2, even though the paired
+# clones do not occupy exactly the same barcode. For Visium HD, use 8um
+# barcodes as these native spatial bins rather than adding another
+# coordinate-binning step in SIRAP.
+toyPositions <- data.frame(
+  barcode = paste0("toy_", 1:6),
+  x = c(0, 2, 4, 100, 102, 104),
+  y = c(0, 1, 0, 100, 101, 100)
+)
+
+toyHeavyClones <- data.frame(
+  barcode = c("toy_1", "toy_2", "toy_3", "toy_4", "toy_5"),
+  clone_id = c("1", "1", "1", "2", "2")
+)
+
+toyLightClones <- data.frame(
+  barcode = c("toy_2", "toy_3", "toy_5", "toy_6"),
+  clone_id = c("1", "1", "2", "2")
+)
+
+toyHeavyPoints <- buildSpacedCloneTable(
+  toyHeavyClones,
+  positions = toyPositions,
+  clone_prefix = "heavy_"
+)
+
+toyLightPoints <- buildSpacedCloneTable(
+  toyLightClones,
+  positions = toyPositions,
+  clone_prefix = "light_"
+)
+
+toySpatialAffinity <- spacedSpatialAffinity(
+  heavy_points = toyHeavyPoints,
+  light_points = toyLightPoints
+)
+toySpatialAffinity
+
+toyRepairInput <- buildRepairInputMatrix(toyHeavyPoints, toyLightPoints)
+toyRepairInput
+
+toyRepairDir <- file.path(outDir, "toy_spaced_repair")
+toyRepairInputPath <- file.path(toyRepairDir, "toy_spaced_repair_input.tsv")
+toyRepairOutputDir <- file.path(toyRepairDir, "repair_out")
+dir.create(toyRepairDir, recursive = TRUE, showWarnings = FALSE)
+dir.create(toyRepairOutputDir, recursive = TRUE, showWarnings = FALSE)
+writeRepairInputMatrix(toyRepairInput, toyRepairInputPath)
+
+toyRepairCommand <- repairAnalyzeCommand(
+  input_path = toyRepairInputPath,
+  output_dir = toyRepairOutputDir,
+  a_pattern = "^heavy",
+  b_pattern = "^light"
+)
+toyRepairCommand
+
+toyRepairCondaCommand <- paste(
+  shQuote(toyRepairCondaBin),
+  "run",
+  "-n",
+  shQuote(toyRepairCondaEnv),
+  toyRepairCommand
+)
+toyRepairCondaCommand
+
+if (runToyRepair) {
+  toyRepairStatus <- system(toyRepairCondaCommand)
+  if (toyRepairStatus != 0) {
+    stop("Toy REPAIR command failed with exit status ", toyRepairStatus, ": ", toyRepairCondaCommand)
+  }
+}
+
+toyRepairModelFiles <- list.files(
+  toyRepairOutputDir,
+  pattern = "_model_matrix\\.tsv$",
+  full.names = TRUE
+)
+if (length(toyRepairModelFiles) != 1L) {
+  stop(
+    "Expected exactly one REPAIR model matrix in ", toyRepairOutputDir,
+    ". Found: ", paste(basename(toyRepairModelFiles), collapse = ", "),
+    ". Make sure `", toyRepairCondaEnv, "` is the modified REPAIR conda environment used by SPaCeD."
+  )
+}
+toySpacedPairs <- pairHeavyLightSpaced(
+  spatial_affinity = toySpatialAffinity,
+  mapping_matrix = toyRepairModelFiles[[1]],
+  weights = c(0, 0.5, 1)
+)
+toySpacedPairs
+
+
+
 
 # ---- Done -------------------------------------------------------------------
