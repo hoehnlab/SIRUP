@@ -19,8 +19,8 @@ knitr::opts_chunk$set(
 
 SIRAP includes SPaCeD-style heavy-light chain pairing helpers for spatial BCR
 data. The implementation follows the SPaCeD idea of combining spatial evidence
-with a REPAIR model matrix, then solving a linear assignment problem across
-omega weights.
+with a REPAIR model matrix, then reporting the top light-chain candidates for
+each heavy clone across omega weights.
 
 The original SPaCeD repository is
 <https://github.com/hjm2217/spaced>. SPaCeD uses REPAIR
@@ -59,8 +59,18 @@ SIRAP forms:
 O_ij(w) = w * S_ij + (1 - w) * R_ij
 ```
 
-where `R` is the row-normalized REPAIR model matrix. Pairing is then solved with
-the Hungarian linear assignment algorithm.
+where `R` is the row-normalized REPAIR model matrix. SIRAP then reports the top
+light-chain candidates for each heavy clone. A light clone can be reported for
+multiple heavy clones, which is useful when public light chains are plausible.
+For each candidate pair, SIRAP also reports:
+
+```text
+light_specificity_score_ij = O_ij / sum_i' O_i'j
+```
+
+This is a column-normalized specificity score. Values near one indicate that a
+light clone's evidence is concentrated on that heavy clone. Lower values
+indicate that the light clone also scores well for other heavy clones.
 
 SIRAP also keeps a faithful `method = "ot"` option that computes SPaCeD-style
 point-pattern distances with `spatstat::pppdist()`. This is much slower but can
@@ -123,14 +133,14 @@ toyLightPoints <- buildSpacedCloneTable(
 
 ## Spatial Affinity
 
-The scalable default is `method = "weighted_overlap"`. It uses sparse matrix
+The scalable default is `method = "weighted_cosim"`. It uses sparse matrix
 multiplication over local barcode neighborhoods.
 
 ```{r spatial-affinity}
 toySpatialAffinity <- spacedSpatialAffinity(
   heavy_points = toyHeavyPoints,
   light_points = toyLightPoints,
-  method = "weighted_overlap"
+  method = "weighted_cosim"
 )
 
 toySpatialAffinity
@@ -221,7 +231,8 @@ them consistently.
 toySpacedPairs <- pairHeavyLightSpaced(
   spatial_affinity = toySpatialAffinity,
   mapping_matrix = toyRepairModelFiles[[1]],
-  weights = c(0, 0.5, 1)
+  weights = c(0, 0.5, 1),
+  top_n_light_chains = 5
 )
 
 toySpacedPairs
@@ -229,7 +240,8 @@ toySpacedPairs
 
 When one weight is supplied, the function returns a data frame. When multiple
 weights are supplied, it returns a named list with one data frame per weight.
-Each result includes:
+Each result includes up to `top_n_light_chains` candidate light clones per heavy
+clone:
 
 - `heavy_id`
 - `light_id`
@@ -237,9 +249,15 @@ Each result includes:
 - `repair_score`
 - `combined_score`
 - `normalized_pairing_score`
+- `light_specificity_score`
 
 `normalized_pairing_score` is not a calibrated biological probability. It is the
-assigned pair's row-normalized combined score for that heavy clone.
+candidate pair's row-normalized combined score for that heavy clone.
+
+`light_specificity_score` is not a calibrated biological probability either. It
+is the candidate pair's column-normalized combined score for that light clone,
+so it is lower when the same light chain also scores well with many other heavy
+chains.
 
 ## Visium HD Notes
 
@@ -252,7 +270,7 @@ Useful defaults:
 spatial_affinity <- spacedSpatialAffinity(
   heavy_points = toyHeavyPoints,
   light_points = toyLightPoints,
-  method = "weighted_overlap",
+  method = "weighted_cosim",
   kernel_sigma = NULL,
   kernel_radius = NULL,
   top_n = 250

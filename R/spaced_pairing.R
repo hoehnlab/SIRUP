@@ -1,9 +1,9 @@
 #' Build a SPaCeD-style clone spatial table
 #'
-#' SPaCeD pairs heavy and light chain clones by solving a linear assignment
-#' problem over a weighted combination of spatial evidence and a REPAIR model
-#' matrix. These helpers implement the same pairing surface while using sparse
-#' native spatial-bin operations that scale better for Visium HD-sized data.
+#' SPaCeD pairs heavy and light chain clones over a weighted combination of
+#' spatial evidence and a REPAIR model matrix. These helpers implement that
+#' pairing surface while using sparse native spatial-bin operations that scale
+#' better for Visium HD-sized data.
 #'
 #' The method follows the SPaCeD repository by H. J. Melton et al.
 #' (https://github.com/hjm2217/spaced) and its use of a REPAIR model matrix
@@ -43,6 +43,7 @@ buildSpacedCloneTable <- function(data,
 
   if (!is.null(positions)) {
     .check_required_cols(positions, c(position_barcode_col, x_col, y_col), "positions")
+    data <- data[, setdiff(colnames(data), c(x_col, y_col)), drop = FALSE]
     pos <- .as_data_frame(positions)
     join_cols <- stats::setNames(position_barcode_col, barcode_col)
     data <- dplyr::left_join(data, pos, by = join_cols)
@@ -136,7 +137,7 @@ spacedCloneTableFromWide <- function(df,
 #' Compute scalable SPaCeD spatial affinity
 #'
 #' Builds clone-by-spatial-feature matrices and compares heavy/light clones by a
-#' spatial method. The default `method = "weighted_overlap"` is a scalable
+#' spatial method. The default `method = "weighted_cosim"` is a scalable
 #' distance-aware overlap score: nearby 8um barcodes receive partial credit
 #' through a sparse Gaussian spatial kernel. `method = "ot"` uses the original
 #' SPaCeD-style point-pattern optimal-transport distance through
@@ -144,11 +145,11 @@ spacedCloneTableFromWide <- function(df,
 #'
 #' @param heavy_points,light_points Output from `buildSpacedCloneTable()` or any
 #'   data frame with `clone_id`, `barcode`, and `n`.
-#' @param method Spatial scoring method. `"weighted_overlap"` is the scalable
+#' @param method Spatial scoring method. `"weighted_cosim"` is the scalable
 #'   SIRAP default, and `"ot"` is the original SPaCeD optimal-transport
 #'   point-pattern distance.
 #' @param feature_col Column containing the native spatial feature/bin ID.
-#' @param kernel_sigma Gaussian kernel scale for `method = "weighted_overlap"`,
+#' @param kernel_sigma Gaussian kernel scale for `method = "weighted_cosim"`,
 #'   in the same units as `x_col` and `y_col`. When `NULL`, SIRAP estimates the
 #'   median nearest-neighbor feature spacing and uses twice that value.
 #' @param kernel_radius Maximum feature-feature distance retained in the sparse
@@ -170,7 +171,7 @@ spacedCloneTableFromWide <- function(df,
 #' @export
 spacedSpatialAffinity <- function(heavy_points,
                                   light_points,
-                                  method = c("weighted_overlap", "ot"),
+                                  method = c("weighted_cosim", "ot"),
                                   feature_col = "barcode",
                                   kernel_sigma = NULL,
                                   kernel_radius = NULL,
@@ -192,7 +193,7 @@ spacedSpatialAffinity <- function(heavy_points,
 
   sim <- switch(
     method,
-    weighted_overlap = .sirap_spaced_weighted_overlap_affinity(
+    weighted_cosim = .sirap_spaced_weighted_cosim_affinity(
       heavy_points = heavy_points,
       light_points = light_points,
       feature_col = feature_col,
@@ -247,11 +248,11 @@ transformSpacedDistances <- function(dist_matrix, scale = 1) {
   .sirap_spaced_row_normalize(affinity)
 }
 
-#' Pair heavy and light clones with SPaCeD's weighted assignment
+#' Pair heavy and light clones with SPaCeD's weighted scores
 #'
-#' This function requires the `clue` package for Hungarian/linear-sum
-#' assignment. SIRAP does not silently fall back to another solver because
-#' different assignment behavior would make SPaCeD results harder to compare.
+#' Returns the top light-chain candidates for each heavy clone. Light clones are
+#' allowed to appear as candidates for multiple heavy clones, which is useful
+#' when public light chains are plausible.
 #'
 #' @param spatial_affinity Heavy-by-light spatial affinity matrix, data frame,
 #'   or path to a delimited matrix file.
@@ -261,31 +262,21 @@ transformSpacedDistances <- function(dist_matrix, scale = 1) {
 #'   matching the current SPaCeD behavior.
 #' @param weights Numeric vector of omega values. `1` is spatial-only; `0` is
 #'   mapping-only.
-#' @param maximum Maximize assignment scores.
-#' @return If one weight is supplied, a data frame with one assigned light clone
-#'   per heavy clone. If multiple weights are supplied, a named list of those
-#'   data frames. Each data frame includes spatial score, REPAIR score, combined
-#'   score, and a row-normalized pairing score for the assigned pair.
+#' @param top_n_light_chains Number of top light-chain candidates to report for
+#'   each heavy clone.
+#' @return If one weight is supplied, a data frame with up to
+#'   `top_n_light_chains` candidate light clones per heavy clone. If multiple
+#'   weights are supplied, a named list of those data frames. Each data frame
+#'   includes spatial score, REPAIR score, combined score, row-normalized
+#'   pairing score, and light-chain specificity score.
 #' @export
 pairHeavyLightSpaced <- function(spatial_affinity,
                                  mapping_matrix = NULL,
                                  weights = seq(0, 1, by = 0.1),
-                                 maximum = TRUE) {
-  if (!requireNamespace("clue", quietly = TRUE)) {
-    rlang::abort("Package 'clue' is required for SPaCeD linear assignment. Install it before calling `pairHeavyLightSpaced()`.")
-  }
+                                 top_n_light_chains = 5L) {
   spatial_affinity <- .sirap_spaced_matrix_arg(spatial_affinity, "spatial_affinity")
   if (is.null(rownames(spatial_affinity)) || is.null(colnames(spatial_affinity))) {
     rlang::abort("`spatial_affinity` must have rownames for heavy clones and colnames for light clones.")
-  }
-  if (nrow(spatial_affinity) > ncol(spatial_affinity)) {
-    rlang::abort(paste0(
-      "SPaCeD assignment expects no more heavy clones than light clones. Found ",
-      nrow(spatial_affinity),
-      " heavy and ",
-      ncol(spatial_affinity),
-      " light clones."
-    ))
   }
   if (anyDuplicated(rownames(spatial_affinity)) || anyDuplicated(colnames(spatial_affinity))) {
     rlang::abort("`spatial_affinity` rownames and colnames must be unique clone IDs.")
@@ -295,21 +286,24 @@ pairHeavyLightSpaced <- function(spatial_affinity,
   if (any(is.na(weights) | weights < 0 | weights > 1)) {
     rlang::abort("`weights` must contain values between 0 and 1.")
   }
+  top_n_light_chains <- as.integer(top_n_light_chains)
+  if (length(top_n_light_chains) != 1L || is.na(top_n_light_chains) || top_n_light_chains < 1L) {
+    rlang::abort("`top_n_light_chains` must be a positive integer.")
+  }
+  top_n_light_chains <- min(top_n_light_chains, ncol(spatial_affinity))
 
   out <- lapply(weights, function(w) {
     score <- (w * spatial_affinity) + ((1 - w) * mapping_matrix)
-    assignment <- .sirap_spaced_solve_assignment(score, maximum = maximum)
-    probability <- .sirap_spaced_row_normalize(score)
-    index <- cbind(seq_along(assignment), assignment)
-    data.frame(
+    normalized_pairing <- .sirap_spaced_row_normalize(score)
+    light_specificity <- .sirap_spaced_col_normalize(score)
+    .sirap_spaced_top_light_candidates(
+      spatial_affinity = spatial_affinity,
+      mapping_matrix = mapping_matrix,
+      score = score,
+      normalized_pairing = normalized_pairing,
+      light_specificity = light_specificity,
       weight = w,
-      heavy_id = rownames(score),
-      light_id = colnames(score)[assignment],
-      spatial_affinity_score = spatial_affinity[index],
-      repair_score = mapping_matrix[index],
-      combined_score = score[index],
-      normalized_pairing_score = probability[index],
-      stringsAsFactors = FALSE
+      top_n_light_chains = top_n_light_chains
     )
   })
   names(out) <- paste0("w=", format(weights, trim = TRUE, scientific = FALSE))
@@ -570,7 +564,7 @@ repairAnalyzeCommand <- function(input_path,
   mat
 }
 
-.sirap_spaced_weighted_overlap_affinity <- function(heavy_points,
+.sirap_spaced_weighted_cosim_affinity <- function(heavy_points,
                                                     light_points,
                                                     feature_col,
                                                     kernel_sigma,
@@ -660,7 +654,7 @@ repairAnalyzeCommand <- function(input_path,
 
 .sirap_spaced_spatial_kernel <- function(coords, sigma, radius, max_neighbors) {
   if (!requireNamespace("RANN", quietly = TRUE)) {
-    rlang::abort("Package 'RANN' is required for `method = \"weighted_overlap\"`.")
+    rlang::abort("Package 'RANN' is required for `method = \"weighted_cosim\"`.")
   }
   max_neighbors <- as.integer(max_neighbors)
   if (is.na(max_neighbors) || max_neighbors < 1L) {
@@ -828,6 +822,42 @@ repairAnalyzeCommand <- function(input_path,
   mat
 }
 
+.sirap_spaced_col_normalize <- function(mat) {
+  cols <- colSums(mat)
+  keep <- cols > 0
+  if (any(keep)) {
+    mat[, keep] <- t(t(mat[, keep, drop = FALSE]) / cols[keep])
+  }
+  mat
+}
+
+.sirap_spaced_top_light_candidates <- function(spatial_affinity,
+                                               mapping_matrix,
+                                               score,
+                                               normalized_pairing,
+                                               light_specificity,
+                                               weight,
+                                               top_n_light_chains) {
+  out <- vector("list", nrow(score))
+  for (i in seq_len(nrow(score))) {
+    ord <- order(score[i, ], decreasing = TRUE)
+    keep <- ord[seq_len(top_n_light_chains)]
+    index <- cbind(rep(i, length(keep)), keep)
+    out[[i]] <- data.frame(
+      weight = weight,
+      heavy_id = rownames(score)[i],
+      light_id = colnames(score)[keep],
+      spatial_affinity_score = spatial_affinity[index],
+      repair_score = mapping_matrix[index],
+      combined_score = score[index],
+      normalized_pairing_score = normalized_pairing[index],
+      light_specificity_score = light_specificity[index],
+      stringsAsFactors = FALSE
+    )
+  }
+  do.call(rbind, out)
+}
+
 .sirap_spaced_prepare_mapping <- function(mapping_matrix, spatial_affinity) {
   if (is.null(mapping_matrix)) {
     mapping_matrix <- matrix(
@@ -863,8 +893,4 @@ repairAnalyzeCommand <- function(input_path,
     dimnames(mapping_matrix) <- dimnames(spatial_affinity)
   }
   .sirap_spaced_row_normalize(mapping_matrix)
-}
-
-.sirap_spaced_solve_assignment <- function(score, maximum = TRUE) {
-  as.integer(clue::solve_LSAP(score, maximum = maximum))
 }
