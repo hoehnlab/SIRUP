@@ -42,10 +42,10 @@ these are read after the join.}
 Data frame with \code{clone_id}, \code{barcode}, \code{x}, \code{y}, and \code{n}.
 }
 \description{
-SPaCeD pairs heavy and light chain clones by solving a linear assignment
-problem over a weighted combination of spatial evidence and a REPAIR model
-matrix. These helpers implement the same pairing surface while using sparse
-native spatial-bin operations that scale better for Visium HD-sized data.
+SPaCeD pairs heavy and light chain clones over a weighted combination of
+spatial evidence and a REPAIR model matrix. These helpers implement that
+pairing surface while using sparse native spatial-bin operations that scale
+better for Visium HD-sized data.
 }
 \details{
 The method follows the SPaCeD repository by H. J. Melton et al.

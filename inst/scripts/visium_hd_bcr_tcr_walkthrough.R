@@ -1087,7 +1087,8 @@ if (length(toyRepairModelFiles) != 1L) {
 toySpacedPairs <- pairHeavyLightSpaced(
   spatial_affinity = toySpatialAffinity,
   mapping_matrix = toyRepairModelFiles[[1]],
-  weights = c(0, 0.5, 1)
+  weights = c(0, 0.5, 1),
+  top_n_light_chains = 5
 )
 toySpacedPairs
 

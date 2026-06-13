@@ -2,13 +2,13 @@
 % Please edit documentation in R/spaced_pairing.R
 \name{pairHeavyLightSpaced}
 \alias{pairHeavyLightSpaced}
-\title{Pair heavy and light clones with SPaCeD's weighted assignment}
+\title{Pair heavy and light clones with SPaCeD's weighted scores}
 \usage{
 pairHeavyLightSpaced(
   spatial_affinity,
   mapping_matrix = NULL,
   weights = seq(0, 1, by = 0.1),
-  maximum = TRUE
+  top_n_light_chains = 5L
 )
 }
 \arguments{
@@ -23,16 +23,18 @@ matching the current SPaCeD behavior.}
 \item{weights}{Numeric vector of omega values. \code{1} is spatial-only; \code{0} is
 mapping-only.}
 
-\item{maximum}{Maximize assignment scores.}
+\item{top_n_light_chains}{Number of top light-chain candidates to report for
+each heavy clone.}
 }
 \value{
-If one weight is supplied, a data frame with one assigned light clone
-per heavy clone. If multiple weights are supplied, a named list of those
-data frames. Each data frame includes spatial score, REPAIR score, combined
-score, and a row-normalized pairing score for the assigned pair.
+If one weight is supplied, a data frame with up to
+\code{top_n_light_chains} candidate light clones per heavy clone. If multiple
+weights are supplied, a named list of those data frames. Each data frame
+includes spatial score, REPAIR score, combined score, row-normalized
+pairing score, and light-chain specificity score.
 }
 \description{
-This function requires the \code{clue} package for Hungarian/linear-sum
-assignment. SIRAP does not silently fall back to another solver because
-different assignment behavior would make SPaCeD results harder to compare.
+Returns the top light-chain candidates for each heavy clone. Light clones are
+allowed to appear as candidates for multiple heavy clones, which is useful
+when public light chains are plausible.
 }

@@ -24,6 +24,31 @@ test_that("buildSpacedCloneTable joins coordinates and aggregates clone counts",
   expect_equal(out$x[out$barcode == "b2"], 20)
 })
 
+test_that("buildSpacedCloneTable uses supplied positions when data already has coordinates", {
+  clones <- data.frame(
+    barcode = c("b1", "b2"),
+    clone_id = c("1", "2"),
+    x = c(999, 999),
+    y = c(999, 999),
+    stringsAsFactors = FALSE
+  )
+  positions <- data.frame(
+    barcode = c("b1", "b2"),
+    x = c(10, 20),
+    y = c(30, 40),
+    stringsAsFactors = FALSE
+  )
+
+  out <- buildSpacedCloneTable(
+    clones,
+    positions = positions,
+    clone_prefix = "heavy_"
+  )
+
+  expect_equal(out$x, c(10, 20))
+  expect_equal(out$y, c(30, 40))
+})
+
 test_that("spacedSpatialAffinity gives nearby native spatial features partial credit", {
   heavy <- data.frame(
     clone_id = c("heavy_1", "heavy_2"),
@@ -51,28 +76,30 @@ test_that("spacedSpatialAffinity gives nearby native spatial features partial cr
   expect_equal(unname(rowSums(affinity)), c(1, 1))
 })
 
-test_that("pairHeavyLightSpaced solves weighted assignments with clue", {
+test_that("pairHeavyLightSpaced returns top light candidates per heavy clone", {
   spatial <- matrix(
-    c(0.9, 0.1, 0.1, 0.9),
-    nrow = 2,
+    c(0.9, 0.1, 0.8, 0.2, 0.1, 0.9),
+    nrow = 3,
     byrow = TRUE,
-    dimnames = list(c("heavy_1", "heavy_2"), c("light_1", "light_2"))
+    dimnames = list(c("heavy_1", "heavy_2", "heavy_3"), c("light_1", "light_2"))
   )
 
-  if (!requireNamespace("clue", quietly = TRUE)) {
-    expect_error(
-      pairHeavyLightSpaced(spatial, weights = 1),
-      "Package 'clue' is required"
-    )
-    return()
-  }
+  pairs <- pairHeavyLightSpaced(spatial, weights = 1, top_n_light_chains = 1)
 
-  pairs <- pairHeavyLightSpaced(spatial, weights = 1)
-
-  expect_equal(pairs$heavy_id, c("heavy_1", "heavy_2"))
-  expect_equal(pairs$light_id, c("light_1", "light_2"))
-  expect_equal(pairs$weight, c(1, 1))
-  expect_true(all(c("spatial_affinity_score", "repair_score", "combined_score", "normalized_pairing_score") %in% colnames(pairs)))
+  expect_equal(pairs$heavy_id, c("heavy_1", "heavy_2", "heavy_3"))
+  expect_equal(pairs$light_id, c("light_1", "light_1", "light_2"))
+  expect_equal(pairs$weight, c(1, 1, 1))
+  expect_true(all(c(
+    "spatial_affinity_score",
+    "repair_score",
+    "combined_score",
+    "normalized_pairing_score",
+    "light_specificity_score"
+  ) %in% colnames(pairs)))
+  expect_equal(
+    pairs$light_specificity_score[pairs$heavy_id == "heavy_1" & pairs$light_id == "light_1"],
+    0.9 / 1.8
+  )
   expect_true(all(pairs$normalized_pairing_score > 0.5))
 })
 
@@ -93,15 +120,7 @@ test_that("pairHeavyLightSpaced accepts unnamed mapping matrix paths positionall
     col.names = FALSE
   )
 
-  if (!requireNamespace("clue", quietly = TRUE)) {
-    expect_error(
-      pairHeavyLightSpaced(spatial, mapping_matrix = mapping_path, weights = 0),
-      "Package 'clue' is required"
-    )
-    return()
-  }
-
-  pairs <- pairHeavyLightSpaced(spatial, mapping_matrix = mapping_path, weights = 0)
+  pairs <- pairHeavyLightSpaced(spatial, mapping_matrix = mapping_path, weights = 0, top_n_light_chains = 1)
 
   expect_equal(pairs$heavy_id, c("heavy_1", "heavy_2"))
   expect_equal(pairs$light_id, c("light_1", "light_2"))
@@ -117,19 +136,12 @@ test_that("pairHeavyLightSpaced returns a list for multiple weights", {
     dimnames = list(c("heavy_1", "heavy_2"), c("light_1", "light_2"))
   )
 
-  if (!requireNamespace("clue", quietly = TRUE)) {
-    expect_error(
-      pairHeavyLightSpaced(spatial, weights = c(0, 1)),
-      "Package 'clue' is required"
-    )
-    return()
-  }
-
-  pairs <- pairHeavyLightSpaced(spatial, weights = c(0, 1))
+  pairs <- pairHeavyLightSpaced(spatial, weights = c(0, 1), top_n_light_chains = 2)
 
   expect_type(pairs, "list")
   expect_equal(names(pairs), c("w=0", "w=1"))
-  expect_equal(pairs[["w=1"]]$light_id, c("light_1", "light_2"))
+  expect_equal(nrow(pairs[["w=1"]]), 4)
+  expect_equal(pairs[["w=1"]]$light_id[c(1, 3)], c("light_1", "light_2"))
 })
 
 test_that("buildRepairInputMatrix creates barcode-by-clone matrix", {

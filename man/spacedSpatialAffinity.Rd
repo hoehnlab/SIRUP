@@ -7,7 +7,7 @@
 spacedSpatialAffinity(
   heavy_points,
   light_points,
-  method = c("weighted_overlap", "ot"),
+  method = c("weighted_cosim", "ot"),
   feature_col = "barcode",
   kernel_sigma = NULL,
   kernel_radius = NULL,
@@ -25,13 +25,13 @@ spacedSpatialAffinity(
 \item{heavy_points, light_points}{Output from \code{buildSpacedCloneTable()} or any
 data frame with \code{clone_id}, \code{barcode}, and \code{n}.}
 
-\item{method}{Spatial scoring method. \code{"weighted_overlap"} is the scalable
+\item{method}{Spatial scoring method. \code{"weighted_cosim"} is the scalable
 SIRAP default, and \code{"ot"} is the original SPaCeD optimal-transport
 point-pattern distance.}
 
 \item{feature_col}{Column containing the native spatial feature/bin ID.}
 
-\item{kernel_sigma}{Gaussian kernel scale for \code{method = "weighted_overlap"},
+\item{kernel_sigma}{Gaussian kernel scale for \code{method = "weighted_cosim"},
 in the same units as \code{x_col} and \code{y_col}. When \code{NULL}, SIRAP estimates the
 median nearest-neighbor feature spacing and uses twice that value.}
 
@@ -63,7 +63,7 @@ one when a row has nonzero affinity.
 }
 \description{
 Builds clone-by-spatial-feature matrices and compares heavy/light clones by a
-spatial method. The default \code{method = "weighted_overlap"} is a scalable
+spatial method. The default \code{method = "weighted_cosim"} is a scalable
 distance-aware overlap score: nearby 8um barcodes receive partial credit
 through a sparse Gaussian spatial kernel. \code{method = "ot"} uses the original
 SPaCeD-style point-pattern optimal-transport distance through
