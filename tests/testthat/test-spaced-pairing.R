@@ -67,13 +67,43 @@ test_that("spacedSpatialAffinity gives nearby native spatial features partial cr
     stringsAsFactors = FALSE
   )
 
-  affinity <- spacedSpatialAffinity(heavy, light, kernel_sigma = 16, kernel_radius = 48)
+  affinity <- spacedSpatialAffinity(
+    heavy,
+    light,
+    kernel_sigma = 16,
+    kernel_radius = 48,
+    min_x_obs = 1
+  )
 
   expect_equal(rownames(affinity), c("heavy_1", "heavy_2"))
   expect_equal(colnames(affinity), c("light_1", "light_2"))
   expect_gt(affinity["heavy_1", "light_1"], affinity["heavy_1", "light_2"])
   expect_gt(affinity["heavy_2", "light_2"], affinity["heavy_2", "light_1"])
   expect_equal(unname(rowSums(affinity)), c(1, 1))
+})
+
+test_that("spacedSpatialAffinity filters clones with REPAIR-style min_x_obs", {
+  heavy <- data.frame(
+    clone_id = c("heavy_1", "heavy_1", "heavy_2"),
+    barcode = c("bin_a", "bin_b", "bin_c"),
+    x = c(0, 1, 100),
+    y = c(0, 1, 100),
+    n = c(1, 1, 1),
+    stringsAsFactors = FALSE
+  )
+  light <- data.frame(
+    clone_id = c("light_1", "light_1", "light_2"),
+    barcode = c("bin_a", "bin_b", "bin_c"),
+    x = c(0, 1, 100),
+    y = c(0, 1, 100),
+    n = c(1, 1, 1),
+    stringsAsFactors = FALSE
+  )
+
+  affinity <- spacedSpatialAffinity(heavy, light, kernel_sigma = 16, kernel_radius = 48)
+
+  expect_equal(rownames(affinity), "heavy_1")
+  expect_equal(colnames(affinity), "light_1")
 })
 
 test_that("pairHeavyLightSpaced returns top light candidates per heavy clone", {

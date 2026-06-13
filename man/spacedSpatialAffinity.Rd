@@ -18,7 +18,10 @@ spacedSpatialAffinity(
   ot_scale = 1,
   nproc = 1L,
   top_n = NULL,
-  min_affinity = 0
+  min_affinity = 0,
+  min_counts = NULL,
+  min_x_obs = 2,
+  filter_x = 1
 )
 }
 \arguments{
@@ -56,6 +59,15 @@ distance loop. The sparse methods ignore this argument.}
 clone. Non-retained affinities are set to zero.}
 
 \item{min_affinity}{Optional lower threshold for retained affinities.}
+
+\item{min_counts}{Optional minimum total clone count. Mirrors REPAIR's
+\code{--min_counts} filter.}
+
+\item{min_x_obs}{Minimum number of spatial features where a clone has count
+greater than or equal to \code{filter_x}. Mirrors REPAIR's \code{--min_x_obs}
+filter.}
+
+\item{filter_x}{Count threshold used with \code{min_x_obs}.}
 }
 \value{
 Heavy-by-light numeric affinity matrix with rows normalized to sum to

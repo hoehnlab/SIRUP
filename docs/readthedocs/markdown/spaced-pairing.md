@@ -48,6 +48,12 @@ that a light clone’s evidence is concentrated on that heavy clone. Lower
 values indicate that the light clone also scores well for other heavy
 clones.
 
+By default, both REPAIR and `spacedSpatialAffinity()` keep clones
+observed in at least two spatial features with count at least one
+(`mxo = 2`, `x = 1` in REPAIR; `min_x_obs = 2`, `filter_x = 1` in
+SIRAP). Use matching thresholds in both steps so the REPAIR model matrix
+and spatial affinity matrix describe the same clone universe.
+
 SIRAP also keeps a faithful `method = "ot"` option that computes
 SPaCeD-style point-pattern distances with `spatstat::pppdist()`. This is
 much slower but can be parallelized with `nproc`.
@@ -111,7 +117,8 @@ matrix multiplication over local barcode neighborhoods.
     toySpatialAffinity <- spacedSpatialAffinity(
       heavy_points = toyHeavyPoints,
       light_points = toyLightPoints,
-      method = "weighted_cosim"
+      method = "weighted_cosim",
+      min_x_obs = 1
     )
 
     toySpatialAffinity
@@ -122,6 +129,7 @@ For small subsets, use original SPaCeD-style optimal transport:
       heavy_points = toyHeavyPoints,
       light_points = toyLightPoints,
       method = "ot",
+      min_x_obs = 1,
       ot_scale = 1,
       nproc = 2
     )
@@ -148,7 +156,8 @@ dependencies isolated from the R session.
       input_path = toyRepairInputPath,
       output_dir = toyRepairOutputDir,
       a_pattern = "^heavy",
-      b_pattern = "^light"
+      b_pattern = "^light",
+      mxo = 1
     )
 
     toyRepairCondaCommand <- paste(
@@ -234,7 +243,9 @@ Useful defaults:
       method = "weighted_cosim",
       kernel_sigma = NULL,
       kernel_radius = NULL,
-      top_n = 250
+      top_n = 250,
+      min_x_obs = 2,
+      filter_x = 1
     )
 
 With `kernel_sigma = NULL`, SIRAP estimates the median nearest-neighbor

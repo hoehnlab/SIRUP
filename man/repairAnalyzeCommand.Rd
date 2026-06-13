@@ -13,6 +13,7 @@ repairAnalyzeCommand(
   x = 1,
   b = 100,
   nb = 1,
+  min_counts = NULL,
   repair_bin = "repair"
 )
 }
@@ -25,7 +26,7 @@ repairAnalyzeCommand(
 
 \item{b_pattern}{Light clone column regex.}
 
-\item{mxo, x, b, nb}{Arguments passed to \verb{repair analyze}.}
+\item{mxo, x, b, nb, min_counts}{Arguments passed to \verb{repair analyze}.}
 
 \item{repair_bin}{REPAIR executable.}
 }
