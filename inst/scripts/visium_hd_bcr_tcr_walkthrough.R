@@ -1034,7 +1034,8 @@ toyLightPoints <- buildSpacedCloneTable(
 
 toySpatialAffinity <- spacedSpatialAffinity(
   heavy_points = toyHeavyPoints,
-  light_points = toyLightPoints
+  light_points = toyLightPoints,
+  min_x_obs = 1
 )
 toySpatialAffinity
 
@@ -1052,7 +1053,8 @@ toyRepairCommand <- repairAnalyzeCommand(
   input_path = toyRepairInputPath,
   output_dir = toyRepairOutputDir,
   a_pattern = "^heavy",
-  b_pattern = "^light"
+  b_pattern = "^light",
+  mxo = 1
 )
 toyRepairCommand
 

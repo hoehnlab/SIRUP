@@ -378,6 +378,12 @@ also reports:</p>
 indicate that a light clone’s evidence is concentrated on that heavy
 clone. Lower values indicate that the light clone also scores well for
 other heavy clones.</p>
+<p>By default, both REPAIR and <code>spacedSpatialAffinity()</code> keep
+clones observed in at least two spatial features with count at least one
+(<code>mxo = 2</code>, <code>x = 1</code> in REPAIR;
+<code>min_x_obs = 2</code>, <code>filter_x = 1</code> in SIRAP). Use
+matching thresholds in both steps so the REPAIR model matrix and spatial
+affinity matrix describe the same clone universe.</p>
 <p>SIRAP also keeps a faithful <code>method = &quot;ot&quot;</code> option that
 computes SPaCeD-style point-pattern distances with
 <code>spatstat::pppdist()</code>. This is much slower but can be
@@ -438,18 +444,20 @@ uses sparse matrix multiplication over local barcode neighborhoods.</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>toySpatialAffinity <span class="ot">&lt;-</span> <span class="fu">spacedSpatialAffinity</span>(</span>
 <span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="at">heavy_points =</span> toyHeavyPoints,</span>
 <span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="at">light_points =</span> toyLightPoints,</span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;weighted_cosim&quot;</span></span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>)</span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a></span>
-<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>toySpatialAffinity</span></code></pre></div>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;weighted_cosim&quot;</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  <span class="at">min_x_obs =</span> <span class="dv">1</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>)</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>toySpatialAffinity</span></code></pre></div>
 <p>For small subsets, use original SPaCeD-style optimal transport:</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>toySpatialAffinityOt <span class="ot">&lt;-</span> <span class="fu">spacedSpatialAffinity</span>(</span>
 <span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="at">heavy_points =</span> toyHeavyPoints,</span>
 <span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="at">light_points =</span> toyLightPoints,</span>
 <span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;ot&quot;</span>,</span>
-<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  <span class="at">ot_scale =</span> <span class="dv">1</span>,</span>
-<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>  <span class="at">nproc =</span> <span class="dv">2</span></span>
-<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  <span class="at">min_x_obs =</span> <span class="dv">1</span>,</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>  <span class="at">ot_scale =</span> <span class="dv">1</span>,</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>  <span class="at">nproc =</span> <span class="dv">2</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>)</span></code></pre></div>
 </div>
 <div id="repair-input" class="section level2">
 <h2>REPAIR Input</h2>
@@ -470,18 +478,19 @@ keeps the Python dependencies isolated from the R session.</p>
 <span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  <span class="at">input_path =</span> toyRepairInputPath,</span>
 <span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="at">output_dir =</span> toyRepairOutputDir,</span>
 <span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>  <span class="at">a_pattern =</span> <span class="st">&quot;^heavy&quot;</span>,</span>
-<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>  <span class="at">b_pattern =</span> <span class="st">&quot;^light&quot;</span></span>
-<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>)</span>
-<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a></span>
-<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>toyRepairCondaCommand <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
-<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>  <span class="fu">shQuote</span>(repair_conda_bin),</span>
-<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>  <span class="st">&quot;run&quot;</span>,</span>
-<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>  <span class="st">&quot;-n&quot;</span>,</span>
-<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a>  <span class="fu">shQuote</span>(repair_conda_env),</span>
-<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a>  toyRepairCommand</span>
-<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a>)</span>
-<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a></span>
-<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a>toyRepairCondaCommand</span></code></pre></div>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>  <span class="at">b_pattern =</span> <span class="st">&quot;^light&quot;</span>,</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>  <span class="at">mxo =</span> <span class="dv">1</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>)</span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>toyRepairCondaCommand <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>  <span class="fu">shQuote</span>(repair_conda_bin),</span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>  <span class="st">&quot;run&quot;</span>,</span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a>  <span class="st">&quot;-n&quot;</span>,</span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a>  <span class="fu">shQuote</span>(repair_conda_env),</span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a>  toyRepairCommand</span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a>)</span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a></span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a>toyRepairCondaCommand</span></code></pre></div>
 <p>Run REPAIR and find the model matrix:</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>toyRepairStatus <span class="ot">&lt;-</span> <span class="fu">system</span>(toyRepairCondaCommand)</span>
 <span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="cf">if</span> (toyRepairStatus <span class="sc">!=</span> <span class="dv">0</span>) {</span>
@@ -550,8 +559,10 @@ pairing.</p>
 <span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;weighted_cosim&quot;</span>,</span>
 <span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>  <span class="at">kernel_sigma =</span> <span class="cn">NULL</span>,</span>
 <span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>  <span class="at">kernel_radius =</span> <span class="cn">NULL</span>,</span>
-<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>  <span class="at">top_n =</span> <span class="dv">250</span></span>
-<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>  <span class="at">top_n =</span> <span class="dv">250</span>,</span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a>  <span class="at">min_x_obs =</span> <span class="dv">2</span>,</span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a>  <span class="at">filter_x =</span> <span class="dv">1</span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a>)</span></code></pre></div>
 <p>With <code>kernel_sigma = NULL</code>, SIRAP estimates the median
 nearest-neighbor spacing among spatial features and uses twice that
 value. <code>kernel_radius</code> defaults to

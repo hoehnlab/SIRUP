@@ -166,6 +166,12 @@ spacedCloneTableFromWide <- function(df,
 #' @param top_n Optional number of top light candidates retained per heavy
 #'   clone. Non-retained affinities are set to zero.
 #' @param min_affinity Optional lower threshold for retained affinities.
+#' @param min_counts Optional minimum total clone count. Mirrors REPAIR's
+#'   `--min_counts` filter.
+#' @param min_x_obs Minimum number of spatial features where a clone has count
+#'   greater than or equal to `filter_x`. Mirrors REPAIR's `--min_x_obs`
+#'   filter.
+#' @param filter_x Count threshold used with `min_x_obs`.
 #' @return Heavy-by-light numeric affinity matrix with rows normalized to sum to
 #'   one when a row has nonzero affinity.
 #' @export
@@ -182,7 +188,10 @@ spacedSpatialAffinity <- function(heavy_points,
                                   ot_scale = 1,
                                   nproc = 1L,
                                   top_n = NULL,
-                                  min_affinity = 0) {
+                                  min_affinity = 0,
+                                  min_counts = NULL,
+                                  min_x_obs = 2,
+                                  filter_x = 1) {
   if (!requireNamespace("Matrix", quietly = TRUE)) {
     rlang::abort("Package 'Matrix' is required for `spacedSpatialAffinity()`.")
   }
@@ -190,6 +199,22 @@ spacedSpatialAffinity <- function(heavy_points,
   if (!is.character(feature_col) || length(feature_col) != 1L || is.na(feature_col) || feature_col == "") {
     rlang::abort("`feature_col` must be a single non-empty column name.")
   }
+  heavy_points <- .sirap_spaced_filter_clone_points(
+    heavy_points,
+    name = "heavy_points",
+    feature_col = feature_col,
+    min_counts = min_counts,
+    min_x_obs = min_x_obs,
+    filter_x = filter_x
+  )
+  light_points <- .sirap_spaced_filter_clone_points(
+    light_points,
+    name = "light_points",
+    feature_col = feature_col,
+    min_counts = min_counts,
+    min_x_obs = min_x_obs,
+    filter_x = filter_x
+  )
 
   sim <- switch(
     method,
@@ -395,7 +420,7 @@ writeRepairInputMatrix <- function(repair_input,
 #' @param output_dir REPAIR output directory.
 #' @param a_pattern Heavy clone column regex.
 #' @param b_pattern Light clone column regex.
-#' @param mxo,x,b,nb Arguments passed to `repair analyze`.
+#' @param mxo,x,b,nb,min_counts Arguments passed to `repair analyze`.
 #' @param repair_bin REPAIR executable.
 #' @return Shell command string.
 #' @export
@@ -407,8 +432,9 @@ repairAnalyzeCommand <- function(input_path,
                                  x = 1,
                                  b = 100,
                                  nb = 1,
+                                 min_counts = NULL,
                                  repair_bin = "repair") {
-  paste(
+  command <- c(
     shQuote(repair_bin),
     "analyze",
     "-i", shQuote(input_path),
@@ -420,6 +446,10 @@ repairAnalyzeCommand <- function(input_path,
     "-b", shQuote(as.character(b)),
     "-nb", shQuote(as.character(nb))
   )
+  if (!is.null(min_counts)) {
+    command <- c(command, "-mc", shQuote(as.character(min_counts)))
+  }
+  paste(command, collapse = " ")
 }
 
 .sirap_spaced_check_repair_points <- function(points, name) {
@@ -494,6 +524,75 @@ repairAnalyzeCommand <- function(input_path,
     !is.null(colnames(mat)) &&
     setequal(rownames(target), rownames(mat)) &&
     setequal(colnames(target), colnames(mat))
+}
+
+.sirap_spaced_filter_clone_points <- function(points,
+                                              name,
+                                              feature_col,
+                                              min_counts,
+                                              min_x_obs,
+                                              filter_x) {
+  points <- .as_data_frame(points)
+  .check_required_cols(points, c("clone_id", feature_col, "n"), name)
+  points$clone_id <- as.character(points$clone_id)
+  points$feature <- as.character(points[[feature_col]])
+  points$n <- as.numeric(points$n)
+  points <- points[
+    !is.na(points$clone_id) &
+      points$clone_id != "" &
+      !is.na(points$feature) &
+      points$feature != "" &
+      !is.na(points$n) &
+      points$n > 0,
+    ,
+    drop = FALSE
+  ]
+  if (nrow(points) == 0L) {
+    rlang::abort(paste0("`", name, "` has no usable clone counts in `", feature_col, "`."))
+  }
+  if (!is.null(min_counts)) {
+    min_counts <- as.numeric(min_counts)
+    if (length(min_counts) != 1L || is.na(min_counts) || min_counts < 0) {
+      rlang::abort("`min_counts` must be NULL or a non-negative number.")
+    }
+  }
+  if (!is.null(min_x_obs)) {
+    min_x_obs <- as.numeric(min_x_obs)
+    if (length(min_x_obs) != 1L || is.na(min_x_obs) || min_x_obs < 0) {
+      rlang::abort("`min_x_obs` must be NULL or a non-negative number.")
+    }
+    filter_x <- as.numeric(filter_x)
+    if (length(filter_x) != 1L || is.na(filter_x) || filter_x < 0) {
+      rlang::abort("`filter_x` must be a non-negative number.")
+    }
+  }
+
+  counts <- stats::aggregate(n ~ clone_id + feature, data = points, FUN = sum)
+  total_counts <- stats::aggregate(n ~ clone_id, data = counts, FUN = sum)
+  keep <- total_counts$clone_id
+  if (!is.null(min_counts)) {
+    keep <- intersect(keep, total_counts$clone_id[total_counts$n > min_counts])
+  }
+  if (!is.null(min_x_obs)) {
+    observed <- stats::aggregate(
+      keep_feature ~ clone_id,
+      data = data.frame(
+        clone_id = counts$clone_id,
+        keep_feature = counts$n >= filter_x,
+        stringsAsFactors = FALSE
+      ),
+      FUN = sum
+    )
+    keep <- intersect(keep, observed$clone_id[observed$keep_feature >= min_x_obs])
+  }
+  points <- points[points$clone_id %in% keep, , drop = FALSE]
+  if (nrow(points) == 0L) {
+    rlang::abort(paste0(
+      "`", name, "` has no clones after applying `min_counts`/`min_x_obs` filters."
+    ))
+  }
+  points$feature <- NULL
+  points
 }
 
 .sirap_spaced_native_features <- function(points, name, feature_col) {
