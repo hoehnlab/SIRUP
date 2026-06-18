@@ -746,6 +746,7 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #'   shows the full tissue area covered by spatial coordinates.
 #' @param tree_layout Layout passed to `ggtree::ggtree()`.
 #' @param tree_tip_size Size of tree tip points.
+#' @param treescale Mutational distance shown in the tree scale bar.
 #' @param spatial_tip_size Size of spatial tip points.
 #' @param show_spatial_legend Show the spatial color legend.
 #' @param ... Additional arguments passed to `plotSpatialColorTips()`.
@@ -764,6 +765,7 @@ plotSpatialCloneTreePairs <- function(trees,
                                       zoom = FALSE,
                                       tree_layout = "rectangular",
                                       tree_tip_size = 2.5,
+                                      treescale = 0.01,
                                       spatial_tip_size = 1.6,
                                       show_spatial_legend = FALSE,
                                       ...) {
@@ -809,7 +811,8 @@ plotSpatialCloneTreePairs <- function(trees,
       color_col = "tip_color",
       title = paste("Clone", clone_id),
       layout = tree_layout,
-      tip_size = tree_tip_size
+      tip_size = tree_tip_size,
+      treescale = treescale
     )
 
     spatial_plot <- plotSpatialColorTips(
@@ -942,7 +945,8 @@ spatialCloneTreePairsToPDF <- function(pairs,
                                      color_col,
                                      title,
                                      layout,
-                                     tip_size) {
+                                     tip_size,
+                                     treescale) {
   p <- ggtree::ggtree(tree, layout = layout)
   join_data <- tip_data[, c(id_col, color_col), drop = FALSE]
   join_data <- join_data[!duplicated(join_data[[id_col]]), , drop = FALSE]
@@ -954,6 +958,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
       size = tip_size,
       na.rm = TRUE
     ) +
+    ggtree::geom_treescale(width = treescale) +
     ggplot2::scale_color_identity() +
     ggplot2::ggtitle(title) +
     ggplot2::theme(

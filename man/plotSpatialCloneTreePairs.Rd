@@ -18,6 +18,7 @@ plotSpatialCloneTreePairs(
   zoom = FALSE,
   tree_layout = "rectangular",
   tree_tip_size = 2.5,
+  treescale = 0.01,
   spatial_tip_size = 1.6,
   show_spatial_legend = FALSE,
   ...
@@ -55,6 +56,8 @@ shows the full tissue area covered by spatial coordinates.}
 \item{tree_layout}{Layout passed to \code{ggtree::ggtree()}.}
 
 \item{tree_tip_size}{Size of tree tip points.}
+
+\item{treescale}{Mutational distance shown in the tree scale bar.}
 
 \item{spatial_tip_size}{Size of spatial tip points.}
 

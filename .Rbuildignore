@@ -9,6 +9,8 @@
 ^spatialVDJ_.*\.tar\.gz$
 ^Rplots\.pdf$
 ^.*\.png$
+^docs/readthedocs/html$
+^docs/readthedocs/markdown$
 ^\.smbdelete.*
 ^\.git$
 ^\.gitignore$
