@@ -964,6 +964,7 @@ if (is.null(thymus)) {
     barcode_col = "barcode_8um",
     clone_ids = bcrCloneIds,
     id_col = "sequence_id",
+    treescale = 0.01,
     zoom = FALSE
   )
 
@@ -974,6 +975,7 @@ if (is.null(thymus)) {
     clone_ids = bcrCloneIds,
     id_col = "sequence_id",
     color_by = "tree_cluster",
+    treescale = 0.01,
     zoom = FALSE
   )
 }
