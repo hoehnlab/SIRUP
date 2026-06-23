@@ -211,3 +211,42 @@ test_that("repairAnalyzeCommand includes SPaCeD heavy and light patterns", {
   expect_match(cmd, "-ap '^heavy'", fixed = TRUE)
   expect_match(cmd, "-bp '^light'", fixed = TRUE)
 })
+
+test_that("checkSpacedRepair accepts REPAIR that exports a model matrix", {
+  testthat::skip_on_os("windows")
+  fake_conda <- tempfile("conda")
+  writeLines(
+    c(
+      "#!/bin/sh",
+      "echo SIRAP_REPAIR_ANALYZE_PATH=/tmp/repair/analyze.py",
+      "echo SIRAP_REPAIR_EXPORTS_MODEL_MATRIX=True"
+    ),
+    fake_conda
+  )
+  Sys.chmod(fake_conda, "0755")
+
+  repair <- checkSpacedRepair(conda_env = "repair", conda_exe = fake_conda, verbose = FALSE)
+
+  expect_equal(repair$analyze_path, "/tmp/repair/analyze.py")
+  expect_true(repair$exports_model_matrix)
+})
+
+test_that("checkSpacedRepair rejects REPAIR without a model matrix export", {
+  testthat::skip_on_os("windows")
+  fake_conda <- tempfile("conda")
+  writeLines(
+    c(
+      "#!/bin/sh",
+      "echo SIRAP_REPAIR_ANALYZE_PATH=/tmp/repair/analyze.py",
+      "echo SIRAP_REPAIR_EXPORTS_MODEL_MATRIX=False"
+    ),
+    fake_conda
+  )
+  Sys.chmod(fake_conda, "0755")
+
+  expect_error(
+    checkSpacedRepair(conda_env = "repair", conda_exe = fake_conda, verbose = FALSE),
+    "modified REPAIR fork",
+    fixed = TRUE
+  )
+})
