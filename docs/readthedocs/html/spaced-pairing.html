@@ -403,6 +403,10 @@ file. A typical installation looks like:</p>
 <span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="ex">conda</span> env create <span class="at">-f</span> conda/repair.yml</span>
 <span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="ex">conda</span> activate repair</span>
 <span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">--no-deps</span> <span class="at">-e</span> .</span></code></pre></div>
+<p>Check the environment before running pairing. This should print the
+<code>repair/analyze.py</code> path from the modified fork; if it
+fails, reinstall REPAIR from the fork above.</p>
+<div class="sourceCode" id="cb-check-repair"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb-check-repair-1"><a href="#cb-check-repair-1" tabindex="-1"></a><span class="fu">checkSpacedRepair</span>(<span class="at">conda_env =</span> repair_conda_env, <span class="at">conda_exe =</span> repair_conda_bin)</span></code></pre></div>
 </div>
 <div id="toy-clone-tables" class="section level2">
 <h2>Toy Clone Tables</h2>

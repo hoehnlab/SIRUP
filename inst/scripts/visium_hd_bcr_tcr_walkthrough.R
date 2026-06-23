@@ -1070,6 +1070,10 @@ toyRepairCondaCommand <- paste(
 toyRepairCondaCommand
 
 if (runToyRepair) {
+  checkSpacedRepair(conda_env = toyRepairCondaEnv, conda_exe = toyRepairCondaBin)
+}
+
+if (runToyRepair) {
   toyRepairStatus <- system(toyRepairCondaCommand)
   if (toyRepairStatus != 0) {
     stop("Toy REPAIR command failed with exit status ", toyRepairStatus, ": ", toyRepairCondaCommand)

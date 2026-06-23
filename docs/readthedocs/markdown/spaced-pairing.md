@@ -75,6 +75,12 @@ looks like:
     conda activate repair
     pip install --no-deps -e .
 
+Check the environment before running pairing. This should print the
+`repair/analyze.py` path from the modified fork; if it fails, reinstall
+REPAIR from the fork above.
+
+    checkSpacedRepair(conda_env = repair_conda_env, conda_exe = repair_conda_bin)
+
 ## Toy Clone Tables
 
 This toy dataset has two heavy clones and two light clones. The intended

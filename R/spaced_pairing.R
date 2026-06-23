@@ -452,6 +452,93 @@ repairAnalyzeCommand <- function(input_path,
   paste(command, collapse = " ")
 }
 
+#' Check for the SPaCeD-compatible REPAIR fork
+#'
+#' SPaCeD needs a modified REPAIR installation that writes a
+#' `*_model_matrix.tsv` file. This helper checks the Python REPAIR source in a
+#' conda environment and fails early if the installed package does not appear to
+#' be the modified fork used by SPaCeD.
+#'
+#' @param conda_env Conda environment name. Set to `NULL` or `""` to run
+#'   `python_bin` directly without `conda run`.
+#' @param conda_exe Conda executable.
+#' @param python_bin Python executable to run inside the conda environment.
+#' @param verbose Print the detected REPAIR path.
+#' @return Invisibly, a list with the detected REPAIR analyze path.
+#' @export
+checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair"),
+                              conda_exe = Sys.getenv("CONDA_EXE", "conda"),
+                              python_bin = "python",
+                              verbose = TRUE) {
+  python_code <- paste(
+    "import inspect",
+    "import pathlib",
+    "import repair.analyze as analyze",
+    "path = pathlib.Path(inspect.getfile(analyze))",
+    "text = path.read_text()",
+    "print('SIRAP_REPAIR_ANALYZE_PATH=' + str(path))",
+    "print('SIRAP_REPAIR_EXPORTS_MODEL_MATRIX=' + str('_model_matrix.tsv' in text))",
+    sep = "; "
+  )
+
+  if (is.null(conda_env) || length(conda_env) != 1L || is.na(conda_env) || conda_env == "") {
+    command <- python_bin
+    args <- c("-c", python_code)
+  } else {
+    command <- conda_exe
+    args <- c("run", "-n", conda_env, python_bin, "-c", python_code)
+  }
+
+  output <- tryCatch(
+    system2(command, shQuote(args), stdout = TRUE, stderr = TRUE),
+    error = function(e) e
+  )
+  if (inherits(output, "error")) {
+    rlang::abort(paste0(
+      "Could not run REPAIR check using `", command, "`. ",
+      "Install the SPaCeD-compatible REPAIR fork or check `conda_exe`, ",
+      "`conda_env`, and `python_bin`. Original error: ", conditionMessage(output)
+    ))
+  }
+
+  status <- attr(output, "status")
+  if (is.null(status)) {
+    status <- 0L
+  }
+  if (!identical(as.integer(status), 0L)) {
+    rlang::abort(paste0(
+      "Could not import REPAIR from the requested environment. ",
+      "Install the SPaCeD-compatible REPAIR fork in `", conda_env, "`. Output:\n",
+      paste(output, collapse = "\n")
+    ))
+  }
+
+  path_line <- grep("^SIRAP_REPAIR_ANALYZE_PATH=", output, value = TRUE)
+  matrix_line <- grep("^SIRAP_REPAIR_EXPORTS_MODEL_MATRIX=", output, value = TRUE)
+  if (length(path_line) != 1L || length(matrix_line) != 1L) {
+    rlang::abort(paste0(
+      "REPAIR check did not return the expected markers. Output:\n",
+      paste(output, collapse = "\n")
+    ))
+  }
+
+  analyze_path <- sub("^SIRAP_REPAIR_ANALYZE_PATH=", "", path_line)
+  exports_model_matrix <- identical(sub("^SIRAP_REPAIR_EXPORTS_MODEL_MATRIX=", "", matrix_line), "True")
+  if (!exports_model_matrix) {
+    rlang::abort(paste0(
+      "The installed REPAIR package does not appear to export `*_model_matrix.tsv`. ",
+      "SIRAP's SPaCeD pairing workflow needs the modified REPAIR fork from ",
+      "https://github.com/Floraliu7/star-repair. Detected REPAIR analyze file: ",
+      analyze_path
+    ))
+  }
+
+  if (isTRUE(verbose)) {
+    message("Found SPaCeD-compatible REPAIR at ", analyze_path)
+  }
+  invisible(list(analyze_path = analyze_path, exports_model_matrix = TRUE))
+}
+
 .sirap_spaced_check_repair_points <- function(points, name) {
   points <- .as_data_frame(points)
   .check_required_cols(points, c("clone_id", "barcode", "n"), name)
