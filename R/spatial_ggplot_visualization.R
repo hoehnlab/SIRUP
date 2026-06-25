@@ -29,7 +29,6 @@ plotLengthQc <- function(airr_df, title = NULL) {
 #' @param features Feature names to plot.
 #' @param assay Optional assay to set before plotting.
 #' @param layer Seurat expression layer to fetch.
-#' @param slot Deprecated Seurat slot alias for `layer`.
 #' @param images Optional Seurat image names.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param feature_colors Colors used, in order, for the continuous expression
@@ -37,35 +36,26 @@ plotLengthQc <- function(airr_df, title = NULL) {
 #'   value.
 #' @param zero_tol Values at or below this threshold are treated as zero.
 #' @param point_size Size of plotted spots.
-#' @param pt.size.factor Alias for `point_size` for compatibility.
 #' @param image.alpha Tissue image opacity.
 #' @param zoom Zoom to non-zero spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
-#' @param crop Deprecated alias for `zoom`.
 #' @param combine Combine plots with patchwork when possible.
-#' @param ... Ignored; accepted for compatibility with older plotting
-#'   calls.
 #' @return A ggplot/patchwork object, list, or `NULL` when all spots are zero.
 #' @export
 spatialExpressionPlot <- function(object,
                                       features,
                                       assay = NULL,
                                       layer = "counts",
-                                      slot = NULL,
                                       images = NULL,
                                       image.scale = "hires",
                                       feature_colors = c("#D3D3D3", "#FFFF00"),
                                       zero_tol = 0,
                                       point_size = 0.6,
-                                      pt.size.factor = NULL,
                                       image.alpha = 1,
                                       zoom = FALSE,
-                                      crop = NULL,
-                                      combine = TRUE,
-                                      ...) {
+                                      combine = TRUE) {
   .require_namespace("SeuratObject")
   .require_namespace("patchwork")
-  point_size <- pt.size.factor %||% point_size
   if (!is.null(assay)) {
     SeuratObject::DefaultAssay(object) <- assay
   }
@@ -73,7 +63,7 @@ spatialExpressionPlot <- function(object,
     rlang::abort("`feature_colors` must contain at least two colors.")
   }
 
-  expr <- .sirap_fetch_data(object, vars = features, layer = layer, slot = slot)
+  expr <- .sirap_fetch_data(object, vars = features, layer = layer)
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
     spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
@@ -89,7 +79,6 @@ spatialExpressionPlot <- function(object,
         spatial$image,
         image.alpha = image.alpha,
         zoom = zoom,
-        crop = crop,
         view_data = spatial$coords
       ) +
         ggplot2::geom_point(
@@ -115,14 +104,10 @@ spatialExpressionPlot <- function(object,
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param cols Optional named color vector.
 #' @param point_size Size of plotted spots.
-#' @param pt.size.factor Alias for `point_size` for compatibility.
 #' @param image.alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
-#' @param crop Deprecated alias for `zoom`.
 #' @param combine Combine plots with patchwork when possible.
-#' @param ... Ignored; accepted for compatibility with older plotting
-#'   calls.
 #' @return A ggplot/patchwork object, list, or `NULL` when all spots are blank.
 #' @export
 spatialDiscretePlot <- function(object,
@@ -132,14 +117,10 @@ spatialDiscretePlot <- function(object,
                                   image.scale = "hires",
                                   cols = NULL,
                                   point_size = 1.6,
-                                  pt.size.factor = NULL,
                                   image.alpha = 1,
                                   zoom = FALSE,
-                                  crop = NULL,
-                                  combine = TRUE,
-                                  ...) {
+                                  combine = TRUE) {
   .check_required_cols(object@meta.data, meta_col, "object@meta.data")
-  point_size <- pt.size.factor %||% point_size
 
   values <- object@meta.data[[meta_col]]
   names(values) <- rownames(object@meta.data)
@@ -168,7 +149,6 @@ spatialDiscretePlot <- function(object,
       spatial$image,
       image.alpha = image.alpha,
       zoom = zoom,
-      crop = crop,
       view_data = spatial$coords
     ) +
       ggplot2::geom_point(
@@ -193,7 +173,6 @@ spatialDiscretePlot <- function(object,
 #'   blend legend.
 #' @param assay Optional assay to set before plotting.
 #' @param layer Seurat expression layer to fetch.
-#' @param slot Deprecated Seurat slot alias for `layer`.
 #' @param only_blended Return only the blended spatial panel and legend.
 #' @param bottom_left,bottom_right,top_left,top_right Corner colors for the
 #'   two-feature blend grid.
@@ -201,13 +180,9 @@ spatialDiscretePlot <- function(object,
 #' @param images Optional Seurat image names.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param point_size Size of plotted spots.
-#' @param pt.size.factor Alias for `point_size` for compatibility.
 #' @param image.alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
-#' @param crop Deprecated alias for `zoom`.
-#' @param ... Ignored; accepted for compatibility with older plotting
-#'   calls.
 #' @return A ggplot/patchwork object or a list when `combine = FALSE`.
 #' @export
 spatialExpressionBlendPlot <- function(object,
@@ -217,7 +192,6 @@ spatialExpressionBlendPlot <- function(object,
                                                 feature_2_alt_name = NULL,
                                                 assay = NULL,
                                                 layer = "counts",
-                                                slot = NULL,
                                                 only_blended = FALSE,
                                                 bottom_left = "#000000",
                                                 bottom_right = "#FF0000",
@@ -227,14 +201,10 @@ spatialExpressionBlendPlot <- function(object,
                                                 images = NULL,
                                                 image.scale = "hires",
                                                 point_size = 0.6,
-                                                pt.size.factor = NULL,
                                                 image.alpha = 1,
-                                                zoom = FALSE,
-                                                crop = NULL,
-                                                ...) {
+                                                zoom = FALSE) {
   .require_namespace("SeuratObject")
   .require_namespace("patchwork")
-  point_size <- pt.size.factor %||% point_size
   if (length(features) != 2L) {
     rlang::abort(paste0("Requires two features, received ", length(features), "."))
   }
@@ -242,7 +212,7 @@ spatialExpressionBlendPlot <- function(object,
     SeuratObject::DefaultAssay(object) <- assay
   }
 
-  expr <- .sirap_fetch_data(object, vars = features, layer = layer, slot = slot)
+  expr <- .sirap_fetch_data(object, vars = features, layer = layer)
   color_grid <- .sirap_blend_color_grid(
     bottom_left = bottom_left,
     bottom_right = bottom_right,
@@ -266,7 +236,6 @@ spatialExpressionBlendPlot <- function(object,
       spatial$image,
       image.alpha = image.alpha,
       zoom = zoom,
-      crop = crop,
       view_data = spatial$coords
     ) +
       ggplot2::geom_point(
@@ -298,7 +267,6 @@ spatialExpressionBlendPlot <- function(object,
         point_size = point_size,
         image.alpha = image.alpha,
         zoom = zoom,
-        crop = crop,
         combine = TRUE
       )
       f2 <- spatialExpressionPlot(
@@ -311,7 +279,6 @@ spatialExpressionBlendPlot <- function(object,
         point_size = point_size,
         image.alpha = image.alpha,
         zoom = zoom,
-        crop = crop,
         combine = TRUE
       )
       plots[[image]] <- patchwork::wrap_plots(list(f1, f2, blended, legend), nrow = 1, widths = c(0.28, 0.28, 0.28, 0.16))
@@ -330,20 +297,15 @@ spatialExpressionBlendPlot <- function(object,
 #' @param combine Combine spatial panels and legends with patchwork.
 #' @param assay Optional assay to set before plotting.
 #' @param layer Seurat expression layer to fetch.
-#' @param slot Deprecated Seurat slot alias for `layer`.
 #' @param colors One color per feature.
 #' @param breadth_metric Metric used to choose default feature order.
 #' @param images Optional Seurat image names.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param point_size Size of plotted spots.
-#' @param pt.size.factor Alias for `point_size` for compatibility.
 #' @param zero_tol Values at or below this threshold are treated as zero.
 #' @param image.alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
-#' @param crop Deprecated alias for `zoom`.
-#' @param ... Ignored; accepted for compatibility with older plotting
-#'   calls.
 #' @return A ggplot/patchwork object or a list when `combine = FALSE`.
 #' @export
 spatialExpressionMultiPlot <- function(object,
@@ -352,20 +314,15 @@ spatialExpressionMultiPlot <- function(object,
                                     combine = TRUE,
                                     assay = NULL,
                                     layer = "counts",
-                                    slot = NULL,
                                     colors = NULL,
                                     breadth_metric = c("n_expressing"),
                                     images = NULL,
                                     image.scale = "hires",
                                     point_size = 0.6,
-                                    pt.size.factor = NULL,
                                     zero_tol = 0,
                                     image.alpha = 1,
-                                    zoom = FALSE,
-                                    crop = NULL,
-                                    ...) {
+                                    zoom = FALSE) {
   .require_namespace("SeuratObject")
-  point_size <- pt.size.factor %||% point_size
   breadth_metric <- match.arg(breadth_metric)
   if (length(features) < 2L) {
     rlang::abort("Requires at least 2 features.")
@@ -379,7 +336,7 @@ spatialExpressionMultiPlot <- function(object,
   }
   names(colors) <- features
 
-  expr <- .sirap_fetch_data(object, vars = features, layer = layer, slot = slot)
+  expr <- .sirap_fetch_data(object, vars = features, layer = layer)
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
     spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
@@ -408,7 +365,6 @@ spatialExpressionMultiPlot <- function(object,
       spatial$image,
       image.alpha = image.alpha,
       zoom = zoom,
-      crop = crop,
       view_data = spatial$coords
     ) +
       ggplot2::geom_point(
@@ -435,8 +391,6 @@ spatialExpressionMultiPlot <- function(object,
 #' @param feature Optional gene/feature to plot underneath receptor-positive
 #'   spots.
 #' @param gene Alias for `feature`, retained for readability in receptor plots.
-#' @param overlay_col Ignored; retained for compatibility with the old
-#'   plotting implementation.
 #' @param receptor_color Color for receptor-positive spots.
 #' @param receptor_size Size for receptor-positive spots.
 #' @param receptor_stroke Stroke width for hollow receptor circles.
@@ -446,19 +400,15 @@ spatialExpressionMultiPlot <- function(object,
 #' @param feature_size Size for gene expression points.
 #' @param feature_alpha Alpha for gene expression points.
 #' @param zero_tol Values at or below this threshold are treated as zero.
-#' @param gene_color_steps Ignored; retained for compatibility.
 #' @param title Optional title.
 #' @param assay,layer,image.scale Additional plotting controls.
 #' @param images Optional Seurat image names.
 #' @param image.alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
-#' @param crop Deprecated alias for `zoom`.
 #' @param receptor_label Legend label for receptor-positive spots.
 #' @param show_receptor_legend Show the receptor legend. Defaults to `TRUE`
 #'   when a feature is shown and `FALSE` for receptor-only plots.
-#' @param ... Ignored; accepted for compatibility with older plotting
-#'   calls.
 #' @return A ggplot/patchwork object.
 #' @export
 plotReceptorExpression <- function(object,
@@ -466,7 +416,6 @@ plotReceptorExpression <- function(object,
                                       barcode_col = NULL,
                                       feature = NULL,
                                       gene = NULL,
-                                      overlay_col = ".sirap_receptor_overlay",
                                       receptor_color = "black",
                                       receptor_size = 1,
                                       receptor_stroke = 0.7,
@@ -475,7 +424,6 @@ plotReceptorExpression <- function(object,
                                       feature_size = 1,
                                       feature_alpha = 1,
                                       zero_tol = 0,
-                                      gene_color_steps = 100L,
                                       title = NULL,
                                       assay = NULL,
                                       layer = "counts",
@@ -483,10 +431,8 @@ plotReceptorExpression <- function(object,
                                       images = NULL,
                                       image.alpha = 1,
                                       zoom = FALSE,
-                                      crop = NULL,
                                       receptor_label = "Receptor",
-                                      show_receptor_legend = NULL,
-                                      ...) {
+                                      show_receptor_legend = NULL) {
   .require_namespace("SeuratObject")
   feature <- feature %||% gene
   show_receptor_legend <- show_receptor_legend %||% !is.null(feature)
@@ -528,7 +474,6 @@ plotReceptorExpression <- function(object,
       spatial$image,
       image.alpha = image.alpha,
       zoom = zoom,
-      crop = crop,
       view_data = spatial$coords
     )
 
@@ -596,6 +541,155 @@ plotReceptorExpression <- function(object,
   .sirap_return_spatial_plots(plots, combine = TRUE)
 }
 
+#' Plot one or more receptor groups over a tissue image
+#'
+#' @param object Seurat object.
+#' @param receptors AIRR-style receptor table containing a spatial barcode and
+#'   grouping column.
+#' @param group_col Column in `receptors` used to select and color receptor
+#'   groups, for example `"clone_id"`.
+#' @param values Optional values from `group_col` to plot. Defaults to all
+#'   non-missing values in `group_col`.
+#' @param barcode_col Column in `receptors` matching Seurat spot names. If
+#'   `NULL`, the first available barcode-like column is used.
+#' @param colors Optional colors for receptor groups. Named colors are matched
+#'   to `values`; otherwise colors are used in value order.
+#' @param receptor_size Size for receptor points.
+#' @param receptor_alpha Alpha for receptor points.
+#' @param title Optional title.
+#' @param image.scale Image scale passed to
+#'   `SeuratObject::GetTissueCoordinates()`.
+#' @param images Optional Seurat image names.
+#' @param image.alpha Tissue image opacity.
+#' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
+#'   full tissue area covered by the spatial coordinates.
+#' @param receptor_legend_title Legend title for receptor groups. Defaults to
+#'   `group_col`.
+#' @param show_receptor_legend Show the receptor group legend.
+#' @param combine Combine image panels with patchwork.
+#' @return A ggplot/patchwork object or a list when `combine = FALSE`.
+#' @export
+plotReceptors <- function(object,
+                          receptors,
+                          group_col,
+                          values = NULL,
+                          barcode_col = NULL,
+                          colors = NULL,
+                          receptor_size = 1,
+                          receptor_alpha = 1,
+                          title = NULL,
+                          image.scale = "hires",
+                          images = NULL,
+                          image.alpha = 1,
+                          zoom = FALSE,
+                          receptor_legend_title = NULL,
+                          show_receptor_legend = TRUE,
+                          combine = TRUE) {
+  .require_namespace("SeuratObject")
+  receptors <- .as_data_frame(receptors)
+  barcode_col <- .guess_barcode_col(receptors, barcode_col)
+  .check_required_cols(receptors, c(barcode_col, group_col), "receptors")
+
+  receptors$.sirap_receptor_group <- as.character(receptors[[group_col]])
+  if (is.null(values)) {
+    values <- unique(stats::na.omit(receptors$.sirap_receptor_group))
+  }
+  values <- as.character(values)
+  values <- values[!is.na(values)]
+  if (length(values) == 0L) {
+    rlang::abort("`values` must contain at least one non-missing receptor group.")
+  }
+
+  receptors <- receptors[
+    !is.na(receptors$.sirap_receptor_group) &
+      receptors$.sirap_receptor_group %in% values &
+      !is.na(receptors[[barcode_col]]),
+    ,
+    drop = FALSE
+  ]
+  if (nrow(receptors) == 0L) {
+    rlang::abort("No receptor rows matched `values` in `group_col`.")
+  }
+  receptors[[barcode_col]] <- as.character(receptors[[barcode_col]])
+  receptors$.sirap_receptor_group <- factor(receptors$.sirap_receptor_group, levels = values)
+  colors <- .sirap_receptor_group_colors(values, colors)
+  receptor_legend_title <- receptor_legend_title %||% group_col
+
+  receptor_lookup <- receptors[, c(barcode_col, ".sirap_receptor_group"), drop = FALSE]
+  receptor_lookup <- receptor_lookup[!duplicated(receptor_lookup), , drop = FALSE]
+  plots <- list()
+  for (image in .sirap_spatial_images(object, images = images)) {
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
+    receptor_data <- merge(
+      spatial$coords,
+      receptor_lookup,
+      by.x = "cell",
+      by.y = barcode_col,
+      all = FALSE
+    )
+    receptor_data$.sirap_receptor_group <- factor(
+      receptor_data$.sirap_receptor_group,
+      levels = values
+    )
+
+    if (nrow(receptor_data) == 0L) {
+      next
+    }
+
+    p <- .sirap_spatial_base(
+      receptor_data,
+      spatial$image,
+      image.alpha = image.alpha,
+      zoom = zoom,
+      view_data = spatial$coords
+    )
+
+    p <- p +
+      ggplot2::geom_point(
+        data = receptor_data,
+        ggplot2::aes(x = .data$x, y = .data$.sirap_y, color = .data$.sirap_receptor_group),
+        size = receptor_size,
+        alpha = receptor_alpha,
+        inherit.aes = FALSE,
+        na.rm = TRUE,
+        show.legend = isTRUE(show_receptor_legend)
+      ) +
+      ggplot2::scale_color_manual(
+        values = colors,
+        name = receptor_legend_title,
+        drop = FALSE
+      )
+
+    plots[[image]] <- p + ggplot2::labs(title = title %||% receptor_legend_title)
+  }
+
+  .sirap_return_spatial_plots(plots, combine = combine)
+}
+
+.sirap_receptor_group_colors <- function(values, colors = NULL) {
+  n <- length(values)
+  if (is.null(colors)) {
+    if (requireNamespace("pals", quietly = TRUE)) {
+      colors <- .sirap_extend_palette(pals::glasbey(32), n)
+    } else {
+      colors <- .sirap_extend_palette(grDevices::hcl.colors(max(3L, n), palette = "Dark 3"), n)
+    }
+    names(colors) <- values
+    return(colors)
+  }
+
+  colors <- as.character(colors)
+  if (!is.null(names(colors)) && all(values %in% names(colors))) {
+    return(colors[values])
+  }
+  if (length(colors) < n) {
+    colors <- .sirap_extend_palette(colors, n)
+  }
+  colors <- colors[seq_len(n)]
+  names(colors) <- values
+  colors
+}
+
 .guess_barcode_col <- function(data, barcode_col = NULL) {
   if (!is.null(barcode_col)) {
     .check_required_cols(data, barcode_col, "receptors")
@@ -622,42 +716,55 @@ plotReceptorExpression <- function(object,
 #' @param tip_data Data frame with spatial barcode and color columns.
 #' @param barcode_col Column in `tip_data` matching Seurat spot names.
 #' @param color_col Column containing colors.
-#' @param overlay_col Ignored; retained for compatibility.
+#' @param label_col Optional column containing legend labels for colors.
+#' @param legend_title Title for the color legend.
+#' @param legend_colors Optional named color vector used for the legend.
 #' @param title Optional title.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
-#' @param pt.size.factor Size of plotted tips.
+#' @param point_size Size of plotted tips.
 #' @param images Optional Seurat image names.
 #' @param image.alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
-#' @param crop Deprecated alias for `zoom`.
 #' @param show.legend Show color legend.
-#' @param ... Ignored; accepted for compatibility with older plotting
-#'   calls.
 #' @return A ggplot/patchwork object.
 #' @export
 plotSpatialColorTips <- function(object,
                                 tip_data,
                                 barcode_col = "barcode_8um",
                                 color_col = "tip_color",
-                                overlay_col = ".sirap_tip_color",
+                                label_col = NULL,
+                                legend_title = "Tip color",
+                                legend_colors = NULL,
                                 title = NULL,
                                 image.scale = "hires",
-                                pt.size.factor = 1.6,
+                                point_size = 1.6,
                                 images = NULL,
                                 image.alpha = 1,
                                 zoom = FALSE,
-                                crop = NULL,
-                                show.legend = FALSE,
-                                ...) {
+                                show.legend = FALSE) {
   .require_namespace("SeuratObject")
   tip_data <- .as_data_frame(tip_data)
   .check_required_cols(tip_data, c(barcode_col, color_col), "tip_data")
+  if (!is.null(label_col)) {
+    .check_required_cols(tip_data, label_col, "tip_data")
+  }
   tip_data <- tip_data[!is.na(tip_data[[barcode_col]]) & !is.na(tip_data[[color_col]]), , drop = FALSE]
   spot_color <- stats::setNames(as.character(tip_data[[color_col]]), as.character(tip_data[[barcode_col]]))
   spot_color <- spot_color[!duplicated(names(spot_color))]
-  colors <- unique(stats::na.omit(as.character(spot_color)))
-  names(colors) <- colors
+  if (is.null(label_col)) {
+    colors <- unique(stats::na.omit(as.character(spot_color)))
+    names(colors) <- colors
+  } else {
+    tip_data <- tip_data[!is.na(tip_data[[label_col]]), , drop = FALSE]
+    spot_label <- stats::setNames(as.character(tip_data[[label_col]]), as.character(tip_data[[barcode_col]]))
+    spot_label <- spot_label[!duplicated(names(spot_label))]
+    if (is.null(legend_colors)) {
+      legend_df <- tip_data[!duplicated(tip_data[[label_col]]), c(label_col, color_col), drop = FALSE]
+      legend_colors <- stats::setNames(as.character(legend_df[[color_col]]), as.character(legend_df[[label_col]]))
+    }
+    colors <- legend_colors
+  }
 
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
@@ -667,21 +774,32 @@ plotSpatialColorTips <- function(object,
       next
     }
     dat$.sirap_tip_color <- spot_color[dat$cell]
+    if (!is.null(label_col)) {
+      dat$.sirap_tip_label <- factor(spot_label[dat$cell], levels = names(colors))
+      dat$.sirap_tip_legend <- dat$.sirap_tip_label
+    } else {
+      dat$.sirap_tip_legend <- dat$.sirap_tip_color
+    }
     p <- .sirap_spatial_base(
       dat,
       spatial$image,
       image.alpha = image.alpha,
       zoom = zoom,
-      crop = crop,
       view_data = spatial$coords
     ) +
       ggplot2::geom_point(
-        ggplot2::aes(color = .data$.sirap_tip_color),
-        size = pt.size.factor,
+        ggplot2::aes(color = .data$.sirap_tip_legend),
+        size = point_size,
         alpha = 1,
         na.rm = TRUE
       ) +
-      ggplot2::scale_color_manual(values = colors, name = "Tip color") +
+      ggplot2::scale_color_manual(
+        values = colors,
+        name = legend_title,
+        breaks = names(colors),
+        limits = names(colors),
+        drop = FALSE
+      ) +
       ggplot2::labs(title = title)
     if (!isTRUE(show.legend)) {
       p <- p + ggplot2::theme(legend.position = "none")
@@ -727,6 +845,10 @@ plotSpatialCloneColorTips <- function(colored_clones,
 
 #' Plot paired BCR lineage trees and matching spatial clone colors
 #'
+#' Tips without spatial coordinates or spatial barcodes can still appear in the
+#' tree panel. The spatial panel only plots tips whose `barcode_col` matches a
+#' spot in `object`.
+#'
 #' @param trees Dowser `getTrees()` output, or a list containing a `trees`
 #'   element with that output.
 #' @param object Seurat object with spatial images.
@@ -748,7 +870,9 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #' @param tree_tip_size Size of tree tip points.
 #' @param treescale Mutational distance shown in the tree scale bar.
 #' @param spatial_tip_size Size of spatial tip points.
-#' @param show_spatial_legend Show the spatial color legend.
+#' @param show_spatial_legend Show a color legend based on the tree tip colors
+#'   below the spatial plot.
+#' @param nproc Number of processes used to build clone tree/spatial plot pairs.
 #' @param ... Additional arguments passed to `plotSpatialColorTips()`.
 #' @return Named list. Each clone element contains `tree` and `spatial_clone`.
 #' @export
@@ -768,8 +892,10 @@ plotSpatialCloneTreePairs <- function(trees,
                                       treescale = 0.01,
                                       spatial_tip_size = 1.6,
                                       show_spatial_legend = FALSE,
+                                      nproc = 1L,
                                       ...) {
   .require_namespace("ggtree")
+  nproc <- .sirap_plot_check_nproc(nproc)
   records <- .sirap_dowser_tree_records(trees)
   if (!is.null(clone_ids)) {
     records <- records[names(records) %in% as.character(clone_ids)]
@@ -778,8 +904,7 @@ plotSpatialCloneTreePairs <- function(trees,
     rlang::abort("No dowser trees matched the requested clone IDs.")
   }
 
-  out <- list()
-  for (clone_id in names(records)) {
+  plot_one_clone <- function(clone_id) {
     record <- records[[clone_id]]
     tree <- record$tree
     clone_data <- .sirap_airr_clone_data(record$data, clone_id = clone_id, clone_col = clone_col)
@@ -788,7 +913,7 @@ plotSpatialCloneTreePairs <- function(trees,
     tip_ids <- setdiff(tree$tip.label, "Germline")
     tip_data <- clone_data[clone_data[[id_col]] %in% tip_ids, , drop = FALSE]
     if (nrow(tip_data) == 0L) {
-      next
+      return(NULL)
     }
     shared_color_col <- NULL
     if (!identical(color_by, "identity")) {
@@ -803,6 +928,8 @@ plotSpatialCloneTreePairs <- function(trees,
       shared_color_col = shared_color_col,
       palette = palette
     )
+    legend_info <- .sirap_spatial_tip_legend_info(colored_tips, color_by = color_by)
+    colored_tips <- legend_info$tip_data
 
     tree_plot <- .sirap_plot_colored_tree(
       tree,
@@ -812,8 +939,20 @@ plotSpatialCloneTreePairs <- function(trees,
       title = paste("Clone", clone_id),
       layout = tree_layout,
       tip_size = tree_tip_size,
-      treescale = treescale
+      treescale = treescale,
+      label_col = ".sirap_tip_legend_label",
+      legend_title = "Tip cluster",
+      legend_colors = legend_info$colors,
+      show.legend = show_spatial_legend,
+      legend.position = "bottom",
+      legend.ncol = min(3L, length(legend_info$colors))
     )
+    tree_legend <- if (isTRUE(show_spatial_legend)) {
+      cowplot::get_legend(tree_plot)
+    } else {
+      NULL
+    }
+    tree_plot <- tree_plot + ggplot2::theme(legend.position = "none")
 
     spatial_plot <- plotSpatialColorTips(
       object,
@@ -823,19 +962,93 @@ plotSpatialCloneTreePairs <- function(trees,
       title = NULL,
       image.scale = image.scale,
       images = images,
-      pt.size.factor = spatial_tip_size,
+      point_size = spatial_tip_size,
       zoom = zoom,
-      show.legend = show_spatial_legend,
+      show.legend = FALSE,
       ...
     )
+    if (!is.null(tree_legend)) {
+      spatial_plot <- cowplot::plot_grid(
+        spatial_plot,
+        tree_legend,
+        ncol = 1,
+        rel_heights = c(1, max(0.18, 0.08 * ceiling(length(legend_info$colors) / 3)))
+      )
+    }
 
-    out[[as.character(clone_id)]] <- list(
+    list(
       tree = tree_plot,
       spatial_clone = spatial_plot
     )
   }
 
+  out <- .sirap_plot_lapply(names(records), plot_one_clone, nproc = nproc)
+  names(out) <- names(records)
+  out <- out[!vapply(out, is.null, logical(1))]
+
   out
+}
+
+.sirap_spatial_tip_legend_info <- function(tip_data, color_by) {
+  tip_data$.sirap_tip_legend_label <- .sirap_spatial_tip_labels(tip_data, color_by = color_by)
+  legend_df <- tip_data[
+    !is.na(tip_data$.sirap_tip_legend_label) &
+      !is.na(tip_data$tip_color),
+    c(".sirap_tip_legend_label", "tip_color", "tip_color_id"),
+    drop = FALSE
+  ]
+  legend_df <- legend_df[order(as.integer(legend_df$tip_color_id)), , drop = FALSE]
+  legend_df <- legend_df[!duplicated(legend_df$.sirap_tip_legend_label), , drop = FALSE]
+
+  spatial <- grepl("^spatial_tip_cluster_[0-9]+$", legend_df$.sirap_tip_legend_label)
+  spatial_df <- legend_df[spatial, , drop = FALSE]
+  if (nrow(spatial_df) > 0L) {
+    spatial_id <- as.integer(sub("^spatial_tip_cluster_", "", spatial_df$.sirap_tip_legend_label))
+    spatial_df <- spatial_df[order(spatial_id), , drop = FALSE]
+  }
+  other_df <- legend_df[!spatial, , drop = FALSE]
+  legend_df <- rbind(spatial_df, other_df)
+
+  list(
+    tip_data = tip_data,
+    colors = stats::setNames(
+      as.character(legend_df$tip_color),
+      as.character(legend_df$.sirap_tip_legend_label)
+    )
+  )
+}
+
+.sirap_spatial_tip_labels <- function(tip_data, color_by) {
+  if (!identical(color_by, "identity") && color_by %in% colnames(tip_data)) {
+    values <- as.character(tip_data[[color_by]])
+    spatial_cluster <- grepl("^tree_cluster_[0-9]+$", values)
+    values[spatial_cluster] <- paste0(
+      "spatial_tip_cluster_",
+      sub("^tree_cluster_", "", values[spatial_cluster])
+    )
+    values
+  } else {
+    paste0("spatial_tip_cluster_", as.integer(tip_data$tip_color_id))
+  }
+}
+
+.sirap_plot_check_nproc <- function(nproc) {
+  nproc <- as.integer(nproc)
+  if (is.na(nproc) || nproc < 1L) {
+    rlang::abort("`nproc` must be a positive integer.")
+  }
+  nproc
+}
+
+.sirap_plot_lapply <- function(x, fun, nproc) {
+  if (nproc == 1L || length(x) <= 1L) {
+    return(lapply(x, fun))
+  }
+  if (.Platform$OS.type == "windows") {
+    warning("Parallel plotting with `nproc > 1` is not supported on Windows; using `nproc = 1`.", call. = FALSE)
+    return(lapply(x, fun))
+  }
+  parallel::mclapply(x, fun, mc.cores = nproc)
 }
 
 #' Save paired clone tree and spatial plots to a PDF
@@ -844,33 +1057,79 @@ plotSpatialCloneTreePairs <- function(trees,
 #' @param path PDF path.
 #' @param width,height PDF page size in inches.
 #' @param rel_widths Relative widths for tree and spatial panels.
+#' @param nproc Number of processes used to render PDF pages. Parallel PDF
+#'   rendering requires the optional `qpdf` package to combine pages; otherwise
+#'   the function falls back to serial rendering.
 #' @return Invisibly returns `path`.
 #' @export
 spatialCloneTreePairsToPDF <- function(pairs,
                                        path,
                                        width = 12,
                                        height = 6,
-                                       rel_widths = c(1.2, 1)) {
+                                       rel_widths = c(1.2, 1),
+                                       nproc = 1L) {
   if (length(pairs) == 0L) {
     rlang::abort("`pairs` does not contain any clone tree/spatial plots.")
   }
+  nproc <- .sirap_plot_check_nproc(nproc)
   .ensure_dir(path)
+
+  if (nproc > 1L && .Platform$OS.type != "windows" && requireNamespace("qpdf", quietly = TRUE)) {
+    tmp_dir <- tempfile("sirap_clone_tree_pairs_pdf_")
+    dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
+    on.exit(unlink(tmp_dir, recursive = TRUE, force = TRUE), add = TRUE)
+
+    page_paths <- file.path(tmp_dir, sprintf("page_%05d.pdf", seq_along(pairs)))
+    .sirap_plot_lapply(seq_along(pairs), function(i) {
+      .sirap_write_clone_tree_pair_pdf(
+        pair = pairs[[i]],
+        path = page_paths[[i]],
+        width = width,
+        height = height,
+        rel_widths = rel_widths
+      )
+      page_paths[[i]]
+    }, nproc = nproc)
+
+    qpdf::pdf_combine(input = page_paths, output = path)
+    return(invisible(path))
+  }
+
+  if (nproc > 1L) {
+    warning(
+      "Parallel PDF rendering requires a non-Windows platform and the optional `qpdf` package; using `nproc = 1`.",
+      call. = FALSE
+    )
+  }
 
   grDevices::pdf(path, width = width, height = height)
   on.exit(grDevices::dev.off(), add = TRUE)
 
   for (pair in pairs) {
-    print(
-      cowplot::plot_grid(
-        pair$tree,
-        pair$spatial_clone,
-        ncol = 2,
-        rel_widths = rel_widths
-      )
-    )
+    print(.sirap_clone_tree_pair_grid(pair, rel_widths = rel_widths))
   }
 
   invisible(path)
+}
+
+.sirap_write_clone_tree_pair_pdf <- function(pair,
+                                             path,
+                                             width,
+                                             height,
+                                             rel_widths) {
+  grDevices::pdf(path, width = width, height = height)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  print(.sirap_clone_tree_pair_grid(pair, rel_widths = rel_widths))
+  invisible(path)
+}
+
+.sirap_clone_tree_pair_grid <- function(pair, rel_widths) {
+  cowplot::plot_grid(
+    pair$tree,
+    pair$spatial_clone,
+    ncol = 2,
+    rel_widths = rel_widths
+  )
 }
 
 .sirap_dowser_tree_records <- function(trees) {
@@ -946,23 +1205,59 @@ spatialCloneTreePairsToPDF <- function(pairs,
                                      title,
                                      layout,
                                      tip_size,
-                                     treescale) {
+                                     treescale,
+                                     label_col = NULL,
+                                     legend_title = "Tip cluster",
+                                     legend_colors = NULL,
+                                     show.legend = FALSE,
+                                     legend.position = "right",
+                                     legend.ncol = NULL) {
   p <- ggtree::ggtree(tree, layout = layout)
-  join_data <- tip_data[, c(id_col, color_col), drop = FALSE]
+  join_cols <- c(id_col, color_col)
+  if (!is.null(label_col)) {
+    join_cols <- c(join_cols, label_col)
+  }
+  join_data <- tip_data[, join_cols, drop = FALSE]
   join_data <- join_data[!duplicated(join_data[[id_col]]), , drop = FALSE]
   idx <- match(p$data$label, join_data[[id_col]])
   p$data[[color_col]] <- join_data[[color_col]][idx]
-  p +
+  if (!is.null(label_col)) {
+    p$data[[label_col]] <- factor(join_data[[label_col]][idx], levels = names(legend_colors))
+  }
+  color_aes_col <- if (is.null(label_col)) color_col else label_col
+
+  p <- p +
     ggtree::geom_tippoint(
-      ggplot2::aes(color = .data[[color_col]]),
+      ggplot2::aes(color = .data[[color_aes_col]]),
       size = tip_size,
       na.rm = TRUE
     ) +
     ggtree::geom_treescale(width = treescale) +
-    ggplot2::scale_color_identity() +
-    ggplot2::ggtitle(title) +
+    ggplot2::ggtitle(title)
+
+  if (is.null(label_col)) {
+    p <- p + ggplot2::scale_color_identity()
+  } else {
+    p <- p +
+      ggplot2::scale_color_manual(
+        values = legend_colors,
+        name = legend_title,
+        breaks = names(legend_colors),
+        limits = names(legend_colors),
+        drop = FALSE
+      ) +
+      ggplot2::guides(
+        color = ggplot2::guide_legend(
+          ncol = legend.ncol,
+          byrow = TRUE,
+          override.aes = list(size = tip_size)
+        )
+      )
+  }
+
+  p +
     ggplot2::theme(
-      legend.position = "none",
+      legend.position = if (isTRUE(show.legend)) legend.position else "none",
       plot.title = ggplot2::element_text(hjust = 0)
     )
 }
@@ -980,8 +1275,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
   images
 }
 
-.sirap_fetch_data <- function(object, vars, layer = "counts", slot = NULL) {
-  layer <- slot %||% layer
+.sirap_fetch_data <- function(object, vars, layer = "counts") {
   out <- tryCatch(
     SeuratObject::FetchData(object, vars = vars, layer = layer),
     error = function(e) {
@@ -1023,7 +1317,6 @@ spatialCloneTreePairsToPDF <- function(pairs,
                                 image,
                                 image.alpha = 1,
                                 zoom = FALSE,
-                                crop = NULL,
                                 view_data = NULL) {
   raster <- .sirap_image_raster(image, alpha = image.alpha)
   image_dim <- dim(raster)
@@ -1032,9 +1325,6 @@ spatialCloneTreePairsToPDF <- function(pairs,
 
   xlim <- c(0, width)
   ylim <- c(-height, 0)
-  if (!is.null(crop)) {
-    zoom <- crop
-  }
   limit_data <- if (isTRUE(zoom)) plot_data else view_data %||% plot_data
   if (!is.null(limit_data) && nrow(limit_data) > 0L) {
     xlim <- .sirap_pad_range(limit_data$x, fallback = xlim)

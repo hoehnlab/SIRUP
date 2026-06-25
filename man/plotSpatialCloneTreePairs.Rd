@@ -21,6 +21,7 @@ plotSpatialCloneTreePairs(
   treescale = 0.01,
   spatial_tip_size = 1.6,
   show_spatial_legend = FALSE,
+  nproc = 1L,
   ...
 )
 }
@@ -61,7 +62,10 @@ shows the full tissue area covered by spatial coordinates.}
 
 \item{spatial_tip_size}{Size of spatial tip points.}
 
-\item{show_spatial_legend}{Show the spatial color legend.}
+\item{show_spatial_legend}{Show a color legend based on the tree tip colors
+below the spatial plot.}
+
+\item{nproc}{Number of processes used to build clone tree/spatial plot pairs.}
 
 \item{...}{Additional arguments passed to \code{plotSpatialColorTips()}.}
 }
@@ -70,4 +74,9 @@ Named list. Each clone element contains \code{tree} and \code{spatial_clone}.
 }
 \description{
 Plot paired BCR lineage trees and matching spatial clone colors
+}
+\details{
+Tips without spatial coordinates or spatial barcodes can still appear in the
+tree panel. The spatial panel only plots tips whose \code{barcode_col} matches a
+spot in \code{object}.
 }

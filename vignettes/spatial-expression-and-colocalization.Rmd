@@ -78,7 +78,7 @@ cd3ePlot <- spatialExpressionPlot(
   assay = "Spatial.008um",
   layer = "counts",
   feature_colors = c("grey80", "#d95f02"),
-  pt.size.factor = 0.3
+  point_size = 0.3
 )
 
 ms4a1Plot <- spatialExpressionPlot(
@@ -87,7 +87,7 @@ ms4a1Plot <- spatialExpressionPlot(
   assay = "Spatial.008um",
   layer = "counts",
   feature_colors = c("grey80", "#2c7fb8"),
-  pt.size.factor = 0.3
+  point_size = 0.3
 )
 
 cowplot::plot_grid(cd3ePlot, ms4a1Plot, ncol = 2)
@@ -287,7 +287,7 @@ spatialExpressionBlendPlot(
   features = c("CXCR4", "CXCR5"),
   assay = "Spatial.008um",
   layer = "counts",
-  pt.size.factor = 0.2,
+  point_size = 0.2,
   only_blended = TRUE,
   top_left = "blue",
   bottom_left = "grey50",

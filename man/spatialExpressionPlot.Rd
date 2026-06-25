@@ -9,18 +9,14 @@ spatialExpressionPlot(
   features,
   assay = NULL,
   layer = "counts",
-  slot = NULL,
   images = NULL,
   image.scale = "hires",
   feature_colors = c("#D3D3D3", "#FFFF00"),
   zero_tol = 0,
   point_size = 0.6,
-  pt.size.factor = NULL,
   image.alpha = 1,
   zoom = FALSE,
-  crop = NULL,
-  combine = TRUE,
-  ...
+  combine = TRUE
 )
 }
 \arguments{
@@ -31,8 +27,6 @@ spatialExpressionPlot(
 \item{assay}{Optional assay to set before plotting.}
 
 \item{layer}{Seurat expression layer to fetch.}
-
-\item{slot}{Deprecated Seurat slot alias for \code{layer}.}
 
 \item{images}{Optional Seurat image names.}
 
@@ -46,19 +40,12 @@ value.}
 
 \item{point_size}{Size of plotted spots.}
 
-\item{pt.size.factor}{Alias for \code{point_size} for compatibility.}
-
 \item{image.alpha}{Tissue image opacity.}
 
 \item{zoom}{Zoom to non-zero spots. Defaults to \code{FALSE}, which shows the
 full tissue area covered by the spatial coordinates.}
 
-\item{crop}{Deprecated alias for \code{zoom}.}
-
 \item{combine}{Combine plots with patchwork when possible.}
-
-\item{...}{Ignored; accepted for compatibility with older plotting
-calls.}
 }
 \value{
 A ggplot/patchwork object, list, or \code{NULL} when all spots are zero.

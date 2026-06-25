@@ -9,7 +9,6 @@
 #' @param barcode_col Barcode column in `receptors`.
 #' @param positive Convert feature values to a positive-expression indicator.
 #' @param layer Seurat expression layer to fetch for features.
-#' @param slot Deprecated Seurat slot alias for `layer`.
 #' @param images Optional Seurat image names.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param zero_tol Values at or below this threshold are treated as zero.
@@ -24,7 +23,6 @@ spatialVariableData <- function(object,
                                 barcode_col = "barcode_8um",
                                 positive = FALSE,
                                 layer = "counts",
-                                slot = NULL,
                                 images = NULL,
                                 image.scale = "hires",
                                 zero_tol = 0,
@@ -35,7 +33,7 @@ spatialVariableData <- function(object,
   dat <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale)
 
   if (variable_type == "feature") {
-    expr <- .sirap_fetch_data(object, vars = variable, layer = layer, slot = slot)
+    expr <- .sirap_fetch_data(object, vars = variable, layer = layer)
     dat <- merge(dat, expr, by.x = "cell", by.y = 0, all.x = TRUE)
     dat$value <- dat[[variable]]
     if (isTRUE(positive)) {
@@ -94,7 +92,6 @@ spatialMoran <- function(object,
                          barcode_col = "barcode_8um",
                          positive = FALSE,
                          layer = "counts",
-                         slot = NULL,
                          images = NULL,
                          image.scale = "hires",
                          zero_tol = 0,
@@ -112,7 +109,6 @@ spatialMoran <- function(object,
     barcode_col = barcode_col,
     positive = positive,
     layer = layer,
-    slot = slot,
     images = images,
     image.scale = image.scale,
     zero_tol = zero_tol
@@ -151,7 +147,6 @@ spatialLocalMoran <- function(object,
                               barcode_col = "barcode_8um",
                               positive = FALSE,
                               layer = "counts",
-                              slot = NULL,
                               images = NULL,
                               image.scale = "hires",
                               zero_tol = 0,
@@ -169,7 +164,6 @@ spatialLocalMoran <- function(object,
     barcode_col = barcode_col,
     positive = positive,
     layer = layer,
-    slot = slot,
     images = images,
     image.scale = image.scale,
     zero_tol = zero_tol

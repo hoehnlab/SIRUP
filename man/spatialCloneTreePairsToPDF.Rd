@@ -9,7 +9,8 @@ spatialCloneTreePairsToPDF(
   path,
   width = 12,
   height = 6,
-  rel_widths = c(1.2, 1)
+  rel_widths = c(1.2, 1),
+  nproc = 1L
 )
 }
 \arguments{
@@ -20,6 +21,10 @@ spatialCloneTreePairsToPDF(
 \item{width, height}{PDF page size in inches.}
 
 \item{rel_widths}{Relative widths for tree and spatial panels.}
+
+\item{nproc}{Number of processes used to render PDF pages. Parallel PDF
+rendering requires the optional \code{qpdf} package to combine pages; otherwise
+the function falls back to serial rendering.}
 }
 \value{
 Invisibly returns \code{path}.

@@ -12,12 +12,9 @@ spatialDiscretePlot(
   image.scale = "hires",
   cols = NULL,
   point_size = 1.6,
-  pt.size.factor = NULL,
   image.alpha = 1,
   zoom = FALSE,
-  crop = NULL,
-  combine = TRUE,
-  ...
+  combine = TRUE
 )
 }
 \arguments{
@@ -35,19 +32,12 @@ spatialDiscretePlot(
 
 \item{point_size}{Size of plotted spots.}
 
-\item{pt.size.factor}{Alias for \code{point_size} for compatibility.}
-
 \item{image.alpha}{Tissue image opacity.}
 
 \item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
 full tissue area covered by the spatial coordinates.}
 
-\item{crop}{Deprecated alias for \code{zoom}.}
-
 \item{combine}{Combine plots with patchwork when possible.}
-
-\item{...}{Ignored; accepted for compatibility with older plotting
-calls.}
 }
 \value{
 A ggplot/patchwork object, list, or \code{NULL} when all spots are blank.

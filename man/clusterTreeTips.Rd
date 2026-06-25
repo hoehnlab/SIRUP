@@ -2,7 +2,7 @@
 % Please edit documentation in R/clones.R
 \name{clusterTreeTips}
 \alias{clusterTreeTips}
-\title{Cluster tree tips by cutting the longest branches}
+\title{Cluster tree tips by cutting tree branches}
 \usage{
 clusterTreeTips(
   tree,
@@ -10,7 +10,9 @@ clusterTreeTips(
   id_col = "sequence_id",
   cluster_col = "tree_cluster",
   ignore_tips = "Germline",
-  prefix = "tree_cluster_"
+  prefix = "tree_cluster_",
+  method = c("cut_largest_branches", "split_largest_subtrees"),
+  cut_terminal_edges = TRUE
 )
 }
 \arguments{
@@ -18,7 +20,8 @@ clusterTreeTips(
 \code{tip.label} fields.}
 
 \item{k}{Number of connected tree components to form before ignored tips are
-removed.}
+removed. If larger than the number of tips in the tree, a warning is
+raised and \code{k} is set to the number of tips for that tree.}
 
 \item{id_col}{Name of the returned tip identifier column.}
 
@@ -28,14 +31,56 @@ removed.}
 for example \code{"Germline"}.}
 
 \item{prefix}{Prefix used for cluster labels.}
+
+\item{method}{Tree clustering method. \code{"cut_largest_branches"} removes the
+\code{k - 1} longest eligible branches globally. \code{"split_largest_subtrees"}
+repeatedly splits the largest remaining tip-containing subtree.}
+
+\item{cut_terminal_edges}{Cut terminal branches when choosing the longest
+branches to remove. Defaults to \code{TRUE}; set to \code{FALSE} to prioritize
+internal branches that split larger clades.}
 }
 \value{
 Data frame with one row per retained tip and a tree-cluster label.
 }
 \description{
-Partitions a phylogenetic tree into connected components by cutting the
-\code{k - 1} longest branches. This is the graph-theoretic tree clustering
+Partitions a phylogenetic tree into connected components by cutting \code{k - 1}
+branches. A connected component is one disconnected tree piece left after
+branch cuts; tips in the same component receive the same cluster label.
+}
+\details{
+With \code{method = "cut_largest_branches"}, the function cuts the longest
+eligible branches globally. This is the graph-theoretic tree clustering
 heuristic used for fixed-k minimum spanning tree clustering, applied to a
-phylogenetic tree. Cutting long branches keeps genetically similar tips in
-the same connected subtree.
+phylogenetic tree.
+
+With \code{method = "split_largest_subtrees"}, the function recursively splits the
+current component with the largest genetic span, measured as the largest
+patristic distance between any two tips in that component. Within that
+component, candidate cuts must split it into two non-empty tip-containing
+components. The selected cut maximizes the size of the smaller daughter
+component, and branch length is used as a tie-breaker. Setting
+\code{cut_terminal_edges = FALSE} makes the function prefer internal branches,
+which usually avoids peeling off long single-tip branches before larger clades
+have been split.
+
+More explicitly, \code{method = "split_largest_subtrees"} works as follows:
+\enumerate{
+\item Start with the full tree as one connected component.
+\item Repeat until \code{k - 1} branches have been cut, or no valid cut remains.
+\item Calculate the genetic span of each current component as the largest
+patristic distance between any two tips in that component.
+\item Choose the component with the largest genetic span, using tip count as a
+tie-breaker.
+\item Consider eligible branches inside that component. If
+\code{cut_terminal_edges = FALSE}, internal branches are tried first and
+terminal branches are used only as a fallback.
+\item Keep only candidate cuts that split the component into two non-empty
+tip-containing daughter components.
+\item Choose the candidate cut that maximizes the size of the smaller daughter
+component, using branch length as the tie-breaker.
+\item Cut that branch and repeat.
+\item Label the final connected components as \code{tree_cluster_1},
+\code{tree_cluster_2}, and so on.
+}
 }
