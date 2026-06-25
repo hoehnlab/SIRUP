@@ -197,6 +197,8 @@ spatialLocalMoran <- function(object,
 #' @param colors Three colors for low, midpoint, and high values.
 #' @param midpoint Color midpoint.
 #' @param point_size Point size.
+#' @param point_alpha Point opacity.
+#' @param order_points Plot lower values first so higher values appear on top.
 #' @param image.alpha Tissue image opacity.
 #' @param zoom Zoom to plotted points.
 #' @param title Optional title.
@@ -210,6 +212,8 @@ plotSpatialLocalMoran <- function(object,
                                   colors = c("#2c7bb6", "#f7f7f7", "#d7191c"),
                                   midpoint = 0,
                                   point_size = 0.7,
+                                  point_alpha = 1,
+                                  order_points = TRUE,
                                   image.alpha = 1,
                                   zoom = FALSE,
                                   title = NULL) {
@@ -221,6 +225,9 @@ plotSpatialLocalMoran <- function(object,
     if (nrow(plot_data) == 0L) {
       next
     }
+    if (isTRUE(order_points)) {
+      plot_data <- plot_data[order(plot_data[[value_col]], na.last = TRUE), , drop = FALSE]
+    }
     plots[[image]] <- .sirap_spatial_base(
       plot_data,
       spatial$image,
@@ -231,7 +238,7 @@ plotSpatialLocalMoran <- function(object,
       ggplot2::geom_point(
         ggplot2::aes(color = .data[[value_col]]),
         size = point_size,
-        alpha = 1,
+        alpha = point_alpha,
         na.rm = TRUE
       ) +
       ggplot2::scale_color_gradient2(

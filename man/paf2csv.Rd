@@ -2,33 +2,22 @@
 % Please edit documentation in R/script_wrappers.R
 \name{paf2csv}
 \alias{paf2csv}
-\title{Convert PAF to CSV via native R or shell script}
+\title{Convert PAF to CSV}
 \usage{
-paf2csv(
-  input_paf,
-  output_dir,
-  engine = c("R", "shell"),
-  script_dir = NULL,
-  include_rest = TRUE,
-  nthreads = 1L
-)
+paf2csv(input_paf, output_dir, include_rest = TRUE, nthreads = 1L)
 }
 \arguments{
 \item{input_paf}{path to \code{.paf} or \code{.paf.gz}}
 
 \item{output_dir}{output directory}
 
-\item{engine}{either \code{"R"} (native parser) or \code{"shell"} (runs \code{paf2csv.sh})}
+\item{include_rest}{whether to include a \code{rest} column (full original PAF line) in \code{output.csv}}
 
-\item{script_dir}{optional script directory when \code{engine = "shell"}}
-
-\item{include_rest}{passed to \code{paf2csvR()} when \code{engine = "R"}}
-
-\item{nthreads}{passed to \code{paf2csvR()} when \code{engine = "R"}}
+\item{nthreads}{\code{data.table::fread} thread count}
 }
 \value{
-Invisible list of output paths
+Invisible list with output paths and row count
 }
 \description{
-Convert PAF to CSV via native R or shell script
+Writes two outputs: \code{output.csv} and \code{output_processed.csv}.
 }

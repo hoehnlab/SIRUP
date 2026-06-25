@@ -21,6 +21,8 @@ spatialExpressionBlendPlot(
   images = NULL,
   image.scale = "hires",
   point_size = 0.6,
+  point_alpha = 1,
+  order_points = TRUE,
   image.alpha = 1,
   zoom = FALSE
 )
@@ -51,6 +53,11 @@ two-feature blend grid.}
 \item{image.scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{point_size}{Size of plotted spots.}
+
+\item{point_alpha}{Opacity for plotted spots.}
+
+\item{order_points}{Plot lower blended expression intensity first so higher
+intensity spots appear on top.}
 
 \item{image.alpha}{Tissue image opacity.}
 

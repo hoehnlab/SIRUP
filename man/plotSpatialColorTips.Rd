@@ -15,6 +15,8 @@ plotSpatialColorTips(
   title = NULL,
   image.scale = "hires",
   point_size = 1.6,
+  point_alpha = 1,
+  order_points = TRUE,
   images = NULL,
   image.alpha = 1,
   zoom = FALSE,
@@ -41,6 +43,11 @@ plotSpatialColorTips(
 \item{image.scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{point_size}{Size of plotted tips.}
+
+\item{point_alpha}{Opacity for plotted tips.}
+
+\item{order_points}{Plot earlier tip-color groups first so later groups
+appear on top.}
 
 \item{images}{Optional Seurat image names.}
 

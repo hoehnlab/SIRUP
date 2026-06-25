@@ -15,9 +15,7 @@ processSpatialSample(
   igblast_exec = "~/software/igblast/bin/igblastn",
   muscle_exec = "~/software/muscle3.8.31_i86linux64",
   nproc = 8,
-  cluster_field = "barcode2um",
-  dry_run = FALSE,
-  echo = TRUE
+  cluster_field = "barcode2um"
 )
 }
 \arguments{
@@ -43,10 +41,6 @@ input FASTA directory.}
 \item{nproc}{Number of processors for pRESTO steps.}
 
 \item{cluster_field}{FASTA header field used for within-spot clustering.}
-
-\item{dry_run}{Print commands without executing them.}
-
-\item{echo}{Print each command before running it.}
 }
 \value{
 A named list of output paths, invisibly.
@@ -54,5 +48,5 @@ A named list of output paths, invisibly.
 \description{
 This keeps users inside R while running the external Immcantation/pRESTO
 command-line tools. Output from each command is printed directly to the R
-console via \code{system2(stdout = "", stderr = "")}.
+console via \code{system()}.
 }

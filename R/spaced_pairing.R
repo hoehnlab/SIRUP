@@ -391,7 +391,10 @@ buildRepairInputMatrix <- function(heavy_points,
 writeRepairInputMatrix <- function(repair_input,
                                    path,
                                    include_barcode = TRUE) {
-  .ensure_dir(path)
+  out_dir <- dirname(path)
+  if (!dir.exists(out_dir)) {
+    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  }
   if (inherits(repair_input, "Matrix")) {
     df <- as.data.frame(as.matrix(repair_input), check.names = FALSE)
     if (include_barcode) {

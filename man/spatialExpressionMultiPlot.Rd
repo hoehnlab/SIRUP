@@ -16,6 +16,8 @@ spatialExpressionMultiPlot(
   images = NULL,
   image.scale = "hires",
   point_size = 0.6,
+  point_alpha = 1,
+  order_points = TRUE,
   zero_tol = 0,
   image.alpha = 1,
   zoom = FALSE
@@ -44,6 +46,11 @@ rare/high priority last.}
 \item{image.scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{point_size}{Size of plotted spots.}
+
+\item{point_alpha}{Opacity for plotted spots.}
+
+\item{order_points}{Plot lower-priority feature assignments first so later
+feature levels appear on top.}
 
 \item{zero_tol}{Values at or below this threshold are treated as zero.}
 

@@ -20,6 +20,8 @@ plotSpatialCloneTreePairs(
   tree_tip_size = 2.5,
   treescale = 0.01,
   spatial_tip_size = 1.6,
+  spatial_tip_alpha = 1,
+  order_points = TRUE,
   show_spatial_legend = FALSE,
   nproc = 1L,
   ...
@@ -61,6 +63,11 @@ shows the full tissue area covered by spatial coordinates.}
 \item{treescale}{Mutational distance shown in the tree scale bar.}
 
 \item{spatial_tip_size}{Size of spatial tip points.}
+
+\item{spatial_tip_alpha}{Opacity for spatial tip points.}
+
+\item{order_points}{Plot earlier spatial tip-color groups first so later
+groups appear on top.}
 
 \item{show_spatial_legend}{Show a color legend based on the tree tip colors
 below the spatial plot.}

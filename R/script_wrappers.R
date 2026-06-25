@@ -1,81 +1,6 @@
-# Resolve shell-script paths in both source tree and installed package layouts.
-.rad_resolve_script_path <- function(script, script_dir = NULL) {
-  candidates <- character()
-
-  if (!is.null(script_dir)) {
-    candidates <- c(candidates, file.path(script_dir, script))
-  }
-
-  pkg_script <- system.file("scripts", script, package = "rad")
-  if (nzchar(pkg_script)) {
-    candidates <- c(candidates, pkg_script)
-  }
-
-  wd <- getwd()
-  candidates <- c(
-    candidates,
-    file.path(wd, "scripts", script),
-    file.path(wd, "inst", "scripts", script)
-  )
-
-  existing <- unique(candidates[file.exists(candidates)])
-  if (length(existing) == 0) {
-    stop(
-      "Could not resolve script '",
-      script,
-      "'. Set `script_dir` explicitly or run from the package root."
-    )
-  }
-
-  normalizePath(existing[[1]], mustWork = TRUE)
-}
-
-#' Run a shell script from R
+#' Convert PAF to CSV
 #'
-#' @param script script filename (for example, `"extract_rad_headers.sh"`)
-#' @param args character vector of CLI arguments passed to the script
-#' @param script_dir optional directory containing scripts
-#' @param env optional environment variables (`c("KEY=VALUE")`)
-#' @param intern whether to capture combined stdout/stderr and return it
-#' @return If `intern = FALSE`, an invisible list with script path and status. If `intern = TRUE`, captured output lines.
-#' @export
-runShellScript <- function(script,
-                             args = character(),
-                             script_dir = NULL,
-                             env = character(),
-                             intern = FALSE) {
-  script_path <- .rad_resolve_script_path(script = script, script_dir = script_dir)
-
-  output <- system2(
-    command = "bash",
-    args = c(script_path, args),
-    env = env,
-    stdout = if (intern) TRUE else "",
-    stderr = if (intern) TRUE else ""
-  )
-
-  if (intern) {
-    status <- attr(output, "status")
-    if (is.null(status)) {
-      status <- 0L
-    }
-    if (!identical(as.integer(status), 0L)) {
-      stop("Script failed with status ", status, ": ", script_path)
-    }
-    return(output)
-  }
-
-  if (!identical(as.integer(output), 0L)) {
-    stop("Script failed with status ", output, ": ", script_path)
-  }
-
-  invisible(list(script = script_path, status = 0L))
-}
-
-#' Convert PAF to CSV natively in R
-#'
-#' This is a native-R replacement for `scripts/paf2csv.sh` and writes the same two
-#' outputs: `output.csv` and `output_processed.csv`.
+#' Writes two outputs: `output.csv` and `output_processed.csv`.
 #'
 #' @param input_paf path to `.paf` or `.paf.gz`
 #' @param output_dir output directory
@@ -83,10 +8,10 @@ runShellScript <- function(script,
 #' @param nthreads `data.table::fread` thread count
 #' @return Invisible list with output paths and row count
 #' @export
-paf2csvR <- function(input_paf,
-                      output_dir,
-                      include_rest = TRUE,
-                      nthreads = 1L) {
+paf2csv <- function(input_paf,
+                    output_dir,
+                    include_rest = TRUE,
+                    nthreads = 1L) {
   if (!file.exists(input_paf)) {
     stop("Input PAF does not exist: ", input_paf)
   }
@@ -177,43 +102,3 @@ paf2csvR <- function(input_paf,
     n_rows = nrow(out)
   ))
 }
-
-#' Convert PAF to CSV via native R or shell script
-#'
-#' @param input_paf path to `.paf` or `.paf.gz`
-#' @param output_dir output directory
-#' @param engine either `"R"` (native parser) or `"shell"` (runs `paf2csv.sh`)
-#' @param script_dir optional script directory when `engine = "shell"`
-#' @param include_rest passed to `paf2csvR()` when `engine = "R"`
-#' @param nthreads passed to `paf2csvR()` when `engine = "R"`
-#' @return Invisible list of output paths
-#' @export
-paf2csv <- function(input_paf,
-                    output_dir,
-                    engine = c("R", "shell"),
-                    script_dir = NULL,
-                    include_rest = TRUE,
-                    nthreads = 1L) {
-  engine <- match.arg(engine)
-
-  if (engine == "R") {
-    return(paf2csvR(
-      input_paf = input_paf,
-      output_dir = output_dir,
-      include_rest = include_rest,
-      nthreads = nthreads
-    ))
-  }
-
-  runShellScript(
-    script = "paf2csv.sh",
-    args = c(input_paf, output_dir),
-    script_dir = script_dir
-  )
-
-  invisible(list(
-    output_csv = normalizePath(file.path(output_dir, "output.csv"), mustWork = FALSE),
-    output_processed_csv = normalizePath(file.path(output_dir, "output_processed.csv"), mustWork = FALSE)
-  ))
-}
-

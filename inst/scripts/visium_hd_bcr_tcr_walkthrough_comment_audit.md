@@ -12,7 +12,7 @@ This document records walkthrough comments that were resolved and removed from
 | Empty setup TODO | Removed because there was no actionable item attached to it. | 2026-06-02 |
 | `Should processSpatialAirr() print a drop-count summary? Yes` | `processSpatialAirr()` now messages how many rows were kept and dropped. | 2026-06-02 |
 | `Should full_id include barcode16um too? No...` | No code change was needed; `full_id` remains tied to the provided barcode column, and 8 um/16 um barcodes are joined after pRESTO/IgBLAST. | 2026-06-02 |
-| `Change name from runPrestoIgblastSample to processSpatialSample` | The pRESTO/IgBLAST single-sample function and docs now use `processSpatialSample()`, and `runPrestoIgblastPipeline()` calls the new name. | 2026-06-02 |
+| `Change name from runPrestoIgblastSample to processSpatialSample` | The pRESTO/IgBLAST single-sample function and docs now use `processSpatialSample()`, and the multi-sample wrapper is now `processSpatialSamples()`. | 2026-06-02 |
 | `Should runPrestoIgblastSample() check all external executables first? No...` | No preflight executable check was added; command failures continue to surface at the command that failed, with the command line printed. | 2026-06-02 |
 | `TODO: @Codex update this section and clean it up` | The closed note was removed; the section now reads as walkthrough prose around the contiguous identical-sequence collapse example. | 2026-06-02 |
 | `Should the post-pRESTO block become a single high-level function? No...` | No high-level wrapper was added; the walkthrough keeps the individual post-pRESTO processing steps visible. | 2026-06-02 |

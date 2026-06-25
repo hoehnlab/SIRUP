@@ -12,6 +12,8 @@ spatialDiscretePlot(
   image.scale = "hires",
   cols = NULL,
   point_size = 1.6,
+  point_alpha = 1,
+  order_points = TRUE,
   image.alpha = 1,
   zoom = FALSE,
   combine = TRUE
@@ -31,6 +33,11 @@ spatialDiscretePlot(
 \item{cols}{Optional named color vector.}
 
 \item{point_size}{Size of plotted spots.}
+
+\item{point_alpha}{Opacity for plotted spots.}
+
+\item{order_points}{Plot lower numeric values or earlier factor levels first
+so higher/later values appear on top.}
 
 \item{image.alpha}{Tissue image opacity.}
 

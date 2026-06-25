@@ -66,6 +66,7 @@ Suggests:
     SeuratObject,
     seqinr,
     sf,
+    shiny,
     spatstat.explore,
     spatstat.geom,
     spatstat.random,
