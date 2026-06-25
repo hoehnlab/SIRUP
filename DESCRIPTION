@@ -22,6 +22,7 @@ SystemRequirements: rad CLI (https://github.com/indianewok/rad)
 Depends:
     R (>= 4.1.0)
 Imports:
+    ape,
     bit64,
     cli,
     data.table,

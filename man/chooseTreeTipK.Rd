@@ -10,7 +10,9 @@ chooseTreeTipK(
   criterion = c("relative_improvement", "elbow"),
   score = c("mean_pairwise", "sum_pairwise"),
   improvement_threshold = 0.1,
-  ignore_tips = "Germline"
+  ignore_tips = "Germline",
+  method = c("cut_largest_branches", "split_largest_subtrees"),
+  cut_terminal_edges = TRUE
 )
 }
 \arguments{
@@ -33,6 +35,8 @@ the total within-cluster patristic distance.}
 
 \item{ignore_tips}{Optional tip labels to drop before scoring, for example
 \code{"Germline"}.}
+
+\item{method, cut_terminal_edges}{Arguments passed to \code{clusterTreeTips()}.}
 }
 \value{
 List with selected \code{k} and a candidate score data frame.

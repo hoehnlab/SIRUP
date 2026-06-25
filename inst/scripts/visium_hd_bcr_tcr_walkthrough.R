@@ -563,7 +563,7 @@ if (!is.null(thymus)) {
     meta_col = "sirap_receptor_type",
     zero_value = "0",
     image.scale = "hires",
-    pt.size.factor = 0.5,
+    point_size = 0.5,
     cols = c("BCR" = "#2c7fb8", "TCR" = "#d95f02", "BCR + TCR" = "white")
   ) +
     ggtitle(paste(sampleId, "BCR and TCR locations"))
@@ -635,9 +635,9 @@ if (!is.null(thymus)) {
     thymus,
     features = c("CXCR4", "CXCR5"),
     assay = "Spatial.008um",
-    slot = "counts",
+    layer = "counts",
     image.scale = "hires",
-    pt.size.factor = 0.2,
+    point_size = 0.2,
     only_blended = TRUE,
     top_left = "blue",
     bottom_left = "grey50",
@@ -725,7 +725,7 @@ if (!is.null(thymus)) {
     meta_col = "sirap_receptor_type",
     zero_value = "0",
     cols = c("BCR" = "#2c7fb8", "TCR" = "#d95f02", "BCR + TCR" = "white"),
-    pt.size.factor = 0.5
+    point_size = 0.5
   ) +
     ggtitle(paste(sampleId, "BCR, TCR, and dual-positive spots"))
   if (savePlots) {

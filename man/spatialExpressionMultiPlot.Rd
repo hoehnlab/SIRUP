@@ -11,18 +11,14 @@ spatialExpressionMultiPlot(
   combine = TRUE,
   assay = NULL,
   layer = "counts",
-  slot = NULL,
   colors = NULL,
   breadth_metric = c("n_expressing"),
   images = NULL,
   image.scale = "hires",
   point_size = 0.6,
-  pt.size.factor = NULL,
   zero_tol = 0,
   image.alpha = 1,
-  zoom = FALSE,
-  crop = NULL,
-  ...
+  zoom = FALSE
 )
 }
 \arguments{
@@ -39,8 +35,6 @@ rare/high priority last.}
 
 \item{layer}{Seurat expression layer to fetch.}
 
-\item{slot}{Deprecated Seurat slot alias for \code{layer}.}
-
 \item{colors}{One color per feature.}
 
 \item{breadth_metric}{Metric used to choose default feature order.}
@@ -51,19 +45,12 @@ rare/high priority last.}
 
 \item{point_size}{Size of plotted spots.}
 
-\item{pt.size.factor}{Alias for \code{point_size} for compatibility.}
-
 \item{zero_tol}{Values at or below this threshold are treated as zero.}
 
 \item{image.alpha}{Tissue image opacity.}
 
 \item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
 full tissue area covered by the spatial coordinates.}
-
-\item{crop}{Deprecated alias for \code{zoom}.}
-
-\item{...}{Ignored; accepted for compatibility with older plotting
-calls.}
 }
 \value{
 A ggplot/patchwork object or a list when \code{combine = FALSE}.

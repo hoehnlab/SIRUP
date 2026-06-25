@@ -10,7 +10,6 @@ plotReceptorExpression(
   barcode_col = NULL,
   feature = NULL,
   gene = NULL,
-  overlay_col = ".sirap_receptor_overlay",
   receptor_color = "black",
   receptor_size = 1,
   receptor_stroke = 0.7,
@@ -19,7 +18,6 @@ plotReceptorExpression(
   feature_size = 1,
   feature_alpha = 1,
   zero_tol = 0,
-  gene_color_steps = 100L,
   title = NULL,
   assay = NULL,
   layer = "counts",
@@ -27,10 +25,8 @@ plotReceptorExpression(
   images = NULL,
   image.alpha = 1,
   zoom = FALSE,
-  crop = NULL,
   receptor_label = "Receptor",
-  show_receptor_legend = NULL,
-  ...
+  show_receptor_legend = NULL
 )
 }
 \arguments{
@@ -45,9 +41,6 @@ plotReceptorExpression(
 spots.}
 
 \item{gene}{Alias for \code{feature}, retained for readability in receptor plots.}
-
-\item{overlay_col}{Ignored; retained for compatibility with the old
-plotting implementation.}
 
 \item{receptor_color}{Color for receptor-positive spots.}
 
@@ -66,8 +59,6 @@ expression ramp when \code{feature} is set.}
 
 \item{zero_tol}{Values at or below this threshold are treated as zero.}
 
-\item{gene_color_steps}{Ignored; retained for compatibility.}
-
 \item{title}{Optional title.}
 
 \item{assay, layer, image.scale}{Additional plotting controls.}
@@ -79,15 +70,10 @@ expression ramp when \code{feature} is set.}
 \item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
 full tissue area covered by the spatial coordinates.}
 
-\item{crop}{Deprecated alias for \code{zoom}.}
-
 \item{receptor_label}{Legend label for receptor-positive spots.}
 
 \item{show_receptor_legend}{Show the receptor legend. Defaults to \code{TRUE}
 when a feature is shown and \code{FALSE} for receptor-only plots.}
-
-\item{...}{Ignored; accepted for compatibility with older plotting
-calls.}
 }
 \value{
 A ggplot/patchwork object.

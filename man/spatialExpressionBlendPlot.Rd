@@ -12,7 +12,6 @@ spatialExpressionBlendPlot(
   feature_2_alt_name = NULL,
   assay = NULL,
   layer = "counts",
-  slot = NULL,
   only_blended = FALSE,
   bottom_left = "#000000",
   bottom_right = "#FF0000",
@@ -22,11 +21,8 @@ spatialExpressionBlendPlot(
   images = NULL,
   image.scale = "hires",
   point_size = 0.6,
-  pt.size.factor = NULL,
   image.alpha = 1,
-  zoom = FALSE,
-  crop = NULL,
-  ...
+  zoom = FALSE
 )
 }
 \arguments{
@@ -43,8 +39,6 @@ blend legend.}
 
 \item{layer}{Seurat expression layer to fetch.}
 
-\item{slot}{Deprecated Seurat slot alias for \code{layer}.}
-
 \item{only_blended}{Return only the blended spatial panel and legend.}
 
 \item{bottom_left, bottom_right, top_left, top_right}{Corner colors for the
@@ -58,17 +52,10 @@ two-feature blend grid.}
 
 \item{point_size}{Size of plotted spots.}
 
-\item{pt.size.factor}{Alias for \code{point_size} for compatibility.}
-
 \item{image.alpha}{Tissue image opacity.}
 
 \item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
 full tissue area covered by the spatial coordinates.}
-
-\item{crop}{Deprecated alias for \code{zoom}.}
-
-\item{...}{Ignored; accepted for compatibility with older plotting
-calls.}
 }
 \value{
 A ggplot/patchwork object or a list when \code{combine = FALSE}.

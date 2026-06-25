@@ -9,16 +9,16 @@ plotSpatialColorTips(
   tip_data,
   barcode_col = "barcode_8um",
   color_col = "tip_color",
-  overlay_col = ".sirap_tip_color",
+  label_col = NULL,
+  legend_title = "Tip color",
+  legend_colors = NULL,
   title = NULL,
   image.scale = "hires",
-  pt.size.factor = 1.6,
+  point_size = 1.6,
   images = NULL,
   image.alpha = 1,
   zoom = FALSE,
-  crop = NULL,
-  show.legend = FALSE,
-  ...
+  show.legend = FALSE
 )
 }
 \arguments{
@@ -30,13 +30,17 @@ plotSpatialColorTips(
 
 \item{color_col}{Column containing colors.}
 
-\item{overlay_col}{Ignored; retained for compatibility.}
+\item{label_col}{Optional column containing legend labels for colors.}
+
+\item{legend_title}{Title for the color legend.}
+
+\item{legend_colors}{Optional named color vector used for the legend.}
 
 \item{title}{Optional title.}
 
 \item{image.scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
-\item{pt.size.factor}{Size of plotted tips.}
+\item{point_size}{Size of plotted tips.}
 
 \item{images}{Optional Seurat image names.}
 
@@ -45,12 +49,7 @@ plotSpatialColorTips(
 \item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
 full tissue area covered by the spatial coordinates.}
 
-\item{crop}{Deprecated alias for \code{zoom}.}
-
 \item{show.legend}{Show color legend.}
-
-\item{...}{Ignored; accepted for compatibility with older plotting
-calls.}
 }
 \value{
 A ggplot/patchwork object.

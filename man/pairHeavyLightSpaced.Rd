@@ -30,8 +30,9 @@ each heavy clone.}
 If one weight is supplied, a data frame with up to
 \code{top_n_light_chains} candidate light clones per heavy clone. If multiple
 weights are supplied, a named list of those data frames. Each data frame
-includes spatial score, REPAIR score, combined score, row-normalized
-pairing score, and light-chain specificity score.
+includes spatial score (cosine similarity/optimal transport score based on position, cite SPaCeD paper),
+REPAIR score (score from REPAIR (cite Engblom '23)), combined score, row-normalized pairing score,
+and light-chain specificity score (normalized pairing score for this pair across all pairs for this chain).
 }
 \description{
 Returns the top light-chain candidates for each heavy clone. Light clones are

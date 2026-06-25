@@ -13,7 +13,6 @@ spatialLocalMoran(
   barcode_col = "barcode_8um",
   positive = FALSE,
   layer = "counts",
-  slot = NULL,
   images = NULL,
   image.scale = "hires",
   zero_tol = 0,
@@ -39,8 +38,6 @@ spatialLocalMoran(
 \item{positive}{Convert feature values to a positive-expression indicator.}
 
 \item{layer}{Seurat expression layer to fetch for features.}
-
-\item{slot}{Deprecated Seurat slot alias for \code{layer}.}
 
 \item{images}{Optional Seurat image names.}
 
