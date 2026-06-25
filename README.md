@@ -79,15 +79,12 @@ m1_bcr_heavy <- processSpatialAirr(
 )
 ```
 
-## Generate the pRESTO/IgBLAST consensus script
+## Run pRESTO/IgBLAST consensus calling
 
 ```r
-writePrestoIgblastScript(
-  input_fastas = c("m1/igblast_bcr_pass_length_spatial_barcode.fasta",
-                   "m5/igblast_bcr_pass_length_spatial_barcode.fasta"),
-  output_db_paths = c("m1/processed/final_db-pass.tsv",
-                      "m5/processed/final_db-pass.tsv"),
-  script_path = "inst/scripts/process_bcr_heavy.sh",
+processSpatialSample(
+  input_fasta = "m1/igblast_bcr_pass_length_spatial_barcode.fasta",
+  output_dir = "m1/processed",
   receptor = "ig",
   germline_glob = "/path/to/germlines/imgt/human/vdj/imgt_human_*.fasta"
 )

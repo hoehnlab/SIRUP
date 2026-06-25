@@ -198,9 +198,7 @@ dowser::dfToFasta(tcrBeta, file = tcrBetaSpatialFasta, id = "full_id", seq = "se
 ## Run pRESTO and IgBLAST from R
 
 `processSpatialSample()` wraps the pRESTO/IgBLAST command-line workflow
-and prints command output to the R console. Run with `dry_run = TRUE`
-first if you want to inspect commands and paths before launching the
-external tools.
+and prints each command and its output to the R console.
 
 ``` r
 identityThreshold <- 0.975

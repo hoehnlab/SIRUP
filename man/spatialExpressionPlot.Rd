@@ -14,6 +14,8 @@ spatialExpressionPlot(
   feature_colors = c("#D3D3D3", "#FFFF00"),
   zero_tol = 0,
   point_size = 0.6,
+  point_alpha = 1,
+  order_points = TRUE,
   image.alpha = 1,
   zoom = FALSE,
   combine = TRUE
@@ -39,6 +41,10 @@ value.}
 \item{zero_tol}{Values at or below this threshold are treated as zero.}
 
 \item{point_size}{Size of plotted spots.}
+
+\item{point_alpha}{Opacity for plotted spots.}
+
+\item{order_points}{Plot lower values first so higher values appear on top.}
 
 \item{image.alpha}{Tissue image opacity.}
 

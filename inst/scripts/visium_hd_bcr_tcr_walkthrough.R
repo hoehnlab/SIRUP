@@ -212,7 +212,6 @@ muscleExec <- "~/software/muscle3.8.31_i86linux64"
 
 if (runPrestoIgblast) {
   # This function both runs the external presto/igblast commands and returns the paths to the key output files
-  # Try dry_run = TRUE first to check the commands and paths without actually running
   bcrPrestoPaths <- processSpatialSample(
     input_fasta = bcrHeavySpatialFasta,
     output_dir = prestoOutputDir,

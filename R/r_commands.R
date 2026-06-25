@@ -1,7 +1,6 @@
 .datatable.aware = TRUE
 
-# Shared FASTQ/FASTA header contract for readFastqas / writeFastqas /
-# streamFastqas:
+# Shared FASTQ/FASTA header contract for writeFastqas / streamFastqas:
 #   - `id`      always present; short id (everything before first space),
 #               with no leading `@` (fastq) or `>` (fasta).
 #   - `full_id` present only when `full_id = TRUE`; full header (name +
@@ -56,33 +55,6 @@ writeFastqas <- function(df, fn, type = "fq", header_col = "id",
     quote = FALSE, append = append, nThread = nthreads
   )
   invisible(fn)
-}
-
-#' Read FASTQ/FASTA into a data.table
-#'
-#' Returns a data.table matching the shared contract documented above:
-#' columns `id`, optionally `full_id`, then `seq`, then `qual` (fastq only).
-#' Headers are stripped of their leading `@` / `>`. `id` is the first
-#' whitespace-delimited token of the header; `full_id` is the entire
-#' header.
-#'
-#' Thin wrapper around `streamFastqas()`, which uses the kseq.h FASTQ
-#' parser on the C++ side. Previous shell-pipeline implementation
-#' (`paste - - - - | cut -f1,2,4`) misparsed tagged FASTQs whose
-#' headers contain TAB-separated SAM-style tags (`@id<TAB>CB:Z:...`),
-#' because the shell pipeline counted TABs not lines.
-#'
-#' @param fn input path, or a character vector of paths.
-#' @param type one of `"fq"`, `"fastq"`, `"fa"`, `"fasta"`.
-#' @param full_id include a `full_id` column with the full header.
-#' @param max_reads maximum reads per file (`-1L` = all, default).
-#' @return data.table.
-#' @export
-readFastqas <- function(fn, type = "fq", full_id = FALSE, max_reads = -1L) {
-  type <- .fastqas_normalize_type(type)
-  if (is.list(fn)) fn <- unlist(fn)
-  streamFastqas(fn, type = type, full_id = isTRUE(full_id),
-                max_reads = as.integer(max_reads))
 }
 
 #' @export

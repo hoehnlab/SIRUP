@@ -19,6 +19,7 @@ plotReceptorExpression(
   feature_alpha = 1,
   zero_tol = 0,
   title = NULL,
+  order_points = TRUE,
   assay = NULL,
   layer = "counts",
   image.scale = "hires",
@@ -60,6 +61,9 @@ expression ramp when \code{feature} is set.}
 \item{zero_tol}{Values at or below this threshold are treated as zero.}
 
 \item{title}{Optional title.}
+
+\item{order_points}{Plot lower feature expression first so higher expression
+points appear on top.}
 
 \item{assay, layer, image.scale}{Additional plotting controls.}
 

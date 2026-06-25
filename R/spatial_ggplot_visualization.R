@@ -36,6 +36,8 @@ plotLengthQc <- function(airr_df, title = NULL) {
 #'   value.
 #' @param zero_tol Values at or below this threshold are treated as zero.
 #' @param point_size Size of plotted spots.
+#' @param point_alpha Opacity for plotted spots.
+#' @param order_points Plot lower values first so higher values appear on top.
 #' @param image.alpha Tissue image opacity.
 #' @param zoom Zoom to non-zero spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
@@ -51,6 +53,8 @@ spatialExpressionPlot <- function(object,
                                       feature_colors = c("#D3D3D3", "#FFFF00"),
                                       zero_tol = 0,
                                       point_size = 0.6,
+                                      point_alpha = 1,
+                                      order_points = TRUE,
                                       image.alpha = 1,
                                       zoom = FALSE,
                                       combine = TRUE) {
@@ -74,6 +78,9 @@ spatialExpressionPlot <- function(object,
         next
       }
       plot_data <- dat[keep, , drop = FALSE]
+      if (isTRUE(order_points)) {
+        plot_data <- plot_data[order(plot_data[[feature]], na.last = TRUE), , drop = FALSE]
+      }
       plots[[paste(image, feature, sep = "_")]] <- .sirap_spatial_base(
         plot_data,
         spatial$image,
@@ -84,7 +91,7 @@ spatialExpressionPlot <- function(object,
         ggplot2::geom_point(
           ggplot2::aes(color = .data[[feature]]),
           size = point_size,
-          alpha = 1,
+          alpha = point_alpha,
           na.rm = TRUE
         ) +
         ggplot2::scale_color_gradientn(colors = feature_colors, name = feature) +
@@ -104,6 +111,9 @@ spatialExpressionPlot <- function(object,
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param cols Optional named color vector.
 #' @param point_size Size of plotted spots.
+#' @param point_alpha Opacity for plotted spots.
+#' @param order_points Plot lower numeric values or earlier factor levels first
+#'   so higher/later values appear on top.
 #' @param image.alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
@@ -117,6 +127,8 @@ spatialDiscretePlot <- function(object,
                                   image.scale = "hires",
                                   cols = NULL,
                                   point_size = 1.6,
+                                  point_alpha = 1,
+                                  order_points = TRUE,
                                   image.alpha = 1,
                                   zoom = FALSE,
                                   combine = TRUE) {
@@ -139,6 +151,13 @@ spatialDiscretePlot <- function(object,
     }
     plot_data[[meta_col]] <- values[plot_data$cell]
     plot_data[[meta_col]] <- factor(plot_data[[meta_col]], levels = unique(plot_data[[meta_col]]))
+    if (isTRUE(order_points)) {
+      plot_order <- suppressWarnings(as.numeric(as.character(plot_data[[meta_col]])))
+      if (all(is.na(plot_order))) {
+        plot_order <- as.integer(plot_data[[meta_col]])
+      }
+      plot_data <- plot_data[order(plot_order, na.last = TRUE), , drop = FALSE]
+    }
     color_values <- cols %||% scales::hue_pal()(length(levels(plot_data[[meta_col]])))
     if (is.null(names(color_values))) {
       names(color_values) <- levels(plot_data[[meta_col]])
@@ -154,7 +173,7 @@ spatialDiscretePlot <- function(object,
       ggplot2::geom_point(
         ggplot2::aes(color = .data[[meta_col]]),
         size = point_size,
-        alpha = 1,
+        alpha = point_alpha,
         na.rm = TRUE
       ) +
       ggplot2::scale_color_manual(values = color_values, name = meta_col) +
@@ -180,6 +199,9 @@ spatialDiscretePlot <- function(object,
 #' @param images Optional Seurat image names.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param point_size Size of plotted spots.
+#' @param point_alpha Opacity for plotted spots.
+#' @param order_points Plot lower blended expression intensity first so higher
+#'   intensity spots appear on top.
 #' @param image.alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
@@ -201,6 +223,8 @@ spatialExpressionBlendPlot <- function(object,
                                                 images = NULL,
                                                 image.scale = "hires",
                                                 point_size = 0.6,
+                                                point_alpha = 1,
+                                                order_points = TRUE,
                                                 image.alpha = 1,
                                                 zoom = FALSE) {
   .require_namespace("SeuratObject")
@@ -228,6 +252,10 @@ spatialExpressionBlendPlot <- function(object,
       next
     }
     dat <- dat[keep, , drop = FALSE]
+    if (isTRUE(order_points)) {
+      dat$.sirap_blend_order <- rowSums(dat[, features, drop = FALSE], na.rm = TRUE)
+      dat <- dat[order(dat$.sirap_blend_order, na.last = TRUE), , drop = FALSE]
+    }
     dat$.sirap_blend_color <- .sirap_blend_colors(dat[, features, drop = FALSE], color_grid)
     color_values <- stats::setNames(unique(dat$.sirap_blend_color), unique(dat$.sirap_blend_color))
 
@@ -241,7 +269,7 @@ spatialExpressionBlendPlot <- function(object,
       ggplot2::geom_point(
         ggplot2::aes(color = .data$.sirap_blend_color),
         size = point_size,
-        alpha = 1,
+        alpha = point_alpha,
         na.rm = TRUE,
         show.legend = FALSE
       ) +
@@ -265,6 +293,8 @@ spatialExpressionBlendPlot <- function(object,
         feature_colors = c(bottom_left, bottom_right),
         zero_tol = zero_tol,
         point_size = point_size,
+        point_alpha = point_alpha,
+        order_points = order_points,
         image.alpha = image.alpha,
         zoom = zoom,
         combine = TRUE
@@ -277,6 +307,8 @@ spatialExpressionBlendPlot <- function(object,
         feature_colors = c(bottom_left, top_left),
         zero_tol = zero_tol,
         point_size = point_size,
+        point_alpha = point_alpha,
+        order_points = order_points,
         image.alpha = image.alpha,
         zoom = zoom,
         combine = TRUE
@@ -302,6 +334,9 @@ spatialExpressionBlendPlot <- function(object,
 #' @param images Optional Seurat image names.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param point_size Size of plotted spots.
+#' @param point_alpha Opacity for plotted spots.
+#' @param order_points Plot lower-priority feature assignments first so later
+#'   feature levels appear on top.
 #' @param zero_tol Values at or below this threshold are treated as zero.
 #' @param image.alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
@@ -319,6 +354,8 @@ spatialExpressionMultiPlot <- function(object,
                                     images = NULL,
                                     image.scale = "hires",
                                     point_size = 0.6,
+                                    point_alpha = 1,
+                                    order_points = TRUE,
                                     zero_tol = 0,
                                     image.alpha = 1,
                                     zoom = FALSE) {
@@ -358,6 +395,9 @@ spatialExpressionMultiPlot <- function(object,
       dat$.sirap_feature[dat[[feature]] > zero_tol] <- feature
     }
     dat$.sirap_feature <- factor(dat$.sirap_feature, levels = feature_order)
+    if (isTRUE(order_points)) {
+      dat <- dat[order(as.integer(dat$.sirap_feature), na.last = TRUE), , drop = FALSE]
+    }
     ordered_colors <- colors[feature_order]
 
     spatial_plot <- .sirap_spatial_base(
@@ -370,7 +410,7 @@ spatialExpressionMultiPlot <- function(object,
       ggplot2::geom_point(
         ggplot2::aes(color = .data$.sirap_feature),
         size = point_size,
-        alpha = 1,
+        alpha = point_alpha,
         na.rm = TRUE
       ) +
       ggplot2::scale_color_manual(values = ordered_colors, name = "Feature") +
@@ -401,6 +441,8 @@ spatialExpressionMultiPlot <- function(object,
 #' @param feature_alpha Alpha for gene expression points.
 #' @param zero_tol Values at or below this threshold are treated as zero.
 #' @param title Optional title.
+#' @param order_points Plot lower feature expression first so higher expression
+#'   points appear on top.
 #' @param assay,layer,image.scale Additional plotting controls.
 #' @param images Optional Seurat image names.
 #' @param image.alpha Tissue image opacity.
@@ -425,6 +467,7 @@ plotReceptorExpression <- function(object,
                                       feature_alpha = 1,
                                       zero_tol = 0,
                                       title = NULL,
+                                      order_points = TRUE,
                                       assay = NULL,
                                       layer = "counts",
                                       image.scale = "hires",
@@ -480,6 +523,9 @@ plotReceptorExpression <- function(object,
     if (!is.null(feature)) {
       gene_data <- dat[dat$.sirap_expressed, , drop = FALSE]
       if (nrow(gene_data) > 0L) {
+        if (isTRUE(order_points)) {
+          gene_data <- gene_data[order(gene_data[[feature]], na.last = TRUE), , drop = FALSE]
+        }
         p <- p +
           ggplot2::geom_point(
             data = gene_data,
@@ -528,7 +574,7 @@ plotReceptorExpression <- function(object,
             size = receptor_size,
             stroke = receptor_stroke,
             shape = 21,
-            alpha = 1,
+            alpha = receptor_alpha,
             inherit.aes = FALSE,
             na.rm = TRUE,
             show.legend = FALSE
@@ -557,6 +603,8 @@ plotReceptorExpression <- function(object,
 #' @param receptor_size Size for receptor points.
 #' @param receptor_alpha Alpha for receptor points.
 #' @param title Optional title.
+#' @param order_points Plot earlier receptor groups first so later groups appear
+#'   on top.
 #' @param image.scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
 #' @param images Optional Seurat image names.
@@ -578,6 +626,7 @@ plotReceptors <- function(object,
                           receptor_size = 1,
                           receptor_alpha = 1,
                           title = NULL,
+                          order_points = TRUE,
                           image.scale = "hires",
                           images = NULL,
                           image.alpha = 1,
@@ -631,6 +680,13 @@ plotReceptors <- function(object,
       receptor_data$.sirap_receptor_group,
       levels = values
     )
+    if (isTRUE(order_points)) {
+      receptor_data <- receptor_data[
+        order(as.integer(receptor_data$.sirap_receptor_group), na.last = TRUE),
+        ,
+        drop = FALSE
+      ]
+    }
 
     if (nrow(receptor_data) == 0L) {
       next
@@ -698,6 +754,8 @@ plotReceptors <- function(object,
 
   candidates <- c(
     "barcode",
+    "barcode_8um",
+    "barcode_2um",
     "spatial_barcode",
     "cell",
     "cell_barcode",
@@ -722,6 +780,9 @@ plotReceptors <- function(object,
 #' @param title Optional title.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param point_size Size of plotted tips.
+#' @param point_alpha Opacity for plotted tips.
+#' @param order_points Plot earlier tip-color groups first so later groups
+#'   appear on top.
 #' @param images Optional Seurat image names.
 #' @param image.alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
@@ -739,6 +800,8 @@ plotSpatialColorTips <- function(object,
                                 title = NULL,
                                 image.scale = "hires",
                                 point_size = 1.6,
+                                point_alpha = 1,
+                                order_points = TRUE,
                                 images = NULL,
                                 image.alpha = 1,
                                 zoom = FALSE,
@@ -778,7 +841,10 @@ plotSpatialColorTips <- function(object,
       dat$.sirap_tip_label <- factor(spot_label[dat$cell], levels = names(colors))
       dat$.sirap_tip_legend <- dat$.sirap_tip_label
     } else {
-      dat$.sirap_tip_legend <- dat$.sirap_tip_color
+      dat$.sirap_tip_legend <- factor(dat$.sirap_tip_color, levels = names(colors))
+    }
+    if (isTRUE(order_points)) {
+      dat <- dat[order(as.integer(dat$.sirap_tip_legend), na.last = TRUE), , drop = FALSE]
     }
     p <- .sirap_spatial_base(
       dat,
@@ -790,7 +856,7 @@ plotSpatialColorTips <- function(object,
       ggplot2::geom_point(
         ggplot2::aes(color = .data$.sirap_tip_legend),
         size = point_size,
-        alpha = 1,
+        alpha = point_alpha,
         na.rm = TRUE
       ) +
       ggplot2::scale_color_manual(
@@ -870,6 +936,9 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #' @param tree_tip_size Size of tree tip points.
 #' @param treescale Mutational distance shown in the tree scale bar.
 #' @param spatial_tip_size Size of spatial tip points.
+#' @param spatial_tip_alpha Opacity for spatial tip points.
+#' @param order_points Plot earlier spatial tip-color groups first so later
+#'   groups appear on top.
 #' @param show_spatial_legend Show a color legend based on the tree tip colors
 #'   below the spatial plot.
 #' @param nproc Number of processes used to build clone tree/spatial plot pairs.
@@ -891,6 +960,8 @@ plotSpatialCloneTreePairs <- function(trees,
                                       tree_tip_size = 2.5,
                                       treescale = 0.01,
                                       spatial_tip_size = 1.6,
+                                      spatial_tip_alpha = 1,
+                                      order_points = TRUE,
                                       show_spatial_legend = FALSE,
                                       nproc = 1L,
                                       ...) {
@@ -963,6 +1034,8 @@ plotSpatialCloneTreePairs <- function(trees,
       image.scale = image.scale,
       images = images,
       point_size = spatial_tip_size,
+      point_alpha = spatial_tip_alpha,
+      order_points = order_points,
       zoom = zoom,
       show.legend = FALSE,
       ...
@@ -1072,7 +1145,10 @@ spatialCloneTreePairsToPDF <- function(pairs,
     rlang::abort("`pairs` does not contain any clone tree/spatial plots.")
   }
   nproc <- .sirap_plot_check_nproc(nproc)
-  .ensure_dir(path)
+  out_dir <- dirname(path)
+  if (!dir.exists(out_dir)) {
+    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  }
 
   if (nproc > 1L && .Platform$OS.type != "windows" && requireNamespace("qpdf", quietly = TRUE)) {
     tmp_dir <- tempfile("sirap_clone_tree_pairs_pdf_")

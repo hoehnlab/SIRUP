@@ -31,10 +31,6 @@ NULL
   invisible(TRUE)
 }
 
-.ensure_dir <- function(path) {
-  dir <- dirname(path)
-  if (!dir.exists(dir)) {
-    dir.create(dir, recursive = TRUE, showWarnings = FALSE)
-  }
-  invisible(path)
+`%||%` <- function(x, y) {
+  if (is.null(x)) y else x
 }

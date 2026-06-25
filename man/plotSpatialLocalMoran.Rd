@@ -13,6 +13,8 @@ plotSpatialLocalMoran(
   colors = c("#2c7bb6", "#f7f7f7", "#d7191c"),
   midpoint = 0,
   point_size = 0.7,
+  point_alpha = 1,
+  order_points = TRUE,
   image.alpha = 1,
   zoom = FALSE,
   title = NULL
@@ -34,6 +36,10 @@ plotSpatialLocalMoran(
 \item{midpoint}{Color midpoint.}
 
 \item{point_size}{Point size.}
+
+\item{point_alpha}{Point opacity.}
+
+\item{order_points}{Plot lower values first so higher values appear on top.}
 
 \item{image.alpha}{Tissue image opacity.}
 

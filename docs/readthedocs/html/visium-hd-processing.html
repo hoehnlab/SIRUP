@@ -505,7 +505,7 @@ dowser::dfToFasta(tcrBeta, file = tcrBetaSpatialFasta, id = &quot;full_id&quot;,
 </div>
 <div id="run-presto-and-igblast-from-r" class="section level2">
 <h2>Run pRESTO and IgBLAST from R</h2>
-<p><code>processSpatialSample()</code> wraps the pRESTO/IgBLAST command-line workflow and prints command output to the R console. Run with <code>dry_run = TRUE</code> first if you want to inspect commands and paths before launching the external tools.</p>
+<p><code>processSpatialSample()</code> wraps the pRESTO/IgBLAST command-line workflow and prints each command and its output to the R console.</p>
 <pre class="r"><code>identityThreshold &lt;- 0.975
 consensusFreqThreshold &lt;- 0.51
 germlineGlob &lt;- &quot;~/software/germlines/imgt/human/vdj/imgt_human_*.fasta&quot;

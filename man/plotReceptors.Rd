@@ -14,6 +14,7 @@ plotReceptors(
   receptor_size = 1,
   receptor_alpha = 1,
   title = NULL,
+  order_points = TRUE,
   image.scale = "hires",
   images = NULL,
   image.alpha = 1,
@@ -46,6 +47,9 @@ to \code{values}; otherwise colors are used in value order.}
 \item{receptor_alpha}{Alpha for receptor points.}
 
 \item{title}{Optional title.}
+
+\item{order_points}{Plot earlier receptor groups first so later groups appear
+on top.}
 
 \item{image.scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
