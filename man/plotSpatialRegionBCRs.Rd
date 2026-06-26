@@ -7,7 +7,7 @@
 plotSpatialRegionBCRs(
   bcrs,
   object,
-  polygon,
+  polygon = NULL,
   color_by = "clone_id",
   barcode_col = NULL,
   images = NULL,
@@ -17,23 +17,27 @@ plotSpatialRegionBCRs(
   y_col = "y",
   polygon_col = "polygon",
   point_size = 1,
-  point_alpha = 0.7,
+  point_alpha = 0.5,
   polygon_alpha = 0.12,
   polygon_fill = "#FFFFFF",
   polygon_color = "black",
   image.alpha = 1,
   top_n = NULL,
   other_label = "Other",
+  other_color = "#D3D3D3",
+  plot_other = TRUE,
   require_closed = TRUE,
   combine = TRUE
 )
 }
 \arguments{
-\item{bcrs}{BCR/AIRR-style data frame containing a spatial barcode column.}
+\item{bcrs}{BCR/AIRR-style data frame containing a spatial barcode column,
+or the object returned by \code{spatialCloneDominance()}.}
 
 \item{object}{Seurat object with spatial images.}
 
-\item{polygon}{Data frame of polygon vertices in order.}
+\item{polygon}{Data frame of polygon vertices in order. Optional when \code{bcrs}
+is a spatial clone dominance object.}
 
 \item{color_by}{Column in \code{bcrs} used to color BCR points.}
 
@@ -69,12 +73,17 @@ before grouping remaining levels as \code{other_label}.}
 
 \item{other_label}{Label for grouped lower-frequency levels.}
 
+\item{other_color}{Color used for \code{other_label}.}
+
+\item{plot_other}{Plot BCRs grouped into \code{other_label}.}
+
 \item{require_closed}{Require the final polygon vertex to equal the first.}
 
 \item{combine}{Combine plots with patchwork when possible.}
 }
 \value{
-A ggplot/patchwork object or a named list of ggplots when \code{combine = FALSE}.
+A ggplot/patchwork object or a named list of ggplots when
+\code{combine = FALSE}.
 }
 \description{
 Plots every BCR row whose spatial barcode falls inside one or more selected

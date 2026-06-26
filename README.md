@@ -17,6 +17,7 @@ into package functions for:
 - generating pRESTO/IgBLAST shell scripts for barcode-cluster consensus calling
 - collapsing consensus calls to top sequences per barcode
 - lightweight clone/spatial visualization helpers
+- spatial polygon selection and clonal dominance summaries
 
 ## Development install
 

@@ -60,7 +60,8 @@ Set to \code{FALSE} to close open polygons automatically.}
 \item{combine}{Combine plots with patchwork when possible.}
 }
 \value{
-A ggplot/patchwork object or a named list of ggplots when \code{combine = FALSE}.
+A ggplot/patchwork object or a named list of ggplots when
+\code{combine = FALSE}.
 }
 \description{
 Plots one or more polygon vertex tables, such as the output of

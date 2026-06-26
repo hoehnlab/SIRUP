@@ -80,9 +80,6 @@ below the spatial plot.}
 Named list. Each clone element contains \code{tree} and \code{spatial_clone}.
 }
 \description{
-Plot paired BCR lineage trees and matching spatial clone colors
-}
-\details{
 Tips without spatial coordinates or spatial barcodes can still appear in the
 tree panel. The spatial panel only plots tips whose \code{barcode_col} matches a
 spot in \code{object}.

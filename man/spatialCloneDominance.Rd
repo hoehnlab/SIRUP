@@ -14,6 +14,7 @@ spatialCloneDominance(
   locus_col = "locus",
   count_col = NULL,
   v_call_col = "v_call",
+  exclude_singletons = FALSE,
   images = NULL,
   image.scale = "hires",
   polygon_id = NULL,
@@ -21,8 +22,7 @@ spatialCloneDominance(
   y_col = "y",
   polygon_col = "polygon",
   include_boundary = TRUE,
-  require_closed = TRUE,
-  return_region = FALSE
+  require_closed = TRUE
 )
 }
 \arguments{
@@ -53,6 +53,9 @@ counts once.}
 distinct allele-level V genes, V genes without alleles, and V-gene
 superfamilies are returned for each clone.}
 
+\item{exclude_singletons}{Exclude clones represented by only one BCR row
+after locus filtering.}
+
 \item{images}{Optional Seurat image names to use for spatial coordinates.}
 
 \item{image.scale}{Image scale passed to
@@ -69,14 +72,11 @@ exists. When \code{NULL}, all polygons in \code{polygon_col} are analyzed.}
 
 \item{require_closed}{Require the final polygon vertex to equal the first.
 Set to \code{FALSE} to close open polygons automatically.}
-
-\item{return_region}{Return a list containing the dominance table, regional
-barcodes, and regional coordinate rows.}
 }
 \value{
-A data frame with \code{clone_id}, \code{n_bcrs}, \code{proportion}, regional
-totals, and the polygon ID when multiple polygons are supplied. Returns a
-list when \code{return_region = TRUE}.
+A spatial clone dominance object containing the dominance table,
+regional barcodes, regional coordinate rows, regional BCR rows, and polygon
+vertices prepared for plotting.
 }
 \description{
 Finds Seurat spatial barcodes whose coordinates fall inside closed polygons,

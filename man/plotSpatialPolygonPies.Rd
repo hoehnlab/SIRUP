@@ -7,13 +7,15 @@
 plotSpatialPolygonPies(
   bcrs,
   object,
-  polygon,
+  polygon = NULL,
   fill_by = "clone_id",
   barcode_col = NULL,
   mode = c("side_by_side", "spatial_clipped"),
   top_n = 10,
-  label_top_n = top_n,
+  label_top_n = 0,
   other_label = "Other",
+  other_color = "#D3D3D3",
+  plot_other = TRUE,
   images = NULL,
   image.scale = "hires",
   polygon_id = NULL,
@@ -24,15 +26,18 @@ plotSpatialPolygonPies(
   image.alpha = 1,
   pie_alpha = 0.9,
   label_size = 3,
+  spatial_legend = FALSE,
   require_closed = TRUE
 )
 }
 \arguments{
-\item{bcrs}{BCR/AIRR-style data frame containing a spatial barcode column.}
+\item{bcrs}{BCR/AIRR-style data frame containing a spatial barcode column,
+or the object returned by \code{spatialCloneDominance()}.}
 
 \item{object}{Seurat object with spatial images.}
 
-\item{polygon}{Data frame of polygon vertices in order.}
+\item{polygon}{Data frame of polygon vertices in order. Optional when \code{bcrs}
+is a spatial clone dominance object.}
 
 \item{fill_by}{Column in \code{bcrs} summarized in each pie chart.}
 
@@ -42,13 +47,18 @@ plotSpatialPolygonPies(
 \item{mode}{Plot style. \code{side_by_side} shows ordinary pies beside a polygon
 map. \code{spatial_clipped} clips pies to polygon boundaries on the tissue.}
 
-\item{top_n}{Number of most frequent \code{fill_by} levels to show individually
-per polygon; remaining levels are grouped as \code{other_label}.}
+\item{top_n}{Number of most frequent \code{fill_by} levels to identify within each
+polygon. The union of these polygon-level top levels is shown individually
+everywhere; remaining levels are grouped as \code{other_label}.}
 
 \item{label_top_n}{Number of levels to label per polygon. Defaults to
-\code{top_n}.}
+0 because this gets messy fast.}
 
 \item{other_label}{Label for grouped lower-frequency levels.}
+
+\item{other_color}{Color used for \code{other_label}.}
+
+\item{plot_other}{Plot grouped lower-frequency BCRs as \code{other_label}.}
 
 \item{images}{Optional Seurat image names to show.}
 
@@ -69,6 +79,9 @@ exists.}
 \item{pie_alpha}{Pie opacity.}
 
 \item{label_size}{Text size for polygon and pie labels.}
+
+\item{spatial_legend}{Show a shared fill legend for \code{spatial_clipped} pie
+plots. Defaults to \code{FALSE}.}
 
 \item{require_closed}{Require the final polygon vertex to equal the first.}
 }
