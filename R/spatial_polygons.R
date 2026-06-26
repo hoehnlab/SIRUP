@@ -528,18 +528,18 @@ plotSpatialPolygons <- function(object,
   .sirap_return_spatial_plots(plots, combine = combine)
 }
 
-#' Plot BCRs inside spatial polygons
+#' Plot receptors inside spatial polygons
 #'
-#' Plots every BCR row whose spatial barcode falls inside one or more selected
-#' polygons over the tissue image, colored by a BCR column.
+#' Plots every receptor row whose spatial barcode falls inside one or more
+#' selected polygons over the tissue image, colored by a receptor-table column.
 #'
-#' @param bcrs BCR/AIRR-style data frame containing a spatial barcode column,
+#' @param receptors Receptor/AIRR-style data frame containing a spatial barcode column,
 #'   or the object returned by `spatialCloneDominance()`.
 #' @param object Seurat object with spatial images.
-#' @param polygon Data frame of polygon vertices in order. Optional when `bcrs`
-#'   is a spatial clone dominance object.
-#' @param color_by Column in `bcrs` used to color BCR points.
-#' @param barcode_col Column in `bcrs` matching Seurat spot/cell barcodes. If
+#' @param polygon Data frame of polygon vertices in order. Optional when
+#'   `receptors` is a spatial clone dominance object.
+#' @param color_by Column in `receptors` used to color receptor points.
+#' @param barcode_col Column in `receptors` matching Seurat spot/cell barcodes. If
 #'   `NULL`, a barcode-like column is guessed.
 #' @param images Optional Seurat image names to show.
 #' @param image.scale Image scale passed to
@@ -548,8 +548,8 @@ plotSpatialPolygons <- function(object,
 #'   exists.
 #' @param x_col,y_col Coordinate columns in `polygon`.
 #' @param polygon_col Optional polygon grouping column in `polygon`.
-#' @param point_size Size of BCR points.
-#' @param point_alpha Opacity for BCR points.
+#' @param point_size Size of receptor points.
+#' @param point_alpha Opacity for receptor points.
 #' @param polygon_alpha Fill opacity for polygons.
 #' @param polygon_fill Fill color for polygons.
 #' @param polygon_color Outline color for polygons.
@@ -558,38 +558,38 @@ plotSpatialPolygons <- function(object,
 #'   before grouping remaining levels as `other_label`.
 #' @param other_label Label for grouped lower-frequency levels.
 #' @param other_color Color used for `other_label`.
-#' @param plot_other Plot BCRs grouped into `other_label`.
+#' @param plot_other Plot receptors grouped into `other_label`.
 #' @param require_closed Require the final polygon vertex to equal the first.
 #' @param combine Combine plots with patchwork when possible.
 #' @return A ggplot/patchwork object or a named list of ggplots when
 #'   `combine = FALSE`.
 #' @export
-plotSpatialRegionBCRs <- function(bcrs,
-                                  object,
-                                  polygon = NULL,
-                                  color_by = "clone_id",
-                                  barcode_col = NULL,
-                                  images = NULL,
-                                  image.scale = "hires",
-                                  polygon_id = NULL,
-                                  x_col = "x",
-                                  y_col = "y",
-                                  polygon_col = "polygon",
-                                  point_size = 1,
-                                  point_alpha = 0.5,
-                                  polygon_alpha = 0.12,
-                                  polygon_fill = "#FFFFFF",
-                                  polygon_color = "black",
-                                  image.alpha = 1,
-                                  top_n = NULL,
-                                  other_label = "Other",
-                                  other_color = "#D3D3D3",
-                                  plot_other = TRUE,
-                                  require_closed = TRUE,
-                                  combine = TRUE) {
+plotSpatialRegionReceptors <- function(receptors,
+                                       object,
+                                       polygon = NULL,
+                                       color_by = "clone_id",
+                                       barcode_col = NULL,
+                                       images = NULL,
+                                       image.scale = "hires",
+                                       polygon_id = NULL,
+                                       x_col = "x",
+                                       y_col = "y",
+                                       polygon_col = "polygon",
+                                       point_size = 1,
+                                       point_alpha = 0.5,
+                                       polygon_alpha = 0.12,
+                                       polygon_fill = "#FFFFFF",
+                                       polygon_color = "black",
+                                       image.alpha = 1,
+                                       top_n = NULL,
+                                       other_label = "Other",
+                                       other_color = "#D3D3D3",
+                                       plot_other = TRUE,
+                                       require_closed = TRUE,
+                                       combine = TRUE) {
   .require_namespace("SeuratObject")
   region <- .sirap_region_from_plot_input(
-    bcrs = bcrs,
+    bcrs = receptors,
     object = object,
     polygon = polygon,
     barcode_col = barcode_col,
@@ -602,15 +602,15 @@ plotSpatialRegionBCRs <- function(bcrs,
     require_closed = require_closed
   )
   if (nrow(region$bcrs) == 0L) {
-    rlang::abort("No BCR rows were found inside the selected polygon(s).")
+    rlang::abort("No receptor rows were found inside the selected polygon(s).")
   }
-  .check_required_cols(region$bcrs, color_by, "bcrs")
+  .check_required_cols(region$bcrs, color_by, "receptors")
   region$bcrs$.sirap_color_by <- .sirap_lump_values(region$bcrs[[color_by]], top_n = top_n, other_label = other_label)
   if (!isTRUE(plot_other)) {
     region$bcrs <- region$bcrs[as.character(region$bcrs$.sirap_color_by) != other_label, , drop = FALSE]
   }
   if (nrow(region$bcrs) == 0L) {
-    rlang::abort("No BCR rows remain to plot after applying `top_n` and `plot_other`.")
+    rlang::abort("No receptor rows remain to plot after applying `top_n` and `plot_other`.")
   }
   region$bcrs$.sirap_is_other <- as.character(region$bcrs$.sirap_color_by) == other_label
   region$bcrs <- region$bcrs[order(!region$bcrs$.sirap_is_other), , drop = FALSE]
@@ -623,7 +623,7 @@ plotSpatialRegionBCRs <- function(bcrs,
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
     spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
-    plot_bcrs <- region$bcrs[region$bcrs$image == image | region$bcrs$image == "metadata", , drop = FALSE]
+    plot_receptors <- region$bcrs[region$bcrs$image == image | region$bcrs$image == "metadata", , drop = FALSE]
     plots[[image]] <- .sirap_spatial_base(
       plot_data = spatial$coords,
       image = spatial$image,
@@ -641,7 +641,7 @@ plotSpatialRegionBCRs <- function(bcrs,
         linewidth = 0.5
       ) +
       ggplot2::geom_point(
-        data = plot_bcrs,
+        data = plot_receptors,
         ggplot2::aes(x = .data$x, y = .data$.sirap_y, color = .data$.sirap_color_by),
         inherit.aes = FALSE,
         size = point_size,

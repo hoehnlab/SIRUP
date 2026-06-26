@@ -1256,7 +1256,7 @@ if (runClonalDominance) {
     sep = "\t"
   )
 
-  bcrClonePlot <- plotSpatialRegionBCRs(
+  bcrClonePlot <- plotSpatialRegionReceptors(
     clonalDominance,
     object = thymus,
     color_by = "clone_id",
@@ -1272,7 +1272,7 @@ if (runClonalDominance) {
     height = 7
   )
 
-  bcrVGenePlot <- plotSpatialRegionBCRs(
+  bcrVGenePlot <- plotSpatialRegionReceptors(
     clonalDominance,
     object = thymus,
     color_by = "v_gene",
@@ -1288,7 +1288,7 @@ if (runClonalDominance) {
     height = 7
   )
 
-  bcrVFamilyPlot <- plotSpatialRegionBCRs(
+  bcrVFamilyPlot <- plotSpatialRegionReceptors(
     clonalDominance,
     object = thymus,
     color_by = "v_gene_family",
@@ -1304,7 +1304,7 @@ if (runClonalDominance) {
     height = 7
   )
 
-  bcrVSuperfamilyPlot <- plotSpatialRegionBCRs(
+  bcrVSuperfamilyPlot <- plotSpatialRegionReceptors(
     clonalDominance,
     object = thymus,
     color_by = "v_gene_superfamily",
