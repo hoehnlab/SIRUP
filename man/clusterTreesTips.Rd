@@ -37,17 +37,17 @@ element with that output.}
 \item{prefix}{Prefix used for cluster labels.}
 
 \item{keep_col}{Optional column in each clone data frame used to choose
-whether a tree has the expected retained tips. Clustering is run before any
-keep-filtering; tips where \code{keep_col != keep_value} then have their computed
-cluster labels overwritten with their \code{keep_col} value.}
+whether a tree has the expected retained tips. Clustering is run before
+any keep-filtering; tips where \code{keep_col != keep_value} then have their
+computed cluster labels overwritten with their \code{keep_col} value.}
 
 \item{keep_value}{Expected value in \code{keep_col}.}
 
 \item{method}{Tree clustering method passed to \code{clusterTreeTips()}.}
 
 \item{cut_terminal_edges}{Cut terminal branches when choosing branches to
-remove. Defaults to \code{TRUE}; set to \code{FALSE} to prioritize internal
-clade splits.}
+remove. Defaults to \code{TRUE}; set to \code{FALSE} to prioritize internal clade
+splits.}
 
 \item{k_range, criterion, score, improvement_threshold}{Arguments passed to
 \code{chooseTreeTipK()} when \code{k = "auto"}.}
@@ -58,8 +58,4 @@ clade splits.}
 \description{
 Applies \code{clusterTreeTips()} to each tree in a dowser \code{getTrees()} result and
 adds the resulting cluster column back to each tree's clone data.
-}
-\details{
-See \code{\link[=clusterTreeTips]{clusterTreeTips()}} for the step-by-step
-description of the tree tip clustering algorithms.
 }

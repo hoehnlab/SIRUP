@@ -79,6 +79,7 @@ remove_bleed_example <- TRUE
 runToyRepair <- TRUE
 toyRepairCondaEnv <- Sys.getenv("REPAIR_CONDA_ENV", "repair")
 toyRepairCondaBin <- Sys.getenv("CONDA_EXE", "conda")
+runClonalDominance <- FALSE
 
 
 bcrCloneIdsToPlot <- NULL
@@ -1098,6 +1099,327 @@ toySpacedPairs <- pairHeavyLightSpaced(
   top_n_light_chains = 5
 )
 toySpacedPairs
+
+
+# ---- Spatial clonal dominance inside selected polygons ----------------------
+
+# This section draws or loads polygon vertices, calculates BCR clone dominance
+# inside each polygon, and writes the same diagnostic plots used in the M5
+# clonal dominance inspection script. It is off by default because selecting
+# polygons can launch a Shiny app.
+if (runClonalDominance) {
+  if (is.null(thymus)) {
+    stop("Load the Seurat object before running clonal dominance.")
+  }
+  if (!exists("bcrClones")) {
+    stop("Run or load BCR clone calling before running clonal dominance.")
+  }
+
+  dominanceOutDir <- file.path(plotDir, "clonal_dominance")
+  dir.create(dominanceOutDir, recursive = TRUE, showWarnings = FALSE)
+
+  gcMantlePolygonPath <- file.path(
+    dominanceOutDir,
+    sprintf("%s_big_center_gc_plus_mantle_polygon_vertices.csv", sampleLower)
+  )
+  gcPolygonPath <- file.path(
+    dominanceOutDir,
+    sprintf("%s_big_gc_polygon_vertices.csv", sampleLower)
+  )
+  allGcsPolygonsPath <- file.path(
+    dominanceOutDir,
+    sprintf("%s_all_gcs_polygons_vertices.csv", sampleLower)
+  )
+
+  # Edit these directly when running interactively on the HPC. Use host
+  # 0.0.0.0 when tunneling from the login node to an interactive compute node.
+  dominanceShinyHost <- "0.0.0.0"
+  dominanceShinyPort <- 8788L
+  dominanceFeature <- "MS4A1"
+  dominanceDownsampleN <- 20000
+  dominancePlotImage <- TRUE
+
+  if (file.exists(gcMantlePolygonPath)) {
+    gcMantlePolygon <- fread(gcMantlePolygonPath) %>% as.data.frame()
+  } else {
+    message(
+      "No saved GC plus mantle polygon found. Starting Shiny on ",
+      dominanceShinyHost, ":", dominanceShinyPort, "."
+    )
+    message("From your laptop, tunnel this port and open http://127.0.0.1:", dominanceShinyPort)
+
+    gcMantlePolygon <- selectSpatialPolygons(
+      object = thymus,
+      feature = dominanceFeature,
+      image.scale = "hires",
+      save_path = gcMantlePolygonPath,
+      downsample_n = dominanceDownsampleN,
+      host = dominanceShinyHost,
+      port = dominanceShinyPort,
+      plot_image = dominancePlotImage,
+      launch.browser = FALSE
+    )
+  }
+
+  if (file.exists(gcPolygonPath)) {
+    gcPolygon <- fread(gcPolygonPath) %>% as.data.frame()
+  } else {
+    message(
+      "No saved GC polygon found. Starting Shiny on ",
+      dominanceShinyHost, ":", dominanceShinyPort, "."
+    )
+    message("From your laptop, tunnel this port and open http://127.0.0.1:", dominanceShinyPort)
+
+    gcPolygon <- selectSpatialPolygons(
+      object = thymus,
+      feature = dominanceFeature,
+      image.scale = "hires",
+      save_path = gcPolygonPath,
+      downsample_n = dominanceDownsampleN,
+      host = dominanceShinyHost,
+      port = dominanceShinyPort,
+      plot_image = dominancePlotImage,
+      launch.browser = FALSE
+    )
+  }
+
+  if (file.exists(allGcsPolygonsPath)) {
+    allGcsPolygons <- fread(allGcsPolygonsPath) %>% as.data.frame()
+  } else {
+    message(
+      "No saved all-GC polygons found. Starting Shiny on ",
+      dominanceShinyHost, ":", dominanceShinyPort, "."
+    )
+    message("From your laptop, tunnel this port and open http://127.0.0.1:", dominanceShinyPort)
+
+    allGcsPolygons <- selectSpatialPolygons(
+      object = thymus,
+      feature = dominanceFeature,
+      image.scale = "hires",
+      save_path = allGcsPolygonsPath,
+      downsample_n = dominanceDownsampleN,
+      host = dominanceShinyHost,
+      port = dominanceShinyPort,
+      plot_image = dominancePlotImage,
+      launch.browser = FALSE
+    )
+  }
+
+  allGcsPolygonOverlay <- plotSpatialPolygons(
+    object = thymus,
+    polygon = allGcsPolygons,
+    image.scale = "hires",
+    polygon_alpha = 0.2
+  )
+  ggsave(
+    filename = file.path(dominanceOutDir, sprintf("%s_all_gcs_polygons_overlay.pdf", sampleLower)),
+    plot = allGcsPolygonOverlay,
+    width = 7,
+    height = 6
+  )
+
+  dominanceBcrs <- bcrClones %>%
+    mutate(
+      spaced_clone_id = paste0("heavy_", clone_id),
+      chain_for_pairing = "heavy"
+    )
+
+  clonalDominance <- spatialCloneDominance(
+    bcrs = dominanceBcrs,
+    object = thymus,
+    polygon = allGcsPolygons,
+    barcode_col = "barcode_8um",
+    clone_col = "spaced_clone_id",
+    locus_col = "chain_for_pairing",
+    locus = "heavy"
+  )
+
+  clonalDominanceNoSingletons <- spatialCloneDominance(
+    bcrs = dominanceBcrs,
+    object = thymus,
+    polygon = allGcsPolygons,
+    barcode_col = "barcode_8um",
+    clone_col = "spaced_clone_id",
+    locus_col = "chain_for_pairing",
+    locus = "heavy",
+    exclude_singletons = TRUE
+  )
+
+  fwrite(
+    clonalDominance$dominance,
+    file.path(dominanceOutDir, sprintf("%s_all_gcs_heavy_clonal_dominance.tsv", sampleLower)),
+    sep = "\t"
+  )
+  fwrite(
+    clonalDominanceNoSingletons$dominance,
+    file.path(dominanceOutDir, sprintf("%s_all_gcs_heavy_clonal_dominance_no_singletons.tsv", sampleLower)),
+    sep = "\t"
+  )
+
+  bcrClonePlot <- plotSpatialRegionBCRs(
+    clonalDominance,
+    object = thymus,
+    color_by = "clone_id",
+    top_n = 20,
+    point_size = 0.5,
+    point_alpha = 0.5,
+    polygon_alpha = 0.08
+  )
+  ggsave(
+    filename = file.path(dominanceOutDir, sprintf("%s_all_gcs_heavy_bcrs_by_clone_id.pdf", sampleLower)),
+    plot = bcrClonePlot,
+    width = 8,
+    height = 7
+  )
+
+  bcrVGenePlot <- plotSpatialRegionBCRs(
+    clonalDominance,
+    object = thymus,
+    color_by = "v_gene",
+    top_n = 20,
+    point_size = 0.8,
+    point_alpha = 0.75,
+    polygon_alpha = 0.08
+  )
+  ggsave(
+    filename = file.path(dominanceOutDir, sprintf("%s_all_gcs_heavy_bcrs_by_v_gene.pdf", sampleLower)),
+    plot = bcrVGenePlot,
+    width = 8,
+    height = 7
+  )
+
+  bcrVFamilyPlot <- plotSpatialRegionBCRs(
+    clonalDominance,
+    object = thymus,
+    color_by = "v_gene_family",
+    top_n = 20,
+    point_size = 0.8,
+    point_alpha = 0.75,
+    polygon_alpha = 0.08
+  )
+  ggsave(
+    filename = file.path(dominanceOutDir, sprintf("%s_all_gcs_heavy_bcrs_by_v_gene_family.pdf", sampleLower)),
+    plot = bcrVFamilyPlot,
+    width = 8,
+    height = 7
+  )
+
+  bcrVSuperfamilyPlot <- plotSpatialRegionBCRs(
+    clonalDominance,
+    object = thymus,
+    color_by = "v_gene_superfamily",
+    point_size = 0.8,
+    point_alpha = 0.75,
+    polygon_alpha = 0.08
+  )
+  ggsave(
+    filename = file.path(dominanceOutDir, sprintf("%s_all_gcs_heavy_bcrs_by_v_gene_superfamily.pdf", sampleLower)),
+    plot = bcrVSuperfamilyPlot,
+    width = 8,
+    height = 7
+  )
+
+  clonePies <- plotSpatialPolygonPies(
+    clonalDominance,
+    object = thymus,
+    fill_by = "clone_id",
+    mode = "side_by_side",
+    top_n = 10,
+    label_top_n = 5,
+    polygon_alpha = 0.2
+  )
+  ggsave(
+    filename = file.path(dominanceOutDir, sprintf("%s_all_gcs_heavy_clone_id_pies.pdf", sampleLower)),
+    plot = clonePies,
+    width = 12,
+    height = 7
+  )
+
+  vFamilyPies <- plotSpatialPolygonPies(
+    clonalDominance,
+    object = thymus,
+    fill_by = "v_gene_family",
+    mode = "side_by_side",
+    top_n = 10,
+    label_top_n = 10,
+    polygon_alpha = 0.2
+  )
+  ggsave(
+    filename = file.path(dominanceOutDir, sprintf("%s_all_gcs_heavy_v_gene_family_pies.pdf", sampleLower)),
+    plot = vFamilyPies,
+    width = 12,
+    height = 7
+  )
+
+  vSuperfamilyPies <- plotSpatialPolygonPies(
+    clonalDominance,
+    object = thymus,
+    fill_by = "v_gene_superfamily",
+    mode = "side_by_side",
+    top_n = 10,
+    label_top_n = 10,
+    polygon_alpha = 0.2
+  )
+  ggsave(
+    filename = file.path(dominanceOutDir, sprintf("%s_all_gcs_heavy_v_gene_superfamily_pies.pdf", sampleLower)),
+    plot = vSuperfamilyPies,
+    width = 12,
+    height = 7
+  )
+
+  if (requireNamespace("sf", quietly = TRUE)) {
+    cloneSpatialPies <- plotSpatialPolygonPies(
+      clonalDominance,
+      object = thymus,
+      fill_by = "clone_id",
+      mode = "spatial_clipped",
+      top_n = 10,
+      label_top_n = 0,
+      pie_alpha = 0.9
+    )
+    ggsave(
+      filename = file.path(dominanceOutDir, sprintf("%s_all_gcs_heavy_clone_id_spatial_pies.pdf", sampleLower)),
+      plot = cloneSpatialPies,
+      width = 8,
+      height = 7
+    )
+
+    vFamilySpatialPies <- plotSpatialPolygonPies(
+      clonalDominance,
+      object = thymus,
+      fill_by = "v_gene_family",
+      mode = "spatial_clipped",
+      top_n = 10,
+      label_top_n = 0,
+      pie_alpha = 0.9
+    )
+    ggsave(
+      filename = file.path(dominanceOutDir, sprintf("%s_all_gcs_heavy_v_gene_family_spatial_pies.pdf", sampleLower)),
+      plot = vFamilySpatialPies,
+      width = 8,
+      height = 7
+    )
+
+    vSuperfamilySpatialPies <- plotSpatialPolygonPies(
+      clonalDominance,
+      object = thymus,
+      fill_by = "v_gene_superfamily",
+      mode = "spatial_clipped",
+      top_n = 10,
+      label_top_n = 0,
+      pie_alpha = 0.9,
+      spatial_legend = TRUE
+    )
+    ggsave(
+      filename = file.path(dominanceOutDir, sprintf("%s_all_gcs_heavy_v_gene_superfamily_spatial_pies.pdf", sampleLower)),
+      plot = vSuperfamilySpatialPies,
+      width = 8,
+      height = 7
+    )
+  } else {
+    message("Skipping spatially clipped pie charts because sf is not installed.")
+  }
+}
 
 
 

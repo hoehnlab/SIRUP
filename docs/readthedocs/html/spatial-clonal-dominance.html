@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Spatial Clonal Dominance</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Spatial Clonal Dominance</h1>
+
+
+
+<p>This vignette shows how to draw spatial regions, calculate clone
+dominance inside those regions, and make region-level plots for clone
+IDs and V-gene annotations.</p>
+<p>Clone dominance is the fraction of BCR rows inside a polygon assigned
+to each clone. <code>spatialCloneDominance()</code> also returns the BCR
+rows and spatial coordinates inside each polygon, so the same object can
+be passed directly to the plotting functions.</p>
+<p>By default, this page shows runnable code but does not evaluate it.
+To render plots from the full local thymus dataset, render on the
+cluster with <code>SIRAP_RENDER_PLOTS=true</code>.</p>
+<div id="setup" class="section level2">
+<h2>Setup</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(SIRAP)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="fu">library</span>(airr)</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="fu">library</span>(Seurat)</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="fu">library</span>(SeuratObject)</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="fu">library</span>(scoper)</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>sampleId <span class="ot">&lt;-</span> <span class="st">&quot;M5&quot;</span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>sampleLower <span class="ot">&lt;-</span> <span class="fu">tolower</span>(sampleId)</span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>nproc <span class="ot">&lt;-</span> <span class="dv">8</span></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>thymusDir <span class="ot">&lt;-</span> <span class="fu">normalizePath</span>(<span class="st">&quot;/dartfs/rc/lab/H/HoehnK/Hunter/Thymus_VisiumHD&quot;</span>, <span class="at">mustWork =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>outDir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(thymusDir, <span class="st">&quot;SIRAP_walkthrough&quot;</span>, sampleId)</span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>finalAirrDir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(outDir, <span class="st">&quot;03_final_spatial_airr&quot;</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a>plotDir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(outDir, <span class="st">&quot;plots&quot;</span>)</span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a>dominanceOutDir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(plotDir, <span class="st">&quot;clonal_dominance&quot;</span>)</span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a><span class="fu">dir.create</span>(dominanceOutDir, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a>seuratPath <span class="ot">&lt;-</span> <span class="fu">file.path</span>(thymusDir, <span class="st">&quot;data&quot;</span>, <span class="fu">sprintf</span>(<span class="st">&quot;Thymus_VisiumHD_%s_8um_hires.rds&quot;</span>, sampleId))</span>
+<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a>finalBCRPath <span class="ot">&lt;-</span> <span class="fu">file.path</span>(finalAirrDir, <span class="fu">sprintf</span>(<span class="st">&quot;%s_bcrs_heavy_final_spatial_airr.tsv&quot;</span>, sampleLower))</span>
+<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a>bcrClonesPath <span class="ot">&lt;-</span> <span class="fu">file.path</span>(outDir, <span class="fu">sprintf</span>(<span class="st">&quot;%s_bcr_hierarchical_clones.rds&quot;</span>, sampleLower))</span>
+<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" tabindex="-1"></a>thymus <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(seuratPath)</span>
+<span id="cb1-26"><a href="#cb1-26" tabindex="-1"></a>bcrTopBarcode <span class="ot">&lt;-</span> airr<span class="sc">::</span><span class="fu">read_rearrangement</span>(finalBCRPath)</span></code></pre></div>
+<p>If clones have not already been called, call them with
+<code>scoper</code>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">file.exists</span>(bcrClonesPath)) {</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  bcrClones <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(bcrClonesPath)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  bcrClones <span class="ot">&lt;-</span> scoper<span class="sc">::</span><span class="fu">hierarchicalClones</span>(</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>    <span class="fu">filter</span>(bcrTopBarcode, productive),</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>    <span class="at">threshold =</span> <span class="fl">0.1</span>,</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>    <span class="at">cell_id =</span> <span class="st">&quot;sequence_id&quot;</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>    <span class="at">summarize_clones =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>    <span class="at">nproc =</span> nproc</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>  )</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>  <span class="fu">saveRDS</span>(bcrClones, bcrClonesPath)</span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="select-polygon-regions" class="section level2">
+<h2>Select Polygon Regions</h2>
+<p><code>selectSpatialPolygons()</code> opens a Shiny app for selecting
+polygon vertices over the spatial tissue coordinates. Each click snaps
+to the nearest full-resolution spatial barcode, even if
+<code>downsample_n</code> is used to make the browser plot lighter.</p>
+<p>For an HPC interactive node, define the host and port explicitly.
+Start the R session on the interactive node, run the code below, then
+tunnel the port from your laptop. For example:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">ssh</span> <span class="at">-N</span> <span class="at">-L</span> 8788:t01.hpcc.dartmouth.edu:8788 f007p0j@discovery.dartmouth.edu</span></code></pre></div>
+<p>Then open <a href="http://127.0.0.1:8788" class="uri">http://127.0.0.1:8788</a> in your laptop browser. Use
+<code>host = &quot;0.0.0.0&quot;</code> when Shiny is running on the compute node
+and the browser connection arrives through the login node tunnel.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>gcMantlePolygonPath <span class="ot">&lt;-</span> <span class="fu">file.path</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  dominanceOutDir,</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="fu">sprintf</span>(<span class="st">&quot;%s_big_center_gc_plus_mantle_polygon_vertices.csv&quot;</span>, sampleLower)</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>)</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>gcPolygonPath <span class="ot">&lt;-</span> <span class="fu">file.path</span>(</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>  dominanceOutDir,</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>  <span class="fu">sprintf</span>(<span class="st">&quot;%s_big_gc_polygon_vertices.csv&quot;</span>, sampleLower)</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>)</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>allGcsPolygonsPath <span class="ot">&lt;-</span> <span class="fu">file.path</span>(</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>  dominanceOutDir,</span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>  <span class="fu">sprintf</span>(<span class="st">&quot;%s_all_gcs_polygons_vertices.csv&quot;</span>, sampleLower)</span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>)</span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>dominanceShinyHost <span class="ot">&lt;-</span> <span class="st">&quot;0.0.0.0&quot;</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>dominanceShinyPort <span class="ot">&lt;-</span> <span class="dv">8788</span><span class="dt">L</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>dominanceFeature <span class="ot">&lt;-</span> <span class="st">&quot;MS4A1&quot;</span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>dominanceDownsampleN <span class="ot">&lt;-</span> <span class="dv">20000</span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>dominancePlotImage <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span></code></pre></div>
+<p>Draw or load the GC plus mantle polygon.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">file.exists</span>(gcMantlePolygonPath)) {</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  gcMantlePolygon <span class="ot">&lt;-</span> <span class="fu">fread</span>(gcMantlePolygonPath) <span class="sc">%&gt;%</span> <span class="fu">as.data.frame</span>()</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="fu">message</span>(</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>    <span class="st">&quot;No saved GC plus mantle polygon found. Starting Shiny on &quot;</span>,</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>    dominanceShinyHost, <span class="st">&quot;:&quot;</span>, dominanceShinyPort, <span class="st">&quot;.&quot;</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  )</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>  gcMantlePolygon <span class="ot">&lt;-</span> <span class="fu">selectSpatialPolygons</span>(</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>    <span class="at">object =</span> thymus,</span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>    <span class="at">feature =</span> dominanceFeature,</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>    <span class="at">image.scale =</span> <span class="st">&quot;hires&quot;</span>,</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>    <span class="at">save_path =</span> gcMantlePolygonPath,</span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>    <span class="at">downsample_n =</span> dominanceDownsampleN,</span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>    <span class="at">host =</span> dominanceShinyHost,</span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a>    <span class="at">port =</span> dominanceShinyPort,</span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a>    <span class="at">plot_image =</span> dominancePlotImage,</span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a>    <span class="at">launch.browser =</span> <span class="cn">FALSE</span></span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a>  )</span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a>}</span></code></pre></div>
+<p>Draw or load a single GC polygon.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">file.exists</span>(gcPolygonPath)) {</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  gcPolygon <span class="ot">&lt;-</span> <span class="fu">fread</span>(gcPolygonPath) <span class="sc">%&gt;%</span> <span class="fu">as.data.frame</span>()</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="fu">message</span>(</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>    <span class="st">&quot;No saved GC polygon found. Starting Shiny on &quot;</span>,</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>    dominanceShinyHost, <span class="st">&quot;:&quot;</span>, dominanceShinyPort, <span class="st">&quot;.&quot;</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>  )</span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>  gcPolygon <span class="ot">&lt;-</span> <span class="fu">selectSpatialPolygons</span>(</span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a>    <span class="at">object =</span> thymus,</span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a>    <span class="at">feature =</span> dominanceFeature,</span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a>    <span class="at">image.scale =</span> <span class="st">&quot;hires&quot;</span>,</span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a>    <span class="at">save_path =</span> gcPolygonPath,</span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a>    <span class="at">downsample_n =</span> dominanceDownsampleN,</span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a>    <span class="at">host =</span> dominanceShinyHost,</span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a>    <span class="at">port =</span> dominanceShinyPort,</span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a>    <span class="at">plot_image =</span> dominancePlotImage,</span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a>    <span class="at">launch.browser =</span> <span class="cn">FALSE</span></span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a>  )</span>
+<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a>}</span></code></pre></div>
+<p>Draw or load multiple GC polygons. If you draw more than one polygon
+in the Shiny app, the returned table has a <code>polygon</code> column
+and downstream dominance summaries are calculated independently for each
+polygon.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">file.exists</span>(allGcsPolygonsPath)) {</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  allGcsPolygons <span class="ot">&lt;-</span> <span class="fu">fread</span>(allGcsPolygonsPath) <span class="sc">%&gt;%</span> <span class="fu">as.data.frame</span>()</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="fu">message</span>(</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>    <span class="st">&quot;No saved all-GC polygons found. Starting Shiny on &quot;</span>,</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>    dominanceShinyHost, <span class="st">&quot;:&quot;</span>, dominanceShinyPort, <span class="st">&quot;.&quot;</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>  )</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>  allGcsPolygons <span class="ot">&lt;-</span> <span class="fu">selectSpatialPolygons</span>(</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>    <span class="at">object =</span> thymus,</span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>    <span class="at">feature =</span> dominanceFeature,</span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>    <span class="at">image.scale =</span> <span class="st">&quot;hires&quot;</span>,</span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a>    <span class="at">save_path =</span> allGcsPolygonsPath,</span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a>    <span class="at">downsample_n =</span> dominanceDownsampleN,</span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a>    <span class="at">host =</span> dominanceShinyHost,</span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a>    <span class="at">port =</span> dominanceShinyPort,</span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a>    <span class="at">plot_image =</span> dominancePlotImage,</span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a>    <span class="at">launch.browser =</span> <span class="cn">FALSE</span></span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a>  )</span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a>}</span></code></pre></div>
+<p>Plot the selected polygons to check that the regions are correct
+before using them for dominance summaries.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>allGcsPolygonOverlay <span class="ot">&lt;-</span> <span class="fu">plotSpatialPolygons</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="at">object =</span> thymus,</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="at">polygon =</span> allGcsPolygons,</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="at">image.scale =</span> <span class="st">&quot;hires&quot;</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  <span class="at">polygon_alpha =</span> <span class="fl">0.2</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>)</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="fu">ggsave</span>(</span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>  <span class="at">filename =</span> <span class="fu">file.path</span>(dominanceOutDir, <span class="fu">sprintf</span>(<span class="st">&quot;%s_all_gcs_polygons_overlay.pdf&quot;</span>, sampleLower)),</span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>  <span class="at">plot =</span> allGcsPolygonOverlay,</span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a>  <span class="at">width =</span> <span class="dv">7</span>,</span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">6</span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="calculate-clonal-dominance" class="section level2">
+<h2>Calculate Clonal Dominance</h2>
+<p>For this example, the denominator is the whole heavy-chain BCR pool
+inside each polygon. <code>exclude_singletons = TRUE</code> removes
+clone IDs represented by only one BCR row before calculating
+dominance.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>dominanceBcrs <span class="ot">&lt;-</span> bcrClones <span class="sc">%&gt;%</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>    <span class="at">spaced_clone_id =</span> <span class="fu">paste0</span>(<span class="st">&quot;heavy_&quot;</span>, clone_id),</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>    <span class="at">chain_for_pairing =</span> <span class="st">&quot;heavy&quot;</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  )</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>clonalDominance <span class="ot">&lt;-</span> <span class="fu">spatialCloneDominance</span>(</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>  <span class="at">bcrs =</span> dominanceBcrs,</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>  <span class="at">object =</span> thymus,</span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a>  <span class="at">polygon =</span> allGcsPolygons,</span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>  <span class="at">barcode_col =</span> <span class="st">&quot;barcode_8um&quot;</span>,</span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a>  <span class="at">clone_col =</span> <span class="st">&quot;spaced_clone_id&quot;</span>,</span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a>  <span class="at">locus_col =</span> <span class="st">&quot;chain_for_pairing&quot;</span>,</span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a>  <span class="at">locus =</span> <span class="st">&quot;heavy&quot;</span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a>)</span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a>clonalDominanceNoSingletons <span class="ot">&lt;-</span> <span class="fu">spatialCloneDominance</span>(</span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a>  <span class="at">bcrs =</span> dominanceBcrs,</span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a>  <span class="at">object =</span> thymus,</span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a>  <span class="at">polygon =</span> allGcsPolygons,</span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a>  <span class="at">barcode_col =</span> <span class="st">&quot;barcode_8um&quot;</span>,</span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a>  <span class="at">clone_col =</span> <span class="st">&quot;spaced_clone_id&quot;</span>,</span>
+<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a>  <span class="at">locus_col =</span> <span class="st">&quot;chain_for_pairing&quot;</span>,</span>
+<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a>  <span class="at">locus =</span> <span class="st">&quot;heavy&quot;</span>,</span>
+<span id="cb9-25"><a href="#cb9-25" tabindex="-1"></a>  <span class="at">exclude_singletons =</span> <span class="cn">TRUE</span></span>
+<span id="cb9-26"><a href="#cb9-26" tabindex="-1"></a>)</span>
+<span id="cb9-27"><a href="#cb9-27" tabindex="-1"></a></span>
+<span id="cb9-28"><a href="#cb9-28" tabindex="-1"></a><span class="fu">head</span>(clonalDominance<span class="sc">$</span>dominance)</span></code></pre></div>
+<p>The returned object contains:</p>
+<ul>
+<li><code>dominance</code>: clone counts and proportions for each
+polygon.</li>
+<li><code>region_barcodes</code>: spatial barcodes inside each
+polygon.</li>
+<li><code>region_coordinates</code>: spatial coordinate rows inside each
+polygon.</li>
+<li><code>region_bcrs</code>: BCR rows inside each polygon, with
+plotting coordinates and V-gene summaries.</li>
+<li><code>polygons</code>: polygon vertices prepared for plotting.</li>
+</ul>
+<p><code>dominance</code> includes allele-level <code>v_gene</code>,
+allele-stripped <code>v_gene_family</code>, and broad
+<code>v_gene_superfamily</code> values for each clone.</p>
+</div>
+<div id="plot-regional-bcrs" class="section level2">
+<h2>Plot Regional BCRs</h2>
+<p><code>plotSpatialRegionBCRs()</code> plots the BCR rows inside the
+selected polygons over the tissue image. <code>top_n</code> keeps the
+most common displayed levels and groups lower-frequency levels as
+<code>Other</code>.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>bcrClonePlot <span class="ot">&lt;-</span> <span class="fu">plotSpatialRegionBCRs</span>(</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  clonalDominance,</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="at">object =</span> thymus,</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>  <span class="at">color_by =</span> <span class="st">&quot;clone_id&quot;</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>  <span class="at">top_n =</span> <span class="dv">20</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>  <span class="at">point_size =</span> <span class="fl">0.5</span>,</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>  <span class="at">point_alpha =</span> <span class="fl">0.5</span>,</span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>  <span class="at">polygon_alpha =</span> <span class="fl">0.08</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a>)</span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="fu">ggsave</span>(</span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a>  <span class="at">filename =</span> <span class="fu">file.path</span>(dominanceOutDir, <span class="fu">sprintf</span>(<span class="st">&quot;%s_all_gcs_heavy_bcrs_by_clone_id.pdf&quot;</span>, sampleLower)),</span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a>  <span class="at">plot =</span> bcrClonePlot,</span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a>  <span class="at">width =</span> <span class="dv">8</span>,</span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">7</span></span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a>)</span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a></span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a>bcrVGenePlot <span class="ot">&lt;-</span> <span class="fu">plotSpatialRegionBCRs</span>(</span>
+<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a>  clonalDominance,</span>
+<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a>  <span class="at">object =</span> thymus,</span>
+<span id="cb10-20"><a href="#cb10-20" tabindex="-1"></a>  <span class="at">color_by =</span> <span class="st">&quot;v_gene&quot;</span>,</span>
+<span id="cb10-21"><a href="#cb10-21" tabindex="-1"></a>  <span class="at">top_n =</span> <span class="dv">20</span>,</span>
+<span id="cb10-22"><a href="#cb10-22" tabindex="-1"></a>  <span class="at">point_size =</span> <span class="fl">0.8</span>,</span>
+<span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a>  <span class="at">point_alpha =</span> <span class="fl">0.75</span>,</span>
+<span id="cb10-24"><a href="#cb10-24" tabindex="-1"></a>  <span class="at">polygon_alpha =</span> <span class="fl">0.08</span></span>
+<span id="cb10-25"><a href="#cb10-25" tabindex="-1"></a>)</span>
+<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a><span class="fu">ggsave</span>(</span>
+<span id="cb10-27"><a href="#cb10-27" tabindex="-1"></a>  <span class="at">filename =</span> <span class="fu">file.path</span>(dominanceOutDir, <span class="fu">sprintf</span>(<span class="st">&quot;%s_all_gcs_heavy_bcrs_by_v_gene.pdf&quot;</span>, sampleLower)),</span>
+<span id="cb10-28"><a href="#cb10-28" tabindex="-1"></a>  <span class="at">plot =</span> bcrVGenePlot,</span>
+<span id="cb10-29"><a href="#cb10-29" tabindex="-1"></a>  <span class="at">width =</span> <span class="dv">8</span>,</span>
+<span id="cb10-30"><a href="#cb10-30" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">7</span></span>
+<span id="cb10-31"><a href="#cb10-31" tabindex="-1"></a>)</span>
+<span id="cb10-32"><a href="#cb10-32" tabindex="-1"></a></span>
+<span id="cb10-33"><a href="#cb10-33" tabindex="-1"></a>bcrVFamilyPlot <span class="ot">&lt;-</span> <span class="fu">plotSpatialRegionBCRs</span>(</span>
+<span id="cb10-34"><a href="#cb10-34" tabindex="-1"></a>  clonalDominance,</span>
+<span id="cb10-35"><a href="#cb10-35" tabindex="-1"></a>  <span class="at">object =</span> thymus,</span>
+<span id="cb10-36"><a href="#cb10-36" tabindex="-1"></a>  <span class="at">color_by =</span> <span class="st">&quot;v_gene_family&quot;</span>,</span>
+<span id="cb10-37"><a href="#cb10-37" tabindex="-1"></a>  <span class="at">top_n =</span> <span class="dv">20</span>,</span>
+<span id="cb10-38"><a href="#cb10-38" tabindex="-1"></a>  <span class="at">point_size =</span> <span class="fl">0.8</span>,</span>
+<span id="cb10-39"><a href="#cb10-39" tabindex="-1"></a>  <span class="at">point_alpha =</span> <span class="fl">0.75</span>,</span>
+<span id="cb10-40"><a href="#cb10-40" tabindex="-1"></a>  <span class="at">polygon_alpha =</span> <span class="fl">0.08</span></span>
+<span id="cb10-41"><a href="#cb10-41" tabindex="-1"></a>)</span>
+<span id="cb10-42"><a href="#cb10-42" tabindex="-1"></a><span class="fu">ggsave</span>(</span>
+<span id="cb10-43"><a href="#cb10-43" tabindex="-1"></a>  <span class="at">filename =</span> <span class="fu">file.path</span>(dominanceOutDir, <span class="fu">sprintf</span>(<span class="st">&quot;%s_all_gcs_heavy_bcrs_by_v_gene_family.pdf&quot;</span>, sampleLower)),</span>
+<span id="cb10-44"><a href="#cb10-44" tabindex="-1"></a>  <span class="at">plot =</span> bcrVFamilyPlot,</span>
+<span id="cb10-45"><a href="#cb10-45" tabindex="-1"></a>  <span class="at">width =</span> <span class="dv">8</span>,</span>
+<span id="cb10-46"><a href="#cb10-46" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">7</span></span>
+<span id="cb10-47"><a href="#cb10-47" tabindex="-1"></a>)</span>
+<span id="cb10-48"><a href="#cb10-48" tabindex="-1"></a></span>
+<span id="cb10-49"><a href="#cb10-49" tabindex="-1"></a>bcrVSuperfamilyPlot <span class="ot">&lt;-</span> <span class="fu">plotSpatialRegionBCRs</span>(</span>
+<span id="cb10-50"><a href="#cb10-50" tabindex="-1"></a>  clonalDominance,</span>
+<span id="cb10-51"><a href="#cb10-51" tabindex="-1"></a>  <span class="at">object =</span> thymus,</span>
+<span id="cb10-52"><a href="#cb10-52" tabindex="-1"></a>  <span class="at">color_by =</span> <span class="st">&quot;v_gene_superfamily&quot;</span>,</span>
+<span id="cb10-53"><a href="#cb10-53" tabindex="-1"></a>  <span class="at">point_size =</span> <span class="fl">0.8</span>,</span>
+<span id="cb10-54"><a href="#cb10-54" tabindex="-1"></a>  <span class="at">point_alpha =</span> <span class="fl">0.75</span>,</span>
+<span id="cb10-55"><a href="#cb10-55" tabindex="-1"></a>  <span class="at">polygon_alpha =</span> <span class="fl">0.08</span></span>
+<span id="cb10-56"><a href="#cb10-56" tabindex="-1"></a>)</span>
+<span id="cb10-57"><a href="#cb10-57" tabindex="-1"></a><span class="fu">ggsave</span>(</span>
+<span id="cb10-58"><a href="#cb10-58" tabindex="-1"></a>  <span class="at">filename =</span> <span class="fu">file.path</span>(dominanceOutDir, <span class="fu">sprintf</span>(<span class="st">&quot;%s_all_gcs_heavy_bcrs_by_v_gene_superfamily.pdf&quot;</span>, sampleLower)),</span>
+<span id="cb10-59"><a href="#cb10-59" tabindex="-1"></a>  <span class="at">plot =</span> bcrVSuperfamilyPlot,</span>
+<span id="cb10-60"><a href="#cb10-60" tabindex="-1"></a>  <span class="at">width =</span> <span class="dv">8</span>,</span>
+<span id="cb10-61"><a href="#cb10-61" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">7</span></span>
+<span id="cb10-62"><a href="#cb10-62" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="plot-pie-summaries" class="section level2">
+<h2>Plot Pie Summaries</h2>
+<p><code>plotSpatialPolygonPies()</code> makes pie summaries from the
+dominance object. With <code>mode = &quot;side_by_side&quot;</code>, the tissue
+image and numbered polygons appear on the left and the pie charts appear
+on the right. The top levels are identified within each polygon, then
+unioned across polygons so a clone that is top-ranked in any polygon
+remains named everywhere it appears. Other levels are grouped as
+<code>Other</code>.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>clonePies <span class="ot">&lt;-</span> <span class="fu">plotSpatialPolygonPies</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  clonalDominance,</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="at">object =</span> thymus,</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>  <span class="at">fill_by =</span> <span class="st">&quot;clone_id&quot;</span>,</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>  <span class="at">mode =</span> <span class="st">&quot;side_by_side&quot;</span>,</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>  <span class="at">top_n =</span> <span class="dv">10</span>,</span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>  <span class="at">label_top_n =</span> <span class="dv">5</span>,</span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>  <span class="at">polygon_alpha =</span> <span class="fl">0.2</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>)</span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="fu">ggsave</span>(</span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>  <span class="at">filename =</span> <span class="fu">file.path</span>(dominanceOutDir, <span class="fu">sprintf</span>(<span class="st">&quot;%s_all_gcs_heavy_clone_id_pies.pdf&quot;</span>, sampleLower)),</span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a>  <span class="at">plot =</span> clonePies,</span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a>  <span class="at">width =</span> <span class="dv">12</span>,</span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">7</span></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a>)</span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a></span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a>vFamilyPies <span class="ot">&lt;-</span> <span class="fu">plotSpatialPolygonPies</span>(</span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a>  clonalDominance,</span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a>  <span class="at">object =</span> thymus,</span>
+<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a>  <span class="at">fill_by =</span> <span class="st">&quot;v_gene_family&quot;</span>,</span>
+<span id="cb11-21"><a href="#cb11-21" tabindex="-1"></a>  <span class="at">mode =</span> <span class="st">&quot;side_by_side&quot;</span>,</span>
+<span id="cb11-22"><a href="#cb11-22" tabindex="-1"></a>  <span class="at">top_n =</span> <span class="dv">10</span>,</span>
+<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a>  <span class="at">label_top_n =</span> <span class="dv">10</span>,</span>
+<span id="cb11-24"><a href="#cb11-24" tabindex="-1"></a>  <span class="at">polygon_alpha =</span> <span class="fl">0.2</span></span>
+<span id="cb11-25"><a href="#cb11-25" tabindex="-1"></a>)</span>
+<span id="cb11-26"><a href="#cb11-26" tabindex="-1"></a><span class="fu">ggsave</span>(</span>
+<span id="cb11-27"><a href="#cb11-27" tabindex="-1"></a>  <span class="at">filename =</span> <span class="fu">file.path</span>(dominanceOutDir, <span class="fu">sprintf</span>(<span class="st">&quot;%s_all_gcs_heavy_v_gene_family_pies.pdf&quot;</span>, sampleLower)),</span>
+<span id="cb11-28"><a href="#cb11-28" tabindex="-1"></a>  <span class="at">plot =</span> vFamilyPies,</span>
+<span id="cb11-29"><a href="#cb11-29" tabindex="-1"></a>  <span class="at">width =</span> <span class="dv">12</span>,</span>
+<span id="cb11-30"><a href="#cb11-30" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">7</span></span>
+<span id="cb11-31"><a href="#cb11-31" tabindex="-1"></a>)</span>
+<span id="cb11-32"><a href="#cb11-32" tabindex="-1"></a></span>
+<span id="cb11-33"><a href="#cb11-33" tabindex="-1"></a>vSuperfamilyPies <span class="ot">&lt;-</span> <span class="fu">plotSpatialPolygonPies</span>(</span>
+<span id="cb11-34"><a href="#cb11-34" tabindex="-1"></a>  clonalDominance,</span>
+<span id="cb11-35"><a href="#cb11-35" tabindex="-1"></a>  <span class="at">object =</span> thymus,</span>
+<span id="cb11-36"><a href="#cb11-36" tabindex="-1"></a>  <span class="at">fill_by =</span> <span class="st">&quot;v_gene_superfamily&quot;</span>,</span>
+<span id="cb11-37"><a href="#cb11-37" tabindex="-1"></a>  <span class="at">mode =</span> <span class="st">&quot;side_by_side&quot;</span>,</span>
+<span id="cb11-38"><a href="#cb11-38" tabindex="-1"></a>  <span class="at">top_n =</span> <span class="dv">10</span>,</span>
+<span id="cb11-39"><a href="#cb11-39" tabindex="-1"></a>  <span class="at">label_top_n =</span> <span class="dv">10</span>,</span>
+<span id="cb11-40"><a href="#cb11-40" tabindex="-1"></a>  <span class="at">polygon_alpha =</span> <span class="fl">0.2</span></span>
+<span id="cb11-41"><a href="#cb11-41" tabindex="-1"></a>)</span>
+<span id="cb11-42"><a href="#cb11-42" tabindex="-1"></a><span class="fu">ggsave</span>(</span>
+<span id="cb11-43"><a href="#cb11-43" tabindex="-1"></a>  <span class="at">filename =</span> <span class="fu">file.path</span>(dominanceOutDir, <span class="fu">sprintf</span>(<span class="st">&quot;%s_all_gcs_heavy_v_gene_superfamily_pies.pdf&quot;</span>, sampleLower)),</span>
+<span id="cb11-44"><a href="#cb11-44" tabindex="-1"></a>  <span class="at">plot =</span> vSuperfamilyPies,</span>
+<span id="cb11-45"><a href="#cb11-45" tabindex="-1"></a>  <span class="at">width =</span> <span class="dv">12</span>,</span>
+<span id="cb11-46"><a href="#cb11-46" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">7</span></span>
+<span id="cb11-47"><a href="#cb11-47" tabindex="-1"></a>)</span></code></pre></div>
+<p>The spatially clipped pie mode fills each polygon with the pie
+slices. This requires the suggested <code>sf</code> package. Labels are
+usually best left off for this mode; use
+<code>spatial_legend = TRUE</code> for variables with a manageable
+number of levels, such as V-gene superfamily.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">requireNamespace</span>(<span class="st">&quot;sf&quot;</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>)) {</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  cloneSpatialPies <span class="ot">&lt;-</span> <span class="fu">plotSpatialPolygonPies</span>(</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>    clonalDominance,</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>    <span class="at">object =</span> thymus,</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>    <span class="at">fill_by =</span> <span class="st">&quot;clone_id&quot;</span>,</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>    <span class="at">mode =</span> <span class="st">&quot;spatial_clipped&quot;</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>    <span class="at">top_n =</span> <span class="dv">10</span>,</span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>    <span class="at">label_top_n =</span> <span class="dv">0</span>,</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>    <span class="at">pie_alpha =</span> <span class="fl">0.9</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>  )</span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>  <span class="fu">ggsave</span>(</span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a>    <span class="at">filename =</span> <span class="fu">file.path</span>(dominanceOutDir, <span class="fu">sprintf</span>(<span class="st">&quot;%s_all_gcs_heavy_clone_id_spatial_pies.pdf&quot;</span>, sampleLower)),</span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>    <span class="at">plot =</span> cloneSpatialPies,</span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a>    <span class="at">width =</span> <span class="dv">8</span>,</span>
+<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a>    <span class="at">height =</span> <span class="dv">7</span></span>
+<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a>  )</span>
+<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a></span>
+<span id="cb12-18"><a href="#cb12-18" tabindex="-1"></a>  vFamilySpatialPies <span class="ot">&lt;-</span> <span class="fu">plotSpatialPolygonPies</span>(</span>
+<span id="cb12-19"><a href="#cb12-19" tabindex="-1"></a>    clonalDominance,</span>
+<span id="cb12-20"><a href="#cb12-20" tabindex="-1"></a>    <span class="at">object =</span> thymus,</span>
+<span id="cb12-21"><a href="#cb12-21" tabindex="-1"></a>    <span class="at">fill_by =</span> <span class="st">&quot;v_gene_family&quot;</span>,</span>
+<span id="cb12-22"><a href="#cb12-22" tabindex="-1"></a>    <span class="at">mode =</span> <span class="st">&quot;spatial_clipped&quot;</span>,</span>
+<span id="cb12-23"><a href="#cb12-23" tabindex="-1"></a>    <span class="at">top_n =</span> <span class="dv">10</span>,</span>
+<span id="cb12-24"><a href="#cb12-24" tabindex="-1"></a>    <span class="at">label_top_n =</span> <span class="dv">0</span>,</span>
+<span id="cb12-25"><a href="#cb12-25" tabindex="-1"></a>    <span class="at">pie_alpha =</span> <span class="fl">0.9</span></span>
+<span id="cb12-26"><a href="#cb12-26" tabindex="-1"></a>  )</span>
+<span id="cb12-27"><a href="#cb12-27" tabindex="-1"></a>  <span class="fu">ggsave</span>(</span>
+<span id="cb12-28"><a href="#cb12-28" tabindex="-1"></a>    <span class="at">filename =</span> <span class="fu">file.path</span>(dominanceOutDir, <span class="fu">sprintf</span>(<span class="st">&quot;%s_all_gcs_heavy_v_gene_family_spatial_pies.pdf&quot;</span>, sampleLower)),</span>
+<span id="cb12-29"><a href="#cb12-29" tabindex="-1"></a>    <span class="at">plot =</span> vFamilySpatialPies,</span>
+<span id="cb12-30"><a href="#cb12-30" tabindex="-1"></a>    <span class="at">width =</span> <span class="dv">8</span>,</span>
+<span id="cb12-31"><a href="#cb12-31" tabindex="-1"></a>    <span class="at">height =</span> <span class="dv">7</span></span>
+<span id="cb12-32"><a href="#cb12-32" tabindex="-1"></a>  )</span>
+<span id="cb12-33"><a href="#cb12-33" tabindex="-1"></a></span>
+<span id="cb12-34"><a href="#cb12-34" tabindex="-1"></a>  vSuperfamilySpatialPies <span class="ot">&lt;-</span> <span class="fu">plotSpatialPolygonPies</span>(</span>
+<span id="cb12-35"><a href="#cb12-35" tabindex="-1"></a>    clonalDominance,</span>
+<span id="cb12-36"><a href="#cb12-36" tabindex="-1"></a>    <span class="at">object =</span> thymus,</span>
+<span id="cb12-37"><a href="#cb12-37" tabindex="-1"></a>    <span class="at">fill_by =</span> <span class="st">&quot;v_gene_superfamily&quot;</span>,</span>
+<span id="cb12-38"><a href="#cb12-38" tabindex="-1"></a>    <span class="at">mode =</span> <span class="st">&quot;spatial_clipped&quot;</span>,</span>
+<span id="cb12-39"><a href="#cb12-39" tabindex="-1"></a>    <span class="at">top_n =</span> <span class="dv">10</span>,</span>
+<span id="cb12-40"><a href="#cb12-40" tabindex="-1"></a>    <span class="at">label_top_n =</span> <span class="dv">0</span>,</span>
+<span id="cb12-41"><a href="#cb12-41" tabindex="-1"></a>    <span class="at">pie_alpha =</span> <span class="fl">0.9</span>,</span>
+<span id="cb12-42"><a href="#cb12-42" tabindex="-1"></a>    <span class="at">spatial_legend =</span> <span class="cn">TRUE</span></span>
+<span id="cb12-43"><a href="#cb12-43" tabindex="-1"></a>  )</span>
+<span id="cb12-44"><a href="#cb12-44" tabindex="-1"></a>  <span class="fu">ggsave</span>(</span>
+<span id="cb12-45"><a href="#cb12-45" tabindex="-1"></a>    <span class="at">filename =</span> <span class="fu">file.path</span>(dominanceOutDir, <span class="fu">sprintf</span>(<span class="st">&quot;%s_all_gcs_heavy_v_gene_superfamily_spatial_pies.pdf&quot;</span>, sampleLower)),</span>
+<span id="cb12-46"><a href="#cb12-46" tabindex="-1"></a>    <span class="at">plot =</span> vSuperfamilySpatialPies,</span>
+<span id="cb12-47"><a href="#cb12-47" tabindex="-1"></a>    <span class="at">width =</span> <span class="dv">8</span>,</span>
+<span id="cb12-48"><a href="#cb12-48" tabindex="-1"></a>    <span class="at">height =</span> <span class="dv">7</span></span>
+<span id="cb12-49"><a href="#cb12-49" tabindex="-1"></a>  )</span>
+<span id="cb12-50"><a href="#cb12-50" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb12-51"><a href="#cb12-51" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">&quot;Skipping spatially clipped pie charts because sf is not installed.&quot;</span>)</span>
+<span id="cb12-52"><a href="#cb12-52" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
