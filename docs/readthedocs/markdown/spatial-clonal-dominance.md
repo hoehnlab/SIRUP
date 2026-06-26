@@ -247,14 +247,15 @@ The returned object contains:
 `dominance` includes allele-level `v_gene`, allele-stripped
 `v_gene_family`, and broad `v_gene_superfamily` values for each clone.
 
-## Plot Regional BCRs
+## Plot Regional Receptors
 
-`plotSpatialRegionBCRs()` plots the BCR rows inside the selected
-polygons over the tissue image. `top_n` keeps the most common displayed
-levels and groups lower-frequency levels as `Other`.
+`plotSpatialRegionReceptors()` plots receptor rows inside the selected
+polygons over the tissue image. In this example those rows are
+heavy-chain BCRs. `top_n` keeps the most common displayed levels and
+groups lower-frequency levels as `Other`.
 
 ``` r
-bcrClonePlot <- plotSpatialRegionBCRs(
+bcrClonePlot <- plotSpatialRegionReceptors(
   clonalDominance,
   object = thymus,
   color_by = "clone_id",
@@ -270,7 +271,7 @@ ggsave(
   height = 7
 )
 
-bcrVGenePlot <- plotSpatialRegionBCRs(
+bcrVGenePlot <- plotSpatialRegionReceptors(
   clonalDominance,
   object = thymus,
   color_by = "v_gene",
@@ -286,7 +287,7 @@ ggsave(
   height = 7
 )
 
-bcrVFamilyPlot <- plotSpatialRegionBCRs(
+bcrVFamilyPlot <- plotSpatialRegionReceptors(
   clonalDominance,
   object = thymus,
   color_by = "v_gene_family",
@@ -302,7 +303,7 @@ ggsave(
   height = 7
 )
 
-bcrVSuperfamilyPlot <- plotSpatialRegionBCRs(
+bcrVSuperfamilyPlot <- plotSpatialRegionReceptors(
   clonalDominance,
   object = thymus,
   color_by = "v_gene_superfamily",
