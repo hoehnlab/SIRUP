@@ -430,7 +430,8 @@ programmatically. Quick layout/kit pairings: <code>three_prime</code> +
 <code>splitseq_bc1</code>/<code>splitseq_bc2</code>, <code>visium</code>
 + <code>10x_Vis_V1</code>..<code>V5</code>. Note the underscores — rad
 expects <code>&quot;10x_3v3&quot;</code>, not <code>&quot;10xv3&quot;</code>. For an unusual
-chemistry, pass a path to your own layout CSV instead of a key; rad’s <a href="https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md">layouts-and-whitelists
+chemistry, pass a path to your own layout CSV instead of a key; the <a href="custom-read-layouts-with-rad.html">Custom Read Layouts</a> guide
+walks through writing and validating one from R, and rad’s <a href="https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md">layouts-and-whitelists
 guide</a> documents the CSV schema
 (<code>id, seq, expected_length, type, class, whitelist</code>).</p>
 </div>
@@ -679,6 +680,9 @@ SIRAP hasn’t surfaced yet.</p>
 <div id="where-to-next" class="section level2">
 <h2>Where to Next</h2>
 <ul>
+<li><a href="custom-read-layouts-with-rad.html">Custom read layouts</a>
+— describe a wonky or non-standard read structure of your own and run
+this same pipeline on it.</li>
 <li><a href="visium-hd-processing.html">Visium HD processing</a> — pick
 up from RAD output: spatial barcodes through pRESTO/IgBLAST to spatial
 AIRR tables.</li>
