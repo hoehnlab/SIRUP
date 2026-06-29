@@ -100,7 +100,9 @@ pairings: `three_prime` + `10x_3v3` for a 10x 3’ library, `five_prime` +
 `10x_5v3` for 10x 5’, `splitseq` + `splitseq_bc1`/`splitseq_bc2`,
 `visium` + `10x_Vis_V1`..`V5`. Note the underscores — rad expects
 `"10x_3v3"`, not `"10xv3"`. For an unusual chemistry, pass a path to
-your own layout CSV instead of a key; rad’s [layouts-and-whitelists
+your own layout CSV instead of a key; the [Custom Read
+Layouts](custom-read-layouts-with-rad.html) guide walks through writing
+and validating one from R, and rad’s [layouts-and-whitelists
 guide](https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md)
 documents the CSV schema
 (`id, seq, expected_length, type, class, whitelist`).
@@ -380,6 +382,9 @@ tokens through `...` for flags SIRAP hasn’t surfaced yet.
 
 ## Where to Next
 
+- [Custom read layouts](custom-read-layouts-with-rad.html) — describe a
+  wonky or non-standard read structure of your own and run this same
+  pipeline on it.
 - [Visium HD processing](visium-hd-processing.html) — pick up from RAD
   output: spatial barcodes through pRESTO/IgBLAST to spatial AIRR
   tables.

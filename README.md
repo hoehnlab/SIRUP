@@ -37,7 +37,9 @@ For an end-to-end walkthrough — locating/building `rad`, listing layouts and
 whitelists, and running `prep -> scan-wl -> demux -> reformat` on rad's public
 test data (including the Visium HD spatial path) — see the
 [Demultiplexing Long Reads with RAD from R](docs/readthedocs/markdown/demultiplexing-with-rad.md)
-guide.
+guide. To describe a custom or non-standard read structure of your own — the
+layout CSV schema, orientation handling, and validating it before demux — see
+[Defining Custom Read Layouts for RAD](docs/readthedocs/markdown/custom-read-layouts-with-rad.md).
 
 ```r
 library(SIRAP)
