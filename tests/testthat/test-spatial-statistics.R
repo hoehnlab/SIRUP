@@ -63,3 +63,37 @@ test_that("spatialRipleyCrossK keeps all non-missing marks in the point pattern"
   expect_true("Other" %in% out$points$mark)
   expect_true(all(c("A", "B") %in% out$points$mark))
 })
+
+test_that("spatialCloneJoinCount tests clone marks from receptor barcodes", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("spdep")
+
+  object <- SeuratObject::CreateSeuratObject(
+    counts = matrix(
+      1,
+      nrow = 1,
+      ncol = 6,
+      dimnames = list("gene", paste0("cell", 1:6))
+    )
+  )
+  object$x <- c(0, 1, 2, 10, 11, 12)
+  object$y <- c(0, 0, 0, 0, 0, 0)
+  receptors <- data.frame(
+    barcode_8um = paste0("cell", 1:6),
+    clone_id = c("A", "A", "A", "B", "B", "C"),
+    stringsAsFactors = FALSE
+  )
+
+  out <- spatialCloneJoinCount(
+    object = object,
+    receptors = receptors,
+    clone_ids = "A",
+    k = 1,
+    min_barcodes = 2,
+    return_data = TRUE
+  )
+
+  expect_true("A" %in% out$summary$clone_id)
+  expect_equal(out$summary$n_clone_barcodes[out$summary$clone_id == "A"], 3)
+  expect_true(all(c("join_count_mark", "clone_id", ".sirap_barcode") %in% names(out$data)))
+})

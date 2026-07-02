@@ -116,7 +116,7 @@ test_that("polygon plotting data preserves polygon groups and flips plotting y",
     require_closed = TRUE
   )
 
-  expect_equal(sort(unique(plot_data$.sirap_polygon_group)), c("left", "right"))
+  expect_equal(sort(unique(plot_data$polygon)), c("left", "right"))
   expect_equal(plot_data$.sirap_y, -plot_data$y)
 })
 
@@ -145,7 +145,7 @@ test_that("V genes, families, and superfamilies are summarized by clone", {
 
 test_that("polygon pie summaries group lower-frequency levels and label top levels", {
   region_bcrs <- data.frame(
-    .sirap_polygon_group = c(rep("poly1", 5), rep("poly2", 3), rep("poly3", 3)),
+    polygon = c(rep("poly1", 5), rep("poly2", 3), rep("poly3", 3)),
     clone_id = c("A", "A", "B", "C", "D", "E", "F", "F", "C", "C", "G"),
     stringsAsFactors = FALSE
   )
@@ -210,6 +210,81 @@ test_that("spatial pie sectors start at the visual top", {
   expect_equal(sector$y[2], 15, tolerance = 1e-8)
 })
 
+test_that("3D clone density data groups clones and builds surfaces", {
+  ns <- environment(spatialCloneDominance)
+  old_image_dim <- get(".sirap_image_dim", envir = ns)
+  image_dim_binding_locked <- bindingIsLocked(".sirap_image_dim", ns)
+  if (image_dim_binding_locked) {
+    unlockBinding(".sirap_image_dim", ns)
+  }
+  assign(
+    ".sirap_image_dim",
+    function(image) {
+      list(height = 100, width = 100)
+    },
+    envir = ns
+  )
+  if (image_dim_binding_locked) {
+    lockBinding(".sirap_image_dim", ns)
+  }
+  withr::defer({
+    if (image_dim_binding_locked) {
+      unlockBinding(".sirap_image_dim", ns)
+    }
+    assign(".sirap_image_dim", old_image_dim, envir = ns)
+    if (image_dim_binding_locked) {
+      lockBinding(".sirap_image_dim", ns)
+    }
+  })
+
+  region_bcrs <- data.frame(
+    clone_id = c("A", "A", "B", "C"),
+    x = c(20, 22, 70, 72),
+    y = c(20, 22, 70, 72),
+    .sirap_y = -c(20, 22, 70, 72),
+    polygon = "poly1",
+    image = "metadata",
+    stringsAsFactors = FALSE
+  )
+  polygons <- data.frame(
+    x = c(10, 80, 80, 10, 10),
+    y = c(10, 10, 80, 80, 10),
+    .sirap_y = -c(10, 10, 80, 80, 10),
+    polygon = "poly1",
+    stringsAsFactors = FALSE
+  )
+
+  out <- .sirap_clone_density_3d_data(
+    region_bcrs = region_bcrs,
+    polygons = polygons,
+    image = list(),
+    spatial_coords = data.frame(
+      x = c(0, 100),
+      .sirap_y = c(-100, 0)
+    ),
+    clone_col = "clone_id",
+    weight_col = NULL,
+    top_n = 1,
+    other_label = "Other",
+    other_color = "#EEEEEE",
+    plot_other = TRUE,
+    bandwidth = 8,
+    grid_n = 20,
+    plot_type = "density",
+    zoom = TRUE,
+    height_scale = 0.2,
+    z_offset = 0.05,
+    density_floor = 0.03
+  )
+
+  expect_equal(names(out$surfaces), c("A", "Other"))
+  expect_equal(dim(out$surfaces$A$z), c(20, 20))
+  expect_true(max(out$surfaces$A$z, na.rm = TRUE) > out$z_base)
+  expect_equal(unname(out$colors["Other"]), "#EEEEEE")
+  expect_true(all(out$image_extent$xlim >= 0 & out$image_extent$xlim <= 100))
+  expect_true(all(out$image_extent$ylim >= -100 & out$image_extent$ylim <= 0))
+})
+
 test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   ns <- environment(spatialCloneDominance)
   old_coordinate_table <- get(".sirap_spatial_coordinate_table", envir = ns)
@@ -219,7 +294,7 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   }
   assign(
     ".sirap_spatial_coordinate_table",
-    function(object, images = NULL, image.scale = "hires") {
+    function(object, images = NULL, image.scale = "hires", HD = TRUE) {
       data.frame(
         cell = paste0("cell", 1:5),
         x = c(1, 2, 8, 12, 1),
@@ -276,11 +351,11 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   expect_equal(unique(out$dominance$region_bcr_total), 4)
   expect_equal(unique(out$dominance$n_region_barcodes), 3)
   expect_equal(sort(unique(out$region_bcrs$.sirap_barcode)), c("cell1", "cell2", "cell3"))
-  expect_true(all(c("x", "y", ".sirap_y", ".sirap_polygon_group") %in% names(out$region_bcrs)))
+  expect_true(all(c("x", "y", ".sirap_y", "polygon") %in% names(out$region_bcrs)))
   expect_false(any(c("x.x", "x.y", "y.x", "y.y") %in% names(out$region_bcrs)))
   expect_equal(sort(unique(out$region_bcrs$x)), c(1, 2, 8))
   expect_equal(sort(unique(out$region_bcrs$y)), c(1, 2, 8))
-  expect_true(all(c("x", "y", ".sirap_y", ".sirap_polygon_group") %in% names(out$polygons)))
+  expect_true(all(c("x", "y", ".sirap_y", "polygon") %in% names(out$polygons)))
   expect_false(any(c("polygon_col", "barcode_col", "clone_col", "v_call_col") %in% names(out)))
 
   igh <- spatialCloneDominance(
@@ -313,6 +388,7 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
     barcode_col = NULL,
     images = NULL,
     image.scale = "hires",
+    HD = TRUE,
     polygon_id = NULL,
     x_col = "x",
     y_col = "y",
@@ -332,7 +408,7 @@ test_that("spatialCloneDominance summarizes multiple polygons independently", {
   }
   assign(
     ".sirap_spatial_coordinate_table",
-    function(object, images = NULL, image.scale = "hires") {
+    function(object, images = NULL, image.scale = "hires", HD = TRUE) {
       data.frame(
         cell = paste0("cell", 1:5),
         x = c(1, 2, 8, 12, 13),

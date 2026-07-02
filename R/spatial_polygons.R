@@ -51,6 +51,7 @@ spatialCloneDominance <- function(bcrs,
                                   exclude_singletons = FALSE,
                                   images = NULL,
                                   image.scale = "hires",
+                                  HD = TRUE,
                                   polygon_id = NULL,
                                   x_col = "x",
                                   y_col = "y",
@@ -86,7 +87,7 @@ spatialCloneDominance <- function(bcrs,
     exclude_singletons = exclude_singletons
   )
 
-  coords <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale)
+  coords <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, HD = HD)
   coords <- coords[is.finite(coords$x) & is.finite(coords$y), , drop = FALSE]
   polygon_specs <- .sirap_polygon_specs(polygon, polygon_id = polygon_id, polygon_col = polygon_col)
   polygon_plot_data <- .sirap_polygon_plot_data(
@@ -129,23 +130,15 @@ spatialCloneDominance <- function(bcrs,
     if (!is.null(locus)) {
       out$locus_filter <- rep(paste(as.character(locus), collapse = ","), nrow(out))
     }
-    if (isTRUE(spec$add_polygon_col)) {
-      out[[polygon_col]] <- rep(spec$id, nrow(out))
-    }
+    polygon_value <- if (isTRUE(spec$add_polygon_col)) spec$id else "polygon_1"
+    out$polygon <- rep(as.character(polygon_value), nrow(out))
 
-    if (isTRUE(spec$add_polygon_col)) {
-      region_barcode_table <- data.frame(
-        barcode = region_barcodes,
-        stringsAsFactors = FALSE
-      )
-      region_barcode_table[[polygon_col]] <- rep(spec$id, nrow(region_barcode_table))
-      region_coords[[polygon_col]] <- rep(spec$id, nrow(region_coords))
-    } else {
-      region_barcode_table <- data.frame(
-        barcode = region_barcodes,
-        stringsAsFactors = FALSE
-      )
-    }
+    region_barcode_table <- data.frame(
+      barcode = region_barcodes,
+      polygon = rep(as.character(polygon_value), length(region_barcodes)),
+      stringsAsFactors = FALSE
+    )
+    region_coords$polygon <- rep(as.character(polygon_value), nrow(region_coords))
     region_bcr_table <- .sirap_region_bcrs_with_coords(
       regional_bcrs = regional_bcrs,
       region_coords = region_coords,
@@ -213,6 +206,7 @@ selectSpatialPolygons <- function(object,
                                   layer = "counts",
                                   images = NULL,
                                   image.scale = "hires",
+                                  HD = TRUE,
                                   save_path = NULL,
                                   plot_image = FALSE,
                                   downsample_n = NULL,
@@ -235,7 +229,7 @@ selectSpatialPolygons <- function(object,
     SeuratObject::DefaultAssay(object) <- assay
   }
 
-  coords <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale)
+  coords <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, HD = HD)
   if (nrow(coords) == 0L) {
     rlang::abort("No spatial coordinates were found in `object`.")
   }
@@ -464,6 +458,10 @@ selectSpatialPolygons <- function(object,
 #' @param color Outline color for polygons.
 #' @param linewidth Outline width for polygons.
 #' @param image.alpha Tissue image opacity.
+#' @param label Plot labels at polygon centers.
+#' @param label_col Column in the polygon data to use for labels.
+#' @param label_size Text size for polygon labels.
+#' @param label_color Text color for polygon labels.
 #' @param zoom Zoom to the polygon extents instead of the full tissue.
 #' @param require_closed Require the final polygon vertex to equal the first.
 #'   Set to `FALSE` to close open polygons automatically.
@@ -475,6 +473,7 @@ plotSpatialPolygons <- function(object,
                                 polygon,
                                 images = NULL,
                                 image.scale = "hires",
+                                HD = TRUE,
                                 polygon_id = NULL,
                                 x_col = "x",
                                 y_col = "y",
@@ -484,6 +483,10 @@ plotSpatialPolygons <- function(object,
                                 color = "#0072B2",
                                 linewidth = 0.6,
                                 image.alpha = 1,
+                                label = TRUE,
+                                label_col = "polygon",
+                                label_size = 3,
+                                label_color = "black",
                                 zoom = FALSE,
                                 require_closed = TRUE,
                                 combine = TRUE) {
@@ -501,12 +504,27 @@ plotSpatialPolygons <- function(object,
     polygon_col = polygon_col,
     x_col = x_col,
     y_col = y_col,
-    require_closed = require_closed
+    require_closed = require_closed,
+    keep_cols = label_col
   )
+  if (!isTRUE(label) && !identical(label, FALSE)) {
+    rlang::abort("`label` must be TRUE or FALSE.")
+  }
+  if (isTRUE(label)) {
+    .check_required_cols(polygon_data, label_col, "polygon")
+    label_idx <- !duplicated(polygon_data$polygon)
+    label_lookup <- data.frame(
+      polygon = polygon_data$polygon[label_idx],
+      .sirap_label = as.character(polygon_data[[label_col]][label_idx]),
+      stringsAsFactors = FALSE
+    )
+    label_data <- .sirap_polygon_centers(polygon_data, unique(polygon_data$polygon))
+    label_data <- merge(label_data, label_lookup, by = "polygon", all.x = TRUE, sort = FALSE)
+  }
 
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
     plots[[image]] <- .sirap_spatial_base(
       plot_data = polygon_data,
       image = spatial$image,
@@ -516,13 +534,24 @@ plotSpatialPolygons <- function(object,
     ) +
       ggplot2::geom_polygon(
         data = polygon_data,
-        ggplot2::aes(x = .data$x, y = .data$.sirap_y, group = .data$.sirap_polygon_group),
+        ggplot2::aes(x = .data$x, y = .data$.sirap_y, group = .data$polygon),
         inherit.aes = FALSE,
         fill = fill,
         color = color,
         alpha = polygon_alpha,
         linewidth = linewidth
       )
+    if (isTRUE(label)) {
+      plots[[image]] <- plots[[image]] +
+        ggplot2::geom_text(
+          data = label_data,
+          ggplot2::aes(x = .data$x, y = .data$.sirap_y, label = .data$.sirap_label),
+          inherit.aes = FALSE,
+          size = label_size,
+          color = label_color,
+          fontface = "bold"
+        )
+    }
   }
 
   .sirap_return_spatial_plots(plots, combine = combine)
@@ -571,6 +600,7 @@ plotSpatialRegionReceptors <- function(receptors,
                                        barcode_col = NULL,
                                        images = NULL,
                                        image.scale = "hires",
+                                       HD = TRUE,
                                        polygon_id = NULL,
                                        x_col = "x",
                                        y_col = "y",
@@ -595,6 +625,7 @@ plotSpatialRegionReceptors <- function(receptors,
     barcode_col = barcode_col,
     images = images,
     image.scale = image.scale,
+    HD = HD,
     polygon_id = polygon_id,
     x_col = x_col,
     y_col = y_col,
@@ -622,7 +653,7 @@ plotSpatialRegionReceptors <- function(receptors,
 
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
     plot_receptors <- region$bcrs[region$bcrs$image == image | region$bcrs$image == "metadata", , drop = FALSE]
     plots[[image]] <- .sirap_spatial_base(
       plot_data = spatial$coords,
@@ -633,7 +664,7 @@ plotSpatialRegionReceptors <- function(receptors,
     ) +
       ggplot2::geom_polygon(
         data = region$polygons,
-        ggplot2::aes(x = .data$x, y = .data$.sirap_y, group = .data$.sirap_polygon_group),
+        ggplot2::aes(x = .data$x, y = .data$.sirap_y, group = .data$polygon),
         inherit.aes = FALSE,
         fill = polygon_fill,
         color = polygon_color,
@@ -653,6 +684,190 @@ plotSpatialRegionReceptors <- function(receptors,
   }
 
   .sirap_return_spatial_plots(plots, combine = combine)
+}
+
+#' Plot 3D clone-density surfaces over a spatial image
+#'
+#' Uses the regional receptor rows returned by `spatialCloneDominance()` to draw
+#' smoothed clone-abundance density surfaces above the original tissue image in
+#' an interactive `rgl` scene.
+#'
+#' @param dominance Object returned by `spatialCloneDominance()`.
+#' @param object Seurat object with spatial images.
+#' @param clone_col Column in `dominance$region_bcrs` used to define clone
+#'   groups.
+#' @param weight_col Optional numeric column used as receptor weights. When
+#'   `NULL`, each receptor row contributes one count.
+#' @param images Optional Seurat image names to show.
+#' @param image.scale Image scale passed to
+#'   `SeuratObject::GetTissueCoordinates()`.
+#' @param polygon_id Optional polygon ID value(s) to select from the dominance
+#'   object.
+#' @param top_n Optional number of most abundant clone groups to show
+#'   individually. Remaining clone groups are combined as `other_label`.
+#' @param other_label Label for grouped lower-abundance clone groups.
+#' @param other_color Color used for `other_label`.
+#' @param plot_other Plot grouped lower-abundance clone groups as
+#'   `other_label`.
+#' @param bandwidth Gaussian kernel bandwidth in spatial coordinate units. Use a
+#'   single value for isotropic smoothing or two values for x/y bandwidths. When
+#'   `NULL`, a bandwidth is estimated from the regional coordinates.
+#' @param grid_n Number of grid points used for density surfaces. Use one value
+#'   for both axes or two values for x/y grid sizes.
+#' @param plot_type Plot smoothed density surfaces or binned 3D histogram bars.
+#' @param hist_bins Number of x/y bins used when `plot_type = "histogram"`.
+#' @param zoom Zoom the tissue image plane and 3D view to the selected region.
+#'   Defaults to `FALSE`, which shows the full spatial image.
+#' @param height_scale Maximum density height as a fraction of the plotted
+#'   spatial span.
+#' @param z_offset Vertical offset of the density surfaces above the tissue
+#'   image, as a fraction of the plotted spatial span.
+#' @param density_alpha Opacity for density surfaces.
+#' @param density_floor Relative density threshold below which surface cells are
+#'   hidden. This removes low-density Gaussian tails that otherwise look like a
+#'   colored plane.
+#' @param image_alpha Opacity for the tissue image plane.
+#' @param show_points Show receptor locations above the tissue plane.
+#' @param point_size Size of receptor-location points.
+#' @param point_alpha Opacity for receptor-location points.
+#' @param show_polygon Show polygon boundaries above the tissue plane.
+#' @param polygon_color Color for polygon boundary lines.
+#' @param polygon_lwd Width for polygon boundary lines.
+#' @param label_density_peaks Label the highest point of the first few density
+#'   surfaces.
+#' @param label_top_n Number of density surfaces to label when
+#'   `label_density_peaks = TRUE`.
+#' @param label_cex Text scale for density peak labels.
+#' @param show_axes Show the 3D bounding box and axis labels.
+#' @param texture_dir Optional directory where the tissue texture PNG should be
+#'   written. Use a persistent directory when saving an HTML widget.
+#' @param as_widget Return an `rgl` htmlwidget. When `FALSE`, the scene is drawn
+#'   and the current rgl device ID is returned.
+#' @param return_data Return the computed density data instead of drawing an rgl
+#'   scene. This does not require `rgl`.
+#' @return An `rgl` widget/device ID, or a list of computed plot data when
+#'   `return_data = TRUE`.
+#' @export
+plotSpatialCloneDensity3D <- function(dominance,
+                                      object,
+                                      clone_col = "clone_id",
+                                      weight_col = NULL,
+                                      images = NULL,
+                                      image.scale = "hires",
+                                      HD = TRUE,
+                                      polygon_id = NULL,
+                                      top_n = 10,
+                                      other_label = "Other",
+                                      other_color = "#D3D3D3",
+                                      plot_other = TRUE,
+                                      bandwidth = NULL,
+                                      grid_n = 80,
+                                      plot_type = c("density", "histogram"),
+                                      hist_bins = 30,
+                                      zoom = FALSE,
+                                      height_scale = 0.22,
+                                      z_offset = 0.04,
+                                      density_alpha = 0.55,
+                                      density_floor = 0.03,
+                                      image_alpha = 1,
+                                      show_points = FALSE,
+                                      point_size = 5,
+                                      point_alpha = 0.75,
+                                      show_polygon = TRUE,
+                                      polygon_color = "white",
+                                      polygon_lwd = 3,
+                                      label_density_peaks = FALSE,
+                                      label_top_n = 5,
+                                      label_cex = 0.8,
+                                      show_axes = TRUE,
+                                      texture_dir = NULL,
+                                      as_widget = TRUE,
+                                      return_data = FALSE) {
+  if (!inherits(dominance, "sirap_spatial_clone_dominance")) {
+    rlang::abort("`dominance` must be an object returned by `spatialCloneDominance()`.")
+  }
+  if (is.null(dominance$region_bcrs) || is.null(dominance$polygons)) {
+    rlang::abort("`dominance` must contain `region_bcrs` and `polygons` from `spatialCloneDominance()`.")
+  }
+  plot_type <- match.arg(plot_type)
+  .require_namespace("SeuratObject")
+
+  region_bcrs <- .as_data_frame(dominance$region_bcrs)
+  polygons <- .as_data_frame(dominance$polygons)
+  if (!is.null(polygon_id)) {
+    region_bcrs <- region_bcrs[as.character(region_bcrs$polygon) %in% as.character(polygon_id), , drop = FALSE]
+    polygons <- polygons[as.character(polygons$polygon) %in% as.character(polygon_id), , drop = FALSE]
+  }
+  if (nrow(region_bcrs) == 0L) {
+    rlang::abort("No regional receptor rows are available for the selected polygon(s).")
+  }
+
+  plot_data <- list()
+  for (image in .sirap_spatial_images(object, images = images)) {
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
+    image_bcrs <- region_bcrs[region_bcrs$image == image | region_bcrs$image == "metadata", , drop = FALSE]
+    if (nrow(image_bcrs) == 0L) {
+      next
+    }
+    plot_data[[image]] <- .sirap_clone_density_3d_data(
+      region_bcrs = image_bcrs,
+      polygons = polygons,
+      image = spatial$image,
+      spatial_coords = spatial$coords,
+      clone_col = clone_col,
+      weight_col = weight_col,
+      top_n = top_n,
+      other_label = other_label,
+      other_color = other_color,
+      plot_other = plot_other,
+      bandwidth = bandwidth,
+      grid_n = grid_n,
+      plot_type = plot_type,
+      hist_bins = hist_bins,
+      zoom = zoom,
+      height_scale = height_scale,
+      z_offset = z_offset,
+      density_floor = density_floor
+    )
+  }
+  plot_data <- Filter(Negate(is.null), plot_data)
+  if (length(plot_data) == 0L) {
+    rlang::abort("No regional receptor rows match the selected image(s).")
+  }
+  if (isTRUE(return_data)) {
+    return(if (length(plot_data) == 1L) plot_data[[1L]] else plot_data)
+  }
+
+  if (isTRUE(as_widget)) {
+    old_rgl_use_null <- getOption("rgl.useNULL")
+    options(rgl.useNULL = TRUE)
+    on.exit(options(rgl.useNULL = old_rgl_use_null), add = TRUE)
+  }
+  .require_namespace("rgl")
+  plots <- lapply(plot_data, function(dat) {
+    .sirap_draw_clone_density_3d(
+      dat,
+      density_alpha = density_alpha,
+      image_alpha = image_alpha,
+      show_points = show_points,
+      point_size = point_size,
+      point_alpha = point_alpha,
+      show_polygon = show_polygon,
+      polygon_color = polygon_color,
+      polygon_lwd = polygon_lwd,
+      label_density_peaks = label_density_peaks,
+      label_top_n = label_top_n,
+      label_cex = label_cex,
+      show_axes = show_axes,
+      texture_dir = texture_dir,
+      as_widget = as_widget
+    )
+  })
+  if (length(plots) == 1L) {
+    plots[[1L]]
+  } else {
+    plots
+  }
 }
 
 #' Plot spatial polygon pie summaries
@@ -709,6 +924,7 @@ plotSpatialPolygonPies <- function(bcrs,
                                    plot_other = TRUE,
                                    images = NULL,
                                    image.scale = "hires",
+                                   HD = TRUE,
                                    polygon_id = NULL,
                                    x_col = "x",
                                    y_col = "y",
@@ -734,6 +950,7 @@ plotSpatialPolygonPies <- function(bcrs,
     barcode_col = barcode_col,
     images = images,
     image.scale = image.scale,
+    HD = HD,
     polygon_id = polygon_id,
     x_col = x_col,
     y_col = y_col,
@@ -767,6 +984,7 @@ plotSpatialPolygonPies <- function(bcrs,
       object = object,
       images = images,
       image.scale = image.scale,
+      HD = HD,
       polygon_plot_data = region$polygons,
       centers = centers,
       pie_data = pie_data,
@@ -780,6 +998,7 @@ plotSpatialPolygonPies <- function(bcrs,
       object = object,
       images = images,
       image.scale = image.scale,
+      HD = HD,
       polygon_plot_data = region$polygons,
       centers = centers,
       pie_data = pie_data,
@@ -791,6 +1010,84 @@ plotSpatialPolygonPies <- function(bcrs,
       spatial_legend = spatial_legend
     )
   }
+}
+
+#' Subset a Seurat object to spatial barcodes inside polygons
+#'
+#' Keeps only Seurat barcodes whose spatial coordinates fall inside one or more
+#' polygon regions and records polygon membership in the returned object's
+#' metadata.
+#'
+#' @param object Seurat object with spatial coordinates.
+#' @param polygon Data frame of polygon vertices in order. Must contain `x` and
+#'   `y` columns by default. If a `polygon` column is present, each polygon is
+#'   evaluated independently.
+#' @param images Optional Seurat image names to use for spatial coordinates.
+#' @param image.scale Image scale passed to
+#'   `SeuratObject::GetTissueCoordinates()`.
+#' @param polygon_id Optional polygon ID value(s) to select when `polygon_col`
+#'   exists.
+#' @param x_col,y_col Coordinate columns in `polygon`.
+#' @param polygon_col Optional polygon grouping column in `polygon`.
+#' @param metadata_col Metadata column added to the returned Seurat object with
+#'   polygon membership. Barcodes in overlapping polygons receive comma-separated
+#'   polygon IDs.
+#' @param include_boundary Include Seurat spots on polygon edges.
+#' @param require_closed Require the final polygon vertex to equal the first.
+#'   Set to `FALSE` to close open polygons automatically.
+#' @return A Seurat object subset to barcodes inside the selected polygon(s),
+#'   with `metadata_col` appended to `@meta.data`.
+#' @export
+seuratSubsetPolygon <- function(object,
+                                polygon,
+                                images = NULL,
+                                image.scale = "hires",
+                                HD = TRUE,
+                                polygon_id = NULL,
+                                x_col = "x",
+                                y_col = "y",
+                                polygon_col = "polygon",
+                                metadata_col = "polygon",
+                                include_boundary = TRUE,
+                                require_closed = TRUE) {
+  .require_namespace("SeuratObject")
+  if (!is.character(metadata_col) || length(metadata_col) != 1L || is.na(metadata_col) || !nzchar(metadata_col)) {
+    rlang::abort("`metadata_col` must be a non-empty character string.")
+  }
+
+  membership <- .sirap_spatial_polygon_membership(
+    object = object,
+    polygon = polygon,
+    images = images,
+    image.scale = image.scale,
+    HD = HD,
+    polygon_id = polygon_id,
+    x_col = x_col,
+    y_col = y_col,
+    polygon_col = polygon_col,
+    include_boundary = include_boundary,
+    require_closed = require_closed
+  )
+  if (nrow(membership) == 0L) {
+    rlang::abort("No Seurat barcodes were found inside the selected polygon(s).")
+  }
+
+  keep_cells <- unique(as.character(membership$cell))
+  keep_cells <- keep_cells[keep_cells %in% colnames(object)]
+  if (length(keep_cells) == 0L) {
+    rlang::abort("No polygon-matched barcodes are present in `object`.")
+  }
+
+  polygon_values <- stats::aggregate(
+    polygon ~ cell,
+    data = membership,
+    FUN = function(x) paste(unique(as.character(x)), collapse = ",")
+  )
+  polygon_lookup <- stats::setNames(as.character(polygon_values$polygon), as.character(polygon_values$cell))
+
+  out <- object[, keep_cells]
+  out@meta.data[[metadata_col]] <- unname(polygon_lookup[rownames(out@meta.data)])
+  out
 }
 
 #' Define key spatial areas interactively
@@ -1121,9 +1418,16 @@ defineKeyAreas <- function(seurat_obj,
                                      polygon_col,
                                      x_col,
                                      y_col,
-                                     require_closed) {
+                                     require_closed,
+                                     keep_cols = character()) {
   specs <- .sirap_polygon_specs(polygon, polygon_id = polygon_id, polygon_col = polygon_col)
+  keep_cols <- unique(keep_cols[keep_cols %in% colnames(polygon)])
   out <- lapply(specs, function(spec) {
+    polygon_rows <- if (isTRUE(spec$add_polygon_col)) {
+      polygon[as.character(polygon[[polygon_col]]) == as.character(spec$id), , drop = FALSE]
+    } else {
+      polygon
+    }
     vertices <- .sirap_select_polygon_vertices(
       polygon = polygon,
       polygon_id = spec$id,
@@ -1132,10 +1436,15 @@ defineKeyAreas <- function(seurat_obj,
       y_col = y_col,
       require_closed = require_closed
     )
-    vertices$.sirap_polygon_group <- if (isTRUE(spec$add_polygon_col)) {
+    vertices$polygon <- if (isTRUE(spec$add_polygon_col)) {
       as.character(spec$id)
     } else {
       "polygon_1"
+    }
+    for (keep_col in setdiff(keep_cols, c(x_col, y_col, "polygon"))) {
+      values <- unique(as.character(polygon_rows[[keep_col]]))
+      values <- values[!is.na(values)]
+      vertices[[keep_col]] <- if (length(values) == 0L) NA_character_ else values[[1L]]
     }
     vertices
   })
@@ -1151,6 +1460,7 @@ defineKeyAreas <- function(seurat_obj,
                                    barcode_col,
                                    images,
                                    image.scale,
+                                   HD,
                                    polygon_id,
                                    x_col,
                                    y_col,
@@ -1163,7 +1473,7 @@ defineKeyAreas <- function(seurat_obj,
   .check_required_cols(bcrs, barcode_col, "bcrs")
   .check_required_cols(polygon, c(x_col, y_col), "polygon")
 
-  coords <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale)
+  coords <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, HD = HD)
   coords <- coords[is.finite(coords$x) & is.finite(coords$y), , drop = FALSE]
   coords$.sirap_y <- -coords$y
   polygon_plot_data <- .sirap_polygon_plot_data(
@@ -1208,8 +1518,7 @@ defineKeyAreas <- function(seurat_obj,
       all.y = FALSE,
       sort = FALSE
     )
-    region_bcrs[[polygon_col]] <- if (isTRUE(spec$add_polygon_col)) spec$id else "polygon_1"
-    region_bcrs$.sirap_polygon_group <- as.character(region_bcrs[[polygon_col]])
+    region_bcrs$polygon <- as.character(if (isTRUE(spec$add_polygon_col)) spec$id else "polygon_1")
     region_bcrs
   })
   regional <- .sirap_bind_rows(regional)
@@ -1226,6 +1535,7 @@ defineKeyAreas <- function(seurat_obj,
                                           barcode_col,
                                           images,
                                           image.scale,
+                                          HD,
                                           polygon_id,
                                           x_col,
                                           y_col,
@@ -1238,9 +1548,9 @@ defineKeyAreas <- function(seurat_obj,
     region_bcrs <- .as_data_frame(bcrs$region_bcrs)
     polygon_plot_data <- .as_data_frame(bcrs$polygons)
     if (!is.null(polygon_id)) {
-      region_bcrs <- region_bcrs[as.character(region_bcrs$.sirap_polygon_group) %in% as.character(polygon_id), , drop = FALSE]
+      region_bcrs <- region_bcrs[as.character(region_bcrs$polygon) %in% as.character(polygon_id), , drop = FALSE]
       polygon_plot_data <- polygon_plot_data[
-        as.character(polygon_plot_data$.sirap_polygon_group) %in% as.character(polygon_id),
+        as.character(polygon_plot_data$polygon) %in% as.character(polygon_id),
         ,
         drop = FALSE
       ]
@@ -1260,6 +1570,7 @@ defineKeyAreas <- function(seurat_obj,
     barcode_col = barcode_col,
     images = images,
     image.scale = image.scale,
+    HD = HD,
     polygon_id = polygon_id,
     x_col = x_col,
     y_col = y_col,
@@ -1282,8 +1593,7 @@ defineKeyAreas <- function(seurat_obj,
     out$y <- numeric()
     out$.sirap_y <- numeric()
     out$image <- character()
-    out[[polygon_col]] <- character()
-    out$.sirap_polygon_group <- character()
+    out$polygon <- character()
     return(.sirap_add_v_gene_columns(out, v_call_col = v_call_col))
   }
   region_coords <- region_coords[, c("cell", "x", "y", "image"), drop = FALSE]
@@ -1300,9 +1610,60 @@ defineKeyAreas <- function(seurat_obj,
     sort = FALSE
   )
   polygon_value <- if (isTRUE(add_polygon_col)) polygon_id else "polygon_1"
-  out[[polygon_col]] <- polygon_value
-  out$.sirap_polygon_group <- as.character(polygon_value)
+  out$polygon <- as.character(polygon_value)
   .sirap_add_v_gene_columns(out, v_call_col = v_call_col)
+}
+
+.sirap_spatial_polygon_membership <- function(object,
+                                             polygon,
+                                             images,
+                                             image.scale,
+                                             HD,
+                                             polygon_id,
+                                             x_col,
+                                             y_col,
+                                             polygon_col,
+                                             include_boundary,
+                                             require_closed) {
+  polygon <- .as_data_frame(polygon)
+  .check_required_cols(polygon, c(x_col, y_col), "polygon")
+  coords <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, HD = HD)
+  coords <- coords[is.finite(coords$x) & is.finite(coords$y), , drop = FALSE]
+  if (nrow(coords) == 0L) {
+    rlang::abort("No finite spatial coordinates were found in `object`.")
+  }
+
+  polygon_specs <- .sirap_polygon_specs(polygon, polygon_id = polygon_id, polygon_col = polygon_col)
+  membership <- lapply(polygon_specs, function(spec) {
+    vertices <- .sirap_select_polygon_vertices(
+      polygon = polygon,
+      polygon_id = spec$id,
+      polygon_col = polygon_col,
+      x_col = x_col,
+      y_col = y_col,
+      require_closed = require_closed
+    )
+    inside <- .sirap_points_in_polygon(
+      px = coords$x,
+      py = coords$y,
+      vx = vertices$x,
+      vy = vertices$y,
+      include_boundary = include_boundary
+    )
+    if (!any(inside)) {
+      return(data.frame())
+    }
+    polygon_value <- if (isTRUE(spec$add_polygon_col)) spec$id else "polygon_1"
+    data.frame(
+      cell = as.character(coords$cell[inside]),
+      polygon = rep(as.character(polygon_value), sum(inside)),
+      image = as.character(coords$image[inside]),
+      x = as.numeric(coords$x[inside]),
+      y = as.numeric(coords$y[inside]),
+      stringsAsFactors = FALSE
+    )
+  })
+  .sirap_bind_rows(membership)
 }
 
 .sirap_drop_plot_coordinate_cols <- function(dat) {
@@ -1392,6 +1753,537 @@ defineKeyAreas <- function(seurat_obj,
   values[levels]
 }
 
+.sirap_clone_density_3d_data <- function(region_bcrs,
+                                         polygons,
+                                         image,
+                                         spatial_coords,
+                                         clone_col,
+                                         weight_col,
+                                         top_n,
+                                         other_label,
+                                         other_color,
+                                         plot_other,
+                                         bandwidth,
+                                         grid_n,
+                                         plot_type,
+                                         hist_bins,
+                                         zoom,
+                                         height_scale,
+                                         z_offset,
+                                         density_floor) {
+  .check_required_cols(region_bcrs, c(clone_col, "x", "y", ".sirap_y", "polygon"), "dominance$region_bcrs")
+  .check_required_cols(polygons, c("x", "y", ".sirap_y", "polygon"), "dominance$polygons")
+  if (!is.null(weight_col)) {
+    .check_required_cols(region_bcrs, weight_col, "dominance$region_bcrs")
+  }
+  if (!is.numeric(height_scale) || length(height_scale) != 1L || !is.finite(height_scale) || height_scale <= 0) {
+    rlang::abort("`height_scale` must be a positive number.")
+  }
+  if (!is.numeric(z_offset) || length(z_offset) != 1L || !is.finite(z_offset) || z_offset < 0) {
+    rlang::abort("`z_offset` must be a non-negative number.")
+  }
+  if (!is.numeric(density_floor) || length(density_floor) != 1L || !is.finite(density_floor) || density_floor < 0 || density_floor >= 1) {
+    rlang::abort("`density_floor` must be a number greater than or equal to 0 and less than 1.")
+  }
+
+  region_bcrs <- region_bcrs[
+    is.finite(region_bcrs$x) & is.finite(region_bcrs$y) & is.finite(region_bcrs$.sirap_y),
+    ,
+    drop = FALSE
+  ]
+  if (nrow(region_bcrs) == 0L) {
+    rlang::abort("No finite regional receptor coordinates are available.")
+  }
+  region_bcrs$.sirap_density_group <- .sirap_lump_values(region_bcrs[[clone_col]], top_n = top_n, other_label = other_label)
+  if (!isTRUE(plot_other)) {
+    region_bcrs <- region_bcrs[as.character(region_bcrs$.sirap_density_group) != other_label, , drop = FALSE]
+  }
+  if (nrow(region_bcrs) == 0L) {
+    rlang::abort("No receptor rows remain to plot after applying `top_n` and `plot_other`.")
+  }
+
+  weights <- if (is.null(weight_col)) {
+    rep(1, nrow(region_bcrs))
+  } else {
+    as.numeric(region_bcrs[[weight_col]])
+  }
+  weights[!is.finite(weights) | weights < 0] <- 0
+  if (!any(weights > 0)) {
+    rlang::abort("All receptor weights are zero or non-finite.")
+  }
+  region_bcrs$.sirap_density_weight <- weights
+
+  image_dim <- .sirap_image_dim(image)
+  region_xlim <- .sirap_density_plot_range(c(region_bcrs$x, polygons$x), c(0, image_dim$width))
+  region_ylim <- .sirap_density_plot_range(c(region_bcrs$.sirap_y, polygons$.sirap_y), c(-image_dim$height, 0))
+  object_xlim <- .sirap_density_plot_range(spatial_coords$x, c(0, image_dim$width))
+  object_ylim <- .sirap_density_plot_range(spatial_coords$.sirap_y, c(-image_dim$height, 0))
+  image_xlim <- if (isTRUE(zoom)) region_xlim else object_xlim
+  image_ylim <- if (isTRUE(zoom)) region_ylim else object_ylim
+  image_extent <- .sirap_image_texture_extent(image_dim, image_xlim, image_ylim)
+  span <- max(diff(region_xlim), diff(region_ylim))
+  z_base <- z_offset * span
+  max_height <- height_scale * span
+  levels <- levels(region_bcrs$.sirap_density_group)
+  levels <- levels[levels %in% as.character(region_bcrs$.sirap_density_group)]
+  color_values <- .sirap_discrete_palette_values(levels, other_label = other_label, other_color = other_color)
+
+  if (identical(plot_type, "histogram")) {
+    surfaces <- list()
+    bandwidth <- NULL
+    histograms <- .sirap_clone_histogram_3d_bars(
+      region_bcrs = region_bcrs,
+      levels = levels,
+      color_values = color_values,
+      xlim = region_xlim,
+      ylim = region_ylim,
+      hist_bins = hist_bins,
+      z_base = z_base,
+      max_height = max_height
+    )
+  } else {
+    histograms <- list()
+    grid <- .sirap_density_grid(region_xlim, region_ylim, grid_n)
+    bandwidth <- .sirap_density_bandwidth(region_bcrs$x, region_bcrs$.sirap_y, bandwidth)
+    raw_surfaces <- lapply(levels, function(level) {
+      dat <- region_bcrs[as.character(region_bcrs$.sirap_density_group) == level, , drop = FALSE]
+      .sirap_weighted_gaussian_grid(
+        x = dat$x,
+        y = dat$.sirap_y,
+        weights = dat$.sirap_density_weight,
+        x_grid = grid$x,
+        y_grid = grid$y,
+        bandwidth = bandwidth
+      )
+    })
+    names(raw_surfaces) <- levels
+    max_density <- max(vapply(raw_surfaces, function(z) max(z, na.rm = TRUE), numeric(1)), na.rm = TRUE)
+    surfaces <- lapply(levels, function(level) {
+      z <- raw_surfaces[[level]]
+      surface_max <- max(z, na.rm = TRUE)
+      if (is.finite(surface_max) && surface_max > 0 && density_floor > 0) {
+        z[z < surface_max * density_floor] <- NA_real_
+      }
+      if (is.finite(max_density) && max_density > 0) {
+        z <- z / max_density * max_height + z_base
+      } else {
+        z[] <- z_base
+      }
+      list(
+        level = level,
+        x = grid$x,
+        y = grid$y,
+        z = z,
+        color = unname(color_values[level])
+      )
+    })
+    names(surfaces) <- levels
+  }
+
+  list(
+    image = image,
+    image_extent = image_extent,
+    region_xlim = region_xlim,
+    region_ylim = region_ylim,
+    plot_type = plot_type,
+    surfaces = surfaces,
+    histograms = histograms,
+    receptors = region_bcrs,
+    polygons = polygons,
+    colors = color_values,
+    z_base = z_base,
+    z_top = z_base + max_height,
+    bandwidth = bandwidth,
+    clone_col = clone_col
+  )
+}
+
+.sirap_draw_clone_density_3d <- function(dat,
+                                         density_alpha,
+                                         image_alpha,
+                                         show_points,
+                                         point_size,
+                                         point_alpha,
+                                         show_polygon,
+                                         polygon_color,
+                                         polygon_lwd,
+                                         label_density_peaks,
+                                         label_top_n,
+                                         label_cex,
+                                         show_axes,
+                                         texture_dir,
+                                         as_widget) {
+  if (isTRUE(as_widget)) {
+    old_rgl_use_null <- getOption("rgl.useNULL")
+    options(rgl.useNULL = TRUE)
+    on.exit(options(rgl.useNULL = old_rgl_use_null), add = TRUE)
+  }
+  rgl::open3d(useNULL = isTRUE(as_widget))
+  rgl::clear3d()
+
+  texture <- .sirap_image_texture_file(dat$image, dat$image_extent, alpha = image_alpha, texture_dir = texture_dir)
+  x_plane <- dat$image_extent$xlim
+  y_plane <- dat$image_extent$ylim
+  z_plane <- matrix(0, nrow = 2, ncol = 2)
+  texture_s <- matrix(c(0, 1, 0, 1), nrow = 2, ncol = 2)
+  texture_t <- matrix(c(0, 0, 1, 1), nrow = 2, ncol = 2)
+  rgl::surface3d(
+    x = x_plane,
+    y = y_plane,
+    z = z_plane,
+    texture_s = texture_s,
+    texture_t = texture_t,
+    texture = texture,
+    color = "white",
+    alpha = image_alpha,
+    lit = FALSE,
+    back = "filled"
+  )
+
+  for (surface in dat$surfaces) {
+    rgl::surface3d(
+      x = surface$x,
+      y = surface$y,
+      z = surface$z,
+      color = surface$color,
+      alpha = density_alpha,
+      lit = FALSE,
+      back = "filled"
+    )
+  }
+  if (identical(dat$plot_type, "histogram")) {
+    for (histogram in dat$histograms) {
+      .sirap_draw_histogram_bars_3d(histogram, alpha = density_alpha)
+    }
+  }
+
+  if (isTRUE(show_polygon) && nrow(dat$polygons) > 0L) {
+    for (polygon_id in unique(dat$polygons$polygon)) {
+      polygon <- dat$polygons[dat$polygons$polygon == polygon_id, , drop = FALSE]
+      rgl::lines3d(
+        polygon$x,
+        polygon$.sirap_y,
+        rep(dat$z_base * 0.35, nrow(polygon)),
+        color = polygon_color,
+        lwd = polygon_lwd
+      )
+    }
+  }
+
+  if (isTRUE(label_density_peaks)) {
+    labeled_items <- if (identical(dat$plot_type, "histogram")) {
+      utils::head(dat$histograms, label_top_n)
+    } else {
+      utils::head(dat$surfaces, label_top_n)
+    }
+    for (item in labeled_items) {
+      peak <- if (identical(dat$plot_type, "histogram")) {
+        .sirap_histogram_bar_peak(item)
+      } else {
+        .sirap_density_surface_peak(item)
+      }
+      if (!is.null(peak)) {
+        rgl::text3d(
+          peak$x,
+          peak$y,
+          peak$z + (dat$z_top - dat$z_base) * 0.05,
+          texts = item$level,
+          color = item$color,
+          cex = label_cex,
+          font = 2
+        )
+      }
+    }
+  }
+
+  if (isTRUE(show_points)) {
+    point_colors <- unname(dat$colors[as.character(dat$receptors$.sirap_density_group)])
+    point_colors[is.na(point_colors)] <- "#222222"
+    rgl::points3d(
+      dat$receptors$x,
+      dat$receptors$.sirap_y,
+      rep(dat$z_base * 0.65, nrow(dat$receptors)),
+      color = grDevices::adjustcolor(point_colors, alpha.f = point_alpha),
+      size = point_size
+    )
+  }
+
+  if (isTRUE(show_axes)) {
+    xlim <- range(c(dat$image_extent$xlim, dat$region_xlim), na.rm = TRUE)
+    ylim <- range(c(dat$image_extent$ylim, dat$region_ylim), na.rm = TRUE)
+    rgl::bbox3d(
+      xat = pretty(xlim, n = 4),
+      yat = pretty(ylim, n = 4),
+      zat = pretty(c(0, dat$z_top), n = 3),
+      color = "#666666",
+      emission = "#333333"
+    )
+    rgl::decorate3d(xlab = "x", ylab = "y", zlab = "clone density")
+  }
+  rgl::aspect3d(1, 1, 0.55)
+  rgl::view3d(theta = 40, phi = 25, zoom = 0.72)
+
+  if (isTRUE(as_widget)) {
+    rgl::rglwidget()
+  } else {
+    rgl::cur3d()
+  }
+}
+
+.sirap_image_dim <- function(image) {
+  img <- SeuratObject::GetImage(image, mode = "raw")
+  dims <- dim(img)
+  list(height = dims[[1]], width = dims[[2]])
+}
+
+.sirap_density_surface_peak <- function(surface) {
+  if (is.null(surface$z) || !any(is.finite(surface$z))) {
+    return(NULL)
+  }
+  idx <- arrayInd(which.max(surface$z), dim(surface$z))
+  list(
+    x = surface$x[[idx[[1]]]],
+    y = surface$y[[idx[[2]]]],
+    z = surface$z[idx[[1]], idx[[2]]]
+  )
+}
+
+.sirap_histogram_bar_peak <- function(histogram) {
+  bars <- histogram$bars
+  if (is.null(bars) || nrow(bars) == 0L || !any(is.finite(bars$z1))) {
+    return(NULL)
+  }
+  i <- which.max(bars$z1)
+  list(
+    x = (bars$x0[[i]] + bars$x1[[i]]) / 2,
+    y = (bars$y0[[i]] + bars$y1[[i]]) / 2,
+    z = bars$z1[[i]]
+  )
+}
+
+.sirap_density_plot_range <- function(x, fallback) {
+  out <- range(x, na.rm = TRUE)
+  if (!all(is.finite(out))) {
+    return(fallback)
+  }
+  if (out[[1]] == out[[2]]) {
+    out <- out + c(-1, 1)
+  }
+  pad <- max(diff(out) * 0.08, 1)
+  out <- out + c(-pad, pad)
+  c(max(min(fallback), out[[1]]), min(max(fallback), out[[2]]))
+}
+
+.sirap_density_grid <- function(xlim, ylim, grid_n) {
+  if (!is.numeric(grid_n) || length(grid_n) > 2L || any(!is.finite(grid_n)) || any(grid_n < 3)) {
+    rlang::abort("`grid_n` must be one or two numbers greater than or equal to 3.")
+  }
+  grid_n <- as.integer(grid_n)
+  if (length(grid_n) == 1L) {
+    grid_n <- rep(grid_n, 2L)
+  }
+  list(
+    x = seq(xlim[[1]], xlim[[2]], length.out = grid_n[[1]]),
+    y = seq(ylim[[1]], ylim[[2]], length.out = grid_n[[2]])
+  )
+}
+
+.sirap_density_bandwidth <- function(x, y, bandwidth) {
+  if (!is.null(bandwidth)) {
+    if (!is.numeric(bandwidth) || length(bandwidth) > 2L || any(!is.finite(bandwidth)) || any(bandwidth <= 0)) {
+      rlang::abort("`bandwidth` must be NULL or one or two positive numbers.")
+    }
+    bandwidth <- as.numeric(bandwidth)
+    if (length(bandwidth) == 1L) {
+      bandwidth <- rep(bandwidth, 2L)
+    }
+    return(bandwidth)
+  }
+  estimate <- function(v) {
+    v <- v[is.finite(v)]
+    if (length(unique(v)) < 2L) {
+      return(1)
+    }
+    bw <- stats::bw.nrd0(v)
+    if (!is.finite(bw) || bw <= 0) {
+      bw <- diff(range(v)) / 8
+    }
+    max(bw, 1)
+  }
+  c(estimate(x), estimate(y))
+}
+
+.sirap_weighted_gaussian_grid <- function(x, y, weights, x_grid, y_grid, bandwidth) {
+  z <- matrix(0, nrow = length(x_grid), ncol = length(y_grid))
+  if (length(x) == 0L) {
+    return(z)
+  }
+  keep <- is.finite(x) & is.finite(y) & is.finite(weights) & weights > 0
+  x <- x[keep]
+  y <- y[keep]
+  weights <- weights[keep]
+  if (length(x) == 0L) {
+    return(z)
+  }
+  for (i in seq_along(x)) {
+    dx <- stats::dnorm((x_grid - x[[i]]) / bandwidth[[1]])
+    dy <- stats::dnorm((y_grid - y[[i]]) / bandwidth[[2]])
+    z <- z + weights[[i]] * tcrossprod(dx, dy)
+  }
+  z / sum(weights)
+}
+
+.sirap_clone_histogram_3d_bars <- function(region_bcrs,
+                                           levels,
+                                           color_values,
+                                           xlim,
+                                           ylim,
+                                           hist_bins,
+                                           z_base,
+                                           max_height) {
+  grid <- .sirap_density_grid(xlim, ylim, hist_bins + 1L)
+  x_breaks <- grid$x
+  y_breaks <- grid$y
+  x_bins <- length(x_breaks) - 1L
+  y_bins <- length(y_breaks) - 1L
+  raw_counts <- lapply(levels, function(level) {
+    dat <- region_bcrs[as.character(region_bcrs$.sirap_density_group) == level, , drop = FALSE]
+    counts <- matrix(0, nrow = x_bins, ncol = y_bins)
+    if (nrow(dat) == 0L) {
+      return(counts)
+    }
+    xi <- findInterval(dat$x, x_breaks, all.inside = TRUE)
+    yi <- findInterval(dat$.sirap_y, y_breaks, all.inside = TRUE)
+    xi <- pmin(xi, x_bins)
+    yi <- pmin(yi, y_bins)
+    for (i in seq_len(nrow(dat))) {
+      counts[xi[[i]], yi[[i]]] <- counts[xi[[i]], yi[[i]]] + dat$.sirap_density_weight[[i]]
+    }
+    counts
+  })
+  names(raw_counts) <- levels
+  max_count <- max(vapply(raw_counts, function(x) max(x, na.rm = TRUE), numeric(1)), na.rm = TRUE)
+  lapply(levels, function(level) {
+    counts <- raw_counts[[level]]
+    idx <- which(counts > 0, arr.ind = TRUE)
+    if (nrow(idx) == 0L || !is.finite(max_count) || max_count <= 0) {
+      bars <- data.frame(x0 = numeric(), x1 = numeric(), y0 = numeric(), y1 = numeric(), z0 = numeric(), z1 = numeric())
+    } else {
+      bars <- data.frame(
+        x0 = x_breaks[idx[, 1]],
+        x1 = x_breaks[idx[, 1] + 1L],
+        y0 = y_breaks[idx[, 2]],
+        y1 = y_breaks[idx[, 2] + 1L],
+        z0 = z_base,
+        z1 = z_base + counts[idx] / max_count * max_height,
+        stringsAsFactors = FALSE
+      )
+    }
+    list(
+      level = level,
+      bars = bars,
+      color = unname(color_values[level])
+    )
+  }) |> stats::setNames(levels)
+}
+
+.sirap_draw_histogram_bars_3d <- function(histogram, alpha) {
+  bars <- histogram$bars
+  if (is.null(bars) || nrow(bars) == 0L) {
+    return(invisible(NULL))
+  }
+  color <- grDevices::adjustcolor(histogram$color, alpha.f = alpha)
+  for (i in seq_len(nrow(bars))) {
+    vertices <- .sirap_histogram_bar_vertices(bars[i, , drop = FALSE])
+    rgl::quads3d(
+      vertices$x,
+      vertices$y,
+      vertices$z,
+      color = color,
+      lit = FALSE
+    )
+  }
+  invisible(NULL)
+}
+
+.sirap_histogram_bar_vertices <- function(bar) {
+  x0 <- bar$x0[[1]]
+  x1 <- bar$x1[[1]]
+  y0 <- bar$y0[[1]]
+  y1 <- bar$y1[[1]]
+  z0 <- bar$z0[[1]]
+  z1 <- bar$z1[[1]]
+  points <- rbind(
+    c(x0, y0, z1), c(x1, y0, z1), c(x1, y1, z1), c(x0, y1, z1),
+    c(x0, y0, z0), c(x0, y1, z0), c(x1, y1, z0), c(x1, y0, z0),
+    c(x0, y0, z0), c(x1, y0, z0), c(x1, y0, z1), c(x0, y0, z1),
+    c(x1, y0, z0), c(x1, y1, z0), c(x1, y1, z1), c(x1, y0, z1),
+    c(x1, y1, z0), c(x0, y1, z0), c(x0, y1, z1), c(x1, y1, z1),
+    c(x0, y1, z0), c(x0, y0, z0), c(x0, y0, z1), c(x0, y1, z1)
+  )
+  data.frame(x = points[, 1], y = points[, 2], z = points[, 3])
+}
+
+.sirap_image_texture_extent <- function(image_dim, xlim, ylim) {
+  xlim <- range(xlim, na.rm = TRUE)
+  ylim <- range(ylim, na.rm = TRUE)
+  xlim <- c(max(0, xlim[[1]]), min(image_dim$width, xlim[[2]]))
+  ylim <- c(max(-image_dim$height, ylim[[1]]), min(0, ylim[[2]]))
+  if (diff(xlim) <= 0 || diff(ylim) <= 0) {
+    xlim <- c(0, image_dim$width)
+    ylim <- c(-image_dim$height, 0)
+  }
+  col_start <- max(1L, floor(xlim[[1]]) + 1L)
+  col_end <- min(image_dim$width, ceiling(xlim[[2]]))
+  row_start <- max(1L, floor(-ylim[[2]]) + 1L)
+  row_end <- min(image_dim$height, ceiling(-ylim[[1]]))
+  list(
+    cols = seq.int(col_start, col_end),
+    rows = seq.int(row_start, row_end),
+    xlim = c(col_start - 1, col_end),
+    ylim = c(-row_end, -(row_start - 1))
+  )
+}
+
+.sirap_image_texture_file <- function(image, extent, alpha = 1, texture_dir = NULL) {
+  img <- SeuratObject::GetImage(image, mode = "raw")
+  crop <- img[extent$rows, extent$cols, , drop = FALSE]
+  if (alpha < 1) {
+    rgba <- array(NA_real_, dim = c(dim(crop)[1:2], 4))
+    rgba[, , 1:3] <- crop[, , 1:3]
+    rgba[, , 4] <- alpha
+    crop <- rgba
+  }
+  if (!is.null(texture_dir)) {
+    dir.create(texture_dir, recursive = TRUE, showWarnings = FALSE)
+    alpha_label <- gsub("[^0-9A-Za-z]+", "_", format(alpha, scientific = FALSE, trim = TRUE))
+    texture <- file.path(
+      texture_dir,
+      paste0(
+        "sirap_spatial_clone_density_texture",
+        "_r", min(extent$rows), "-", max(extent$rows),
+        "_c", min(extent$cols), "-", max(extent$cols),
+        "_a", alpha_label,
+        ".png"
+      )
+    )
+    if (file.exists(texture)) {
+      return(texture)
+    }
+  } else {
+    texture <- tempfile(
+      pattern = "sirap_spatial_clone_density_texture_",
+      tmpdir = tempdir(),
+      fileext = ".png"
+    )
+  }
+  grDevices::png(texture, width = dim(crop)[[2]], height = dim(crop)[[1]], units = "px", bg = "transparent")
+  on.exit(grDevices::dev.off(), add = TRUE)
+  grid::grid.newpage()
+  grid::grid.raster(grDevices::as.raster(crop), interpolate = FALSE)
+  texture
+}
+
 .sirap_polygon_pie_summary <- function(region_bcrs,
                                        fill_by,
                                        top_n,
@@ -1419,7 +2311,7 @@ defineKeyAreas <- function(seurat_obj,
     if (!is.numeric(top_n) || length(top_n) != 1L || is.na(top_n) || top_n < 1) {
       rlang::abort("`top_n` must be NULL or a positive number.")
     }
-    top_levels <- unlist(lapply(split(region_bcrs, region_bcrs$.sirap_polygon_group), function(dat) {
+    top_levels <- unlist(lapply(split(region_bcrs, region_bcrs$polygon), function(dat) {
       counts <- sort(table(dat$.sirap_fill_by, useNA = "no"), decreasing = TRUE)
       names(counts)[seq_len(min(as.integer(top_n), length(counts)))]
     }), use.names = FALSE)
@@ -1431,7 +2323,7 @@ defineKeyAreas <- function(seurat_obj,
         !region_bcrs$.sirap_level %in% top_levels
     ] <- other_label
   }
-  pieces <- lapply(split(region_bcrs, region_bcrs$.sirap_polygon_group), function(dat) {
+  pieces <- lapply(split(region_bcrs, region_bcrs$polygon), function(dat) {
     if (!isTRUE(plot_other)) {
       dat <- dat[dat$.sirap_level != other_label, , drop = FALSE]
     }
@@ -1448,7 +2340,7 @@ defineKeyAreas <- function(seurat_obj,
       counts <- rbind(counts, other)
     }
     counts$.sirap_order <- seq_len(nrow(counts))
-    counts$polygon <- unique(dat$.sirap_polygon_group)[[1]]
+    counts$polygon <- unique(dat$polygon)[[1]]
     counts
   })
   out <- .sirap_bind_rows(pieces)
@@ -1474,10 +2366,10 @@ defineKeyAreas <- function(seurat_obj,
 }
 
 .sirap_polygon_centers <- function(polygon_plot_data, polygons) {
-  centers <- lapply(split(polygon_plot_data, polygon_plot_data$.sirap_polygon_group), function(dat) {
+  centers <- lapply(split(polygon_plot_data, polygon_plot_data$polygon), function(dat) {
     dat <- dat[!duplicated(paste(dat$x, dat$y)), , drop = FALSE]
     data.frame(
-      polygon = unique(dat$.sirap_polygon_group)[[1]],
+      polygon = unique(dat$polygon)[[1]],
       x = mean(range(dat$x, na.rm = TRUE)),
       y = mean(range(dat$y, na.rm = TRUE)),
       .sirap_y = -mean(range(dat$y, na.rm = TRUE)),
@@ -1494,6 +2386,7 @@ defineKeyAreas <- function(seurat_obj,
 .sirap_side_by_side_polygon_pies <- function(object,
                                              images,
                                              image.scale,
+                                             HD,
                                              polygon_plot_data,
                                              centers,
                                              pie_data,
@@ -1501,26 +2394,25 @@ defineKeyAreas <- function(seurat_obj,
                                              polygon_alpha,
                                              image.alpha,
                                              label_size) {
+  map_polygon_data <- polygon_plot_data
+  polygon_labels <- stats::setNames(centers$polygon_label, centers$polygon)
+  map_polygon_data$polygon_label <- unname(polygon_labels[as.character(map_polygon_data$polygon)])
   map_plots <- plotSpatialPolygons(
     object = object,
-    polygon = polygon_plot_data,
+    polygon = map_polygon_data,
     images = images,
     image.scale = image.scale,
-    polygon_col = ".sirap_polygon_group",
+    HD = HD,
+    polygon_col = "polygon",
     polygon_alpha = polygon_alpha,
     image.alpha = image.alpha,
+    label = TRUE,
+    label_col = "polygon_label",
+    label_size = label_size,
     require_closed = TRUE,
     combine = FALSE
   )
   map_plot <- if (is.list(map_plots)) map_plots[[1L]] else map_plots
-  map_plot <- map_plot +
-    ggplot2::geom_text(
-      data = centers,
-      ggplot2::aes(x = .data$x, y = .data$.sirap_y, label = .data$polygon_label),
-      inherit.aes = FALSE,
-      size = label_size,
-      fontface = "bold"
-    )
 
   pie_groups <- split(
     pie_data,
@@ -1571,6 +2463,7 @@ defineKeyAreas <- function(seurat_obj,
 .sirap_spatial_clipped_polygon_pies <- function(object,
                                                 images,
                                                 image.scale,
+                                                HD,
                                                 polygon_plot_data,
                                                 centers,
                                                 pie_data,
@@ -1587,7 +2480,7 @@ defineKeyAreas <- function(seurat_obj,
 
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
     plots[[image]] <- .sirap_spatial_base(
       plot_data = spatial$coords,
       image = spatial$image,
@@ -1605,7 +2498,7 @@ defineKeyAreas <- function(seurat_obj,
       ) +
       ggplot2::geom_path(
         data = polygon_plot_data,
-        ggplot2::aes(x = .data$x, y = .data$.sirap_y, group = .data$.sirap_polygon_group),
+        ggplot2::aes(x = .data$x, y = .data$.sirap_y, group = .data$polygon),
         inherit.aes = FALSE,
         color = "black",
         linewidth = 0.6
@@ -1641,7 +2534,7 @@ defineKeyAreas <- function(seurat_obj,
   pieces <- list()
   idx <- 1L
   for (polygon_id in unique(pie_data$polygon)) {
-    polygon_vertices <- polygon_plot_data[polygon_plot_data$.sirap_polygon_group == polygon_id, , drop = FALSE]
+    polygon_vertices <- polygon_plot_data[polygon_plot_data$polygon == polygon_id, , drop = FALSE]
     center <- centers[centers$polygon == polygon_id, , drop = FALSE]
     if (nrow(polygon_vertices) == 0L || nrow(center) == 0L) {
       next

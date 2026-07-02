@@ -15,6 +15,7 @@ spatialVariableData(
   layer = "counts",
   images = NULL,
   image.scale = "hires",
+  HD = TRUE,
   zero_tol = 0,
   as_sf = FALSE
 )

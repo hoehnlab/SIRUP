@@ -16,6 +16,7 @@ plotReceptors(
   title = NULL,
   order_points = TRUE,
   image.scale = "hires",
+  HD = TRUE,
   images = NULL,
   image.alpha = 1,
   zoom = FALSE,

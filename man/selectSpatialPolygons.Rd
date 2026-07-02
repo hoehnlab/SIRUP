@@ -11,6 +11,7 @@ selectSpatialPolygons(
   layer = "counts",
   images = NULL,
   image.scale = "hires",
+  HD = TRUE,
   save_path = NULL,
   plot_image = FALSE,
   downsample_n = NULL,

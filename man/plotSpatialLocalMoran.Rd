@@ -10,6 +10,7 @@ plotSpatialLocalMoran(
   value_col = "z_i",
   images = NULL,
   image.scale = "hires",
+  HD = TRUE,
   colors = c("#2c7bb6", "#f7f7f7", "#d7191c"),
   midpoint = 0,
   point_size = 0.7,

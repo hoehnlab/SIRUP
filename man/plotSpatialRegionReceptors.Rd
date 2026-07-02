@@ -12,6 +12,7 @@ plotSpatialRegionReceptors(
   barcode_col = NULL,
   images = NULL,
   image.scale = "hires",
+  HD = TRUE,
   polygon_id = NULL,
   x_col = "x",
   y_col = "y",

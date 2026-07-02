@@ -9,6 +9,7 @@ plotSpatialPolygons(
   polygon,
   images = NULL,
   image.scale = "hires",
+  HD = TRUE,
   polygon_id = NULL,
   x_col = "x",
   y_col = "y",
@@ -18,6 +19,10 @@ plotSpatialPolygons(
   color = "#0072B2",
   linewidth = 0.6,
   image.alpha = 1,
+  label = TRUE,
+  label_col = "polygon",
+  label_size = 3,
+  label_color = "black",
   zoom = FALSE,
   require_closed = TRUE,
   combine = TRUE
@@ -51,6 +56,14 @@ exists.}
 \item{linewidth}{Outline width for polygons.}
 
 \item{image.alpha}{Tissue image opacity.}
+
+\item{label}{Plot labels at polygon centers.}
+
+\item{label_col}{Column in the polygon data to use for labels.}
+
+\item{label_size}{Text size for polygon labels.}
+
+\item{label_color}{Text color for polygon labels.}
 
 \item{zoom}{Zoom to the polygon extents instead of the full tissue.}
 
