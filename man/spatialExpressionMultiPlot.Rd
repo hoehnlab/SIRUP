@@ -15,6 +15,7 @@ spatialExpressionMultiPlot(
   breadth_metric = c("n_expressing"),
   images = NULL,
   image.scale = "hires",
+  HD = TRUE,
   point_size = 0.6,
   point_alpha = 1,
   order_points = TRUE,

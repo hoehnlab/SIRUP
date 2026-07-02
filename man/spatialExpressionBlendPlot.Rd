@@ -20,6 +20,7 @@ spatialExpressionBlendPlot(
   zero_tol = 0,
   images = NULL,
   image.scale = "hires",
+  HD = TRUE,
   point_size = 0.6,
   point_alpha = 1,
   order_points = TRUE,

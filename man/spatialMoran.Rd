@@ -15,6 +15,7 @@ spatialMoran(
   layer = "counts",
   images = NULL,
   image.scale = "hires",
+  HD = TRUE,
   zero_tol = 0,
   radius = NULL,
   k = 6,

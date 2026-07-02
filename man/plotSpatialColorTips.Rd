@@ -14,6 +14,7 @@ plotSpatialColorTips(
   legend_colors = NULL,
   title = NULL,
   image.scale = "hires",
+  HD = TRUE,
   point_size = 1.6,
   point_alpha = 1,
   order_points = TRUE,

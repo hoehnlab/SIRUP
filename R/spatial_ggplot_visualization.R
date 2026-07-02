@@ -31,6 +31,9 @@ plotLengthQc <- function(airr_df, title = NULL) {
 #' @param layer Seurat expression layer to fetch.
 #' @param images Optional Seurat image names.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param HD Logical; if `TRUE`, use the default Visium HD coordinate handling.
+#'   If `FALSE`, use Seurat's non-HD Visium coordinates reflected into SIRAP's
+#'   plotting coordinate frame.
 #' @param feature_colors Colors used, in order, for the continuous expression
 #'   scale. The first color is the low value and the last color is the high
 #'   value.
@@ -50,6 +53,7 @@ spatialExpressionPlot <- function(object,
                                       layer = "counts",
                                       images = NULL,
                                       image.scale = "hires",
+                                      HD = TRUE,
                                       feature_colors = c("#D3D3D3", "#FFFF00"),
                                       zero_tol = 0,
                                       point_size = 0.6,
@@ -70,7 +74,7 @@ spatialExpressionPlot <- function(object,
   expr <- .sirap_fetch_data(object, vars = features, layer = layer)
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
     dat <- merge(spatial$coords, expr, by.x = "cell", by.y = 0, all.x = TRUE)
     for (feature in features) {
       keep <- !is.na(dat[[feature]]) & dat[[feature]] > zero_tol
@@ -125,6 +129,7 @@ spatialDiscretePlot <- function(object,
                                   zero_value = 0,
                                   images = NULL,
                                   image.scale = "hires",
+                                  HD = TRUE,
                                   cols = NULL,
                                   point_size = 1.6,
                                   point_alpha = 1,
@@ -144,7 +149,7 @@ spatialDiscretePlot <- function(object,
 
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
     plot_data <- spatial$coords[spatial$coords$cell %in% keep_cells, , drop = FALSE]
     if (nrow(plot_data) == 0L) {
       next
@@ -222,6 +227,7 @@ spatialExpressionBlendPlot <- function(object,
                                                 zero_tol = 0,
                                                 images = NULL,
                                                 image.scale = "hires",
+                                                HD = TRUE,
                                                 point_size = 0.6,
                                                 point_alpha = 1,
                                                 order_points = TRUE,
@@ -245,7 +251,7 @@ spatialExpressionBlendPlot <- function(object,
   )
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
     dat <- merge(spatial$coords, expr, by.x = "cell", by.y = 0, all.x = TRUE)
     keep <- rowSums(dat[, features, drop = FALSE] > zero_tol, na.rm = TRUE) > 0
     if (!any(keep)) {
@@ -290,6 +296,7 @@ spatialExpressionBlendPlot <- function(object,
         features[[1]],
         images = image,
         image.scale = image.scale,
+        HD = HD,
         feature_colors = c(bottom_left, bottom_right),
         zero_tol = zero_tol,
         point_size = point_size,
@@ -304,6 +311,7 @@ spatialExpressionBlendPlot <- function(object,
         features[[2]],
         images = image,
         image.scale = image.scale,
+        HD = HD,
         feature_colors = c(bottom_left, top_left),
         zero_tol = zero_tol,
         point_size = point_size,
@@ -353,6 +361,7 @@ spatialExpressionMultiPlot <- function(object,
                                     breadth_metric = c("n_expressing"),
                                     images = NULL,
                                     image.scale = "hires",
+                                    HD = TRUE,
                                     point_size = 0.6,
                                     point_alpha = 1,
                                     order_points = TRUE,
@@ -376,7 +385,7 @@ spatialExpressionMultiPlot <- function(object,
   expr <- .sirap_fetch_data(object, vars = features, layer = layer)
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
     dat <- merge(spatial$coords, expr, by.x = "cell", by.y = 0, all.x = TRUE)
     keep <- rowSums(dat[, features, drop = FALSE] > zero_tol, na.rm = TRUE) > 0
     if (!any(keep)) {
@@ -471,6 +480,7 @@ plotReceptorExpression <- function(object,
                                       assay = NULL,
                                       layer = "counts",
                                       image.scale = "hires",
+                                      HD = TRUE,
                                       images = NULL,
                                       image.alpha = 1,
                                       zoom = FALSE,
@@ -497,7 +507,7 @@ plotReceptorExpression <- function(object,
 
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
     dat <- spatial$coords
     dat$.sirap_receptor <- dat$cell %in% receptor_barcodes
     if (!is.null(feature)) {
@@ -628,6 +638,7 @@ plotReceptors <- function(object,
                           title = NULL,
                           order_points = TRUE,
                           image.scale = "hires",
+                          HD = TRUE,
                           images = NULL,
                           image.alpha = 1,
                           zoom = FALSE,
@@ -668,7 +679,7 @@ plotReceptors <- function(object,
   receptor_lookup <- receptor_lookup[!duplicated(receptor_lookup), , drop = FALSE]
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
     receptor_data <- merge(
       spatial$coords,
       receptor_lookup,
@@ -799,6 +810,7 @@ plotSpatialColorTips <- function(object,
                                 legend_colors = NULL,
                                 title = NULL,
                                 image.scale = "hires",
+                                HD = TRUE,
                                 point_size = 1.6,
                                 point_alpha = 1,
                                 order_points = TRUE,
@@ -831,7 +843,7 @@ plotSpatialColorTips <- function(object,
 
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
     dat <- spatial$coords[spatial$coords$cell %in% names(spot_color), , drop = FALSE]
     if (nrow(dat) == 0L) {
       next
@@ -1361,32 +1373,240 @@ spatialCloneTreePairsToPDF <- function(pairs,
   as.data.frame(out, stringsAsFactors = FALSE)
 }
 
-.sirap_spatial_data <- function(object, image, image.scale = "hires") {
+.sirap_spatial_data <- function(object, image, image.scale = "hires", HD = TRUE) {
   .require_namespace("SeuratObject")
   image_obj <- object[[image]]
-  coords <- SeuratObject::GetTissueCoordinates(image_obj, scale = image.scale)
+  if (!isTRUE(HD)) {
+    coords <- .sirap_non_hd_spatial_coordinates(image_obj, image.scale = image.scale)
+  } else {
+    coords <- .sirap_spatial_centroid_coordinates(image_obj, image.scale = image.scale)
+  }
+  if (is.null(coords)) {
+    coords <- SeuratObject::GetTissueCoordinates(image_obj, scale = image.scale)
+    coords <- as.data.frame(coords, stringsAsFactors = FALSE)
+    if ("cell" %in% colnames(coords)) {
+      coords$cell <- as.character(coords$cell)
+    } else {
+      coords$cell <- rownames(coords)
+    }
+
+    coord_candidates <- .sirap_spatial_coordinate_candidates(
+      coords = coords,
+      image = image_obj,
+      image.scale = image.scale
+    )
+    if (length(coord_candidates) == 0L) {
+      rlang::abort("Could not identify x/y coordinate columns in Seurat tissue coordinates.")
+    }
+    coord_candidate <- coord_candidates[[1L]]
+    coords <- data.frame(
+      cell = coords$cell,
+      x = coord_candidate$x,
+      y = coord_candidate$y,
+      stringsAsFactors = FALSE
+    )
+  } else {
+    coords <- as.data.frame(coords, stringsAsFactors = FALSE)
+  }
+  coords <- coords[coords$cell %in% colnames(object), , drop = FALSE]
+  coords$.sirap_y <- -coords$y
+
+  list(coords = coords, image = image_obj)
+}
+
+.sirap_non_hd_spatial_coordinates <- function(image, image.scale = "hires") {
+  coords <- SeuratObject::GetTissueCoordinates(image, scale = image.scale)
   coords <- as.data.frame(coords, stringsAsFactors = FALSE)
   if ("cell" %in% colnames(coords)) {
     coords$cell <- as.character(coords$cell)
   } else {
     coords$cell <- rownames(coords)
   }
-
-  x_col <- intersect(c("imagecol", "x", "pxl_col_in_fullres", "col"), colnames(coords))
-  y_col <- intersect(c("imagerow", "y", "pxl_row_in_fullres", "row"), colnames(coords))
-  if (length(x_col) == 0L || length(y_col) == 0L) {
-    rlang::abort("Could not identify x/y coordinate columns in Seurat tissue coordinates.")
+  if (all(c("x", "y") %in% colnames(coords))) {
+    x <- coords$x
+    y <- coords$y
+  } else if (all(c("imagecol", "imagerow") %in% colnames(coords))) {
+    x <- coords$imagecol
+    y <- coords$imagerow
+  } else {
+    rlang::abort(
+      "`HD = FALSE` requires `SeuratObject::GetTissueCoordinates()` to return `x`/`y` or `imagecol`/`imagerow` coordinates."
+    )
   }
-  coords <- data.frame(
+  data.frame(
     cell = coords$cell,
-    x = coords[[x_col[[1]]]],
-    y = coords[[y_col[[1]]]],
+    x = suppressWarnings(as.numeric(y)),
+    y = suppressWarnings(as.numeric(x)),
     stringsAsFactors = FALSE
   )
-  coords <- coords[coords$cell %in% colnames(object), , drop = FALSE]
-  coords$.sirap_y <- -coords$y
+}
 
-  list(coords = coords, image = image_obj)
+.sirap_spatial_centroid_coordinates <- function(image, image.scale = "hires") {
+  boundaries <- tryCatch(methods::slot(image, "boundaries"), error = function(e) NULL)
+  if (is.null(boundaries) || length(boundaries) == 0L) {
+    return(NULL)
+  }
+  centroids <- boundaries[["centroids"]]
+  if (is.null(centroids)) {
+    return(NULL)
+  }
+  coords <- tryCatch(methods::slot(centroids, "coords"), error = function(e) NULL)
+  cells <- tryCatch(methods::slot(centroids, "cells"), error = function(e) NULL)
+  if (is.null(coords) || is.null(cells) || nrow(coords) != length(cells)) {
+    return(NULL)
+  }
+
+  coords <- as.data.frame(coords, stringsAsFactors = FALSE)
+  x_col <- intersect(c("x", "imagecol", "pxl_col_in_fullres", "col"), colnames(coords))
+  y_col <- intersect(c("y", "imagerow", "pxl_row_in_fullres", "row"), colnames(coords))
+  if (length(x_col) == 0L && ncol(coords) >= 1L) {
+    x_col <- colnames(coords)[[1L]]
+  }
+  if (length(y_col) == 0L && ncol(coords) >= 2L) {
+    y_col <- colnames(coords)[[2L]]
+  }
+  if (length(x_col) == 0L || length(y_col) == 0L) {
+    return(NULL)
+  }
+
+  raw_coords <- data.frame(
+    cell = as.character(cells),
+    x = suppressWarnings(as.numeric(coords[[x_col[[1L]]]])),
+    y = suppressWarnings(as.numeric(coords[[y_col[[1L]]]])),
+    stringsAsFactors = FALSE
+  )
+  coord_candidates <- .sirap_spatial_coordinate_candidates(
+    coords = raw_coords,
+    image = image,
+    image.scale = image.scale,
+    include_all_scales = TRUE
+  )
+  if (length(coord_candidates) == 0L) {
+    return(NULL)
+  }
+
+  coord_candidate <- coord_candidates[[1L]]
+  data.frame(
+    cell = raw_coords$cell,
+    x = coord_candidate$x,
+    y = coord_candidate$y,
+    stringsAsFactors = FALSE
+  )
+}
+
+.sirap_spatial_coordinate_candidates <- function(coords,
+                                                image,
+                                                image.scale = "hires",
+                                                include_all_scales = FALSE) {
+  raster <- .sirap_image_raster(image, alpha = 1)
+  image_dim <- dim(raster)
+  height <- image_dim[[1L]]
+  width <- image_dim[[2L]]
+  scale_factors <- .sirap_image_scale_factors(image)
+  requested_scale_factor <- .sirap_image_scale_factor(image, image.scale)
+  scale_transforms <- c(raw = 1)
+  if (is.finite(requested_scale_factor) && requested_scale_factor > 0) {
+    scale_transforms <- c(requested = requested_scale_factor, scale_transforms)
+  }
+  if (isTRUE(include_all_scales) && length(scale_factors) > 0L) {
+    scale_transforms <- c(scale_transforms, scale_factors)
+  }
+  scale_transforms <- scale_transforms[
+    is.finite(scale_transforms) & scale_transforms > 0 & !duplicated(scale_transforms)
+  ]
+
+  pairs <- list(
+    c("x", "y"),
+    c("imagecol", "imagerow"),
+    c("pxl_col_in_fullres", "pxl_row_in_fullres"),
+    c("col", "row")
+  )
+  pairs <- Filter(function(pair) all(pair %in% colnames(coords)), pairs)
+  candidates <- list()
+  for (pair_idx in seq_along(pairs)) {
+    pair <- pairs[[pair_idx]]
+    raw_x <- suppressWarnings(as.numeric(coords[[pair[[1L]]]]))
+    raw_y <- suppressWarnings(as.numeric(coords[[pair[[2L]]]]))
+    for (transform_idx in seq_along(scale_transforms)) {
+      scale_transform <- scale_transforms[[transform_idx]]
+      candidates[[length(candidates) + 1L]] <- .sirap_spatial_coordinate_candidate(
+        x = raw_x * scale_transform,
+        y = raw_y * scale_transform,
+        pair_idx = pair_idx,
+        transform_idx = transform_idx,
+        width = width,
+        height = height
+      )
+    }
+  }
+
+  candidates <- Filter(Negate(is.null), candidates)
+  if (length(candidates) == 0L) {
+    return(list())
+  }
+  scores <- vapply(candidates, function(candidate) {
+    candidate$score
+  }, numeric(4L))
+  candidates[order(scores[1L, ], scores[2L, ], scores[3L, ], scores[4L, ])]
+}
+
+.sirap_spatial_coordinate_candidate <- function(x,
+                                                y,
+                                                pair_idx,
+                                                transform_idx,
+                                                width,
+                                                height) {
+  finite <- is.finite(x) & is.finite(y)
+  if (!any(finite)) {
+    return(NULL)
+  }
+  overflow_x <- pmax(0, -x[finite]) + pmax(0, x[finite] - width)
+  overflow_y <- pmax(0, -y[finite]) + pmax(0, y[finite] - height)
+  overflow <- mean(overflow_x / max(width, 1) + overflow_y / max(height, 1))
+  inside <- mean(x[finite] >= 0 & x[finite] <= width & y[finite] >= 0 & y[finite] <= height)
+  span <- max(
+    diff(range(x[finite])) / max(width, 1),
+    diff(range(y[finite])) / max(height, 1)
+  )
+  list(
+    x = x,
+    y = y,
+    score = c(-inside, overflow, -span, pair_idx + transform_idx / 10)
+  )
+}
+
+.sirap_image_scale_factor <- function(image, image.scale = "hires") {
+  if (is.null(image.scale) || length(image.scale) == 0L || is.na(image.scale[[1L]])) {
+    return(NA_real_)
+  }
+  scale_factors <- tryCatch(methods::slot(image, "scale.factors"), error = function(e) NULL)
+  if (is.null(scale_factors)) {
+    return(NA_real_)
+  }
+  scale_value <- tryCatch(scale_factors[[image.scale[[1L]]]], error = function(e) NULL)
+  if (is.null(scale_value)) {
+    scale_value <- tryCatch(scale_factors[[paste0(image.scale[[1L]], ".scale")]], error = function(e) NULL)
+  }
+  scale_value <- suppressWarnings(as.numeric(scale_value))
+  if (length(scale_value) == 0L || !is.finite(scale_value[[1L]])) {
+    return(NA_real_)
+  }
+  scale_value[[1L]]
+}
+
+.sirap_image_scale_factors <- function(image) {
+  scale_factors <- tryCatch(methods::slot(image, "scale.factors"), error = function(e) NULL)
+  if (is.null(scale_factors)) {
+    return(numeric())
+  }
+  scale_values <- tryCatch(unlist(as.list(scale_factors), use.names = TRUE), error = function(e) NULL)
+  if (is.null(scale_values)) {
+    return(numeric())
+  }
+  scale_names <- names(scale_values)
+  scale_values <- suppressWarnings(as.numeric(scale_values))
+  names(scale_values) <- scale_names
+  scale_values[is.finite(scale_values) & scale_values > 0]
 }
 
 .sirap_spatial_base <- function(plot_data,
@@ -1419,7 +1639,13 @@ spatialCloneTreePairsToPDF <- function(pairs,
 
 .sirap_image_raster <- function(image, alpha = 1) {
   .require_namespace("SeuratObject")
-  img <- SeuratObject::GetImage(image, mode = "raw")
+  img <- tryCatch(methods::slot(image, "image"), error = function(e) NULL)
+  if (is.null(img) || length(dim(img)) < 2L) {
+    img <- tryCatch(SeuratObject::GetImage(image, mode = "raw"), error = function(e) NULL)
+  }
+  if (is.null(img) || length(dim(img)) < 2L) {
+    rlang::abort("Could not extract image raster from Seurat image object.")
+  }
   if (alpha < 1) {
     rgba <- array(NA_real_, dim = c(dim(img)[1:2], 4))
     rgba[, , 1:3] <- img[, , 1:3]

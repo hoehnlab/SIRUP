@@ -10,6 +10,7 @@ spatialDiscretePlot(
   zero_value = 0,
   images = NULL,
   image.scale = "hires",
+  HD = TRUE,
   cols = NULL,
   point_size = 1.6,
   point_alpha = 1,

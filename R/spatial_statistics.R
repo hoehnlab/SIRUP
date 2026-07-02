@@ -25,12 +25,13 @@ spatialVariableData <- function(object,
                                 layer = "counts",
                                 images = NULL,
                                 image.scale = "hires",
+                                HD = TRUE,
                                 zero_tol = 0,
                                 as_sf = FALSE) {
   variable_type <- match.arg(variable_type)
   .require_namespace("SeuratObject")
 
-  dat <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale)
+  dat <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, HD = HD)
 
   if (variable_type == "feature") {
     expr <- .sirap_fetch_data(object, vars = variable, layer = layer)
@@ -94,6 +95,7 @@ spatialMoran <- function(object,
                          layer = "counts",
                          images = NULL,
                          image.scale = "hires",
+                         HD = TRUE,
                          zero_tol = 0,
                          radius = NULL,
                          k = 6,
@@ -111,6 +113,7 @@ spatialMoran <- function(object,
     layer = layer,
     images = images,
     image.scale = image.scale,
+    HD = HD,
     zero_tol = zero_tol
   )
   dat <- dat[is.finite(dat$value), , drop = FALSE]
@@ -149,6 +152,7 @@ spatialLocalMoran <- function(object,
                               layer = "counts",
                               images = NULL,
                               image.scale = "hires",
+                              HD = TRUE,
                               zero_tol = 0,
                               radius = NULL,
                               k = 6,
@@ -166,6 +170,7 @@ spatialLocalMoran <- function(object,
     layer = layer,
     images = images,
     image.scale = image.scale,
+    HD = HD,
     zero_tol = zero_tol
   )
   dat <- dat[is.finite(dat$value), , drop = FALSE]
@@ -185,6 +190,188 @@ spatialLocalMoran <- function(object,
   out$radius <- radius
   out$k <- if (is.null(radius)) k else NA_integer_
   out
+}
+
+#' Test clone localization with join-count statistics
+#'
+#' Runs `spdep::joincount.test()` for each clone to test whether neighboring
+#' receptor-positive spatial barcodes are more likely to share that clone than
+#' expected under random labeling. This is useful for asking whether clones
+#' localize within regions of interest such as germinal centers.
+#'
+#' @param object Seurat object with spatial images.
+#' @param receptors AIRR-style receptor data frame containing spatial barcodes
+#'   and clone calls.
+#' @param clone_col Column in `receptors` containing clone IDs.
+#' @param barcode_col Column in `receptors` matching Seurat spot/cell barcodes.
+#' @param clone_ids Optional clone ID values to test. Defaults to all clones
+#'   observed in at least `min_barcodes` spatial barcodes.
+#' @param polygon Optional polygon vertex data frame used to restrict the test
+#'   to one or more regions.
+#' @param polygon_id Optional polygon ID value(s) to select when `polygon_col`
+#'   exists.
+#' @param images Optional Seurat image names.
+#' @param image.scale Image scale passed to
+#'   `SeuratObject::GetTissueCoordinates()`.
+#' @param x_col,y_col Coordinate columns in `polygon`.
+#' @param polygon_col Optional polygon grouping column in `polygon`.
+#' @param include_boundary Include Seurat spots on polygon edges.
+#' @param require_closed Require the final polygon vertex to equal the first.
+#' @param min_barcodes Minimum number of spatial barcodes containing a clone for
+#'   that clone to be tested.
+#' @param radius Optional distance radius defining neighborhoods.
+#' @param k Number of nearest neighbors when `radius` is `NULL`.
+#' @param style Spatial weights style passed to `spdep::nb2listw()`. Join-count
+#'   tests are typically run with binary weights (`"B"`).
+#' @param alternative Alternative hypothesis passed to
+#'   `spdep::joincount.test()`.
+#' @param other_label Label used for non-target clone barcodes in each binary
+#'   test.
+#' @param return_data Return the barcode-level mark data used for each test.
+#' @return List containing a summary table, raw `spdep` tests, barcode-level
+#'   data, neighbors, and weights.
+#' @export
+spatialCloneJoinCount <- function(object,
+                                  receptors,
+                                  clone_col = "clone_id",
+                                  barcode_col = "barcode_8um",
+                                  clone_ids = NULL,
+                                  polygon = NULL,
+                                  polygon_id = NULL,
+                                  images = NULL,
+                                  image.scale = "hires",
+                                  HD = TRUE,
+                                  x_col = "x",
+                                  y_col = "y",
+                                  polygon_col = "polygon",
+                                  include_boundary = TRUE,
+                                  require_closed = TRUE,
+                                  min_barcodes = 2,
+                                  radius = NULL,
+                                  k = 6,
+                                  style = "B",
+                                  alternative = "greater",
+                                  other_label = "Other",
+                                  return_data = FALSE) {
+  .require_namespace("spdep")
+  if (!is.numeric(min_barcodes) || length(min_barcodes) != 1L || is.na(min_barcodes) || min_barcodes < 1) {
+    rlang::abort("`min_barcodes` must be a positive number.")
+  }
+  min_barcodes <- as.integer(min_barcodes)
+
+  dat <- .sirap_joincount_receptor_data(
+    object = object,
+    receptors = receptors,
+    clone_col = clone_col,
+    barcode_col = barcode_col,
+    polygon = polygon,
+    polygon_id = polygon_id,
+    images = images,
+    image.scale = image.scale,
+    HD = HD,
+    x_col = x_col,
+    y_col = y_col,
+    polygon_col = polygon_col,
+    include_boundary = include_boundary,
+    require_closed = require_closed
+  )
+  .check_required_cols(dat, c(clone_col, ".sirap_barcode", "x", ".sirap_y", "image", "polygon"), "receptors")
+  dat <- dat[!is.na(dat[[clone_col]]) & nzchar(as.character(dat[[clone_col]])), , drop = FALSE]
+  if (nrow(dat) == 0L) {
+    rlang::abort("No receptor rows with clone IDs were found in the selected region(s).")
+  }
+
+  if (is.null(clone_ids)) {
+    clone_counts <- sort(table(unique(dat[, c(".sirap_barcode", clone_col), drop = FALSE])[[clone_col]]), decreasing = TRUE)
+    clone_ids <- names(clone_counts)[clone_counts >= min_barcodes]
+  } else {
+    clone_ids <- as.character(clone_ids)
+  }
+  clone_ids <- unique(clone_ids[!is.na(clone_ids) & nzchar(clone_ids)])
+  if (length(clone_ids) == 0L) {
+    rlang::abort("No clones met `min_barcodes` in the selected region(s).")
+  }
+
+  tests <- list()
+  summaries <- list()
+  mark_data <- list()
+  neighbors <- list()
+  weights <- list()
+  groups <- split(dat, interaction(dat$image, dat$polygon, drop = TRUE, sep = "||"))
+  for (group_name in names(groups)) {
+    group_dat <- groups[[group_name]]
+    group_key <- strsplit(group_name, "\\|\\|", fixed = FALSE)[[1L]]
+    image <- group_key[[1L]]
+    polygon_value <- group_key[[2L]]
+    sites <- group_dat[, c(".sirap_barcode", "x", "y", ".sirap_y", "image", "polygon"), drop = FALSE]
+    sites <- sites[!duplicated(sites$.sirap_barcode), , drop = FALSE]
+    if (nrow(sites) < 2L) {
+      next
+    }
+    nb <- .sirap_spatial_neighbors(sites, radius = radius, k = k)
+    listw <- spdep::nb2listw(nb, style = style, zero.policy = TRUE)
+    neighbors[[group_name]] <- nb
+    weights[[group_name]] <- listw
+
+    for (clone_id in clone_ids) {
+      clone_cells <- unique(group_dat$.sirap_barcode[as.character(group_dat[[clone_col]]) == clone_id])
+      n_clone_barcodes <- length(clone_cells)
+      if (n_clone_barcodes < min_barcodes || n_clone_barcodes == nrow(sites)) {
+        next
+      }
+      local_other_label <- if (identical(clone_id, other_label)) paste0(other_label, "_background") else other_label
+      sites$join_count_mark <- factor(
+        ifelse(sites$.sirap_barcode %in% clone_cells, clone_id, local_other_label),
+        levels = c(local_other_label, clone_id)
+      )
+      test <- spdep::joincount.test(
+        sites$join_count_mark,
+        listw,
+        zero.policy = TRUE,
+        alternative = alternative
+      )
+      test_name <- paste(image, polygon_value, clone_id, sep = "||")
+      tests[[test_name]] <- test
+      summaries[[test_name]] <- .sirap_joincount_summary_row(
+        test = test,
+        clone_id = clone_id,
+        image = image,
+        polygon = polygon_value,
+        n_barcodes = nrow(sites),
+        n_clone_barcodes = n_clone_barcodes,
+        radius = radius,
+        k = if (is.null(radius)) k else NA_integer_,
+        style = style,
+        alternative = alternative
+      )
+      if (isTRUE(return_data)) {
+        mark_data[[test_name]] <- cbind(
+          sites,
+          data.frame(clone_id = clone_id, stringsAsFactors = FALSE)
+        )
+      }
+    }
+  }
+
+  summary <- dplyr::bind_rows(summaries)
+  if (nrow(summary) == 0L) {
+    rlang::abort("No clones could be tested after applying `min_barcodes` and region grouping.")
+  }
+  summary <- summary[order(summary$p_value, summary$image, summary$polygon, summary$clone_id), , drop = FALSE]
+  rownames(summary) <- NULL
+
+  list(
+    summary = summary,
+    tests = tests,
+    data = if (isTRUE(return_data)) dplyr::bind_rows(mark_data) else NULL,
+    neighbors = neighbors,
+    weights = weights,
+    radius = radius,
+    k = k,
+    style = style,
+    alternative = alternative,
+    min_barcodes = min_barcodes
+  )
 }
 
 #' Plot local Moran's I over a tissue image
@@ -209,6 +396,7 @@ plotSpatialLocalMoran <- function(object,
                                   value_col = "z_i",
                                   images = NULL,
                                   image.scale = "hires",
+                                  HD = TRUE,
                                   colors = c("#2c7bb6", "#f7f7f7", "#d7191c"),
                                   midpoint = 0,
                                   point_size = 0.7,
@@ -220,7 +408,7 @@ plotSpatialLocalMoran <- function(object,
   .check_required_cols(local_moran, c("cell", "x", ".sirap_y", value_col), "local_moran")
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
     plot_data <- local_moran[local_moran$image == image, , drop = FALSE]
     if (nrow(plot_data) == 0L) {
       next
@@ -431,7 +619,7 @@ plotRipleyCrossK <- function(kcross,
   p
 }
 
-.sirap_spatial_coordinate_table <- function(object, images = NULL, image.scale = "hires") {
+.sirap_spatial_coordinate_table <- function(object, images = NULL, image.scale = "hires", HD = TRUE) {
   .require_namespace("SeuratObject")
   image_names <- tryCatch(
     SeuratObject::Images(object),
@@ -442,7 +630,7 @@ plotRipleyCrossK <- function(kcross,
   }
 
   coords <- lapply(.sirap_spatial_images(object, images = images), function(image) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
     out <- spatial$coords
     out$image <- image
     out
@@ -493,6 +681,149 @@ plotRipleyCrossK <- function(kcross,
     rlang::abort("Spatial statistic requires at least two distinct values.")
   }
   invisible(TRUE)
+}
+
+.sirap_joincount_receptor_data <- function(object,
+                                           receptors,
+                                           clone_col,
+                                           barcode_col,
+                                           polygon,
+                                           polygon_id,
+                                           images,
+                                           image.scale,
+                                           HD,
+                                           x_col,
+                                           y_col,
+                                           polygon_col,
+                                           include_boundary,
+                                           require_closed) {
+  receptors <- .as_data_frame(receptors)
+  .check_required_cols(receptors, c(barcode_col, clone_col), "receptors")
+  coords <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, HD = HD)
+  coords <- coords[is.finite(coords$x) & is.finite(coords$y), , drop = FALSE]
+  if (nrow(coords) == 0L) {
+    rlang::abort("No finite spatial coordinates were found in `object`.")
+  }
+
+  receptor_cols <- setdiff(colnames(receptors), setdiff(c("cell", "x", "y", ".sirap_y", "image", "polygon"), c(barcode_col, clone_col)))
+  receptors <- receptors[, receptor_cols, drop = FALSE]
+  receptors$.sirap_barcode <- as.character(receptors[[barcode_col]])
+
+  if (is.null(polygon)) {
+    region_coords <- coords
+    region_coords$polygon <- "all"
+    out <- merge(
+      receptors,
+      region_coords[, c("cell", "x", "y", ".sirap_y", "image", "polygon"), drop = FALSE],
+      by.x = ".sirap_barcode",
+      by.y = "cell",
+      all.x = FALSE,
+      all.y = FALSE,
+      sort = FALSE
+    )
+    return(out)
+  }
+
+  polygon <- .as_data_frame(polygon)
+  .check_required_cols(polygon, c(x_col, y_col), "polygon")
+  polygon_specs <- .sirap_polygon_specs(polygon, polygon_id = polygon_id, polygon_col = polygon_col)
+  regions <- lapply(polygon_specs, function(spec) {
+    vertices <- .sirap_select_polygon_vertices(
+      polygon = polygon,
+      polygon_id = spec$id,
+      polygon_col = polygon_col,
+      x_col = x_col,
+      y_col = y_col,
+      require_closed = require_closed
+    )
+    inside <- .sirap_points_in_polygon(
+      px = coords$x,
+      py = coords$y,
+      vx = vertices$x,
+      vy = vertices$y,
+      include_boundary = include_boundary
+    )
+    region_coords <- coords[inside, , drop = FALSE]
+    if (nrow(region_coords) == 0L) {
+      return(data.frame())
+    }
+    region_coords$polygon <- as.character(if (isTRUE(spec$add_polygon_col)) spec$id else "polygon_1")
+    merge(
+      receptors,
+      region_coords[, c("cell", "x", "y", ".sirap_y", "image", "polygon"), drop = FALSE],
+      by.x = ".sirap_barcode",
+      by.y = "cell",
+      all.x = FALSE,
+      all.y = FALSE,
+      sort = FALSE
+    )
+  })
+  dplyr::bind_rows(regions)
+}
+
+.sirap_joincount_summary_row <- function(test,
+                                         clone_id,
+                                         image,
+                                         polygon,
+                                         n_barcodes,
+                                         n_clone_barcodes,
+                                         radius,
+                                         k,
+                                         style,
+                                         alternative) {
+  htest <- .sirap_joincount_clone_htest(test, clone_id)
+  estimate <- htest$estimate %||% numeric()
+  estimate_names <- names(estimate)
+  get_estimate <- function(pattern, fallback_index) {
+    idx <- grep(pattern, estimate_names, ignore.case = TRUE)
+    if (length(idx) > 0L) {
+      return(unname(estimate[[idx[[1L]]]]))
+    }
+    if (length(estimate) >= fallback_index) {
+      return(unname(estimate[[fallback_index]]))
+    }
+    NA_real_
+  }
+  data.frame(
+    clone_id = as.character(clone_id),
+    image = as.character(image),
+    polygon = as.character(polygon),
+    n_barcodes = as.integer(n_barcodes),
+    n_clone_barcodes = as.integer(n_clone_barcodes),
+    observed_join_count = get_estimate("join|observed", 1L),
+    expected_join_count = get_estimate("expect", 2L),
+    variance = get_estimate("var", 3L),
+    statistic = if (length(htest$statistic) > 0L) unname(htest$statistic[[1L]]) else NA_real_,
+    p_value = htest$p.value %||% NA_real_,
+    method = htest$method %||% NA_character_,
+    radius = radius %||% NA_real_,
+    k = k,
+    style = style,
+    alternative = alternative,
+    stringsAsFactors = FALSE
+  )
+}
+
+.sirap_joincount_clone_htest <- function(test, clone_id) {
+  if (inherits(test, "htest")) {
+    return(test)
+  }
+  if (is.list(test)) {
+    named_match <- which(names(test) == as.character(clone_id))
+    if (length(named_match) > 0L && inherits(test[[named_match[[1L]]]], "htest")) {
+      return(test[[named_match[[1L]]]])
+    }
+    htest_idx <- which(vapply(test, inherits, logical(1), what = "htest"))
+    if (length(htest_idx) > 0L) {
+      method_text <- vapply(test[htest_idx], function(x) x$method %||% "", character(1))
+      method_match <- grep(as.character(clone_id), method_text, fixed = TRUE)
+      if (length(method_match) > 0L) {
+        return(test[[htest_idx[[method_match[[1L]]]]]])
+      }
+      return(test[[utils::tail(htest_idx, 1L)]])
+    }
+  }
+  rlang::abort("Could not extract an htest result from `spdep::joincount.test()`.")
 }
 
 .sirap_kcross_df <- function(x, correction, image) {

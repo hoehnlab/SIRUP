@@ -61,6 +61,7 @@ Suggests:
     pheatmap,
     qpdf,
     rmarkdown,
+    rgl,
     scoper,
     Seurat,
     SeuratObject,
