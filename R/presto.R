@@ -42,8 +42,21 @@
 #' @param igblast_base Path passed to `AssignGenes.py igblast -b`.
 #' @param igblast_exec Path passed to `AssignGenes.py --exec`.
 #' @param muscle_exec Path passed to `AlignSets.py --exec`.
-#' @param nproc Number of processors for pRESTO steps.
+#' @param nproc Number of processors for pRESTO and AssignGenes steps.
 #' @param cluster_field FASTA header field used for within-spot clustering.
+#' @param delimiters String of pRESTO delimiter values passed after `--delim`.
+#'   Defaults to `"'|' '=' ','"`.
+#' @param parse_fields Header fields passed to `ParseHeaders.py merge -f`.
+#' @param parse_key Header field name created by `ParseHeaders.py merge -k`.
+#' @param parse_act Action passed to `ParseHeaders.py merge --act`.
+#' @param consensus_min_count Minimum sequence count passed to
+#'   `BuildConsensus.py -n`.
+#' @param consensus_copy_fields Optional fields passed to `BuildConsensus.py
+#'   --cf`.
+#' @param consensus_copy_action Action passed to `BuildConsensus.py --act` when
+#'   `consensus_copy_fields` is provided.
+#' @param align_log Optional log path passed to `AlignSets.py --log`.
+#' @param consensus_log Optional log path passed to `BuildConsensus.py --log`.
 #' @return A named list of output paths, invisibly.
 #' @export
 processSpatialSample <- function(input_fasta,
@@ -56,7 +69,16 @@ processSpatialSample <- function(input_fasta,
                                       igblast_exec = "~/software/igblast/bin/igblastn",
                                       muscle_exec = "~/software/muscle3.8.31_i86linux64",
                                       nproc = 8,
-                                      cluster_field = "barcode2um") {
+                                      cluster_field = "barcode2um",
+                                      delimiters = "'|' '=' ','",
+                                      parse_fields = c(cluster_field, "cluster"),
+                                      parse_key = paste0(cluster_field, "_cluster"),
+                                      parse_act = "set",
+                                      consensus_min_count = 1,
+                                      consensus_copy_fields = NULL,
+                                      consensus_copy_action = "majority",
+                                      align_log = NULL,
+                                      consensus_log = NULL) {
   receptor <- match.arg(receptor)
   paths <- .presto_paths(input_fasta, identity, consensus_freq, output_dir)
   if (!dir.exists(dirname(paths$cluster))) {
@@ -64,8 +86,17 @@ processSpatialSample <- function(input_fasta,
   }
 
   quote_path <- function(x) shQuote(path.expand(x))
-  delim_args <- paste("--delim", shQuote("|"), shQuote("="), shQuote(","))
-  half_nproc <- max(1, floor(nproc / 2))
+  delim_args <- paste("--delim", delimiters)
+  align_log_args <- if (is.null(align_log)) "" else paste("--log", quote_path(align_log))
+  consensus_log_args <- if (is.null(consensus_log)) "" else paste("--log", quote_path(consensus_log))
+  consensus_copy_args <- ""
+  if (!is.null(consensus_copy_fields) && length(consensus_copy_fields) > 0L) {
+    consensus_copy_args <- sprintf(
+      "--cf %s --act %s",
+      paste(consensus_copy_fields, collapse = " "),
+      consensus_copy_action
+    )
+  }
 
   commands <- c(
     sprintf(
@@ -78,34 +109,45 @@ processSpatialSample <- function(input_fasta,
       quote_path(paths$cluster)
     ),
     sprintf(
-      "ParseHeaders.py merge -s %s -f %s cluster -k %s %s --act set",
+      "ParseHeaders.py merge -s %s -f %s -k %s %s --act %s",
       quote_path(paths$cluster),
-      cluster_field,
-      paste0(cluster_field, "_cluster"),
-      delim_args
-    ),
-    sprintf(
-      "AlignSets.py muscle -s %s %s --nproc %s --bf %s --exec %s",
-      quote_path(paths$reheader),
+      paste(parse_fields, collapse = " "),
+      parse_key,
       delim_args,
-      half_nproc,
-      paste0(cluster_field, "_cluster"),
-      quote_path(muscle_exec)
+      parse_act
     ),
     sprintf(
-      "BuildConsensus.py -s %s -o %s --nproc %s -n 1 -q 20 --freq %s --bf %s --maxerror 0.1 --maxgap 0.3 --fasta",
+      "AlignSets.py muscle -s %s %s %s --nproc %s --bf %s --exec %s",
+      quote_path(paths$reheader),
+      align_log_args,
+      delim_args,
+      nproc,
+      parse_key,
+      quote_path(muscle_exec)
+    )
+  )
+
+  commands <- c(
+    commands,
+    sprintf(
+      "BuildConsensus.py -s %s -o %s %s --nproc %s -n %s -q 20 --freq %s --bf %s --maxerror 0.1 --maxgap 0.3 --fasta %s %s",
       quote_path(paths$aligned),
       quote_path(paths$consensus),
+      consensus_log_args,
       nproc,
+      consensus_min_count,
       consensus_freq,
-      paste0(cluster_field, "_cluster")
+      parse_key,
+      delim_args,
+      consensus_copy_args
     ),
     sprintf(
-      "AssignGenes.py igblast -s %s -b %s --organism human --loci %s --format blast --exec %s",
+      "AssignGenes.py igblast -s %s -b %s --organism human --loci %s --format blast --exec %s --nproc %s",
       quote_path(paths$consensus),
       quote_path(igblast_base),
       receptor,
-      quote_path(igblast_exec)
+      quote_path(igblast_exec),
+      nproc
     ),
     sprintf(
       "MakeDb.py igblast -i %s -s %s -r %s --extended",
