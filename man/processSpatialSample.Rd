@@ -15,7 +15,16 @@ processSpatialSample(
   igblast_exec = "~/software/igblast/bin/igblastn",
   muscle_exec = "~/software/muscle3.8.31_i86linux64",
   nproc = 8,
-  cluster_field = "barcode2um"
+  cluster_field = "barcode2um",
+  delimiters = "'|' '=' ','",
+  parse_fields = c(cluster_field, "cluster"),
+  parse_key = paste0(cluster_field, "_cluster"),
+  parse_act = "set",
+  consensus_min_count = 1,
+  consensus_copy_fields = NULL,
+  consensus_copy_action = "majority",
+  align_log = NULL,
+  consensus_log = NULL
 )
 }
 \arguments{
@@ -38,9 +47,32 @@ input FASTA directory.}
 
 \item{muscle_exec}{Path passed to \code{AlignSets.py --exec}.}
 
-\item{nproc}{Number of processors for pRESTO steps.}
+\item{nproc}{Number of processors for pRESTO and AssignGenes steps.}
 
 \item{cluster_field}{FASTA header field used for within-spot clustering.}
+
+\item{delimiters}{String of pRESTO delimiter values passed after \code{--delim}.
+Defaults to \code{"'|' '=' ','"}.}
+
+\item{parse_fields}{Header fields passed to \code{ParseHeaders.py merge -f}.}
+
+\item{parse_key}{Header field name created by \code{ParseHeaders.py merge -k}.}
+
+\item{parse_act}{Action passed to \code{ParseHeaders.py merge --act}.}
+
+\item{consensus_min_count}{Minimum sequence count passed to
+\code{BuildConsensus.py -n}.}
+
+\item{consensus_copy_fields}{Optional fields passed to
+\code{BuildConsensus.py --cf}.}
+
+\item{consensus_copy_action}{Action passed to \code{BuildConsensus.py --act}
+when \code{consensus_copy_fields} is provided.}
+
+\item{align_log}{Optional log path passed to \code{AlignSets.py --log}.}
+
+\item{consensus_log}{Optional log path passed to
+\code{BuildConsensus.py --log}.}
 }
 \value{
 A named list of output paths, invisibly.

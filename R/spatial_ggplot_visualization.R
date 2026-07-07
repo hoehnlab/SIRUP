@@ -1379,39 +1379,38 @@ spatialCloneTreePairsToPDF <- function(pairs,
   if (!isTRUE(HD)) {
     coords <- .sirap_non_hd_spatial_coordinates(image_obj, image.scale = image.scale)
   } else {
-    coords <- .sirap_spatial_centroid_coordinates(image_obj, image.scale = image.scale)
+    coords <- .sirap_tissue_spatial_coordinates(image_obj, image.scale = image.scale)
   }
   if (is.null(coords)) {
-    coords <- SeuratObject::GetTissueCoordinates(image_obj, scale = image.scale)
-    coords <- as.data.frame(coords, stringsAsFactors = FALSE)
-    if ("cell" %in% colnames(coords)) {
-      coords$cell <- as.character(coords$cell)
-    } else {
-      coords$cell <- rownames(coords)
-    }
-
-    coord_candidates <- .sirap_spatial_coordinate_candidates(
-      coords = coords,
-      image = image_obj,
-      image.scale = image.scale
-    )
-    if (length(coord_candidates) == 0L) {
-      rlang::abort("Could not identify x/y coordinate columns in Seurat tissue coordinates.")
-    }
-    coord_candidate <- coord_candidates[[1L]]
-    coords <- data.frame(
-      cell = coords$cell,
-      x = coord_candidate$x,
-      y = coord_candidate$y,
-      stringsAsFactors = FALSE
-    )
-  } else {
-    coords <- as.data.frame(coords, stringsAsFactors = FALSE)
+    rlang::abort("Could not identify x/y coordinate columns in Seurat tissue coordinates.")
   }
+  coords <- as.data.frame(coords, stringsAsFactors = FALSE)
   coords <- coords[coords$cell %in% colnames(object), , drop = FALSE]
   coords$.sirap_y <- -coords$y
 
   list(coords = coords, image = image_obj)
+}
+
+.sirap_tissue_spatial_coordinates <- function(image, image.scale = "hires") {
+  coords <- SeuratObject::GetTissueCoordinates(image, scale = image.scale)
+  coords <- as.data.frame(coords, stringsAsFactors = FALSE)
+  if ("cell" %in% colnames(coords)) {
+    coords$cell <- as.character(coords$cell)
+  } else {
+    coords$cell <- rownames(coords)
+  }
+
+  x_col <- intersect(c("imagecol", "x", "pxl_col_in_fullres", "col"), colnames(coords))
+  y_col <- intersect(c("imagerow", "y", "pxl_row_in_fullres", "row"), colnames(coords))
+  if (length(x_col) == 0L || length(y_col) == 0L) {
+    return(NULL)
+  }
+  data.frame(
+    cell = coords$cell,
+    x = coords[[x_col[[1L]]]],
+    y = coords[[y_col[[1L]]]],
+    stringsAsFactors = FALSE
+  )
 }
 
 .sirap_non_hd_spatial_coordinates <- function(image, image.scale = "hires") {
@@ -1437,59 +1436,6 @@ spatialCloneTreePairsToPDF <- function(pairs,
     cell = coords$cell,
     x = suppressWarnings(as.numeric(y)),
     y = suppressWarnings(as.numeric(x)),
-    stringsAsFactors = FALSE
-  )
-}
-
-.sirap_spatial_centroid_coordinates <- function(image, image.scale = "hires") {
-  boundaries <- tryCatch(methods::slot(image, "boundaries"), error = function(e) NULL)
-  if (is.null(boundaries) || length(boundaries) == 0L) {
-    return(NULL)
-  }
-  centroids <- boundaries[["centroids"]]
-  if (is.null(centroids)) {
-    return(NULL)
-  }
-  coords <- tryCatch(methods::slot(centroids, "coords"), error = function(e) NULL)
-  cells <- tryCatch(methods::slot(centroids, "cells"), error = function(e) NULL)
-  if (is.null(coords) || is.null(cells) || nrow(coords) != length(cells)) {
-    return(NULL)
-  }
-
-  coords <- as.data.frame(coords, stringsAsFactors = FALSE)
-  x_col <- intersect(c("x", "imagecol", "pxl_col_in_fullres", "col"), colnames(coords))
-  y_col <- intersect(c("y", "imagerow", "pxl_row_in_fullres", "row"), colnames(coords))
-  if (length(x_col) == 0L && ncol(coords) >= 1L) {
-    x_col <- colnames(coords)[[1L]]
-  }
-  if (length(y_col) == 0L && ncol(coords) >= 2L) {
-    y_col <- colnames(coords)[[2L]]
-  }
-  if (length(x_col) == 0L || length(y_col) == 0L) {
-    return(NULL)
-  }
-
-  raw_coords <- data.frame(
-    cell = as.character(cells),
-    x = suppressWarnings(as.numeric(coords[[x_col[[1L]]]])),
-    y = suppressWarnings(as.numeric(coords[[y_col[[1L]]]])),
-    stringsAsFactors = FALSE
-  )
-  coord_candidates <- .sirap_spatial_coordinate_candidates(
-    coords = raw_coords,
-    image = image,
-    image.scale = image.scale,
-    include_all_scales = TRUE
-  )
-  if (length(coord_candidates) == 0L) {
-    return(NULL)
-  }
-
-  coord_candidate <- coord_candidates[[1L]]
-  data.frame(
-    cell = raw_coords$cell,
-    x = coord_candidate$x,
-    y = coord_candidate$y,
     stringsAsFactors = FALSE
   )
 }
