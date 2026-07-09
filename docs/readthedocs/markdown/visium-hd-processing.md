@@ -205,7 +205,6 @@ identityThreshold <- 0.975
 consensusFreqThreshold <- 0.51
 germlineGlob <- "~/software/germlines/imgt/human/vdj/imgt_human_*.fasta"
 igblastBase <- "~/software/igblast"
-igblastExec <- "~/software/igblast/bin/igblastn"
 muscleExec <- "~/software/muscle3.8.31_i86linux64"
 
 bcrPrestoPaths <- processSpatialSample(
@@ -216,7 +215,6 @@ bcrPrestoPaths <- processSpatialSample(
   consensus_freq = consensusFreqThreshold,
   germline_glob = germlineGlob,
   igblast_base = igblastBase,
-  igblast_exec = igblastExec,
   muscle_exec = muscleExec,
   nproc = nproc
 )
@@ -229,7 +227,6 @@ tcrPrestoPaths <- processSpatialSample(
   consensus_freq = consensusFreqThreshold,
   germline_glob = germlineGlob,
   igblast_base = igblastBase,
-  igblast_exec = igblastExec,
   muscle_exec = muscleExec,
   nproc = nproc
 )

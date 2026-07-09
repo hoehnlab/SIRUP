@@ -12,7 +12,7 @@ processSpatialSample(
   consensus_freq = 0.51,
   germline_glob,
   igblast_base = "~/software/igblast",
-  igblast_exec = "~/software/igblast/bin/igblastn",
+  igblast_exec = NULL,
   muscle_exec = "~/software/muscle3.8.31_i86linux64",
   nproc = 8,
   cluster_field = "barcode2um",
@@ -43,7 +43,8 @@ input FASTA directory.}
 
 \item{igblast_base}{Path passed to \verb{AssignGenes.py igblast -b}.}
 
-\item{igblast_exec}{Path passed to \code{AssignGenes.py --exec}.}
+\item{igblast_exec}{Optional path passed to \code{AssignGenes.py --exec}. When
+\code{NULL}, defaults to \code{file.path(igblast_base, "bin", "igblastn")}.}
 
 \item{muscle_exec}{Path passed to \code{AlignSets.py --exec}.}
 
