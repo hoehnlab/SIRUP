@@ -20,7 +20,7 @@ spatialExpressionBlendPlot(
   zero_tol = 0,
   images = NULL,
   image.scale = "hires",
-  HD = TRUE,
+  swap_coords = FALSE,
   point_size = 0.6,
   point_alpha = 1,
   order_points = TRUE,
@@ -52,6 +52,10 @@ two-feature blend grid.}
 \item{images}{Optional Seurat image names.}
 
 \item{image.scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+
+\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
+axes before plotting or polygon membership checks. Defaults to \code{FALSE},
+which uses Seurat image coordinates natively.}
 
 \item{point_size}{Size of plotted spots.}
 

@@ -31,9 +31,9 @@ plotLengthQc <- function(airr_df, title = NULL) {
 #' @param layer Seurat expression layer to fetch.
 #' @param images Optional Seurat image names.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
-#' @param HD Logical; if `TRUE`, use the default Visium HD coordinate handling.
-#'   If `FALSE`, use Seurat's non-HD Visium coordinates reflected into SIRAP's
-#'   plotting coordinate frame.
+#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
+#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
+#'   which uses Seurat image coordinates natively.
 #' @param feature_colors Colors used, in order, for the continuous expression
 #'   scale. The first color is the low value and the last color is the high
 #'   value.
@@ -53,7 +53,7 @@ spatialExpressionPlot <- function(object,
                                       layer = "counts",
                                       images = NULL,
                                       image.scale = "hires",
-                                      HD = TRUE,
+                                      swap_coords = FALSE,
                                       feature_colors = c("#D3D3D3", "#FFFF00"),
                                       zero_tol = 0,
                                       point_size = 0.6,
@@ -74,7 +74,7 @@ spatialExpressionPlot <- function(object,
   expr <- .sirap_fetch_data(object, vars = features, layer = layer)
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
     dat <- merge(spatial$coords, expr, by.x = "cell", by.y = 0, all.x = TRUE)
     for (feature in features) {
       keep <- !is.na(dat[[feature]]) & dat[[feature]] > zero_tol
@@ -113,6 +113,9 @@ spatialExpressionPlot <- function(object,
 #' @param zero_value Value treated as not present.
 #' @param images Optional Seurat image names.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
+#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
+#'   which uses Seurat image coordinates natively.
 #' @param cols Optional named color vector.
 #' @param point_size Size of plotted spots.
 #' @param point_alpha Opacity for plotted spots.
@@ -129,7 +132,7 @@ spatialDiscretePlot <- function(object,
                                   zero_value = 0,
                                   images = NULL,
                                   image.scale = "hires",
-                                  HD = TRUE,
+                                  swap_coords = FALSE,
                                   cols = NULL,
                                   point_size = 1.6,
                                   point_alpha = 1,
@@ -149,7 +152,7 @@ spatialDiscretePlot <- function(object,
 
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
     plot_data <- spatial$coords[spatial$coords$cell %in% keep_cells, , drop = FALSE]
     if (nrow(plot_data) == 0L) {
       next
@@ -203,6 +206,9 @@ spatialDiscretePlot <- function(object,
 #' @param zero_tol Values at or below this threshold are treated as zero.
 #' @param images Optional Seurat image names.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
+#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
+#'   which uses Seurat image coordinates natively.
 #' @param point_size Size of plotted spots.
 #' @param point_alpha Opacity for plotted spots.
 #' @param order_points Plot lower blended expression intensity first so higher
@@ -227,7 +233,7 @@ spatialExpressionBlendPlot <- function(object,
                                                 zero_tol = 0,
                                                 images = NULL,
                                                 image.scale = "hires",
-                                                HD = TRUE,
+                                                swap_coords = FALSE,
                                                 point_size = 0.6,
                                                 point_alpha = 1,
                                                 order_points = TRUE,
@@ -251,7 +257,7 @@ spatialExpressionBlendPlot <- function(object,
   )
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
     dat <- merge(spatial$coords, expr, by.x = "cell", by.y = 0, all.x = TRUE)
     keep <- rowSums(dat[, features, drop = FALSE] > zero_tol, na.rm = TRUE) > 0
     if (!any(keep)) {
@@ -296,7 +302,7 @@ spatialExpressionBlendPlot <- function(object,
         features[[1]],
         images = image,
         image.scale = image.scale,
-        HD = HD,
+        swap_coords = swap_coords,
         feature_colors = c(bottom_left, bottom_right),
         zero_tol = zero_tol,
         point_size = point_size,
@@ -311,7 +317,7 @@ spatialExpressionBlendPlot <- function(object,
         features[[2]],
         images = image,
         image.scale = image.scale,
-        HD = HD,
+        swap_coords = swap_coords,
         feature_colors = c(bottom_left, top_left),
         zero_tol = zero_tol,
         point_size = point_size,
@@ -341,6 +347,9 @@ spatialExpressionBlendPlot <- function(object,
 #' @param breadth_metric Metric used to choose default feature order.
 #' @param images Optional Seurat image names.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
+#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
+#'   which uses Seurat image coordinates natively.
 #' @param point_size Size of plotted spots.
 #' @param point_alpha Opacity for plotted spots.
 #' @param order_points Plot lower-priority feature assignments first so later
@@ -361,7 +370,7 @@ spatialExpressionMultiPlot <- function(object,
                                     breadth_metric = c("n_expressing"),
                                     images = NULL,
                                     image.scale = "hires",
-                                    HD = TRUE,
+                                    swap_coords = FALSE,
                                     point_size = 0.6,
                                     point_alpha = 1,
                                     order_points = TRUE,
@@ -385,7 +394,7 @@ spatialExpressionMultiPlot <- function(object,
   expr <- .sirap_fetch_data(object, vars = features, layer = layer)
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
     dat <- merge(spatial$coords, expr, by.x = "cell", by.y = 0, all.x = TRUE)
     keep <- rowSums(dat[, features, drop = FALSE] > zero_tol, na.rm = TRUE) > 0
     if (!any(keep)) {
@@ -480,7 +489,7 @@ plotReceptorExpression <- function(object,
                                       assay = NULL,
                                       layer = "counts",
                                       image.scale = "hires",
-                                      HD = TRUE,
+                                      swap_coords = FALSE,
                                       images = NULL,
                                       image.alpha = 1,
                                       zoom = FALSE,
@@ -507,7 +516,7 @@ plotReceptorExpression <- function(object,
 
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
     dat <- spatial$coords
     dat$.sirap_receptor <- dat$cell %in% receptor_barcodes
     if (!is.null(feature)) {
@@ -617,6 +626,9 @@ plotReceptorExpression <- function(object,
 #'   on top.
 #' @param image.scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
+#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
+#'   which uses Seurat image coordinates natively.
 #' @param images Optional Seurat image names.
 #' @param image.alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
@@ -638,7 +650,7 @@ plotReceptors <- function(object,
                           title = NULL,
                           order_points = TRUE,
                           image.scale = "hires",
-                          HD = TRUE,
+                          swap_coords = FALSE,
                           images = NULL,
                           image.alpha = 1,
                           zoom = FALSE,
@@ -679,7 +691,7 @@ plotReceptors <- function(object,
   receptor_lookup <- receptor_lookup[!duplicated(receptor_lookup), , drop = FALSE]
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
     receptor_data <- merge(
       spatial$coords,
       receptor_lookup,
@@ -790,6 +802,9 @@ plotReceptors <- function(object,
 #' @param legend_colors Optional named color vector used for the legend.
 #' @param title Optional title.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
+#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
+#'   which uses Seurat image coordinates natively.
 #' @param point_size Size of plotted tips.
 #' @param point_alpha Opacity for plotted tips.
 #' @param order_points Plot earlier tip-color groups first so later groups
@@ -810,7 +825,7 @@ plotSpatialColorTips <- function(object,
                                 legend_colors = NULL,
                                 title = NULL,
                                 image.scale = "hires",
-                                HD = TRUE,
+                                swap_coords = FALSE,
                                 point_size = 1.6,
                                 point_alpha = 1,
                                 order_points = TRUE,
@@ -843,7 +858,7 @@ plotSpatialColorTips <- function(object,
 
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
     dat <- spatial$coords[spatial$coords$cell %in% names(spot_color), , drop = FALSE]
     if (nrow(dat) == 0L) {
       next
@@ -941,6 +956,9 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #' @param palette Optional colors. If fewer colors are supplied than needed,
 #'   additional colors are generated by averaging supplied colors.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
+#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
+#'   which uses Seurat image coordinates natively.
 #' @param images Optional Seurat image names.
 #' @param zoom Zoom spatial plots to the clone. Defaults to `FALSE`, which
 #'   shows the full tissue area covered by spatial coordinates.
@@ -966,6 +984,7 @@ plotSpatialCloneTreePairs <- function(trees,
                                       color_by = "identity",
                                       palette = NULL,
                                       image.scale = "hires",
+                                      swap_coords = FALSE,
                                       images = NULL,
                                       zoom = FALSE,
                                       tree_layout = "rectangular",
@@ -1044,6 +1063,7 @@ plotSpatialCloneTreePairs <- function(trees,
       color_col = "tip_color",
       title = NULL,
       image.scale = image.scale,
+      swap_coords = swap_coords,
       images = images,
       point_size = spatial_tip_size,
       point_alpha = spatial_tip_alpha,
@@ -1373,11 +1393,11 @@ spatialCloneTreePairsToPDF <- function(pairs,
   as.data.frame(out, stringsAsFactors = FALSE)
 }
 
-.sirap_spatial_data <- function(object, image, image.scale = "hires", HD = TRUE) {
+.sirap_spatial_data <- function(object, image, image.scale = "hires", swap_coords = FALSE) {
   .require_namespace("SeuratObject")
   image_obj <- object[[image]]
-  if (!isTRUE(HD)) {
-    coords <- .sirap_non_hd_spatial_coordinates(image_obj, image.scale = image.scale)
+  if (isTRUE(swap_coords)) {
+    coords <- .sirap_swapped_spatial_coordinates(image_obj, image.scale = image.scale)
   } else {
     coords <- .sirap_tissue_spatial_coordinates(image_obj, image.scale = image.scale)
   }
@@ -1413,7 +1433,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
   )
 }
 
-.sirap_non_hd_spatial_coordinates <- function(image, image.scale = "hires") {
+.sirap_swapped_spatial_coordinates <- function(image, image.scale = "hires") {
   coords <- SeuratObject::GetTissueCoordinates(image, scale = image.scale)
   coords <- as.data.frame(coords, stringsAsFactors = FALSE)
   if ("cell" %in% colnames(coords)) {
@@ -1429,7 +1449,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
     y <- coords$imagerow
   } else {
     rlang::abort(
-      "`HD = FALSE` requires `SeuratObject::GetTissueCoordinates()` to return `x`/`y` or `imagecol`/`imagerow` coordinates."
+      "`swap_coords = TRUE` requires `SeuratObject::GetTissueCoordinates()` to return `x`/`y` or `imagecol`/`imagerow` coordinates."
     )
   }
   data.frame(

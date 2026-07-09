@@ -18,7 +18,7 @@ plotSpatialPolygonPies(
   plot_other = TRUE,
   images = NULL,
   image.scale = "hires",
-  HD = TRUE,
+  swap_coords = FALSE,
   polygon_id = NULL,
   x_col = "x",
   y_col = "y",
@@ -27,6 +27,7 @@ plotSpatialPolygonPies(
   image.alpha = 1,
   pie_alpha = 0.9,
   label_size = 3,
+  pies_per_page = 6L,
   spatial_legend = FALSE,
   require_closed = TRUE
 )
@@ -66,6 +67,10 @@ everywhere; remaining levels are grouped as \code{other_label}.}
 \item{image.scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
 
+\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
+axes before plotting or polygon membership checks. Defaults to \code{FALSE},
+which uses Seurat image coordinates natively.}
+
 \item{polygon_id}{Optional polygon ID value(s) to select when \code{polygon_col}
 exists.}
 
@@ -80,6 +85,10 @@ exists.}
 \item{pie_alpha}{Pie opacity.}
 
 \item{label_size}{Text size for polygon and pie labels.}
+
+\item{pies_per_page}{Maximum number of ordinary pie charts to show per page
+when \code{mode = "side_by_side"}. When more polygons are present, a named list
+of page plots is returned.}
 
 \item{spatial_legend}{Show a shared fill legend for \code{spatial_clipped} pie
 plots. Defaults to \code{FALSE}.}

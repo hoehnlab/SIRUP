@@ -16,7 +16,7 @@ plotReceptors(
   title = NULL,
   order_points = TRUE,
   image.scale = "hires",
-  HD = TRUE,
+  swap_coords = FALSE,
   images = NULL,
   image.alpha = 1,
   zoom = FALSE,
@@ -54,6 +54,10 @@ on top.}
 
 \item{image.scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
+
+\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
+axes before plotting or polygon membership checks. Defaults to \code{FALSE},
+which uses Seurat image coordinates natively.}
 
 \item{images}{Optional Seurat image names.}
 

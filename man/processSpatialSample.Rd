@@ -55,25 +55,23 @@ input FASTA directory.}
 \item{delimiters}{String of pRESTO delimiter values passed after \code{--delim}.
 Defaults to \code{"'|' '=' ','"}.}
 
-\item{parse_fields}{Header fields passed to \code{ParseHeaders.py merge -f}.}
+\item{parse_fields}{Header fields passed to \verb{ParseHeaders.py merge -f}.}
 
-\item{parse_key}{Header field name created by \code{ParseHeaders.py merge -k}.}
+\item{parse_key}{Header field name created by \verb{ParseHeaders.py merge -k}.}
 
-\item{parse_act}{Action passed to \code{ParseHeaders.py merge --act}.}
+\item{parse_act}{Action passed to \verb{ParseHeaders.py merge --act}.}
 
 \item{consensus_min_count}{Minimum sequence count passed to
 \code{BuildConsensus.py -n}.}
 
-\item{consensus_copy_fields}{Optional fields passed to
-\code{BuildConsensus.py --cf}.}
+\item{consensus_copy_fields}{Optional fields passed to \code{BuildConsensus.py --cf}.}
 
-\item{consensus_copy_action}{Action passed to \code{BuildConsensus.py --act}
-when \code{consensus_copy_fields} is provided.}
+\item{consensus_copy_action}{Action passed to \code{BuildConsensus.py --act} when
+\code{consensus_copy_fields} is provided.}
 
 \item{align_log}{Optional log path passed to \code{AlignSets.py --log}.}
 
-\item{consensus_log}{Optional log path passed to
-\code{BuildConsensus.py --log}.}
+\item{consensus_log}{Optional log path passed to \code{BuildConsensus.py --log}.}
 }
 \value{
 A named list of output paths, invisibly.

@@ -17,7 +17,7 @@ spatialCloneDominance(
   exclude_singletons = FALSE,
   images = NULL,
   image.scale = "hires",
-  HD = TRUE,
+  swap_coords = FALSE,
   polygon_id = NULL,
   x_col = "x",
   y_col = "y",
@@ -61,6 +61,10 @@ after locus filtering.}
 
 \item{image.scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
+
+\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
+axes before plotting or polygon membership checks. Defaults to \code{FALSE},
+which uses Seurat image coordinates natively.}
 
 \item{polygon_id}{Optional polygon ID value(s) to select when \code{polygon_col}
 exists. When \code{NULL}, all polygons in \code{polygon_col} are analyzed.}
