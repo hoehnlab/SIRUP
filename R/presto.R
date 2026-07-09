@@ -40,7 +40,8 @@
 #' @param consensus_freq Consensus frequency threshold.
 #' @param germline_glob Germline FASTA glob for `MakeDb.py`.
 #' @param igblast_base Path passed to `AssignGenes.py igblast -b`.
-#' @param igblast_exec Path passed to `AssignGenes.py --exec`.
+#' @param igblast_exec Optional path passed to `AssignGenes.py --exec`. When
+#'   `NULL`, defaults to `file.path(igblast_base, "bin", "igblastn")`.
 #' @param muscle_exec Path passed to `AlignSets.py --exec`.
 #' @param nproc Number of processors for pRESTO and AssignGenes steps.
 #' @param cluster_field FASTA header field used for within-spot clustering.
@@ -66,7 +67,7 @@ processSpatialSample <- function(input_fasta,
                                       consensus_freq = 0.51,
                                       germline_glob,
                                       igblast_base = "~/software/igblast",
-                                      igblast_exec = "~/software/igblast/bin/igblastn",
+                                      igblast_exec = NULL,
                                       muscle_exec = "~/software/muscle3.8.31_i86linux64",
                                       nproc = 8,
                                       cluster_field = "barcode2um",
@@ -86,6 +87,9 @@ processSpatialSample <- function(input_fasta,
   }
 
   quote_path <- function(x) shQuote(path.expand(x))
+  if (is.null(igblast_exec)) {
+    igblast_exec <- file.path(igblast_base, "bin", "igblastn")
+  }
   delim_args <- paste("--delim", delimiters)
   align_log_args <- if (is.null(align_log)) "" else paste("--log", quote_path(align_log))
   consensus_log_args <- if (is.null(consensus_log)) "" else paste("--log", quote_path(consensus_log))
