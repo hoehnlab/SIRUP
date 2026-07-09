@@ -294,7 +294,7 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   }
   assign(
     ".sirap_spatial_coordinate_table",
-    function(object, images = NULL, image.scale = "hires", HD = TRUE) {
+    function(object, images = NULL, image.scale = "hires", swap_coords = FALSE) {
       data.frame(
         cell = paste0("cell", 1:5),
         x = c(1, 2, 8, 12, 1),
@@ -388,7 +388,7 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
     barcode_col = NULL,
     images = NULL,
     image.scale = "hires",
-    HD = TRUE,
+    swap_coords = FALSE,
     polygon_id = NULL,
     x_col = "x",
     y_col = "y",
@@ -408,7 +408,7 @@ test_that("spatialCloneDominance summarizes multiple polygons independently", {
   }
   assign(
     ".sirap_spatial_coordinate_table",
-    function(object, images = NULL, image.scale = "hires", HD = TRUE) {
+    function(object, images = NULL, image.scale = "hires", swap_coords = FALSE) {
       data.frame(
         cell = paste0("cell", 1:5),
         x = c(1, 2, 8, 12, 13),

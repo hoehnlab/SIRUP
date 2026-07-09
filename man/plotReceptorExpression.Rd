@@ -23,7 +23,7 @@ plotReceptorExpression(
   assay = NULL,
   layer = "counts",
   image.scale = "hires",
-  HD = TRUE,
+  swap_coords = FALSE,
   images = NULL,
   image.alpha = 1,
   zoom = FALSE,

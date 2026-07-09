@@ -10,7 +10,7 @@ spatialDiscretePlot(
   zero_value = 0,
   images = NULL,
   image.scale = "hires",
-  HD = TRUE,
+  swap_coords = FALSE,
   cols = NULL,
   point_size = 1.6,
   point_alpha = 1,
@@ -30,6 +30,10 @@ spatialDiscretePlot(
 \item{images}{Optional Seurat image names.}
 
 \item{image.scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+
+\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
+axes before plotting or polygon membership checks. Defaults to \code{FALSE},
+which uses Seurat image coordinates natively.}
 
 \item{cols}{Optional named color vector.}
 

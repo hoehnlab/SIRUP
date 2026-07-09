@@ -1,0 +1,6 @@
+sample_id	tissue	condition	donor_or_patient	timepoint	spatial_platform	receptor_modality	transcriptome_path	receptor_path	metadata_path	status	notes
+M1	thymus	MG	TODO	TODO	Visium HD	BCR;TCR	/dartfs/rc/lab/H/HoehnK/Hunter/Thymus_VisiumHD/data/Thymus_VisiumHD_M1_8um_hires.rds	TODO	TODO	needs_verification	Visium HD thymus sample from SIRAP walkthrough.
+M5	thymus	MG	TODO	TODO	Visium HD	BCR;TCR	/dartfs/rc/lab/H/HoehnK/Hunter/Thymus_VisiumHD/data/Thymus_VisiumHD_M5_8um_hires.rds	/dartfs/rc/lab/H/HoehnK/Hunter/Thymus_VisiumHD/SIRAP_walkthrough/M5/03_final_spatial_airr	TODO	needs_verification	Primary sample used in current vignettes.
+Engblom_tonsil_TODO	tonsil	TODO	TODO	TODO	TODO	BCR maybe TCR	TODO	TODO	TODO	missing	Canonical GC comparison dataset.
+MG_PBMC_0mo_TODO	PBMC	MG	TODO	0 months	bulk or single-cell repertoire	BCR	TODO	TODO	TODO	missing	PBMC data from PNAS DOI 10.1073/pnas.2007206117.
+MG_PBMC_12mo_TODO	PBMC	MG	TODO	12 months	bulk or single-cell repertoire	BCR	TODO	TODO	TODO	missing	PBMC data from PNAS DOI 10.1073/pnas.2007206117.

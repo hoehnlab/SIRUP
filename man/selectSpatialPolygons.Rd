@@ -11,7 +11,7 @@ selectSpatialPolygons(
   layer = "counts",
   images = NULL,
   image.scale = "hires",
-  HD = TRUE,
+  swap_coords = FALSE,
   save_path = NULL,
   plot_image = FALSE,
   downsample_n = NULL,
@@ -38,6 +38,10 @@ vertices. The app also lets you change this interactively.}
 
 \item{image.scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
+
+\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
+axes before plotting or polygon membership checks. Defaults to \code{FALSE},
+which uses Seurat image coordinates natively.}
 
 \item{save_path}{Optional CSV path for saved vertices.}
 

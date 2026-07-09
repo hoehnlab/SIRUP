@@ -11,6 +11,9 @@
 #' @param layer Seurat expression layer to fetch for features.
 #' @param images Optional Seurat image names.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
+#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
+#'   which uses Seurat image coordinates natively.
 #' @param zero_tol Values at or below this threshold are treated as zero.
 #' @param as_sf Return an `sf` object with point geometry.
 #' @return Data frame, or `sf` object, with spatial coordinates and `value`.
@@ -25,13 +28,13 @@ spatialVariableData <- function(object,
                                 layer = "counts",
                                 images = NULL,
                                 image.scale = "hires",
-                                HD = TRUE,
+                                swap_coords = FALSE,
                                 zero_tol = 0,
                                 as_sf = FALSE) {
   variable_type <- match.arg(variable_type)
   .require_namespace("SeuratObject")
 
-  dat <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, HD = HD)
+  dat <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, swap_coords = swap_coords)
 
   if (variable_type == "feature") {
     expr <- .sirap_fetch_data(object, vars = variable, layer = layer)
@@ -95,7 +98,7 @@ spatialMoran <- function(object,
                          layer = "counts",
                          images = NULL,
                          image.scale = "hires",
-                         HD = TRUE,
+                         swap_coords = FALSE,
                          zero_tol = 0,
                          radius = NULL,
                          k = 6,
@@ -113,7 +116,7 @@ spatialMoran <- function(object,
     layer = layer,
     images = images,
     image.scale = image.scale,
-    HD = HD,
+    swap_coords = swap_coords,
     zero_tol = zero_tol
   )
   dat <- dat[is.finite(dat$value), , drop = FALSE]
@@ -152,7 +155,7 @@ spatialLocalMoran <- function(object,
                               layer = "counts",
                               images = NULL,
                               image.scale = "hires",
-                              HD = TRUE,
+                              swap_coords = FALSE,
                               zero_tol = 0,
                               radius = NULL,
                               k = 6,
@@ -170,7 +173,7 @@ spatialLocalMoran <- function(object,
     layer = layer,
     images = images,
     image.scale = image.scale,
-    HD = HD,
+    swap_coords = swap_coords,
     zero_tol = zero_tol
   )
   dat <- dat[is.finite(dat$value), , drop = FALSE]
@@ -213,6 +216,9 @@ spatialLocalMoran <- function(object,
 #' @param images Optional Seurat image names.
 #' @param image.scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
+#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
+#'   which uses Seurat image coordinates natively.
 #' @param x_col,y_col Coordinate columns in `polygon`.
 #' @param polygon_col Optional polygon grouping column in `polygon`.
 #' @param include_boundary Include Seurat spots on polygon edges.
@@ -240,7 +246,7 @@ spatialCloneJoinCount <- function(object,
                                   polygon_id = NULL,
                                   images = NULL,
                                   image.scale = "hires",
-                                  HD = TRUE,
+                                  swap_coords = FALSE,
                                   x_col = "x",
                                   y_col = "y",
                                   polygon_col = "polygon",
@@ -268,7 +274,7 @@ spatialCloneJoinCount <- function(object,
     polygon_id = polygon_id,
     images = images,
     image.scale = image.scale,
-    HD = HD,
+    swap_coords = swap_coords,
     x_col = x_col,
     y_col = y_col,
     polygon_col = polygon_col,
@@ -381,6 +387,9 @@ spatialCloneJoinCount <- function(object,
 #' @param value_col Column to color. Defaults to `z_i`.
 #' @param images Optional Seurat image names.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
+#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
+#'   which uses Seurat image coordinates natively.
 #' @param colors Three colors for low, midpoint, and high values.
 #' @param midpoint Color midpoint.
 #' @param point_size Point size.
@@ -396,7 +405,7 @@ plotSpatialLocalMoran <- function(object,
                                   value_col = "z_i",
                                   images = NULL,
                                   image.scale = "hires",
-                                  HD = TRUE,
+                                  swap_coords = FALSE,
                                   colors = c("#2c7bb6", "#f7f7f7", "#d7191c"),
                                   midpoint = 0,
                                   point_size = 0.7,
@@ -408,7 +417,7 @@ plotSpatialLocalMoran <- function(object,
   .check_required_cols(local_moran, c("cell", "x", ".sirap_y", value_col), "local_moran")
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
     plot_data <- local_moran[local_moran$image == image, , drop = FALSE]
     if (nrow(plot_data) == 0L) {
       next
@@ -619,7 +628,7 @@ plotRipleyCrossK <- function(kcross,
   p
 }
 
-.sirap_spatial_coordinate_table <- function(object, images = NULL, image.scale = "hires", HD = TRUE) {
+.sirap_spatial_coordinate_table <- function(object, images = NULL, image.scale = "hires", swap_coords = FALSE) {
   .require_namespace("SeuratObject")
   image_names <- tryCatch(
     SeuratObject::Images(object),
@@ -630,7 +639,7 @@ plotRipleyCrossK <- function(kcross,
   }
 
   coords <- lapply(.sirap_spatial_images(object, images = images), function(image) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, HD = HD)
+    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
     out <- spatial$coords
     out$image <- image
     out
@@ -691,7 +700,7 @@ plotRipleyCrossK <- function(kcross,
                                            polygon_id,
                                            images,
                                            image.scale,
-                                           HD,
+                                           swap_coords,
                                            x_col,
                                            y_col,
                                            polygon_col,
@@ -699,7 +708,7 @@ plotRipleyCrossK <- function(kcross,
                                            require_closed) {
   receptors <- .as_data_frame(receptors)
   .check_required_cols(receptors, c(barcode_col, clone_col), "receptors")
-  coords <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, HD = HD)
+  coords <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, swap_coords = swap_coords)
   coords <- coords[is.finite(coords$x) & is.finite(coords$y), , drop = FALSE]
   if (nrow(coords) == 0L) {
     rlang::abort("No finite spatial coordinates were found in `object`.")

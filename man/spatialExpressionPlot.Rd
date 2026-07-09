@@ -11,7 +11,7 @@ spatialExpressionPlot(
   layer = "counts",
   images = NULL,
   image.scale = "hires",
-  HD = TRUE,
+  swap_coords = FALSE,
   feature_colors = c("#D3D3D3", "#FFFF00"),
   zero_tol = 0,
   point_size = 0.6,
@@ -35,9 +35,9 @@ spatialExpressionPlot(
 
 \item{image.scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
-\item{HD}{Logical; if \code{TRUE}, use the default Visium HD coordinate handling.
-If \code{FALSE}, use Seurat's non-HD Visium coordinates reflected into SIRAP's
-plotting coordinate frame.}
+\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
+axes before plotting or polygon membership checks. Defaults to \code{FALSE},
+which uses Seurat image coordinates natively.}
 
 \item{feature_colors}{Colors used, in order, for the continuous expression
 scale. The first color is the low value and the last color is the high
