@@ -6,7 +6,7 @@
 \usage{
 spatialCloneJoinCount(
   object,
-  receptors,
+  receptors = NULL,
   clone_col = "clone_id",
   barcode_col = "barcode_8um",
   clone_ids = NULL,
@@ -30,10 +30,10 @@ spatialCloneJoinCount(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images.}
+\item{object}{Seurat object with spatial images, or a SIRAP object.}
 
 \item{receptors}{AIRR-style receptor data frame containing spatial barcodes
-and clone calls.}
+and clone calls. May be omitted when \code{object} is a SIRAP object.}
 
 \item{clone_col}{Column in \code{receptors} containing clone IDs.}
 

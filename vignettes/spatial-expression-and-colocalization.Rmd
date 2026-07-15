@@ -49,7 +49,25 @@ finalTCRPath <- file.path(finalAirrDir, sprintf("%s_tcrs_beta_final_spatial_airr
 thymus <- readRDS(seuratPath)
 bcrTopBarcode <- airr::read_rearrangement(finalBCRPath)
 tcrTopBarcode <- airr::read_rearrangement(finalTCRPath)
+
+bcrSirap <- createSIRAP(
+  spatial = thymus,
+  receptors = bcrTopBarcode,
+  barcode_col = "barcode_8um",
+  metadata = list(sample_id = sampleId, receptor_type = "BCR")
+)
+
+tcrSirap <- createSIRAP(
+  spatial = thymus,
+  receptors = tcrTopBarcode,
+  barcode_col = "barcode_8um",
+  metadata = list(sample_id = sampleId, receptor_type = "TCR")
+)
 ```
+
+The SIRAP objects retain ordinary Seurat and AIRR-style data internally, while
+recording which receptor column joins to spatial barcodes. Their receptor
+components are tibbles and remain available through `receptorTable()`.
 
 Add a receptor-type metadata column to the Seurat object. This lets us use the
 same object for plotting and spatial statistics.
@@ -100,10 +118,8 @@ points and overlays receptor-positive locations as hollow circles.
 
 ```{r receptor-expression}
 tcrCd3ePlot <- plotReceptorExpression(
-  object = thymus,
-  receptors = tcrTopBarcode,
+  object = tcrSirap,
   gene = "CD3E",
-  barcode_col = "barcode_8um",
   receptor_color = "#d95f02",
   receptor_size = 0.55,
   receptor_stroke = 0.25,
@@ -114,10 +130,8 @@ tcrCd3ePlot <- plotReceptorExpression(
 )
 
 bcrMs4a1Plot <- plotReceptorExpression(
-  object = thymus,
-  receptors = bcrTopBarcode,
+  object = bcrSirap,
   gene = "MS4A1",
-  barcode_col = "barcode_8um",
   receptor_color = "#2c7fb8",
   receptor_size = 0.55,
   receptor_stroke = 0.25,
@@ -140,11 +154,9 @@ neighborhoods because the number of spots is large.
 spatialStatsK <- 24
 
 tcrMoran <- spatialMoran(
-  thymus,
+  tcrSirap,
   variable = "TCR presence",
   variable_type = "receptor",
-  receptors = tcrTopBarcode,
-  barcode_col = "barcode_8um",
   k = spatialStatsK
 )
 tcrMoran$test
@@ -159,11 +171,9 @@ cd3eExpressionMoran <- spatialMoran(
 cd3eExpressionMoran$test
 
 bcrMoran <- spatialMoran(
-  thymus,
+  bcrSirap,
   variable = "BCR presence",
   variable_type = "receptor",
-  receptors = bcrTopBarcode,
-  barcode_col = "barcode_8um",
   k = spatialStatsK
 )
 bcrMoran$test

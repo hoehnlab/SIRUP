@@ -23,7 +23,7 @@ spatialLocalMoran(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images.}
+\item{object}{Seurat object with spatial images, or a SIRAP object.}
 
 \item{variable}{Feature or metadata column to analyze.}
 
@@ -32,7 +32,7 @@ spatialLocalMoran(
 \item{value}{Optional metadata value to convert to a binary indicator.}
 
 \item{receptors}{AIRR-style receptor data frame. Required when
-\code{variable_type = "receptor"}.}
+\code{variable_type = "receptor"} unless \code{object} is a SIRAP object.}
 
 \item{barcode_col}{Barcode column in \code{receptors}.}
 

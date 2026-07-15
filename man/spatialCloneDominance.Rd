@@ -5,8 +5,8 @@
 \title{Calculate BCR clone dominance inside spatial polygons}
 \usage{
 spatialCloneDominance(
-  bcrs,
-  object,
+  bcrs = NULL,
+  object = NULL,
   polygon,
   barcode_col = NULL,
   clone_col = "clone_id",
@@ -28,10 +28,12 @@ spatialCloneDominance(
 }
 \arguments{
 \item{bcrs}{BCR/AIRR-style data frame containing clone assignments and a
-spatial barcode column.}
+spatial barcode column. This may instead be a SIRAP object when \code{object}
+is omitted.}
 
-\item{object}{Seurat object with spatial coordinates, or metadata coordinate
-columns supported by \code{spatialVariableData()}.}
+\item{object}{Seurat object with spatial coordinates, metadata coordinate
+columns supported by \code{spatialVariableData()}, or a SIRAP object. When this
+is a SIRAP object, \code{bcrs} may be omitted.}
 
 \item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
 \code{y} columns by default. If a \code{polygon} column is present, each polygon is

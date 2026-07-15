@@ -5,8 +5,8 @@
 \title{Plot spatial polygon pie summaries}
 \usage{
 plotSpatialPolygonPies(
-  bcrs,
-  object,
+  bcrs = NULL,
+  object = NULL,
   polygon = NULL,
   fill_by = "clone_id",
   barcode_col = NULL,
@@ -29,14 +29,17 @@ plotSpatialPolygonPies(
   label_size = 3,
   pies_per_page = 6L,
   spatial_legend = FALSE,
+  zoom = FALSE,
   require_closed = TRUE
 )
 }
 \arguments{
 \item{bcrs}{BCR/AIRR-style data frame containing a spatial barcode column,
-or the object returned by \code{spatialCloneDominance()}.}
+the object returned by \code{spatialCloneDominance()}, or a SIRAP object when
+\code{object} is omitted.}
 
-\item{object}{Seurat object with spatial images.}
+\item{object}{Seurat object with spatial images, or a SIRAP object. When this
+is a SIRAP object, \code{bcrs} may be omitted.}
 
 \item{polygon}{Data frame of polygon vertices in order. Optional when \code{bcrs}
 is a spatial clone dominance object.}
@@ -92,6 +95,9 @@ of page plots is returned.}
 
 \item{spatial_legend}{Show a shared fill legend for \code{spatial_clipped} pie
 plots. Defaults to \code{FALSE}.}
+
+\item{zoom}{Zoom to the plotted polygon extents. Defaults to \code{FALSE}, which
+shows the full tissue image.}
 
 \item{require_closed}{Require the final polygon vertex to equal the first.}
 }

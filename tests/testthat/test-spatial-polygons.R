@@ -84,7 +84,8 @@ test_that("selected polygon table displays only current polygon without image", 
   )
 
   current <- points[points$polygon == 2L, , drop = FALSE]
-  shown <- .sirap_display_polygon_vertices(current)
+  shown <- .sirap_public_polygon_vertices(current)
+  shown <- shown[, setdiff(colnames(shown), "image"), drop = FALSE]
 
   expect_equal(shown$barcode, "cell2")
   expect_false("image" %in% names(shown))
@@ -120,27 +121,13 @@ test_that("polygon plotting data preserves polygon groups and flips plotting y",
   expect_equal(plot_data$.sirap_y, -plot_data$y)
 })
 
-test_that("V genes, families, and superfamilies are summarized by clone", {
-  regional_bcrs <- data.frame(
-    clone_id = c("A", "A", "B"),
-    v_call = c("IGHV3-23*01", "IGHV3-30*02,IGHV3-23*01", "IGKV1D-39*01"),
-    stringsAsFactors = FALSE
-  )
+test_that("V gene helpers retain alleles and extract families and superfamilies", {
+  genes <- .sirap_v_genes(c("IGHV3-23*01", "IGHV3-30*02,IGHV3-23*01"))
+  families <- .sirap_v_gene_family(c(genes, "IGKV1D-39*01"))
 
-  out <- .sirap_clone_dominance_table(
-    regional_bcrs = regional_bcrs,
-    clone_col = "clone_id",
-    count_col = NULL,
-    v_call_col = "v_call",
-    n_region_barcodes = 2
-  )
-
-  expect_equal(out$v_gene[out$clone_id == "A"], "IGHV3-23*01,IGHV3-30*02")
-  expect_equal(out$v_gene_family[out$clone_id == "A"], "IGHV3-23,IGHV3-30")
-  expect_equal(out$v_gene_superfamily[out$clone_id == "A"], "IGHV3")
-  expect_equal(out$v_gene[out$clone_id == "B"], "IGKV1D-39*01")
-  expect_equal(out$v_gene_family[out$clone_id == "B"], "IGKV1D-39")
-  expect_equal(out$v_gene_superfamily[out$clone_id == "B"], "IGKV1")
+  expect_equal(genes, c("IGHV3-23*01", "IGHV3-30*02"))
+  expect_equal(families, c("IGHV3-23", "IGHV3-30", "IGKV1D-39"))
+  expect_equal(.sirap_v_gene_superfamily(families), c("IGHV3", "IGHV3", "IGKV1"))
 })
 
 test_that("polygon pie summaries group lower-frequency levels and label top levels", {

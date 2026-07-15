@@ -13,6 +13,8 @@
 ^src/.*[.]so$
 ^docs/readthedocs/html$
 ^docs/readthedocs/markdown$
+^docs$
+^helper_function_audit[.]md$
 ^\.smbdelete.*
 ^\.git$
 ^\.gitignore$

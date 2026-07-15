@@ -5,8 +5,8 @@
 \title{Plot receptors inside spatial polygons}
 \usage{
 plotSpatialRegionReceptors(
-  receptors,
-  object,
+  receptors = NULL,
+  object = NULL,
   polygon = NULL,
   color_by = "clone_id",
   barcode_col = NULL,
@@ -27,15 +27,18 @@ plotSpatialRegionReceptors(
   other_label = "Other",
   other_color = "#D3D3D3",
   plot_other = TRUE,
+  zoom = FALSE,
   require_closed = TRUE,
   combine = TRUE
 )
 }
 \arguments{
 \item{receptors}{Receptor/AIRR-style data frame containing a spatial barcode column,
-or the object returned by \code{spatialCloneDominance()}.}
+the object returned by \code{spatialCloneDominance()}, or a SIRAP object when
+\code{object} is omitted.}
 
-\item{object}{Seurat object with spatial images.}
+\item{object}{Seurat object with spatial images, or a SIRAP object. When this
+is a SIRAP object, \code{receptors} may be omitted.}
 
 \item{polygon}{Data frame of polygon vertices in order. Optional when
 \code{receptors} is a spatial clone dominance object.}
@@ -81,6 +84,9 @@ before grouping remaining levels as \code{other_label}.}
 \item{other_color}{Color used for \code{other_label}.}
 
 \item{plot_other}{Plot receptors grouped into \code{other_label}.}
+
+\item{zoom}{Zoom to the selected polygon extents. Defaults to \code{FALSE}, which
+shows the full tissue image.}
 
 \item{require_closed}{Require the final polygon vertex to equal the first.}
 

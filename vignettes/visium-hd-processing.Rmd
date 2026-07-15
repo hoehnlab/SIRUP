@@ -352,25 +352,51 @@ airr::write_rearrangement(bcrTopBarcode, finalBCRPath)
 airr::write_rearrangement(tcrTopBarcode, finalTCRPath)
 ```
 
+## Create SIRAP Objects
+
+Once the receptor table and spatial Seurat object are available, keep their
+relationship in a SIRAP object. The receptor data are stored as a tibble, and
+the resolved barcode column is recorded so downstream functions do not need to
+guess it repeatedly. Receptor rows that do not match the spatial object are
+retained; this is useful when a table also contains bulk or other nonspatial
+records.
+
+```{r create-sirap-objects}
+bcrSirap <- createSIRAP(
+  spatial = thymus,
+  receptors = bcrTopBarcode,
+  barcode_col = "barcode_8um",
+  metadata = list(sample_id = sampleId, receptor_type = "BCR")
+)
+
+tcrSirap <- createSIRAP(
+  spatial = thymus,
+  receptors = tcrTopBarcode,
+  barcode_col = "barcode_8um",
+  metadata = list(sample_id = sampleId, receptor_type = "TCR")
+)
+
+bcrSirap
+summary(tcrSirap)
+```
+
 ## Plot BCRs and TCRs Over Tissue
 
 `plotReceptorExpression()` and `spatialDiscretePlot()` draw points over the
-tissue image rather than over a blank coordinate plane.
+tissue image rather than over a blank coordinate plane. When passed a SIRAP
+object, `plotReceptorExpression()` obtains the Seurat object, receptor tibble,
+and barcode field from the container.
 
 ```{r receptor-plots}
 allBCRPlot <- plotReceptorExpression(
-  object = thymus,
-  receptors = bcrTopBarcode,
-  barcode_col = "barcode_8um",
+  object = bcrSirap,
   receptor_color = "white",
   receptor_size = 0.5,
   title = paste(sampleId, "all BCR-positive spots")
 )
 
 allTCRPlot <- plotReceptorExpression(
-  object = thymus,
-  receptors = tcrTopBarcode,
-  barcode_col = "barcode_8um",
+  object = tcrSirap,
   receptor_color = "#d95f02",
   receptor_size = 0.5,
   title = paste(sampleId, "all TCR-positive spots")
