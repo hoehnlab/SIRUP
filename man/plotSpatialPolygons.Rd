@@ -29,7 +29,7 @@ plotSpatialPolygons(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images.}
+\item{object}{Seurat object with spatial images, or a SIRAP object.}
 
 \item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
 \code{y} columns by default. If a \code{polygon} column is present, each polygon is

@@ -14,11 +14,13 @@ plotSpatialCloneColorTips(
 )
 }
 \arguments{
-\item{colored_clones}{Output from \code{assignTipColors()}.}
+\item{colored_clones}{Output from \code{assignTipColors()}, or a SIRAP object
+whose receptor table contains tip colors.}
 
 \item{clone_id}{Clone ID to plot.}
 
-\item{tissue_positions}{Seurat object with spatial images.}
+\item{tissue_positions}{Seurat object with spatial images, or a SIRAP
+object. May be omitted when \code{colored_clones} is a SIRAP object.}
 
 \item{clone_col}{Clone ID column.}
 

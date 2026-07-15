@@ -290,7 +290,7 @@ spatialCloneDominance <- function(bcrs = NULL,
 #' "Close polygon" or "New polygon" before finishing to repeat the first vertex
 #' at the end of each polygon.
 #'
-#' @param object Seurat object with spatial coordinates.
+#' @param object Seurat object with spatial coordinates, or a SIRAP object.
 #' @param feature Optional feature shown as a color scale under the clicked
 #'   vertices. The app also lets you change this interactively.
 #' @param assay Optional assay to set before fetching feature values.
@@ -334,6 +334,7 @@ selectSpatialPolygons <- function(object,
                                   host = getOption("shiny.host", "127.0.0.1"),
   port = getOption("shiny.port", NULL),
   quiet = TRUE) {
+  object <- .sirap_spatial_input(object)
   .require_namespace("SeuratObject")
   .require_namespace("shiny")
   if (!"package:shiny" %in% search()) {
@@ -599,7 +600,7 @@ selectSpatialPolygons <- function(object,
 #' for concave polygons while returning Visium barcode coordinates as vertices.
 #' If the input already contains boundary points, use `point_type = "boundary"`.
 #'
-#' @param object Seurat object with spatial coordinates.
+#' @param object Seurat object with spatial coordinates, or a SIRAP object.
 #' @param polygon_points Data frame containing all points inside each polygon,
 #'   or boundary points when `point_type = "boundary"`.
 #' @param barcode_col Column in `polygon_points` containing Seurat barcodes.
@@ -639,6 +640,7 @@ formatSpatialPolygons <- function(object,
                                   image.scale = "hires",
                                   swap_coords = FALSE,
                                   close_polygons = TRUE) {
+  object <- .sirap_spatial_input(object)
   .require_namespace("SeuratObject")
   point_type <- match.arg(point_type)
   polygon_points <- .as_data_frame(polygon_points)
@@ -758,7 +760,7 @@ formatSpatialPolygons <- function(object,
 #' Plots one or more polygon vertex tables, such as the output of
 #' `selectSpatialPolygons()`, over the Seurat tissue image.
 #'
-#' @param object Seurat object with spatial images.
+#' @param object Seurat object with spatial images, or a SIRAP object.
 #' @param polygon Data frame of polygon vertices in order. Must contain `x` and
 #'   `y` columns by default. If a `polygon` column is present, each polygon is
 #'   drawn independently.
@@ -809,6 +811,7 @@ plotSpatialPolygons <- function(object,
                                 zoom = FALSE,
                                 require_closed = TRUE,
                                 combine = TRUE) {
+  object <- .sirap_spatial_input(object)
   .require_namespace("SeuratObject")
   polygon <- .as_data_frame(polygon)
   .check_required_cols(polygon, c(x_col, y_col), "polygon")
@@ -1507,7 +1510,7 @@ seuratSubsetPolygon <- function(object,
 #' Compatibility wrapper for the older `defineKeyAreas()` workflow. It now
 #' returns polygon vertices directly; pass the result to `spatialCloneDominance()`.
 #'
-#' @param seurat_obj Seurat object.
+#' @param seurat_obj Seurat object, or a SIRAP object.
 #' @param assay Assay used for expression plotting.
 #' @param dataset Expression layer/slot used for expression plotting.
 #' @param autoload Retained for compatibility. Interior point expansion is no

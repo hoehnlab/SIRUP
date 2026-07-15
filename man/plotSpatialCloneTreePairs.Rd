@@ -7,7 +7,7 @@
 plotSpatialCloneTreePairs(
   trees,
   object,
-  barcode_col,
+  barcode_col = NULL,
   clone_ids = NULL,
   id_col = "sequence_id",
   clone_col = "clone_id",
@@ -32,9 +32,10 @@ plotSpatialCloneTreePairs(
 \item{trees}{Dowser \code{getTrees()} output, or a list containing a \code{trees}
 element with that output.}
 
-\item{object}{Seurat object with spatial images.}
+\item{object}{Seurat object with spatial images, or a SIRAP object.}
 
-\item{barcode_col}{Column in the dowser clone data matching Seurat spot names.}
+\item{barcode_col}{Column in the dowser clone data matching Seurat spot
+names. May be omitted when \code{object} is a SIRAP object.}
 
 \item{clone_ids}{Optional clone IDs to plot.}
 

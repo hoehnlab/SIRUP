@@ -1,10 +1,11 @@
 #' Plot V/J/junction length QC histograms
 #'
-#' @param airr_df AIRR-style data frame.
+#' @param airr_df AIRR-style data frame or a SIRAP object.
 #' @param title Optional plot title prefix.
 #' @return A ggplot object.
 #' @export
 plotLengthQc <- function(airr_df, title = NULL) {
+  airr_df <- .sirap_receptor_input(airr_df)$receptors
   .check_required_cols(airr_df, c("v_sequence_end", "v_sequence_start", "j_sequence_end", "j_sequence_start", "junction_length"), "airr_df")
   out <- .as_data_frame(airr_df)
   out$vlength <- out$v_sequence_end - out$v_sequence_start
@@ -25,7 +26,7 @@ plotLengthQc <- function(airr_df, title = NULL) {
 
 #' Plot spatial features after excluding zero-expression spots
 #'
-#' @param object Seurat object with spatial images.
+#' @param object Seurat object with spatial images, or a SIRAP object.
 #' @param features Feature names to plot.
 #' @param assay Optional assay to set before plotting.
 #' @param layer Seurat expression layer to fetch.
@@ -62,6 +63,7 @@ spatialExpressionPlot <- function(object,
                                       image.alpha = 1,
                                       zoom = FALSE,
                                       combine = TRUE) {
+  object <- .sirap_spatial_input(object)
   .require_namespace("SeuratObject")
   .require_namespace("patchwork")
   if (!is.null(assay)) {
@@ -108,7 +110,7 @@ spatialExpressionPlot <- function(object,
 
 #' Plot spatial metadata groups after excluding zero/blank spots
 #'
-#' @param object Seurat object with spatial images.
+#' @param object Seurat object with spatial images, or a SIRAP object.
 #' @param meta_col Metadata column to plot.
 #' @param zero_value Value treated as not present.
 #' @param images Optional Seurat image names.
@@ -140,6 +142,7 @@ spatialDiscretePlot <- function(object,
                                   image.alpha = 1,
                                   zoom = FALSE,
                                   combine = TRUE) {
+  object <- .sirap_spatial_input(object)
   .check_required_cols(object@meta.data, meta_col, "object@meta.data")
 
   values <- object@meta.data[[meta_col]]
@@ -193,7 +196,7 @@ spatialDiscretePlot <- function(object,
 
 #' Blend two spatial features after excluding double-zero spots
 #'
-#' @param object Seurat object with spatial images.
+#' @param object Seurat object with spatial images, or a SIRAP object.
 #' @param features Two feature names.
 #' @param combine Combine plots with patchwork.
 #' @param feature_1_alt_name,feature_2_alt_name Optional axis labels for the
@@ -239,6 +242,7 @@ spatialExpressionBlendPlot <- function(object,
                                                 order_points = TRUE,
                                                 image.alpha = 1,
                                                 zoom = FALSE) {
+  object <- .sirap_spatial_input(object)
   .require_namespace("SeuratObject")
   .require_namespace("patchwork")
   if (length(features) != 2L) {
@@ -336,7 +340,7 @@ spatialExpressionBlendPlot <- function(object,
 
 #' Plot multiple spatial features as ordered color layers
 #'
-#' @param object Seurat object with spatial images.
+#' @param object Seurat object with spatial images, or a SIRAP object.
 #' @param features Feature names.
 #' @param feat_order Optional plotting priority, broad/low priority first and
 #'   rare/high priority last.
@@ -377,6 +381,7 @@ spatialExpressionMultiPlot <- function(object,
                                     zero_tol = 0,
                                     image.alpha = 1,
                                     zoom = FALSE) {
+  object <- .sirap_spatial_input(object)
   .require_namespace("SeuratObject")
   breadth_metric <- match.arg(breadth_metric)
   if (length(features) < 2L) {
@@ -811,7 +816,7 @@ plotReceptors <- function(object,
 
 #' Plot tip colors over a tissue image
 #'
-#' @param object Seurat object.
+#' @param object Seurat object, or a SIRAP object.
 #' @param tip_data Data frame with spatial barcode and color columns.
 #' @param barcode_col Column in `tip_data` matching Seurat spot names.
 #' @param color_col Column containing colors.
@@ -851,6 +856,11 @@ plotSpatialColorTips <- function(object,
                                 image.alpha = 1,
                                 zoom = FALSE,
                                 show.legend = FALSE) {
+  barcode_missing <- missing(barcode_col)
+  if (isSIRAP(object) && barcode_missing) {
+    barcode_col <- object$schema$barcode
+  }
+  object <- .sirap_spatial_input(object)
   .require_namespace("SeuratObject")
   tip_data <- .as_data_frame(tip_data)
   .check_required_cols(tip_data, c(barcode_col, color_col), "tip_data")
@@ -923,9 +933,11 @@ plotSpatialColorTips <- function(object,
 
 #' Plot a clone with tip colors over a spatial tissue image
 #'
-#' @param colored_clones Output from `assignTipColors()`.
+#' @param colored_clones Output from `assignTipColors()`, or a SIRAP object
+#'   whose receptor table contains tip colors.
 #' @param clone_id Clone ID to plot.
-#' @param tissue_positions Seurat object with spatial images.
+#' @param tissue_positions Seurat object with spatial images, or a SIRAP
+#'   object. May be omitted when `colored_clones` is a SIRAP object.
 #' @param clone_col Clone ID column.
 #' @param barcode_col Spatial barcode column in `colored_clones`.
 #' @param ... Additional arguments passed to `plotSpatialColorTips()`.
@@ -937,8 +949,25 @@ plotSpatialCloneColorTips <- function(colored_clones,
                                     clone_col = "clone_id",
                                     barcode_col = "barcode_8um",
                                     ...) {
-  .check_required_cols(colored_clones, c(clone_col, barcode_col, "tip_color"), "colored_clones")
+  clone_missing <- missing(clone_col)
+  barcode_missing <- missing(barcode_col)
+  if (isSIRAP(colored_clones)) {
+    container <- colored_clones
+    tissue_positions <- tissue_positions %||% container$spatial
+    colored_clones <- container$receptors
+    if (clone_missing && !is.null(container$schema$clone)) {
+      clone_col <- container$schema$clone
+    }
+    if (barcode_missing) {
+      barcode_col <- container$schema$barcode
+    }
+  }
+  if (isSIRAP(tissue_positions) && barcode_missing) {
+    barcode_col <- tissue_positions$schema$barcode
+  }
+  tissue_positions <- .sirap_spatial_input(tissue_positions)
   clone_df <- .as_data_frame(colored_clones)
+  .check_required_cols(clone_df, c(clone_col, barcode_col, "tip_color"), "colored_clones")
   clone_df <- clone_df[clone_df[[clone_col]] == clone_id, , drop = FALSE]
 
   if (!inherits(tissue_positions, "Seurat")) {
@@ -962,8 +991,9 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #'
 #' @param trees Dowser `getTrees()` output, or a list containing a `trees`
 #'   element with that output.
-#' @param object Seurat object with spatial images.
-#' @param barcode_col Column in the dowser clone data matching Seurat spot names.
+#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param barcode_col Column in the dowser clone data matching Seurat spot
+#'   names. May be omitted when `object` is a SIRAP object.
 #' @param clone_ids Optional clone IDs to plot.
 #' @param id_col Column in the dowser clone data matching tree tip labels.
 #' @param clone_col Clone ID column.
@@ -995,7 +1025,7 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #' @export
 plotSpatialCloneTreePairs <- function(trees,
                                       object,
-                                      barcode_col,
+                                      barcode_col = NULL,
                                       clone_ids = NULL,
                                       id_col = "sequence_id",
                                       clone_col = "clone_id",
@@ -1014,6 +1044,13 @@ plotSpatialCloneTreePairs <- function(trees,
                                       show_spatial_legend = FALSE,
                                       nproc = 1L,
                                       ...) {
+  if (isSIRAP(object) && is.null(barcode_col)) {
+    barcode_col <- object$schema$barcode
+  }
+  object <- .sirap_spatial_input(object)
+  if (is.null(barcode_col)) {
+    rlang::abort("`barcode_col` is required when `object` is not a SIRAP object.")
+  }
   .require_namespace("ggtree")
   nproc <- .sirap_plot_check_nproc(nproc)
   records <- .sirap_dowser_tree_records(trees)

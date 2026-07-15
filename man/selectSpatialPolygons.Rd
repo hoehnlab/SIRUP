@@ -25,7 +25,7 @@ selectSpatialPolygons(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial coordinates.}
+\item{object}{Seurat object with spatial coordinates, or a SIRAP object.}
 
 \item{feature}{Optional feature shown as a color scale under the clicked
 vertices. The app also lets you change this interactively.}

@@ -7,7 +7,7 @@
 plotLengthQc(airr_df, title = NULL)
 }
 \arguments{
-\item{airr_df}{AIRR-style data frame.}
+\item{airr_df}{AIRR-style data frame or a SIRAP object.}
 
 \item{title}{Optional plot title prefix.}
 }

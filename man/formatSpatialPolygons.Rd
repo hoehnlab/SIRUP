@@ -22,7 +22,7 @@ formatSpatialPolygons(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial coordinates.}
+\item{object}{Seurat object with spatial coordinates, or a SIRAP object.}
 
 \item{polygon_points}{Data frame containing all points inside each polygon,
 or boundary points when \code{point_type = "boundary"}.}

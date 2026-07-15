@@ -91,7 +91,7 @@ remains visible.
 
 ```{r expression-plots}
 cd3ePlot <- spatialExpressionPlot(
-  thymus,
+  tcrSirap,
   features = "CD3E",
   assay = "Spatial.008um",
   layer = "counts",
@@ -100,7 +100,7 @@ cd3ePlot <- spatialExpressionPlot(
 )
 
 ms4a1Plot <- spatialExpressionPlot(
-  thymus,
+  bcrSirap,
   features = "MS4A1",
   assay = "Spatial.008um",
   layer = "counts",
@@ -195,7 +195,7 @@ tissue. By default `plotSpatialLocalMoran()` colors the local Moran z-score.
 
 ```{r local-moran}
 cd3eLocalMoran <- spatialLocalMoran(
-  thymus,
+  tcrSirap,
   variable = "CD3E",
   variable_type = "feature",
   layer = "counts",
@@ -203,14 +203,14 @@ cd3eLocalMoran <- spatialLocalMoran(
 )
 
 cd3eLocalMoranPlot <- plotSpatialLocalMoran(
-  thymus,
+  tcrSirap,
   cd3eLocalMoran,
   point_size = 0.55,
   title = paste(sampleId, "CD3E local Moran's I z-score")
 )
 
 ms4a1LocalMoran <- spatialLocalMoran(
-  thymus,
+  bcrSirap,
   variable = "MS4A1",
   variable_type = "feature",
   layer = "counts",
@@ -218,7 +218,7 @@ ms4a1LocalMoran <- spatialLocalMoran(
 )
 
 ms4a1LocalMoranPlot <- plotSpatialLocalMoran(
-  thymus,
+  bcrSirap,
   ms4a1LocalMoran,
   point_size = 0.55,
   title = paste(sampleId, "MS4A1 local Moran's I z-score")

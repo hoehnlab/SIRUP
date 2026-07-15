@@ -14,7 +14,7 @@ defineKeyAreas(
 )
 }
 \arguments{
-\item{seurat_obj}{Seurat object.}
+\item{seurat_obj}{Seurat object, or a SIRAP object.}
 
 \item{assay}{Assay used for expression plotting.}
 

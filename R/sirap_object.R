@@ -290,6 +290,30 @@ print.summary.sirap <- function(x, ...) {
   sort(values[!is.na(values) & nzchar(values)])
 }
 
+.sirap_spatial_input <- function(x) {
+  if (!isSIRAP(x)) {
+    return(x)
+  }
+  validateSIRAP(x)
+  x$spatial
+}
+
+.sirap_receptor_input <- function(x, barcode_col = NULL) {
+  if (!isSIRAP(x)) {
+    return(list(
+      receptors = x,
+      barcode_col = barcode_col,
+      schema = NULL
+    ))
+  }
+  validateSIRAP(x)
+  list(
+    receptors = x$receptors,
+    barcode_col = barcode_col %||% x$schema$barcode,
+    schema = x$schema
+  )
+}
+
 .sirap_resolve_inputs <- function(object, receptors = NULL, barcode_col = NULL) {
   if (!isSIRAP(object)) {
     return(list(

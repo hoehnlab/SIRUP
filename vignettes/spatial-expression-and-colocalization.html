@@ -386,7 +386,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <h2>Gene Expression Over Tissue</h2>
 <p><code>spatialExpressionPlot()</code> removes zero-expression points so the tissue image remains visible.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">cd3ePlot &lt;-<span class="st"> </span><span class="kw">spatialExpressionPlot</span>(</a>
-<a class="sourceLine" id="cb3-2" data-line-number="2">  thymus,</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">  tcrSirap,</a>
 <a class="sourceLine" id="cb3-3" data-line-number="3">  <span class="dt">features =</span> <span class="st">&quot;CD3E&quot;</span>,</a>
 <a class="sourceLine" id="cb3-4" data-line-number="4">  <span class="dt">assay =</span> <span class="st">&quot;Spatial.008um&quot;</span>,</a>
 <a class="sourceLine" id="cb3-5" data-line-number="5">  <span class="dt">layer =</span> <span class="st">&quot;counts&quot;</span>,</a>
@@ -395,7 +395,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb3-8" data-line-number="8">)</a>
 <a class="sourceLine" id="cb3-9" data-line-number="9"></a>
 <a class="sourceLine" id="cb3-10" data-line-number="10">ms4a1Plot &lt;-<span class="st"> </span><span class="kw">spatialExpressionPlot</span>(</a>
-<a class="sourceLine" id="cb3-11" data-line-number="11">  thymus,</a>
+<a class="sourceLine" id="cb3-11" data-line-number="11">  bcrSirap,</a>
 <a class="sourceLine" id="cb3-12" data-line-number="12">  <span class="dt">features =</span> <span class="st">&quot;MS4A1&quot;</span>,</a>
 <a class="sourceLine" id="cb3-13" data-line-number="13">  <span class="dt">assay =</span> <span class="st">&quot;Spatial.008um&quot;</span>,</a>
 <a class="sourceLine" id="cb3-14" data-line-number="14">  <span class="dt">layer =</span> <span class="st">&quot;counts&quot;</span>,</a>
@@ -477,7 +477,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <h2>Local Moran’s I</h2>
 <p>Local Moran’s I gives a spot-level statistic that can be plotted back over the tissue. By default <code>plotSpatialLocalMoran()</code> colors the local Moran z-score.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">cd3eLocalMoran &lt;-<span class="st"> </span><span class="kw">spatialLocalMoran</span>(</a>
-<a class="sourceLine" id="cb6-2" data-line-number="2">  thymus,</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">  tcrSirap,</a>
 <a class="sourceLine" id="cb6-3" data-line-number="3">  <span class="dt">variable =</span> <span class="st">&quot;CD3E&quot;</span>,</a>
 <a class="sourceLine" id="cb6-4" data-line-number="4">  <span class="dt">variable_type =</span> <span class="st">&quot;feature&quot;</span>,</a>
 <a class="sourceLine" id="cb6-5" data-line-number="5">  <span class="dt">layer =</span> <span class="st">&quot;counts&quot;</span>,</a>
@@ -485,14 +485,14 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb6-7" data-line-number="7">)</a>
 <a class="sourceLine" id="cb6-8" data-line-number="8"></a>
 <a class="sourceLine" id="cb6-9" data-line-number="9">cd3eLocalMoranPlot &lt;-<span class="st"> </span><span class="kw">plotSpatialLocalMoran</span>(</a>
-<a class="sourceLine" id="cb6-10" data-line-number="10">  thymus,</a>
+<a class="sourceLine" id="cb6-10" data-line-number="10">  tcrSirap,</a>
 <a class="sourceLine" id="cb6-11" data-line-number="11">  cd3eLocalMoran,</a>
 <a class="sourceLine" id="cb6-12" data-line-number="12">  <span class="dt">point_size =</span> <span class="fl">0.55</span>,</a>
 <a class="sourceLine" id="cb6-13" data-line-number="13">  <span class="dt">title =</span> <span class="kw">paste</span>(sampleId, <span class="st">&quot;CD3E local Moran's I z-score&quot;</span>)</a>
 <a class="sourceLine" id="cb6-14" data-line-number="14">)</a>
 <a class="sourceLine" id="cb6-15" data-line-number="15"></a>
 <a class="sourceLine" id="cb6-16" data-line-number="16">ms4a1LocalMoran &lt;-<span class="st"> </span><span class="kw">spatialLocalMoran</span>(</a>
-<a class="sourceLine" id="cb6-17" data-line-number="17">  thymus,</a>
+<a class="sourceLine" id="cb6-17" data-line-number="17">  bcrSirap,</a>
 <a class="sourceLine" id="cb6-18" data-line-number="18">  <span class="dt">variable =</span> <span class="st">&quot;MS4A1&quot;</span>,</a>
 <a class="sourceLine" id="cb6-19" data-line-number="19">  <span class="dt">variable_type =</span> <span class="st">&quot;feature&quot;</span>,</a>
 <a class="sourceLine" id="cb6-20" data-line-number="20">  <span class="dt">layer =</span> <span class="st">&quot;counts&quot;</span>,</a>
@@ -500,7 +500,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb6-22" data-line-number="22">)</a>
 <a class="sourceLine" id="cb6-23" data-line-number="23"></a>
 <a class="sourceLine" id="cb6-24" data-line-number="24">ms4a1LocalMoranPlot &lt;-<span class="st"> </span><span class="kw">plotSpatialLocalMoran</span>(</a>
-<a class="sourceLine" id="cb6-25" data-line-number="25">  thymus,</a>
+<a class="sourceLine" id="cb6-25" data-line-number="25">  bcrSirap,</a>
 <a class="sourceLine" id="cb6-26" data-line-number="26">  ms4a1LocalMoran,</a>
 <a class="sourceLine" id="cb6-27" data-line-number="27">  <span class="dt">point_size =</span> <span class="fl">0.55</span>,</a>
 <a class="sourceLine" id="cb6-28" data-line-number="28">  <span class="dt">title =</span> <span class="kw">paste</span>(sampleId, <span class="st">&quot;MS4A1 local Moran's I z-score&quot;</span>)</a>

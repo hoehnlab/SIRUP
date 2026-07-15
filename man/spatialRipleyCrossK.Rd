@@ -16,7 +16,7 @@ spatialRipleyCrossK(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images.}
+\item{object}{Seurat object with spatial images, or a SIRAP object.}
 
 \item{mark_col}{Metadata column containing point types.}
 
