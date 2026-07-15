@@ -25,7 +25,7 @@ plotSpatialColorTips(
 )
 }
 \arguments{
-\item{object}{Seurat object.}
+\item{object}{Seurat object, or a SIRAP object.}
 
 \item{tip_data}{Data frame with spatial barcode and color columns.}
 

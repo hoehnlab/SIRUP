@@ -216,8 +216,7 @@ each tip gets its own color.
 ```{r tree-spatial-pairs}
 pairedTreeSpatialPlots <- plotSpatialCloneTreePairs(
   bcrTrees,
-  object = thymus,
-  barcode_col = "barcode_8um",
+  object = bcrSirap,
   clone_ids = bcrCloneIds,
   id_col = "sequence_id",
   treescale = 0.01,
@@ -248,8 +247,7 @@ bcrTreesClustered <- clusterTreesTips(
 
 pairedTreeSpatialClusterPlots <- plotSpatialCloneTreePairs(
   bcrTreesClustered,
-  object = thymus,
-  barcode_col = "barcode_8um",
+  object = bcrSirap,
   clone_ids = bcrCloneIds,
   id_col = "sequence_id",
   color_by = "tree_cluster",

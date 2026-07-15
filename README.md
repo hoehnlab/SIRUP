@@ -153,7 +153,15 @@ plotReceptors(
   object = sirap,
   group_col = "clone_id"
 )
+
+spatialExpressionPlot(
+  object = sirap,
+  features = "MS4A1"
+)
+
+spatialReceptorSummary(sirap)
 ```
 
-Functions continue to accept separate Seurat and receptor objects, so existing
-workflows remain supported.
+Read-only plotting, spatial-analysis, and receptor-summary functions accept a
+SIRAP object directly. Functions continue to accept separate Seurat and
+receptor objects, so existing workflows remain supported.

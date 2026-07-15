@@ -14,6 +14,11 @@ make_test_sirap <- function(barcode_col = "barcode", clone_col = "clone_id") {
     barcode_value = c("cell1", "cell2", "bulk1"),
     clone_value = c("A", "B", "A"),
     locus = c("IGH", "IGH", "IGH"),
+    v_sequence_start = c(1, 1, 1),
+    v_sequence_end = c(101, 111, 121),
+    j_sequence_start = c(130, 140, 150),
+    j_sequence_end = c(160, 170, 180),
+    junction_length = c(30, 33, 36),
     stringsAsFactors = FALSE
   )
   names(receptors)[names(receptors) == "barcode_value"] <- barcode_col
@@ -38,6 +43,8 @@ test_that("createSIRAP creates a validated tibble-backed container", {
   expect_identical(x$schema$locus, "locus")
   expect_identical(receptorTable(x), x$receptors)
   expect_identical(spatialObject(x), x$spatial)
+  expect_identical(SIRAP:::.sirap_spatial_input(x), x$spatial)
+  expect_identical(SIRAP:::.sirap_receptor_input(x)$receptors, x$receptors)
   expect_invisible(validateSIRAP(x))
 })
 
@@ -50,6 +57,17 @@ test_that("createSIRAP retains unmatched nonspatial receptors", {
   expect_equal(info$n_matched_barcodes, 2)
   expect_equal(info$n_matched_records, 2)
   expect_equal(info$barcode_match_rate, 2 / 3)
+})
+
+test_that("receptor summaries and QC plots accept SIRAP objects", {
+  x <- make_test_sirap(barcode_col = "spot")
+
+  receptor_summary <- spatialReceptorSummary(x)
+  expect_equal(receptor_summary$n_sequences, 3)
+  expect_equal(receptor_summary$n_barcodes, 3)
+  expect_equal(receptor_summary$n_loci, 1)
+
+  expect_s3_class(plotLengthQc(x), "ggplot")
 })
 
 test_that("default optional schema fields are NULL when absent", {
@@ -101,4 +119,19 @@ test_that("SIRAP schema supplies receptor inputs to spatial analyses", {
   expect_s3_class(dominance, "sirap_spatial_clone_dominance")
   expect_equal(sort(dominance$dominance$clone_id), c("A", "B"))
   expect_equal(sort(dominance$region_bcrs$.sirap_barcode), c("cell1", "cell2"))
+})
+
+test_that("spatial polygon formatting accepts a SIRAP object", {
+  x <- make_test_sirap()
+  points <- data.frame(
+    x = c(0, 3, 3, 0, 0),
+    y = c(0, 0, 3, 3, 0),
+    polygon = "region_1",
+    image = "metadata"
+  )
+
+  out <- formatSpatialPolygons(x, points, point_type = "boundary")
+  expect_equal(out$polygon, rep("region_1", 5))
+  expect_equal(out$x, points$x)
+  expect_equal(out$y, points$y)
 })

@@ -409,7 +409,7 @@ spatialCloneJoinCount <- function(object,
 
 #' Plot local Moran's I over a tissue image
 #'
-#' @param object Seurat object with spatial images.
+#' @param object Seurat object with spatial images, or a SIRAP object.
 #' @param local_moran Output from `spatialLocalMoran()`.
 #' @param value_col Column to color. Defaults to `z_i`.
 #' @param images Optional Seurat image names.
@@ -441,6 +441,7 @@ plotSpatialLocalMoran <- function(object,
                                   image.alpha = 1,
                                   zoom = FALSE,
                                   title = NULL) {
+  object <- .sirap_spatial_input(object)
   .check_required_cols(local_moran, c("cell", "x", ".sirap_y", value_col), "local_moran")
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
@@ -480,7 +481,7 @@ plotSpatialLocalMoran <- function(object,
 
 #' Calculate Ripley's cross K for marked spatial points
 #'
-#' @param object Seurat object with spatial images.
+#' @param object Seurat object with spatial images, or a SIRAP object.
 #' @param mark_col Metadata column containing point types.
 #' @param i,j Mark levels to compare.
 #' @param correction Edge correction to plot/use, usually `border`.
@@ -498,6 +499,7 @@ spatialRipleyCrossK <- function(object,
                                 nsim = 0,
                                 max_r = NULL,
                                 r = NULL) {
+  object <- .sirap_spatial_input(object)
   .require_namespace("spatstat.geom")
   .require_namespace("spatstat.explore")
   if (nsim > 0L) {

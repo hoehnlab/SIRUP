@@ -29,7 +29,7 @@ spatialExpressionBlendPlot(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images.}
+\item{object}{Seurat object with spatial images, or a SIRAP object.}
 
 \item{features}{Two feature names.}
 

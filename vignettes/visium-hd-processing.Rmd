@@ -378,6 +378,7 @@ tcrSirap <- createSIRAP(
 
 bcrSirap
 summary(tcrSirap)
+spatialReceptorSummary(bcrSirap)
 ```
 
 ## Plot BCRs and TCRs Over Tissue

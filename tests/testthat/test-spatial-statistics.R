@@ -62,6 +62,21 @@ test_that("spatialRipleyCrossK keeps all non-missing marks in the point pattern"
   expect_equal(nrow(out$points), 6)
   expect_true("Other" %in% out$points$mark)
   expect_true(all(c("A", "B") %in% out$points$mark))
+
+  sirap <- createSIRAP(
+    object,
+    data.frame(barcode = "cell1"),
+    barcode_col = "barcode"
+  )
+  sirap_out <- spatialRipleyCrossK(
+    sirap,
+    mark_col = "cell_type",
+    i = "A",
+    j = "B",
+    nsim = 0,
+    max_r = 20
+  )
+  expect_equal(sirap_out$points, out$points)
 })
 
 test_that("spatialCloneJoinCount tests clone marks from receptor barcodes", {

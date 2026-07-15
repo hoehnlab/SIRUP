@@ -21,7 +21,7 @@ spatialDiscretePlot(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images.}
+\item{object}{Seurat object with spatial images, or a SIRAP object.}
 
 \item{meta_col}{Metadata column to plot.}
 

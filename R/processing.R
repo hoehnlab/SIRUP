@@ -188,11 +188,19 @@ collapseTopConsensusPerBarcode <- function(airr_df,
 
 #' Summarize a spatial receptor table
 #'
-#' @param airr_df AIRR-style data frame.
-#' @param barcode_col Barcode column to count.
+#' @param airr_df AIRR-style data frame or a SIRAP object.
+#' @param barcode_col Barcode column to count. When omitted for a SIRAP object,
+#'   the barcode field recorded in its schema is used.
 #' @return One-row tibble of basic counts.
 #' @export
 spatialReceptorSummary <- function(airr_df, barcode_col = "barcode_2um") {
+  barcode_missing <- missing(barcode_col)
+  inputs <- .sirap_receptor_input(
+    airr_df,
+    if (isSIRAP(airr_df) && barcode_missing) NULL else barcode_col
+  )
+  airr_df <- inputs$receptors
+  barcode_col <- inputs$barcode_col %||% "barcode_2um"
   .check_required_cols(airr_df, barcode_col, "airr_df")
   tibble::tibble(
     n_sequences = nrow(airr_df),
