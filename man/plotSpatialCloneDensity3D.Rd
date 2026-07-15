@@ -45,7 +45,7 @@ plotSpatialCloneDensity3D(
 \arguments{
 \item{dominance}{Object returned by \code{spatialCloneDominance()}.}
 
-\item{object}{Seurat object with spatial images.}
+\item{object}{Seurat object with spatial images, or a SIRAP object.}
 
 \item{clone_col}{Column in \code{dominance$region_bcrs} used to define clone
 groups.}
