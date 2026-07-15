@@ -1041,7 +1041,7 @@ plotSpatialRegionReceptors <- function(receptors = NULL,
 #' an interactive `rgl` scene.
 #'
 #' @param dominance Object returned by `spatialCloneDominance()`.
-#' @param object Seurat object with spatial images.
+#' @param object Seurat object with spatial images, or a SIRAP object.
 #' @param clone_col Column in `dominance$region_bcrs` used to define clone
 #'   groups.
 #' @param weight_col Optional numeric column used as receptor weights. When
@@ -1134,6 +1134,7 @@ plotSpatialCloneDensity3D <- function(dominance,
                                       texture_dir = NULL,
                                       as_widget = TRUE,
                                       return_data = FALSE) {
+  object <- .sirap_spatial_input(object)
   if (!inherits(dominance, "sirap_spatial_clone_dominance")) {
     rlang::abort("`dominance` must be an object returned by `spatialCloneDominance()`.")
   }
