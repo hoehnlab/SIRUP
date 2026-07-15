@@ -6,7 +6,7 @@
 \usage{
 plotReceptorExpression(
   object,
-  receptors,
+  receptors = NULL,
   barcode_col = NULL,
   feature = NULL,
   gene = NULL,
@@ -32,9 +32,11 @@ plotReceptorExpression(
 )
 }
 \arguments{
-\item{object}{Seurat object.}
+\item{object}{Seurat object, or a SIRAP object containing both spatial and
+receptor data.}
 
-\item{receptors}{AIRR-style receptor table containing a spatial barcode.}
+\item{receptors}{AIRR-style receptor table containing a spatial barcode.
+May be omitted when \code{object} is a SIRAP object.}
 
 \item{barcode_col}{Column in \code{receptors} matching Seurat spot names. If
 \code{NULL}, the first available barcode-like column is used.}
@@ -67,6 +69,8 @@ expression ramp when \code{feature} is set.}
 points appear on top.}
 
 \item{assay, layer, image.scale}{Additional plotting controls.}
+
+\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate axes.}
 
 \item{images}{Optional Seurat image names.}
 

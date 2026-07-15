@@ -6,7 +6,7 @@
 \usage{
 plotReceptors(
   object,
-  receptors,
+  receptors = NULL,
   group_col,
   values = NULL,
   barcode_col = NULL,
@@ -26,10 +26,11 @@ plotReceptors(
 )
 }
 \arguments{
-\item{object}{Seurat object.}
+\item{object}{Seurat object, or a SIRAP object containing both spatial and
+receptor data.}
 
 \item{receptors}{AIRR-style receptor table containing a spatial barcode and
-grouping column.}
+grouping column. May be omitted when \code{object} is a SIRAP object.}
 
 \item{group_col}{Column in \code{receptors} used to select and color receptor
 groups, for example \code{"clone_id"}.}

@@ -16,6 +16,8 @@ into package functions for:
 - adding tissue coordinates (`barcode`, `x`, `y`)
 - generating pRESTO/IgBLAST shell scripts for barcode-cluster consensus calling
 - collapsing consensus calls to top sequences per barcode
+- validated SIRAP objects pairing a spatial Seurat object with a tibble-backed
+  AIRR-style receptor table
 - lightweight clone/spatial visualization helpers
 - spatial polygon selection and clonal dominance summaries
 
@@ -129,3 +131,29 @@ processed <- processed |>
   dplyr::rename(barcode_8um = square_008um, barcode_16um = square_016um)
 top_per_barcode <- collapseTopConsensusPerBarcode(processed, ties = "all")
 ```
+
+## Pair spatial and receptor data
+
+`createSIRAP()` records the relationship between a spatial Seurat object and
+an AIRR-style receptor table. The receptor component is stored as a tibble, and
+unmatched bulk or other nonspatial receptor rows are retained.
+
+```r
+sirap <- createSIRAP(
+  spatial = seurat_object,
+  receptors = cloned_receptors,
+  barcode_col = "barcode_8um",
+  clone_col = "clone_id"
+)
+
+sirap
+receptorTable(sirap)
+
+plotReceptors(
+  object = sirap,
+  group_col = "clone_id"
+)
+```
+
+Functions continue to accept separate Seurat and receptor objects, so existing
+workflows remain supported.

@@ -91,6 +91,28 @@ bcrClones <- readRDS(bcrClonesPath)
 tcrClones <- readRDS(tcrClonesPath)
 ```
 
+Keep each clone table paired with its spatial transcriptomics data in a SIRAP
+object. `createSIRAP()` converts the receptor table to a tibble and records the
+join schema without copying receptor columns into Seurat metadata.
+
+```{r create-clone-sirap-objects}
+bcrSirap <- createSIRAP(
+  spatial = thymus,
+  receptors = bcrClones,
+  barcode_col = "barcode_8um",
+  clone_col = "clone_id",
+  metadata = list(sample_id = sampleId, receptor_type = "BCR")
+)
+
+tcrSirap <- createSIRAP(
+  spatial = thymus,
+  receptors = tcrClones,
+  barcode_col = "barcode_8um",
+  clone_col = "clone_id",
+  metadata = list(sample_id = sampleId, receptor_type = "TCR")
+)
+```
+
 ## Choose Clones to Plot
 
 For a first pass, choose a couple of clones with enough tips to be interesting
@@ -121,40 +143,27 @@ tcrCloneCounts %>% filter(clone_id %in% tcrCloneIds)
 
 ## Plot Clone Locations Over Tissue
 
-`plotReceptorExpression()` can plot any receptor table, including a subset of
-one clone.
+`plotReceptors()` uses the stored receptor tibble and schema directly. The
+`values` argument selects the clones to draw.
 
 ```{r clone-location-plots}
-bcrClonePlots <- lapply(
-  bcrCloneIds,
-  function(cloneId) {
-    plotReceptorExpression(
-      object = thymus,
-      receptors = filter(bcrClones, .data$clone_id == .env$cloneId),
-      barcode_col = "barcode_8um",
-      receptor_color = "#2c7fb8",
-      receptor_size = 1.7,
-      title = paste("BCR clone", cloneId)
-    )
-  }
+bcrClonePlot <- plotReceptors(
+  object = bcrSirap,
+  group_col = "clone_id",
+  values = bcrCloneIds,
+  receptor_size = 1.7,
+  title = "Selected BCR clones"
 )
 
-tcrClonePlots <- lapply(
-  tcrCloneIds,
-  function(cloneId) {
-    plotReceptorExpression(
-      object = thymus,
-      receptors = filter(tcrClones, .data$clone_id == .env$cloneId),
-      barcode_col = "barcode_8um",
-      receptor_color = "#d95f02",
-      receptor_size = 1.7,
-      title = paste("TCR clone", cloneId)
-    )
-  }
+tcrClonePlot <- plotReceptors(
+  object = tcrSirap,
+  group_col = "clone_id",
+  values = tcrCloneIds,
+  receptor_size = 1.7,
+  title = "Selected TCR clones"
 )
 
-cowplot::plot_grid(plotlist = bcrClonePlots, ncol = 2)
-cowplot::plot_grid(plotlist = tcrClonePlots, ncol = 2)
+cowplot::plot_grid(bcrClonePlot, tcrClonePlot, ncol = 2)
 ```
 
 ## Build BCR Trees with Dowser

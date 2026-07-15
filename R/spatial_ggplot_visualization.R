@@ -442,8 +442,10 @@ spatialExpressionMultiPlot <- function(object,
 
 #' Plot receptor-positive spatial spots over a tissue image
 #'
-#' @param object Seurat object.
+#' @param object Seurat object, or a SIRAP object containing both spatial and
+#'   receptor data.
 #' @param receptors AIRR-style receptor table containing a spatial barcode.
+#'   May be omitted when `object` is a SIRAP object.
 #' @param barcode_col Column in `receptors` matching Seurat spot names. If
 #'   `NULL`, the first available barcode-like column is used.
 #' @param feature Optional gene/feature to plot underneath receptor-positive
@@ -462,6 +464,7 @@ spatialExpressionMultiPlot <- function(object,
 #' @param order_points Plot lower feature expression first so higher expression
 #'   points appear on top.
 #' @param assay,layer,image.scale Additional plotting controls.
+#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate axes.
 #' @param images Optional Seurat image names.
 #' @param image.alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
@@ -472,7 +475,7 @@ spatialExpressionMultiPlot <- function(object,
 #' @return A ggplot/patchwork object.
 #' @export
 plotReceptorExpression <- function(object,
-                                      receptors,
+                                      receptors = NULL,
                                       barcode_col = NULL,
                                       feature = NULL,
                                       gene = NULL,
@@ -495,6 +498,13 @@ plotReceptorExpression <- function(object,
                                       zoom = FALSE,
                                       receptor_label = "Receptor",
                                       show_receptor_legend = NULL) {
+  inputs <- .sirap_resolve_inputs(object, receptors, barcode_col)
+  object <- inputs$object
+  receptors <- inputs$receptors
+  barcode_col <- inputs$barcode_col
+  if (is.null(receptors)) {
+    rlang::abort("`receptors` is required when `object` is not a SIRAP object.")
+  }
   .require_namespace("SeuratObject")
   feature <- feature %||% gene
   show_receptor_legend <- show_receptor_legend %||% !is.null(feature)
@@ -608,9 +618,10 @@ plotReceptorExpression <- function(object,
 
 #' Plot one or more receptor groups over a tissue image
 #'
-#' @param object Seurat object.
+#' @param object Seurat object, or a SIRAP object containing both spatial and
+#'   receptor data.
 #' @param receptors AIRR-style receptor table containing a spatial barcode and
-#'   grouping column.
+#'   grouping column. May be omitted when `object` is a SIRAP object.
 #' @param group_col Column in `receptors` used to select and color receptor
 #'   groups, for example `"clone_id"`.
 #' @param values Optional values from `group_col` to plot. Defaults to all
@@ -640,7 +651,7 @@ plotReceptorExpression <- function(object,
 #' @return A ggplot/patchwork object or a list when `combine = FALSE`.
 #' @export
 plotReceptors <- function(object,
-                          receptors,
+                          receptors = NULL,
                           group_col,
                           values = NULL,
                           barcode_col = NULL,
@@ -657,6 +668,13 @@ plotReceptors <- function(object,
                           receptor_legend_title = NULL,
                           show_receptor_legend = TRUE,
                           combine = TRUE) {
+  inputs <- .sirap_resolve_inputs(object, receptors, barcode_col)
+  object <- inputs$object
+  receptors <- inputs$receptors
+  barcode_col <- inputs$barcode_col
+  if (is.null(receptors)) {
+    rlang::abort("`receptors` is required when `object` is not a SIRAP object.")
+  }
   .require_namespace("SeuratObject")
   receptors <- .as_data_frame(receptors)
   barcode_col <- .guess_barcode_col(receptors, barcode_col)

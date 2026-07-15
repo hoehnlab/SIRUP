@@ -1,11 +1,11 @@
 #' Build a spatial analysis table from a Seurat object
 #'
-#' @param object Seurat object with spatial images.
+#' @param object Seurat object with spatial images, or a SIRAP object.
 #' @param variable Feature or metadata column to analyze.
 #' @param variable_type One of `feature`, `metadata`, or `receptor`.
 #' @param value Optional metadata value to convert to a binary indicator.
 #' @param receptors AIRR-style receptor data frame. Required when
-#'   `variable_type = "receptor"`.
+#'   `variable_type = "receptor"` unless `object` is a SIRAP object.
 #' @param barcode_col Barcode column in `receptors`.
 #' @param positive Convert feature values to a positive-expression indicator.
 #' @param layer Seurat expression layer to fetch for features.
@@ -31,6 +31,16 @@ spatialVariableData <- function(object,
                                 swap_coords = FALSE,
                                 zero_tol = 0,
                                 as_sf = FALSE) {
+  barcode_missing <- missing(barcode_col)
+  is_sirap <- isSIRAP(object)
+  inputs <- .sirap_resolve_inputs(
+    object,
+    receptors,
+    if (is_sirap && barcode_missing) NULL else barcode_col
+  )
+  object <- inputs$object
+  receptors <- inputs$receptors
+  barcode_col <- inputs$barcode_col %||% "barcode_8um"
   variable_type <- match.arg(variable_type)
   .require_namespace("SeuratObject")
 
@@ -202,9 +212,9 @@ spatialLocalMoran <- function(object,
 #' expected under random labeling. This is useful for asking whether clones
 #' localize within regions of interest such as germinal centers.
 #'
-#' @param object Seurat object with spatial images.
+#' @param object Seurat object with spatial images, or a SIRAP object.
 #' @param receptors AIRR-style receptor data frame containing spatial barcodes
-#'   and clone calls.
+#'   and clone calls. May be omitted when `object` is a SIRAP object.
 #' @param clone_col Column in `receptors` containing clone IDs.
 #' @param barcode_col Column in `receptors` matching Seurat spot/cell barcodes.
 #' @param clone_ids Optional clone ID values to test. Defaults to all clones
@@ -238,7 +248,7 @@ spatialLocalMoran <- function(object,
 #'   data, neighbors, and weights.
 #' @export
 spatialCloneJoinCount <- function(object,
-                                  receptors,
+                                  receptors = NULL,
                                   clone_col = "clone_id",
                                   barcode_col = "barcode_8um",
                                   clone_ids = NULL,
@@ -259,6 +269,23 @@ spatialCloneJoinCount <- function(object,
                                   alternative = "greater",
                                   other_label = "Other",
                                   return_data = FALSE) {
+  clone_missing <- missing(clone_col)
+  barcode_missing <- missing(barcode_col)
+  is_sirap <- isSIRAP(object)
+  inputs <- .sirap_resolve_inputs(
+    object,
+    receptors,
+    if (is_sirap && barcode_missing) NULL else barcode_col
+  )
+  object <- inputs$object
+  receptors <- inputs$receptors
+  barcode_col <- inputs$barcode_col %||% "barcode_8um"
+  if (is.null(receptors)) {
+    rlang::abort("`receptors` is required when `object` is not a SIRAP object.")
+  }
+  if (is_sirap && clone_missing && !is.null(inputs$schema$clone)) {
+    clone_col <- inputs$schema$clone
+  }
   .require_namespace("spdep")
   if (!is.numeric(min_barcodes) || length(min_barcodes) != 1L || is.na(min_barcodes) || min_barcodes < 1) {
     rlang::abort("`min_barcodes` must be a positive number.")

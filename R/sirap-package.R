@@ -4,8 +4,9 @@
 #' toolkit for long-read spatial immune receptor sequencing: AIRR-style
 #' rearrangement tables with spatial barcodes and coordinates, Visium HD
 #' barcode mapping, pRESTO/IgBLAST shell pipeline generation, clonal
-#' summaries, Seurat clone assays, tree plotting, int64-packed DNA
-#' primitives, and PAF parsing utilities.
+#' summaries, lightweight SIRAP containers pairing spatial Seurat data with
+#' tibble-backed receptor tables, Seurat clone assays, tree plotting,
+#' int64-packed DNA primitives, and PAF parsing utilities.
 #'
 #' @keywords internal
 #' @useDynLib SIRAP, .registration = TRUE
