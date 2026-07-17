@@ -283,8 +283,8 @@ spatialCloneJoinCount <- function(object,
   if (is.null(receptors)) {
     rlang::abort("`receptors` is required when `object` is not a SIRAP object.")
   }
-  if (is_sirap && clone_missing && !is.null(inputs$schema$clone)) {
-    clone_col <- inputs$schema$clone
+  if (is_sirap && clone_missing && !is.null(inputs$receptor_fields$clone)) {
+    clone_col <- inputs$receptor_fields$clone
   }
   .require_namespace("spdep")
   if (!is.numeric(min_barcodes) || length(min_barcodes) != 1L || is.na(min_barcodes) || min_barcodes < 1) {

@@ -345,8 +345,9 @@ dominance inside those regions, and make region-level plots for clone
 IDs and V-gene annotations.</p>
 <p>Clone dominance is the fraction of BCR rows inside a polygon assigned
 to each clone. <code>spatialCloneDominance()</code> also returns the BCR
-rows and spatial coordinates inside each polygon, so the same object can
-be passed directly to the plotting functions.</p>
+rows and spatial coordinates inside each polygon. Its result and the
+original SIRAP or Seurat object are the two required inputs to the
+regional plotting functions.</p>
 <p>By default, this page shows runnable code but does not evaluate it.
 To render plots from the full local thymus dataset, render on the
 cluster with <code>SIRAP_RENDER_PLOTS=true</code>.</p>
@@ -558,10 +559,13 @@ allele-stripped <code>v_gene_family</code>, and broad
 </div>
 <div id="plot-regional-receptors" class="section level2">
 <h2>Plot Regional Receptors</h2>
-<p><code>plotSpatialRegionReceptors()</code> plots receptor rows inside
-the selected polygons over the tissue image. In this example those rows
-are heavy-chain BCRs. <code>top_n</code> keeps the most common displayed
-levels and groups lower-frequency levels as <code>Other</code>.</p>
+<p><code>plotSpatialRegionReceptors()</code> requires the dominance
+result and its original SIRAP or Seurat object. It plots the regional
+receptor rows already stored by <code>spatialCloneDominance()</code>
+over the tissue image, without repeating barcode or polygon arguments.
+In this example those rows are heavy-chain BCRs. <code>top_n</code>
+keeps the most common displayed levels and groups lower-frequency levels
+as <code>Other</code>.</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>bcrClonePlot <span class="ot">&lt;-</span> <span class="fu">plotSpatialRegionReceptors</span>(</span>
 <span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  clonalDominance,</span>
 <span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="at">object =</span> thymus,</span>
@@ -627,12 +631,14 @@ levels and groups lower-frequency levels as <code>Other</code>.</p>
 </div>
 <div id="plot-pie-summaries" class="section level2">
 <h2>Plot Pie Summaries</h2>
-<p><code>plotSpatialPolygonPies()</code> makes pie summaries from the
-dominance object. With <code>mode = &quot;side_by_side&quot;</code>, the tissue
-image and numbered polygons appear on the left and the pie charts appear
-on the right. The top levels are identified within each polygon, then
-unioned across polygons so a clone that is top-ranked in any polygon
-remains named everywhere it appears. Other levels are grouped as
+<p><code>plotSpatialPolygonPies()</code> likewise requires the dominance
+result and its original SIRAP or Seurat object. It makes pie summaries
+directly from the regional rows and polygons stored in the dominance
+result. With <code>mode = &quot;side_by_side&quot;</code>, the tissue image and
+numbered polygons appear on the left and the pie charts appear on the
+right. The top levels are identified within each polygon, then unioned
+across polygons so a clone that is top-ranked in any polygon remains
+named everywhere it appears. Other levels are grouped as
 <code>Other</code>.</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>clonePies <span class="ot">&lt;-</span> <span class="fu">plotSpatialPolygonPies</span>(</span>
 <span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  clonalDominance,</span>

@@ -5,18 +5,13 @@
 \title{Plot receptors inside spatial polygons}
 \usage{
 plotSpatialRegionReceptors(
-  receptors = NULL,
-  object = NULL,
-  polygon = NULL,
+  dominance,
+  object,
   color_by = "clone_id",
-  barcode_col = NULL,
   images = NULL,
   image.scale = "hires",
   swap_coords = FALSE,
   polygon_id = NULL,
-  x_col = "x",
-  y_col = "y",
-  polygon_col = "polygon",
   point_size = 1,
   point_alpha = 0.5,
   polygon_alpha = 0.12,
@@ -28,25 +23,17 @@ plotSpatialRegionReceptors(
   other_color = "#D3D3D3",
   plot_other = TRUE,
   zoom = FALSE,
-  require_closed = TRUE,
   combine = TRUE
 )
 }
 \arguments{
-\item{receptors}{Receptor/AIRR-style data frame containing a spatial barcode column,
-the object returned by \code{spatialCloneDominance()}, or a SIRAP object when
-\code{object} is omitted.}
+\item{dominance}{Object returned by \code{spatialCloneDominance()}.}
 
-\item{object}{Seurat object with spatial images, or a SIRAP object. When this
-is a SIRAP object, \code{receptors} may be omitted.}
+\item{object}{Seurat object with spatial images, or a SIRAP object.}
 
-\item{polygon}{Data frame of polygon vertices in order. Optional when
-\code{receptors} is a spatial clone dominance object.}
-
-\item{color_by}{Column in \code{receptors} used to color receptor points.}
-
-\item{barcode_col}{Column in \code{receptors} matching Seurat spot/cell barcodes. If
-\code{NULL}, a barcode-like column is guessed.}
+\item{color_by}{Column in \code{dominance$region_bcrs} used to color receptor
+points. When omitted, the clone column recorded by
+\code{spatialCloneDominance()} is used.}
 
 \item{images}{Optional Seurat image names to show.}
 
@@ -57,12 +44,8 @@ is a SIRAP object, \code{receptors} may be omitted.}
 axes before plotting or polygon membership checks. Defaults to \code{FALSE},
 which uses Seurat image coordinates natively.}
 
-\item{polygon_id}{Optional polygon ID value(s) to select when \code{polygon_col}
-exists.}
-
-\item{x_col, y_col}{Coordinate columns in \code{polygon}.}
-
-\item{polygon_col}{Optional polygon grouping column in \code{polygon}.}
+\item{polygon_id}{Optional polygon ID value(s) to select from the dominance
+result.}
 
 \item{point_size}{Size of receptor points.}
 
@@ -88,8 +71,6 @@ before grouping remaining levels as \code{other_label}.}
 \item{zoom}{Zoom to the selected polygon extents. Defaults to \code{FALSE}, which
 shows the full tissue image.}
 
-\item{require_closed}{Require the final polygon vertex to equal the first.}
-
 \item{combine}{Combine plots with patchwork when possible.}
 }
 \value{
@@ -97,6 +78,6 @@ A ggplot/patchwork object or a named list of ggplots when
 \code{combine = FALSE}.
 }
 \description{
-Plots every receptor row whose spatial barcode falls inside one or more
-selected polygons over the tissue image, colored by a receptor-table column.
+Plots regional receptor rows from \code{spatialCloneDominance()} over the tissue
+image, colored by a receptor-table column.
 }

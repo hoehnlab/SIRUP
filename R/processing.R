@@ -190,7 +190,7 @@ collapseTopConsensusPerBarcode <- function(airr_df,
 #'
 #' @param airr_df AIRR-style data frame or a SIRAP object.
 #' @param barcode_col Barcode column to count. When omitted for a SIRAP object,
-#'   the barcode field recorded in its schema is used.
+#'   the barcode field recorded in its metadata is used.
 #' @return One-row tibble of basic counts.
 #' @export
 spatialReceptorSummary <- function(airr_df, barcode_col = "barcode_2um") {

@@ -93,7 +93,8 @@ tcrClones <- readRDS(tcrClonesPath)
 
 Keep each clone table paired with its spatial transcriptomics data in a SIRAP
 object. `createSIRAP()` converts the receptor table to a tibble and records the
-join schema without copying receptor columns into Seurat metadata.
+receptor field mappings in the SIRAP metadata without copying receptor columns
+into Seurat metadata.
 
 ```{r create-clone-sirap-objects}
 bcrSirap <- createSIRAP(
@@ -143,8 +144,8 @@ tcrCloneCounts %>% filter(clone_id %in% tcrCloneIds)
 
 ## Plot Clone Locations Over Tissue
 
-`plotReceptors()` uses the stored receptor tibble and schema directly. The
-`values` argument selects the clones to draw.
+`plotReceptors()` uses the stored receptor tibble and receptor field metadata
+directly. The `values` argument selects the clones to draw.
 
 ```{r clone-location-plots}
 bcrClonePlot <- plotReceptors(

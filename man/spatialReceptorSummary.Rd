@@ -10,7 +10,7 @@ spatialReceptorSummary(airr_df, barcode_col = "barcode_2um")
 \item{airr_df}{AIRR-style data frame or a SIRAP object.}
 
 \item{barcode_col}{Barcode column to count. When omitted for a SIRAP object,
-the barcode field recorded in its schema is used.}
+the barcode field recorded in its metadata is used.}
 }
 \value{
 One-row tibble of basic counts.

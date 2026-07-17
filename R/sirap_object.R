@@ -1,7 +1,8 @@
 #' Create a SIRAP object
 #'
 #' A SIRAP object keeps a spatial Seurat object and an AIRR-style receptor
-#' table together with the column schema needed to join and interpret them.
+#' table together with receptor field mappings needed to join and interpret
+#' them. Field mappings are stored in `metadata$receptor_fields`.
 #' The receptor table is stored as a [tibble::tibble()]. Unmatched receptor
 #' rows are retained, which allows a table to contain bulk or other
 #' nonspatial receptor records alongside spatial records.
@@ -10,7 +11,7 @@
 #' @param receptors A data-frame-like AIRR-style receptor table.
 #' @param barcode_col Column in `receptors` matching spatial cell or spot
 #'   barcodes. When `NULL`, a barcode-like column is guessed once and recorded
-#'   in the object schema.
+#'   in the object metadata.
 #' @param image_col Optional receptor column identifying the Seurat image.
 #' @param sample_col Optional sample column present in both `receptors` and the
 #'   Seurat metadata. It is recorded for sample-aware analyses and validation;
@@ -57,18 +58,28 @@ createSIRAP <- function(spatial,
   sample_col <- .sirap_resolve_optional_col(receptors, sample_col, "sample_col")
   count_col <- .sirap_resolve_optional_col(receptors, count_col, "count_col")
 
+  if (!is.list(metadata)) {
+    rlang::abort("`metadata` must be a named list.")
+  }
+  if (length(metadata) > 0L && (is.null(names(metadata)) || any(!nzchar(names(metadata))))) {
+    rlang::abort("`metadata` must be a named list.")
+  }
+  if ("receptor_fields" %in% names(metadata)) {
+    rlang::abort("`metadata$receptor_fields` is reserved; use the field-column arguments to `createSIRAP()`.")
+  }
+  metadata$receptor_fields <- list(
+    barcode = barcode_col,
+    image = image_col,
+    sample = sample_col,
+    clone = clone_col,
+    locus = locus_col,
+    count = count_col
+  )
+
   out <- structure(
     list(
       spatial = spatial,
       receptors = receptors,
-      schema = list(
-        barcode = barcode_col,
-        image = image_col,
-        sample = sample_col,
-        clone = clone_col,
-        locus = locus_col,
-        count = count_col
-      ),
       metadata = metadata
     ),
     class = c("sirap", "list")
@@ -91,12 +102,11 @@ validateSIRAP <- function(x, verbose = FALSE) {
   if (!isSIRAP(x)) {
     rlang::abort("`x` must inherit from class 'sirap'.")
   }
-  required_components <- c("spatial", "receptors", "schema", "metadata")
-  missing_components <- setdiff(required_components, names(x))
-  if (length(missing_components) > 0L) {
+  required_components <- c("spatial", "receptors", "metadata")
+  if (!identical(names(x), required_components)) {
     rlang::abort(paste0(
-      "SIRAP object is missing component(s): ",
-      paste(missing_components, collapse = ", "),
+      "A SIRAP object must contain, in order: ",
+      paste(required_components, collapse = ", "),
       "."
     ))
   }
@@ -106,42 +116,40 @@ validateSIRAP <- function(x, verbose = FALSE) {
   if (!tibble::is_tibble(x$receptors)) {
     rlang::abort("`x$receptors` must be a tibble.")
   }
-  if (!is.list(x$schema)) {
-    rlang::abort("`x$schema` must be a list.")
-  }
-  schema_names <- c("barcode", "image", "sample", "clone", "locus", "count")
-  if (!identical(names(x$schema), schema_names)) {
-    rlang::abort(paste0(
-      "`x$schema` must contain, in order: ",
-      paste(schema_names, collapse = ", "),
-      "."
-    ))
-  }
   if (!is.list(x$metadata)) {
     rlang::abort("`x$metadata` must be a list.")
   }
   if (length(x$metadata) > 0L && (is.null(names(x$metadata)) || any(!nzchar(names(x$metadata))))) {
     rlang::abort("`x$metadata` must be a named list.")
   }
+  receptor_fields <- .sirap_receptor_fields(x)
+  field_names <- c("barcode", "image", "sample", "clone", "locus", "count")
+  if (!identical(names(receptor_fields), field_names)) {
+    rlang::abort(paste0(
+      "SIRAP receptor fields must contain, in order: ",
+      paste(field_names, collapse = ", "),
+      "."
+    ))
+  }
 
-  barcode_col <- x$schema$barcode
+  barcode_col <- receptor_fields$barcode
   if (!is.character(barcode_col) || length(barcode_col) != 1L || is.na(barcode_col) || !nzchar(barcode_col)) {
-    rlang::abort("`x$schema$barcode` must name one receptor barcode column.")
+    rlang::abort("The SIRAP barcode field must name one receptor column.")
   }
   .check_required_cols(x$receptors, barcode_col, "x$receptors")
-  for (field in setdiff(schema_names, "barcode")) {
-    column <- x$schema[[field]]
+  for (field in setdiff(field_names, "barcode")) {
+    column <- receptor_fields[[field]]
     if (!is.null(column)) {
       if (!is.character(column) || length(column) != 1L || is.na(column) || !nzchar(column)) {
-        rlang::abort(paste0("`x$schema$", field, "` must be `NULL` or one column name."))
+        rlang::abort(paste0("The SIRAP ", field, " field must be `NULL` or one column name."))
       }
       .check_required_cols(x$receptors, column, "x$receptors")
     }
   }
 
-  if (!is.null(x$schema$sample)) {
+  if (!is.null(receptor_fields$sample)) {
     spatial_metadata <- x$spatial[[]]
-    .check_required_cols(spatial_metadata, x$schema$sample, "x$spatial metadata")
+    .check_required_cols(spatial_metadata, receptor_fields$sample, "x$spatial metadata")
   }
 
   diagnostics <- .sirap_join_diagnostics(x)
@@ -194,29 +202,33 @@ receptorTable <- function(x) {
 print.sirap <- function(x, ...) {
   validateSIRAP(x)
   info <- .sirap_join_diagnostics(x)
+  receptor_fields <- .sirap_receptor_fields(x)
   image_count <- if (requireNamespace("SeuratObject", quietly = TRUE)) {
     length(SeuratObject::Images(x$spatial))
   } else {
     NA_integer_
   }
-  loci <- .sirap_schema_values(x, "locus")
 
   cat("<SIRAP object>\n")
-  cat("Spatial data:    Seurat, ", format(info$n_spatial_barcodes, big.mark = ","), " barcodes", sep = "")
+  cat("Spatial data:    Seurat, ", format(info$n_spatial_barcodes, big.mark = ","), " ",
+      .sirap_count_label(info$n_spatial_barcodes, "barcode"), ", ",
+      format(nrow(x$spatial), big.mark = ","), " ",
+      .sirap_count_label(nrow(x$spatial), "gene"), sep = "")
   if (!is.na(image_count)) {
-    cat(", ", image_count, if (image_count == 1L) " image" else " images", sep = "")
+    cat(", ", image_count, " ", .sirap_count_label(image_count, "image"), sep = "")
   }
   cat("\n")
-  cat("Receptor data:   ", format(nrow(x$receptors), big.mark = ","), " records (tibble)\n", sep = "")
-  cat("Spatial overlap: ", format(info$n_matched_barcodes, big.mark = ","), " / ",
-      format(info$n_receptor_barcodes, big.mark = ","), " receptor barcodes (",
+  cat("Receptor data:   tibble, ", format(nrow(x$receptors), big.mark = ","), " ",
+      .sirap_count_label(nrow(x$receptors), "receptor sequence"), " x ",
+      format(ncol(x$receptors), big.mark = ","), " ",
+      .sirap_count_label(ncol(x$receptors), "column"), "\n", sep = "")
+  cat("Spatial overlap: ", format(info$n_matched_barcodes, big.mark = ","), "/",
+      format(info$n_receptor_barcodes, big.mark = ","), " ",
+      .sirap_count_label(info$n_receptor_barcodes, "receptor barcode"), " in spatial data (",
       formatC(100 * info$barcode_match_rate, format = "f", digits = 1), "%)\n", sep = "")
-  cat("Barcode field:   ", x$schema$barcode, "\n", sep = "")
-  if (length(loci) > 0L) {
-    cat("Loci:            ", paste(loci, collapse = ", "), "\n", sep = "")
-  }
-  if (!is.null(x$schema$clone)) {
-    cat("Clone field:     ", x$schema$clone, "\n", sep = "")
+  cat("Barcode field:   ", receptor_fields$barcode, "\n", sep = "")
+  if (!is.null(receptor_fields$clone)) {
+    cat("Clone field:     ", receptor_fields$clone, "\n", sep = "")
   }
   invisible(x)
 }
@@ -225,14 +237,17 @@ print.sirap <- function(x, ...) {
 summary.sirap <- function(object, ...) {
   validateSIRAP(object)
   info <- .sirap_join_diagnostics(object)
+  receptor_fields <- .sirap_receptor_fields(object)
   structure(
     c(
       info,
       list(
         n_receptor_records = nrow(object$receptors),
-        barcode_col = object$schema$barcode,
-        clone_col = object$schema$clone,
-        loci = .sirap_schema_values(object, "locus")
+        n_receptor_columns = ncol(object$receptors),
+        n_spatial_genes = nrow(object$spatial),
+        barcode_col = receptor_fields$barcode,
+        clone_col = receptor_fields$clone,
+        loci = .sirap_field_values(object, "locus")
       )
     ),
     class = c("summary.sirap", "list")
@@ -267,9 +282,14 @@ print.summary.sirap <- function(x, ...) {
   column
 }
 
+.sirap_count_label <- function(n, singular) {
+  if (identical(as.numeric(n), 1)) singular else paste0(singular, "s")
+}
+
 .sirap_join_diagnostics <- function(x) {
   spatial_barcodes <- unique(as.character(colnames(x$spatial)))
-  receptor_values <- as.character(x$receptors[[x$schema$barcode]])
+  receptor_fields <- .sirap_receptor_fields(x)
+  receptor_values <- as.character(x$receptors[[receptor_fields$barcode]])
   receptor_barcodes <- unique(receptor_values[!is.na(receptor_values) & nzchar(receptor_values)])
   matched <- receptor_barcodes[receptor_barcodes %in% spatial_barcodes]
   list(
@@ -281,8 +301,15 @@ print.summary.sirap <- function(x, ...) {
   )
 }
 
-.sirap_schema_values <- function(x, field) {
-  column <- x$schema[[field]]
+.sirap_receptor_fields <- function(x) {
+  if (is.list(x$metadata) && is.list(x$metadata$receptor_fields)) {
+    return(x$metadata$receptor_fields)
+  }
+  rlang::abort("SIRAP receptor field mappings are missing from `metadata$receptor_fields`.")
+}
+
+.sirap_field_values <- function(x, field) {
+  column <- .sirap_receptor_fields(x)[[field]]
   if (is.null(column)) {
     return(character())
   }
@@ -303,14 +330,15 @@ print.summary.sirap <- function(x, ...) {
     return(list(
       receptors = x,
       barcode_col = barcode_col,
-      schema = NULL
+      receptor_fields = NULL
     ))
   }
   validateSIRAP(x)
+  receptor_fields <- .sirap_receptor_fields(x)
   list(
     receptors = x$receptors,
-    barcode_col = barcode_col %||% x$schema$barcode,
-    schema = x$schema
+    barcode_col = barcode_col %||% receptor_fields$barcode,
+    receptor_fields = receptor_fields
   )
 }
 
@@ -320,17 +348,18 @@ print.summary.sirap <- function(x, ...) {
       object = object,
       receptors = receptors,
       barcode_col = barcode_col,
-      schema = NULL
+      receptor_fields = NULL
     ))
   }
 
   validateSIRAP(object)
   container <- object
+  receptor_fields <- .sirap_receptor_fields(container)
   using_container_receptors <- is.null(receptors)
   receptors <- receptors %||% container$receptors
   if (is.null(barcode_col)) {
     barcode_col <- if (using_container_receptors) {
-      container$schema$barcode
+      receptor_fields$barcode
     } else {
       .guess_barcode_col(receptors)
     }
@@ -339,6 +368,6 @@ print.summary.sirap <- function(x, ...) {
     object = container$spatial,
     receptors = receptors,
     barcode_col = barcode_col,
-    schema = container$schema
+    receptor_fields = receptor_fields
   )
 }

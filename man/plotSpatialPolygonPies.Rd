@@ -5,11 +5,9 @@
 \title{Plot spatial polygon pie summaries}
 \usage{
 plotSpatialPolygonPies(
-  bcrs = NULL,
-  object = NULL,
-  polygon = NULL,
+  dominance,
+  object,
   fill_by = "clone_id",
-  barcode_col = NULL,
   mode = c("side_by_side", "spatial_clipped"),
   top_n = 10,
   label_top_n = 0,
@@ -20,34 +18,23 @@ plotSpatialPolygonPies(
   image.scale = "hires",
   swap_coords = FALSE,
   polygon_id = NULL,
-  x_col = "x",
-  y_col = "y",
-  polygon_col = "polygon",
   polygon_alpha = 0.2,
   image.alpha = 1,
   pie_alpha = 0.9,
   label_size = 3,
   pies_per_page = 6L,
   spatial_legend = FALSE,
-  zoom = FALSE,
-  require_closed = TRUE
+  zoom = FALSE
 )
 }
 \arguments{
-\item{bcrs}{BCR/AIRR-style data frame containing a spatial barcode column,
-the object returned by \code{spatialCloneDominance()}, or a SIRAP object when
-\code{object} is omitted.}
+\item{dominance}{Object returned by \code{spatialCloneDominance()}.}
 
-\item{object}{Seurat object with spatial images, or a SIRAP object. When this
-is a SIRAP object, \code{bcrs} may be omitted.}
+\item{object}{Seurat object with spatial images, or a SIRAP object.}
 
-\item{polygon}{Data frame of polygon vertices in order. Optional when \code{bcrs}
-is a spatial clone dominance object.}
-
-\item{fill_by}{Column in \code{bcrs} summarized in each pie chart.}
-
-\item{barcode_col}{Column in \code{bcrs} matching Seurat spot/cell barcodes. If
-\code{NULL}, a barcode-like column is guessed.}
+\item{fill_by}{Column in \code{dominance$region_bcrs} summarized in each pie
+chart. When omitted, the clone column recorded by
+\code{spatialCloneDominance()} is used.}
 
 \item{mode}{Plot style. \code{side_by_side} shows ordinary pies beside a polygon
 map. \code{spatial_clipped} clips pies to polygon boundaries on the tissue.}
@@ -74,12 +61,8 @@ everywhere; remaining levels are grouped as \code{other_label}.}
 axes before plotting or polygon membership checks. Defaults to \code{FALSE},
 which uses Seurat image coordinates natively.}
 
-\item{polygon_id}{Optional polygon ID value(s) to select when \code{polygon_col}
-exists.}
-
-\item{x_col, y_col}{Coordinate columns in \code{polygon}.}
-
-\item{polygon_col}{Optional polygon grouping column in \code{polygon}.}
+\item{polygon_id}{Optional polygon ID value(s) to select from the dominance
+result.}
 
 \item{polygon_alpha}{Fill opacity for polygons in the numbered map.}
 
@@ -98,15 +81,13 @@ plots. Defaults to \code{FALSE}.}
 
 \item{zoom}{Zoom to the plotted polygon extents. Defaults to \code{FALSE}, which
 shows the full tissue image.}
-
-\item{require_closed}{Require the final polygon vertex to equal the first.}
 }
 \value{
 A ggplot, patchwork object, or named list of ggplots.
 }
 \description{
-Summarizes the composition of BCRs inside each polygon for a selected column.
-The default mode plots pie charts beside a numbered polygon map. The
-\code{spatial_clipped} mode clips each pie chart to its polygon boundary and
-requires the suggested \code{sf} package.
+Summarizes regional receptor rows from \code{spatialCloneDominance()} for a
+selected column. The default mode plots pie charts beside a numbered polygon
+map. The \code{spatial_clipped} mode clips each pie chart to its polygon boundary
+and requires the suggested \code{sf} package.
 }
