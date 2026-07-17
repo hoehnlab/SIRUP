@@ -82,8 +82,9 @@ Set to \code{FALSE} to close open polygons automatically.}
 }
 \value{
 A spatial clone dominance object containing the dominance table,
-regional barcodes, regional coordinate rows, regional BCR rows, and polygon
-vertices prepared for plotting.
+regional barcodes, regional coordinate rows, regional BCR rows, polygon
+vertices prepared for plotting, and analysis metadata containing the
+receptor field mappings used for the analysis.
 }
 \description{
 Finds Seurat spatial barcodes whose coordinates fall inside closed polygons,

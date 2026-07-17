@@ -344,6 +344,11 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   expect_equal(sort(unique(out$region_bcrs$y)), c(1, 2, 8))
   expect_true(all(c("x", "y", ".sirap_y", "polygon") %in% names(out$polygons)))
   expect_false(any(c("polygon_col", "barcode_col", "clone_col", "v_call_col") %in% names(out)))
+  expect_equal(out$metadata$receptor_fields$barcode, "barcode")
+  expect_equal(out$metadata$receptor_fields$clone, "clone_id")
+  expect_equal(out$metadata$receptor_fields$locus, "locus")
+  expect_null(out$metadata$receptor_fields$count)
+  expect_equal(out$metadata$receptor_fields$v_call, "v_call")
 
   igh <- spatialCloneDominance(
     bcrs = bcrs,
@@ -368,22 +373,33 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   expect_equal(no_singletons$dominance$n_bcrs, 3)
   expect_equal(unique(no_singletons$region_bcrs$clone_id), "A")
 
-  region <- .sirap_region_from_plot_input(
-    bcrs = out,
-    object = list(),
-    polygon = NULL,
-    barcode_col = NULL,
-    images = NULL,
-    image.scale = "hires",
-    swap_coords = FALSE,
-    polygon_id = NULL,
-    x_col = "x",
-    y_col = "y",
-    polygon_col = "polygon",
-    require_closed = TRUE
-  )
+  region <- .sirap_region_from_dominance(out)
   expect_equal(region$bcrs, out$region_bcrs)
   expect_equal(region$polygons, out$polygons)
+})
+
+test_that("regional plotting APIs require dominance and spatial objects", {
+  region_args <- names(formals(plotSpatialRegionReceptors))
+  pie_args <- names(formals(plotSpatialPolygonPies))
+  density_args <- names(formals(plotSpatialCloneDensity3D))
+  redundant_args <- c(
+    "receptors", "bcrs", "polygon", "barcode_col", "x_col", "y_col",
+    "polygon_col", "require_closed"
+  )
+
+  expect_equal(region_args[1:2], c("dominance", "object"))
+  expect_equal(pie_args[1:2], c("dominance", "object"))
+  expect_equal(density_args[1:2], c("dominance", "object"))
+  expect_false(any(redundant_args %in% region_args))
+  expect_false(any(redundant_args %in% pie_args))
+  expect_error(
+    plotSpatialRegionReceptors(data.frame(), object = list()),
+    "returned by `spatialCloneDominance\\(\\)`"
+  )
+  expect_error(
+    plotSpatialPolygonPies(data.frame(), object = list()),
+    "returned by `spatialCloneDominance\\(\\)`"
+  )
 })
 
 test_that("spatialCloneDominance summarizes multiple polygons independently", {
@@ -461,4 +477,56 @@ test_that("spatialCloneDominance summarizes multiple polygons independently", {
   )
   expect_equal(unique(right$dominance$polygon), "right")
   expect_equal(right$dominance$clone_id, "D")
+})
+
+test_that("clipped pies keep polygonal pieces from geometry collections", {
+  skip_if_not_installed("sf")
+
+  ns <- environment(plotSpatialPolygonPies)
+  old_intersection <- get(".sirap_polygon_intersection", envir = ns)
+  intersection_binding_locked <- bindingIsLocked(".sirap_polygon_intersection", ns)
+  if (intersection_binding_locked) {
+    unlockBinding(".sirap_polygon_intersection", ns)
+  }
+  assign(
+    ".sirap_polygon_intersection",
+    function(x, y) {
+      sf::st_sfc(sf::st_geometrycollection(list(
+        sf::st_polygon(list(matrix(
+          c(0.5, 0.5, 1.5, 0.5, 1.5, 1.5, 0.5, 1.5, 0.5, 0.5),
+          ncol = 2,
+          byrow = TRUE
+        ))),
+        sf::st_linestring(matrix(c(0, 0, 2, 2), ncol = 2, byrow = TRUE))
+      )))
+    },
+    envir = ns
+  )
+  if (intersection_binding_locked) {
+    lockBinding(".sirap_polygon_intersection", ns)
+  }
+  withr::defer({
+    if (intersection_binding_locked) {
+      unlockBinding(".sirap_polygon_intersection", ns)
+    }
+    assign(".sirap_polygon_intersection", old_intersection, envir = ns)
+    if (intersection_binding_locked) {
+      lockBinding(".sirap_polygon_intersection", ns)
+    }
+  })
+
+  polygon <- data.frame(
+    polygon = "1",
+    x = c(0, 2, 2, 0, 0),
+    y = c(0, 0, 2, 2, 0),
+    .sirap_y = c(0, 0, -2, -2, 0)
+  )
+  centers <- data.frame(polygon = "1", x = 1, y = 1, radius = 0.75)
+  pie_data <- data.frame(polygon = "1", level = "A", ymin = 0, ymax = 1)
+
+  clipped <- .sirap_clipped_pie_polygons(polygon, centers, pie_data)
+
+  expect_gt(nrow(clipped), 0L)
+  expect_equal(unique(clipped$polygon), "1")
+  expect_equal(unique(clipped$level), "A")
 })

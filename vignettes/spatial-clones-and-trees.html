@@ -388,7 +388,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>If clone calling has already been run, load the saved RDS files instead.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">bcrClones &lt;-<span class="st"> </span><span class="kw">readRDS</span>(bcrClonesPath)</a>
 <a class="sourceLine" id="cb3-2" data-line-number="2">tcrClones &lt;-<span class="st"> </span><span class="kw">readRDS</span>(tcrClonesPath)</a></code></pre></div>
-<p>Keep each clone table paired with its spatial transcriptomics data in a SIRAP object. <code>createSIRAP()</code> converts the receptor table to a tibble and records the join schema without copying receptor columns into Seurat metadata.</p>
+<p>Keep each clone table paired with its spatial transcriptomics data in a SIRAP object. <code>createSIRAP()</code> converts the receptor table to a tibble and records the receptor field mappings in the SIRAP metadata without copying receptor columns into Seurat metadata.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">bcrSirap &lt;-<span class="st"> </span><span class="kw">createSIRAP</span>(</a>
 <a class="sourceLine" id="cb4-2" data-line-number="2">  <span class="dt">spatial =</span> thymus,</a>
 <a class="sourceLine" id="cb4-3" data-line-number="3">  <span class="dt">receptors =</span> bcrClones,</a>
@@ -431,7 +431,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="plot-clone-locations-over-tissue" class="section level2">
 <h2>Plot Clone Locations Over Tissue</h2>
-<p><code>plotReceptors()</code> uses the stored receptor tibble and schema directly. The <code>values</code> argument selects the clones to draw.</p>
+<p><code>plotReceptors()</code> uses the stored receptor tibble and receptor field metadata directly. The <code>values</code> argument selects the clones to draw.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">bcrClonePlot &lt;-<span class="st"> </span><span class="kw">plotReceptors</span>(</a>
 <a class="sourceLine" id="cb6-2" data-line-number="2">  <span class="dt">object =</span> bcrSirap,</a>
 <a class="sourceLine" id="cb6-3" data-line-number="3">  <span class="dt">group_col =</span> <span class="st">&quot;clone_id&quot;</span>,</a>

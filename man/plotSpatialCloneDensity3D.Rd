@@ -48,7 +48,8 @@ plotSpatialCloneDensity3D(
 \item{object}{Seurat object with spatial images, or a SIRAP object.}
 
 \item{clone_col}{Column in \code{dominance$region_bcrs} used to define clone
-groups.}
+groups. When omitted, the clone column recorded by
+\code{spatialCloneDominance()} is used.}
 
 \item{weight_col}{Optional numeric column used as receptor weights. When
 \code{NULL}, each receptor row contributes one count.}

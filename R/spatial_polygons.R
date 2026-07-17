@@ -41,8 +41,9 @@
 #' @param require_closed Require the final polygon vertex to equal the first.
 #'   Set to `FALSE` to close open polygons automatically.
 #' @return A spatial clone dominance object containing the dominance table,
-#'   regional barcodes, regional coordinate rows, regional BCR rows, and polygon
-#'   vertices prepared for plotting.
+#'   regional barcodes, regional coordinate rows, regional BCR rows, polygon
+#'   vertices prepared for plotting, and analysis metadata containing the
+#'   receptor field mappings used for the analysis.
 #' @export
 spatialCloneDominance <- function(bcrs = NULL,
                                   object = NULL,
@@ -78,14 +79,14 @@ spatialCloneDominance <- function(bcrs = NULL,
   if (is.null(bcrs)) {
     rlang::abort("`bcrs` is required when `object` is not a SIRAP object.")
   }
-  if (is_sirap && clone_missing && !is.null(inputs$schema$clone)) {
-    clone_col <- inputs$schema$clone
+  if (is_sirap && clone_missing && !is.null(inputs$receptor_fields$clone)) {
+    clone_col <- inputs$receptor_fields$clone
   }
-  if (is_sirap && locus_missing && !is.null(inputs$schema$locus)) {
-    locus_col <- inputs$schema$locus
+  if (is_sirap && locus_missing && !is.null(inputs$receptor_fields$locus)) {
+    locus_col <- inputs$receptor_fields$locus
   }
-  if (is_sirap && count_missing && !is.null(inputs$schema$count)) {
-    count_col <- inputs$schema$count
+  if (is_sirap && count_missing && !is.null(inputs$receptor_fields$count)) {
+    count_col <- inputs$receptor_fields$count
   }
   bcrs <- .as_data_frame(bcrs)
   polygon <- .as_data_frame(polygon)
@@ -277,7 +278,16 @@ spatialCloneDominance <- function(bcrs = NULL,
     region_barcodes = .sirap_rbind(results, "region_barcodes"),
     region_coordinates = .sirap_rbind(results, "region_coordinates"),
     region_bcrs = .sirap_rbind(results, "region_bcrs"),
-    polygons = polygon_plot_data
+    polygons = polygon_plot_data,
+    metadata = list(
+      receptor_fields = list(
+        barcode = barcode_col,
+        clone = clone_col,
+        locus = locus_col,
+        count = count_col,
+        v_call = v_call_col
+      )
+    )
   )
   class(out) <- c("sirap_spatial_clone_dominance", class(out))
   out
@@ -319,7 +329,7 @@ spatialCloneDominance <- function(bcrs = NULL,
 #' @export
 selectSpatialPolygons <- function(object,
                                   feature = NULL,
-                                  assay = NULL,
+                                  assay = "Spatial",
                                   layer = "counts",
                                   images = NULL,
                                   image.scale = "hires",
@@ -882,29 +892,22 @@ plotSpatialPolygons <- function(object,
 
 #' Plot receptors inside spatial polygons
 #'
-#' Plots every receptor row whose spatial barcode falls inside one or more
-#' selected polygons over the tissue image, colored by a receptor-table column.
+#' Plots regional receptor rows from `spatialCloneDominance()` over the tissue
+#' image, colored by a receptor-table column.
 #'
-#' @param receptors Receptor/AIRR-style data frame containing a spatial barcode column,
-#'   the object returned by `spatialCloneDominance()`, or a SIRAP object when
-#'   `object` is omitted.
-#' @param object Seurat object with spatial images, or a SIRAP object. When this
-#'   is a SIRAP object, `receptors` may be omitted.
-#' @param polygon Data frame of polygon vertices in order. Optional when
-#'   `receptors` is a spatial clone dominance object.
-#' @param color_by Column in `receptors` used to color receptor points.
-#' @param barcode_col Column in `receptors` matching Seurat spot/cell barcodes. If
-#'   `NULL`, a barcode-like column is guessed.
+#' @param dominance Object returned by `spatialCloneDominance()`.
+#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param color_by Column in `dominance$region_bcrs` used to color receptor
+#'   points. When omitted, the clone column recorded by
+#'   `spatialCloneDominance()` is used.
 #' @param images Optional Seurat image names to show.
 #' @param image.scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
 #'   which uses Seurat image coordinates natively.
-#' @param polygon_id Optional polygon ID value(s) to select when `polygon_col`
-#'   exists.
-#' @param x_col,y_col Coordinate columns in `polygon`.
-#' @param polygon_col Optional polygon grouping column in `polygon`.
+#' @param polygon_id Optional polygon ID value(s) to select from the dominance
+#'   result.
 #' @param point_size Size of receptor points.
 #' @param point_alpha Opacity for receptor points.
 #' @param polygon_alpha Fill opacity for polygons.
@@ -918,23 +921,17 @@ plotSpatialPolygons <- function(object,
 #' @param plot_other Plot receptors grouped into `other_label`.
 #' @param zoom Zoom to the selected polygon extents. Defaults to `FALSE`, which
 #'   shows the full tissue image.
-#' @param require_closed Require the final polygon vertex to equal the first.
 #' @param combine Combine plots with patchwork when possible.
 #' @return A ggplot/patchwork object or a named list of ggplots when
 #'   `combine = FALSE`.
 #' @export
-plotSpatialRegionReceptors <- function(receptors = NULL,
-                                       object = NULL,
-                                       polygon = NULL,
+plotSpatialRegionReceptors <- function(dominance,
+                                       object,
                                        color_by = "clone_id",
-                                       barcode_col = NULL,
                                        images = NULL,
                                        image.scale = "hires",
                                        swap_coords = FALSE,
                                        polygon_id = NULL,
-                                       x_col = "x",
-                                       y_col = "y",
-                                       polygon_col = "polygon",
                                        point_size = 1,
                                        point_alpha = 0.5,
                                        polygon_alpha = 0.12,
@@ -946,39 +943,14 @@ plotSpatialRegionReceptors <- function(receptors = NULL,
                                        other_color = "#D3D3D3",
                                        plot_other = TRUE,
                                        zoom = FALSE,
-                                       require_closed = TRUE,
                                        combine = TRUE) {
   color_missing <- missing(color_by)
-  if (isSIRAP(receptors) && is.null(object)) {
-    object <- receptors
-    receptors <- NULL
-  }
-  is_sirap <- isSIRAP(object)
-  inputs <- .sirap_resolve_inputs(object, receptors, barcode_col)
-  object <- inputs$object
-  receptors <- inputs$receptors
-  barcode_col <- inputs$barcode_col
-  if (is.null(receptors)) {
-    rlang::abort("`receptors` is required when `object` is not a SIRAP object.")
-  }
-  if (is_sirap && color_missing && !is.null(inputs$schema$clone)) {
-    color_by <- inputs$schema$clone
+  object <- .sirap_spatial_input(object)
+  region <- .sirap_region_from_dominance(dominance, polygon_id = polygon_id)
+  if (color_missing && !is.null(dominance$metadata$receptor_fields$clone)) {
+    color_by <- dominance$metadata$receptor_fields$clone
   }
   .require_namespace("SeuratObject")
-  region <- .sirap_region_from_plot_input(
-    bcrs = receptors,
-    object = object,
-    polygon = polygon,
-    barcode_col = barcode_col,
-    images = images,
-    image.scale = image.scale,
-    swap_coords = swap_coords,
-    polygon_id = polygon_id,
-    x_col = x_col,
-    y_col = y_col,
-    polygon_col = polygon_col,
-    require_closed = require_closed
-  )
   if (nrow(region$bcrs) == 0L) {
     rlang::abort("No receptor rows were found inside the selected polygon(s).")
   }
@@ -1043,7 +1015,8 @@ plotSpatialRegionReceptors <- function(receptors = NULL,
 #' @param dominance Object returned by `spatialCloneDominance()`.
 #' @param object Seurat object with spatial images, or a SIRAP object.
 #' @param clone_col Column in `dominance$region_bcrs` used to define clone
-#'   groups.
+#'   groups. When omitted, the clone column recorded by
+#'   `spatialCloneDominance()` is used.
 #' @param weight_col Optional numeric column used as receptor weights. When
 #'   `NULL`, each receptor row contributes one count.
 #' @param images Optional Seurat image names to show.
@@ -1134,12 +1107,16 @@ plotSpatialCloneDensity3D <- function(dominance,
                                       texture_dir = NULL,
                                       as_widget = TRUE,
                                       return_data = FALSE) {
+  clone_missing <- missing(clone_col)
   object <- .sirap_spatial_input(object)
   if (!inherits(dominance, "sirap_spatial_clone_dominance")) {
     rlang::abort("`dominance` must be an object returned by `spatialCloneDominance()`.")
   }
   if (is.null(dominance$region_bcrs) || is.null(dominance$polygons)) {
     rlang::abort("`dominance` must contain `region_bcrs` and `polygons` from `spatialCloneDominance()`.")
+  }
+  if (clone_missing && !is.null(dominance$metadata$receptor_fields$clone)) {
+    clone_col <- dominance$metadata$receptor_fields$clone
   }
   plot_type <- match.arg(plot_type)
   .require_namespace("SeuratObject")
@@ -1224,21 +1201,16 @@ plotSpatialCloneDensity3D <- function(dominance,
 
 #' Plot spatial polygon pie summaries
 #'
-#' Summarizes the composition of BCRs inside each polygon for a selected column.
-#' The default mode plots pie charts beside a numbered polygon map. The
-#' `spatial_clipped` mode clips each pie chart to its polygon boundary and
-#' requires the suggested `sf` package.
+#' Summarizes regional receptor rows from `spatialCloneDominance()` for a
+#' selected column. The default mode plots pie charts beside a numbered polygon
+#' map. The `spatial_clipped` mode clips each pie chart to its polygon boundary
+#' and requires the suggested `sf` package.
 #'
-#' @param bcrs BCR/AIRR-style data frame containing a spatial barcode column,
-#'   the object returned by `spatialCloneDominance()`, or a SIRAP object when
-#'   `object` is omitted.
-#' @param object Seurat object with spatial images, or a SIRAP object. When this
-#'   is a SIRAP object, `bcrs` may be omitted.
-#' @param polygon Data frame of polygon vertices in order. Optional when `bcrs`
-#'   is a spatial clone dominance object.
-#' @param fill_by Column in `bcrs` summarized in each pie chart.
-#' @param barcode_col Column in `bcrs` matching Seurat spot/cell barcodes. If
-#'   `NULL`, a barcode-like column is guessed.
+#' @param dominance Object returned by `spatialCloneDominance()`.
+#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param fill_by Column in `dominance$region_bcrs` summarized in each pie
+#'   chart. When omitted, the clone column recorded by
+#'   `spatialCloneDominance()` is used.
 #' @param mode Plot style. `side_by_side` shows ordinary pies beside a polygon
 #'   map. `spatial_clipped` clips pies to polygon boundaries on the tissue.
 #' @param top_n Number of most frequent `fill_by` levels to identify within each
@@ -1255,10 +1227,8 @@ plotSpatialCloneDensity3D <- function(dominance,
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
 #'   which uses Seurat image coordinates natively.
-#' @param polygon_id Optional polygon ID value(s) to select when `polygon_col`
-#'   exists.
-#' @param x_col,y_col Coordinate columns in `polygon`.
-#' @param polygon_col Optional polygon grouping column in `polygon`.
+#' @param polygon_id Optional polygon ID value(s) to select from the dominance
+#'   result.
 #' @param polygon_alpha Fill opacity for polygons in the numbered map.
 #' @param image.alpha Tissue image opacity.
 #' @param pie_alpha Pie opacity.
@@ -1270,14 +1240,11 @@ plotSpatialCloneDensity3D <- function(dominance,
 #'   plots. Defaults to `FALSE`.
 #' @param zoom Zoom to the plotted polygon extents. Defaults to `FALSE`, which
 #'   shows the full tissue image.
-#' @param require_closed Require the final polygon vertex to equal the first.
 #' @return A ggplot, patchwork object, or named list of ggplots.
 #' @export
-plotSpatialPolygonPies <- function(bcrs = NULL,
-                                   object = NULL,
-                                   polygon = NULL,
+plotSpatialPolygonPies <- function(dominance,
+                                   object,
                                    fill_by = "clone_id",
-                                   barcode_col = NULL,
                                    mode = c("side_by_side", "spatial_clipped"),
                                    top_n = 10,
                                    label_top_n = 0,
@@ -1288,32 +1255,18 @@ plotSpatialPolygonPies <- function(bcrs = NULL,
                                    image.scale = "hires",
                                    swap_coords = FALSE,
                                    polygon_id = NULL,
-                                   x_col = "x",
-                                   y_col = "y",
-                                   polygon_col = "polygon",
                                    polygon_alpha = 0.2,
                                    image.alpha = 1,
                                    pie_alpha = 0.9,
                                    label_size = 3,
                                    pies_per_page = 6L,
                                    spatial_legend = FALSE,
-                                   zoom = FALSE,
-                                   require_closed = TRUE) {
+                                   zoom = FALSE) {
   fill_missing <- missing(fill_by)
-  if (isSIRAP(bcrs) && is.null(object)) {
-    object <- bcrs
-    bcrs <- NULL
-  }
-  is_sirap <- isSIRAP(object)
-  inputs <- .sirap_resolve_inputs(object, bcrs, barcode_col)
-  object <- inputs$object
-  bcrs <- inputs$receptors
-  barcode_col <- inputs$barcode_col
-  if (is.null(bcrs)) {
-    rlang::abort("`bcrs` is required when `object` is not a SIRAP object.")
-  }
-  if (is_sirap && fill_missing && !is.null(inputs$schema$clone)) {
-    fill_by <- inputs$schema$clone
+  object <- .sirap_spatial_input(object)
+  region <- .sirap_region_from_dominance(dominance, polygon_id = polygon_id)
+  if (fill_missing && !is.null(dominance$metadata$receptor_fields$clone)) {
+    fill_by <- dominance$metadata$receptor_fields$clone
   }
   .require_namespace("SeuratObject")
   mode <- match.arg(mode)
@@ -1327,20 +1280,6 @@ plotSpatialPolygonPies <- function(bcrs = NULL,
     rlang::abort("`pies_per_page` must be a positive number.")
   }
   pies_per_page <- as.integer(pies_per_page)
-  region <- .sirap_region_from_plot_input(
-    bcrs = bcrs,
-    object = object,
-    polygon = polygon,
-    barcode_col = barcode_col,
-    images = images,
-    image.scale = image.scale,
-    swap_coords = swap_coords,
-    polygon_id = polygon_id,
-    x_col = x_col,
-    y_col = y_col,
-    polygon_col = polygon_col,
-    require_closed = require_closed
-  )
   if (nrow(region$bcrs) == 0L) {
     rlang::abort("No BCR rows were found inside the selected polygon(s).")
   }
@@ -1501,7 +1440,24 @@ seuratSubsetPolygon <- function(object,
   )
   polygon_lookup <- stats::setNames(as.character(polygon_values$polygon), as.character(polygon_values$cell))
 
-  out <- object[, keep_cells]
+  update_slots <- utils::getFromNamespace("UpdateSlots", "SeuratObject")
+  for (image_name in SeuratObject::Images(object)) {
+    image <- object[[image_name]]
+    has_missing_slots <- any(vapply(methods::slotNames(image), function(slot_name) {
+      tryCatch(
+        {
+          methods::slot(image, slot_name)
+          FALSE
+        },
+        error = function(...) TRUE
+      )
+    }, logical(1)))
+    if (has_missing_slots) {
+      methods::slot(object, "images")[[image_name]] <- suppressWarnings(update_slots(image))
+    }
+  }
+
+  out <- suppressWarnings(object[, keep_cells], classes = "validationWarning")
   out@meta.data[[metadata_col]] <- unname(polygon_lookup[rownames(out@meta.data)])
   out
 }
@@ -1746,99 +1702,29 @@ defineKeyAreas <- function(seurat_obj,
   out
 }
 
-.sirap_region_from_plot_input <- function(bcrs,
-                                          object,
-                                          polygon,
-                                          barcode_col,
-                                          images,
-                                          image.scale,
-                                          swap_coords,
-                                          polygon_id,
-                                          x_col,
-                                          y_col,
-                                          polygon_col,
-                                          require_closed) {
-  if (inherits(bcrs, "sirap_spatial_clone_dominance")) {
-    if (is.null(bcrs$region_bcrs) || is.null(bcrs$polygons)) {
-      rlang::abort("Dominance objects passed to plotting functions must come from `spatialCloneDominance()`.")
-    }
-    region_bcrs <- .as_data_frame(bcrs$region_bcrs)
-    polygon_plot_data <- .as_data_frame(bcrs$polygons)
-    if (!is.null(polygon_id)) {
-      region_bcrs <- region_bcrs[as.character(region_bcrs$polygon) %in% as.character(polygon_id), , drop = FALSE]
-      polygon_plot_data <- polygon_plot_data[
-        as.character(polygon_plot_data$polygon) %in% as.character(polygon_id),
-        ,
-        drop = FALSE
-      ]
-    }
-    return(list(
-      bcrs = region_bcrs,
-      polygons = polygon_plot_data
-    ))
+.sirap_region_from_dominance <- function(dominance, polygon_id = NULL) {
+  if (!inherits(dominance, "sirap_spatial_clone_dominance")) {
+    rlang::abort("`dominance` must be an object returned by `spatialCloneDominance()`.")
   }
-  if (is.null(polygon)) {
-    rlang::abort("`polygon` is required unless `bcrs` is a spatial clone dominance object returned by `spatialCloneDominance()`.")
+  if (is.null(dominance$region_bcrs) || is.null(dominance$polygons)) {
+    rlang::abort("`dominance` must contain `region_bcrs` and `polygons` from `spatialCloneDominance()`.")
   }
-
-  bcrs <- .as_data_frame(bcrs)
-  polygon <- .as_data_frame(polygon)
-  barcode_col <- .guess_barcode_col(bcrs, barcode_col)
-  .check_required_cols(bcrs, barcode_col, "bcrs")
-  .check_required_cols(polygon, c(x_col, y_col), "polygon")
-
-  coords <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, swap_coords = swap_coords)
-  coords <- coords[is.finite(coords$x) & is.finite(coords$y), , drop = FALSE]
-  coords$.sirap_y <- -coords$y
-  polygon_plot_data <- .sirap_polygon_plot_data(
-    polygon = polygon,
-    polygon_id = polygon_id,
-    polygon_col = polygon_col,
-    x_col = x_col,
-    y_col = y_col,
-    require_closed = require_closed
-  )
-  polygon_specs <- .sirap_polygon_specs(polygon, polygon_id = polygon_id, polygon_col = polygon_col)
-
-  regional <- lapply(polygon_specs, function(spec) {
-    vertices <- .sirap_select_polygon_vertices(
-      polygon = polygon,
-      polygon_id = spec$id,
-      polygon_col = polygon_col,
-      x_col = x_col,
-      y_col = y_col,
-      require_closed = require_closed
-    )
-    inside <- .sirap_points_in_polygon(
-      px = coords$x,
-      py = coords$y,
-      vx = vertices$x,
-      vy = vertices$y,
-      include_boundary = TRUE
-    )
-    region_coords <- coords[inside, , drop = FALSE]
-    region_bcrs <- bcrs[as.character(bcrs[[barcode_col]]) %in% as.character(region_coords$cell), , drop = FALSE]
-    if (nrow(region_bcrs) == 0L) {
-      return(data.frame())
-    }
-    region_bcrs <- .sirap_drop_plot_coordinate_cols(region_bcrs)
-    region_bcrs$.sirap_barcode <- as.character(region_bcrs[[barcode_col]])
-    region_bcrs <- merge(
-      region_bcrs,
-      region_coords[, c("cell", "x", "y", ".sirap_y", "image"), drop = FALSE],
-      by.x = ".sirap_barcode",
-      by.y = "cell",
-      all.x = FALSE,
-      all.y = FALSE,
-      sort = FALSE
-    )
-    region_bcrs$polygon <- as.character(if (isTRUE(spec$add_polygon_col)) spec$id else "polygon_1")
-    region_bcrs
-  })
-  regional <- .sirap_bind_rows(regional)
-  regional <- .sirap_add_v_gene_columns(regional)
+  region_bcrs <- .as_data_frame(dominance$region_bcrs)
+  polygon_plot_data <- .as_data_frame(dominance$polygons)
+  if (!is.null(polygon_id)) {
+    region_bcrs <- region_bcrs[
+      as.character(region_bcrs$polygon) %in% as.character(polygon_id),
+      ,
+      drop = FALSE
+    ]
+    polygon_plot_data <- polygon_plot_data[
+      as.character(polygon_plot_data$polygon) %in% as.character(polygon_id),
+      ,
+      drop = FALSE
+    ]
+  }
   list(
-    bcrs = regional,
+    bcrs = region_bcrs,
     polygons = polygon_plot_data
   )
 }
@@ -2791,14 +2677,18 @@ defineKeyAreas <- function(seurat_obj,
       if (is.null(intersection)) {
         next
       }
-      if (length(intersection) == 0L || sf::st_is_empty(intersection)[[1]]) {
+      intersection <- .sirap_repair_polygon_sfc(intersection)
+      if (is.null(intersection) || length(intersection) == 0L || all(sf::st_is_empty(intersection))) {
         next
       }
       coords <- as.data.frame(sf::st_coordinates(intersection))
-      if (!"L1" %in% colnames(coords)) {
-        coords$L1 <- 1L
+      geometry_levels <- grep("^L[0-9]+$", colnames(coords), value = TRUE)
+      if (length(geometry_levels) == 0L) {
+        coordinate_piece <- rep("1", nrow(coords))
+      } else {
+        coordinate_piece <- as.character(interaction(coords[, geometry_levels, drop = FALSE], drop = TRUE, lex.order = TRUE))
       }
-      coords$piece <- paste(polygon_id, this_pie$level[[i]], coords$L1, idx, sep = "__")
+      coords$piece <- paste(polygon_id, this_pie$level[[i]], coordinate_piece, idx, sep = "__")
       coords$polygon <- polygon_id
       coords$level <- this_pie$level[[i]]
       coords$x <- coords$X

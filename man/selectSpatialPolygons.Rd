@@ -7,7 +7,7 @@
 selectSpatialPolygons(
   object,
   feature = NULL,
-  assay = NULL,
+  assay = "Spatial",
   layer = "counts",
   images = NULL,
   image.scale = "hires",

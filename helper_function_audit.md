@@ -6,19 +6,19 @@ This audit covers private helpers retained in `R/spatial_polygons.R`. Small help
 
 | Helper | Purpose | Used by |
 | --- | --- | --- |
-| `.sirap_select_polygon_vertices` | Validates, selects, and closes one polygon's ordered vertices. | `spatialCloneDominance`, `seuratSubsetPolygon`, `.sirap_polygon_plot_data`, `.sirap_region_from_plot_input` |
-| `.sirap_polygon_specs` | Normalizes single- and multiple-polygon inputs. | `spatialCloneDominance`, `seuratSubsetPolygon`, `.sirap_polygon_plot_data`, `.sirap_region_from_plot_input` |
+| `.sirap_select_polygon_vertices` | Validates, selects, and closes one polygon's ordered vertices. | `spatialCloneDominance`, `seuratSubsetPolygon`, `.sirap_polygon_plot_data` |
+| `.sirap_polygon_specs` | Normalizes single- and multiple-polygon inputs. | `spatialCloneDominance`, `seuratSubsetPolygon`, `.sirap_polygon_plot_data` |
 | `.sirap_rbind` | Combines the same named result table across polygons. | `spatialCloneDominance` |
 | `.sirap_v_genes` | Parses distinct V calls while retaining alleles. | `spatialCloneDominance`, `.sirap_add_v_gene_columns` |
 | `.sirap_v_gene_family` | Removes alleles from V calls. | `spatialCloneDominance`, `.sirap_add_v_gene_columns` |
 | `.sirap_v_gene_superfamily` | Reduces V families to names such as `IGHV3`. | `spatialCloneDominance`, `.sirap_add_v_gene_columns` |
-| `.sirap_points_in_polygon` | Performs point-in-polygon tests with boundary inclusion. | `spatialCloneDominance`, `seuratSubsetPolygon`, `.sirap_region_from_plot_input` |
+| `.sirap_points_in_polygon` | Performs point-in-polygon tests with boundary inclusion. | `spatialCloneDominance`, `seuratSubsetPolygon` |
 | `.sirap_points_on_segment` | Detects boundary points for point-in-polygon tests. | `.sirap_points_in_polygon` (single-caller geometry primitive) |
 | `.sirap_same_xy` | Compares two coordinate rows with tolerance. | Polygon validation, Shiny polygon closure, and formatted-boundary cleanup |
-| `.sirap_polygon_plot_data` | Standardizes polygon IDs, coordinates, and plotting y coordinates. | `plotSpatialPolygons`, `plotSpatialPolygonPies`, `.sirap_region_from_plot_input` |
-| `.sirap_region_from_plot_input` | Normalizes either a dominance result or raw receptor/polygon inputs. | `plotSpatialRegionReceptors`, `plotSpatialPolygonPies` |
-| `.sirap_drop_plot_coordinate_cols` | Prevents stale coordinate columns from colliding during joins. | `spatialCloneDominance`, `.sirap_region_from_plot_input` |
-| `.sirap_add_v_gene_columns` | Adds allele, family, and superfamily columns to receptor rows. | `spatialCloneDominance`, `.sirap_region_from_plot_input` |
+| `.sirap_polygon_plot_data` | Standardizes polygon IDs, coordinates, and plotting y coordinates. | `plotSpatialPolygons`, `plotSpatialPolygonPies` |
+| `.sirap_region_from_dominance` | Validates and optionally filters regional rows and polygons from a dominance result. | `plotSpatialRegionReceptors`, `plotSpatialPolygonPies` |
+| `.sirap_drop_plot_coordinate_cols` | Prevents stale coordinate columns from colliding during joins. | `spatialCloneDominance` |
+| `.sirap_add_v_gene_columns` | Adds allele, family, and superfamily columns to receptor rows. | `spatialCloneDominance` |
 | `.sirap_bind_rows` | Combines possibly empty data-frame lists consistently. | Region assembly and pie-geometry assembly |
 | `.sirap_lump_values` | Keeps requested top levels and assigns the remainder to `Other`. | Receptor, density, and pie plots |
 | `.sirap_discrete_palette_values` | Builds the shared Glasbey/`Other` color mapping. | Receptor, density, and pie plots |

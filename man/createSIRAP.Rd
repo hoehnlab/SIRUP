@@ -24,7 +24,7 @@ createSIRAP(
 
 \item{barcode_col}{Column in \code{receptors} matching spatial cell or spot
 barcodes. When \code{NULL}, a barcode-like column is guessed once and recorded
-in the object schema.}
+in the object metadata.}
 
 \item{image_col}{Optional receptor column identifying the Seurat image.}
 
@@ -50,7 +50,8 @@ A SIRAP object with S3 class \code{sirap}.
 }
 \description{
 A SIRAP object keeps a spatial Seurat object and an AIRR-style receptor
-table together with the column schema needed to join and interpret them.
+table together with receptor field mappings needed to join and interpret
+them. Field mappings are stored in \code{metadata$receptor_fields}.
 The receptor table is stored as a \code{\link[tibble:tibble]{tibble::tibble()}}. Unmatched receptor
 rows are retained, which allows a table to contain bulk or other
 nonspatial receptor records alongside spatial records.

@@ -7,8 +7,9 @@ IDs and V-gene annotations.
 
 Clone dominance is the fraction of BCR rows inside a polygon assigned to
 each clone. `spatialCloneDominance()` also returns the BCR rows and
-spatial coordinates inside each polygon, so the same object can be
-passed directly to the plotting functions.
+spatial coordinates inside each polygon. Its result and the original
+SIRAP or Seurat object are the two required inputs to the regional
+plotting functions.
 
 By default, this page shows runnable code but does not evaluate it. To
 render plots from the full local thymus dataset, render on the cluster
@@ -249,10 +250,12 @@ The returned object contains:
 
 ## Plot Regional Receptors
 
-`plotSpatialRegionReceptors()` plots receptor rows inside the selected
-polygons over the tissue image. In this example those rows are
-heavy-chain BCRs. `top_n` keeps the most common displayed levels and
-groups lower-frequency levels as `Other`.
+`plotSpatialRegionReceptors()` requires the dominance result and its
+original SIRAP or Seurat object. It plots the regional receptor rows
+already stored by `spatialCloneDominance()` over the tissue image,
+without repeating barcode or polygon arguments. In this example those
+rows are heavy-chain BCRs. `top_n` keeps the most common displayed
+levels and groups lower-frequency levels as `Other`.
 
 ``` r
 bcrClonePlot <- plotSpatialRegionReceptors(
@@ -321,12 +324,14 @@ ggsave(
 
 ## Plot Pie Summaries
 
-`plotSpatialPolygonPies()` makes pie summaries from the dominance
-object. With `mode = "side_by_side"`, the tissue image and numbered
-polygons appear on the left and the pie charts appear on the right. The
-top levels are identified within each polygon, then unioned across
-polygons so a clone that is top-ranked in any polygon remains named
-everywhere it appears. Other levels are grouped as `Other`.
+`plotSpatialPolygonPies()` likewise requires the dominance result and
+its original SIRAP or Seurat object. It makes pie summaries directly
+from the regional rows and polygons stored in the dominance result. With
+`mode = "side_by_side"`, the tissue image and numbered polygons appear
+on the left and the pie charts appear on the right. The top levels are
+identified within each polygon, then unioned across polygons so a clone
+that is top-ranked in any polygon remains named everywhere it appears.
+Other levels are grouped as `Other`.
 
 ``` r
 clonePies <- plotSpatialPolygonPies(
