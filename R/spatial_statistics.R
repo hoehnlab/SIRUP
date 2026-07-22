@@ -1,4 +1,5 @@
-#' Build a spatial analysis table from a Seurat object
+
+#' Calculate global Moran's I for a spatial variable
 #'
 #' @param object Seurat object with spatial images, or a SIRAP object.
 #' @param variable Feature or metadata column to analyze.
@@ -15,83 +16,6 @@
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
 #'   which uses Seurat image coordinates natively.
 #' @param zero_tol Values at or below this threshold are treated as zero.
-#' @param as_sf Return an `sf` object with point geometry.
-#' @return Data frame, or `sf` object, with spatial coordinates and `value`.
-#' @export
-spatialVariableData <- function(object,
-                                variable,
-                                variable_type = c("feature", "metadata", "receptor"),
-                                value = NULL,
-                                receptors = NULL,
-                                barcode_col = "barcode_8um",
-                                positive = FALSE,
-                                layer = "counts",
-                                images = NULL,
-                                image.scale = "hires",
-                                swap_coords = FALSE,
-                                zero_tol = 0,
-                                as_sf = FALSE) {
-  barcode_missing <- missing(barcode_col)
-  is_sirap <- isSIRAP(object)
-  inputs <- .sirap_resolve_inputs(
-    object,
-    receptors,
-    if (is_sirap && barcode_missing) NULL else barcode_col
-  )
-  object <- inputs$object
-  receptors <- inputs$receptors
-  barcode_col <- inputs$barcode_col %||% "barcode_8um"
-  variable_type <- match.arg(variable_type)
-  .require_namespace("SeuratObject")
-
-  dat <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, swap_coords = swap_coords)
-
-  if (variable_type == "feature") {
-    expr <- .sirap_fetch_data(object, vars = variable, layer = layer)
-    dat <- merge(dat, expr, by.x = "cell", by.y = 0, all.x = TRUE)
-    dat$value <- dat[[variable]]
-    if (isTRUE(positive)) {
-      dat$value <- as.integer(!is.na(dat$value) & dat$value > zero_tol)
-      dat$variable <- paste0(variable, "_positive")
-    } else {
-      dat$variable <- variable
-    }
-  } else if (variable_type == "metadata") {
-    .check_required_cols(object@meta.data, variable, "object@meta.data")
-    meta <- object@meta.data[, variable, drop = FALSE]
-    meta$cell <- rownames(meta)
-    dat <- merge(dat, meta, by = "cell", all.x = TRUE)
-    if (!is.null(value)) {
-      dat$value <- as.integer(dat[[variable]] %in% value)
-      dat$variable <- paste0(variable, "_", paste(value, collapse = "_"))
-    } else if (is.numeric(dat[[variable]]) || is.integer(dat[[variable]]) || is.logical(dat[[variable]])) {
-      dat$value <- as.numeric(dat[[variable]])
-      dat$variable <- variable
-    } else {
-      rlang::abort("For non-numeric metadata, provide `value` to analyze a binary indicator.")
-    }
-  } else {
-    if (is.null(receptors)) {
-      rlang::abort("`receptors` is required when `variable_type = 'receptor'`.")
-    }
-    receptors <- .as_data_frame(receptors)
-    .check_required_cols(receptors, barcode_col, "receptors")
-    receptor_barcodes <- unique(as.character(receptors[[barcode_col]]))
-    dat$value <- as.integer(dat$cell %in% receptor_barcodes)
-    dat$variable <- variable
-  }
-
-  dat <- dat[!is.na(dat$value), , drop = FALSE]
-  if (isTRUE(as_sf)) {
-    .require_namespace("sf")
-    return(sf::st_as_sf(dat, coords = c("x", ".sirap_y"), crs = NA, remove = FALSE))
-  }
-  dat
-}
-
-#' Calculate global Moran's I for a spatial variable
-#'
-#' @inheritParams spatialVariableData
 #' @param radius Optional distance radius defining neighborhoods.
 #' @param k Number of nearest neighbors when `radius` is `NULL`.
 #' @param style Spatial weights style passed to `spdep::nb2listw()`.
@@ -114,14 +38,15 @@ spatialMoran <- function(object,
                          k = 6,
                          style = "W",
                          alternative = "greater") {
+  barcode_missing <- missing(barcode_col)
   .require_namespace("spdep")
-  dat <- spatialVariableData(
+  dat <- .sirap_spatial_variable_values(
     object = object,
     variable = variable,
     variable_type = variable_type,
     value = value,
     receptors = receptors,
-    barcode_col = barcode_col,
+    barcode_col = if (isSIRAP(object) && barcode_missing) NULL else barcode_col,
     positive = positive,
     layer = layer,
     images = images,
@@ -170,15 +95,16 @@ spatialLocalMoran <- function(object,
                               radius = NULL,
                               k = 6,
                               style = "W") {
+  barcode_missing <- missing(barcode_col)
   .require_namespace("spdep")
 
-  dat <- spatialVariableData(
+  dat <- .sirap_spatial_variable_values(
     object = object,
     variable = variable,
     variable_type = variable_type,
     value = value,
     receptors = receptors,
-    barcode_col = barcode_col,
+    barcode_col = if (isSIRAP(object) && barcode_missing) NULL else barcode_col,
     positive = positive,
     layer = layer,
     images = images,
@@ -655,6 +581,66 @@ plotRipleyCrossK <- function(kcross,
     p <- p + ggplot2::scale_y_log10()
   }
   p
+}
+
+.sirap_spatial_variable_values <- function(object,
+                                           variable,
+                                           variable_type,
+                                           value,
+                                           receptors,
+                                           barcode_col,
+                                           positive,
+                                           layer,
+                                           images,
+                                           image.scale,
+                                           swap_coords,
+                                           zero_tol) {
+  inputs <- .sirap_resolve_inputs(object, receptors, barcode_col)
+  object <- inputs$object
+  receptors <- inputs$receptors
+  barcode_col <- inputs$barcode_col %||% "barcode_8um"
+  variable_type <- match.arg(variable_type, c("feature", "metadata", "receptor"))
+  .require_namespace("SeuratObject")
+
+  dat <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, swap_coords = swap_coords)
+
+  if (variable_type == "feature") {
+    expr <- .sirap_fetch_data(object, vars = variable, layer = layer)
+    dat <- merge(dat, expr, by.x = "cell", by.y = 0, all.x = TRUE)
+    dat$value <- dat[[variable]]
+    if (isTRUE(positive)) {
+      dat$value <- as.integer(!is.na(dat$value) & dat$value > zero_tol)
+      dat$variable <- paste0(variable, "_positive")
+    } else {
+      dat$variable <- variable
+    }
+  } else if (variable_type == "metadata") {
+    .check_required_cols(object@meta.data, variable, "object@meta.data")
+    meta <- object@meta.data[, variable, drop = FALSE]
+    meta$cell <- rownames(meta)
+    dat <- merge(dat, meta, by = "cell", all.x = TRUE)
+    if (!is.null(value)) {
+      dat$value <- as.integer(dat[[variable]] %in% value)
+      dat$variable <- paste0(variable, "_", paste(value, collapse = "_"))
+    } else if (is.numeric(dat[[variable]]) || is.integer(dat[[variable]]) || is.logical(dat[[variable]])) {
+      dat$value <- as.numeric(dat[[variable]])
+      dat$variable <- variable
+    } else {
+      rlang::abort("For non-numeric metadata, provide `value` to analyze a binary indicator.")
+    }
+  } else {
+    if (is.null(receptors)) {
+      rlang::abort("`receptors` is required when `variable_type = 'receptor'`.")
+    }
+    receptors <- .as_data_frame(receptors)
+    .check_required_cols(receptors, barcode_col, "receptors")
+    receptor_barcodes <- unique(as.character(receptors[[barcode_col]]))
+    dat$value <- as.integer(dat$cell %in% receptor_barcodes)
+    dat$variable <- variable
+  }
+
+  dat <- dat[!is.na(dat$value), , drop = FALSE]
+  dat
 }
 
 .sirap_spatial_coordinate_table <- function(object, images = NULL, image.scale = "hires", swap_coords = FALSE) {

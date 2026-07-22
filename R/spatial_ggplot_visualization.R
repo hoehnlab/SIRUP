@@ -1012,52 +1012,6 @@ plotReceptors <- function(object,
   .sirap_return_spatial_plots(plots, combine = combine)
 }
 
-.sirap_receptor_group_colors <- function(values, colors = NULL) {
-  n <- length(values)
-  if (is.null(colors)) {
-    if (requireNamespace("pals", quietly = TRUE)) {
-      colors <- .sirap_extend_palette(pals::glasbey(32), n)
-    } else {
-      colors <- .sirap_extend_palette(grDevices::hcl.colors(max(3L, n), palette = "Dark 3"), n)
-    }
-    names(colors) <- values
-    return(colors)
-  }
-
-  colors <- as.character(colors)
-  if (!is.null(names(colors)) && all(values %in% names(colors))) {
-    return(colors[values])
-  }
-  if (length(colors) < n) {
-    colors <- .sirap_extend_palette(colors, n)
-  }
-  colors <- colors[seq_len(n)]
-  names(colors) <- values
-  colors
-}
-
-.guess_barcode_col <- function(data, barcode_col = NULL) {
-  if (!is.null(barcode_col)) {
-    .check_required_cols(data, barcode_col, "receptors")
-    return(barcode_col)
-  }
-
-  candidates <- c(
-    "barcode",
-    "barcode_8um",
-    "barcode_2um",
-    "spatial_barcode",
-    "cell",
-    "cell_barcode",
-    "sequence_id"
-  )
-  barcode_col <- candidates[candidates %in% colnames(data)][1]
-  if (is.na(barcode_col)) {
-    rlang::abort("Could not guess `barcode_col`; pass the receptor barcode column explicitly.")
-  }
-  barcode_col
-}
-
 #' Plot tip colors over a tissue image
 #'
 #' @param object Seurat object, or a SIRAP object.
@@ -1394,68 +1348,6 @@ plotSpatialCloneTreePairs <- function(trees,
   out
 }
 
-.sirap_spatial_tip_legend_info <- function(tip_data, color_by) {
-  tip_data$.sirap_tip_legend_label <- .sirap_spatial_tip_labels(tip_data, color_by = color_by)
-  legend_df <- tip_data[
-    !is.na(tip_data$.sirap_tip_legend_label) &
-      !is.na(tip_data$tip_color),
-    c(".sirap_tip_legend_label", "tip_color", "tip_color_id"),
-    drop = FALSE
-  ]
-  legend_df <- legend_df[order(as.integer(legend_df$tip_color_id)), , drop = FALSE]
-  legend_df <- legend_df[!duplicated(legend_df$.sirap_tip_legend_label), , drop = FALSE]
-
-  spatial <- grepl("^spatial_tip_cluster_[0-9]+$", legend_df$.sirap_tip_legend_label)
-  spatial_df <- legend_df[spatial, , drop = FALSE]
-  if (nrow(spatial_df) > 0L) {
-    spatial_id <- as.integer(sub("^spatial_tip_cluster_", "", spatial_df$.sirap_tip_legend_label))
-    spatial_df <- spatial_df[order(spatial_id), , drop = FALSE]
-  }
-  other_df <- legend_df[!spatial, , drop = FALSE]
-  legend_df <- rbind(spatial_df, other_df)
-
-  list(
-    tip_data = tip_data,
-    colors = stats::setNames(
-      as.character(legend_df$tip_color),
-      as.character(legend_df$.sirap_tip_legend_label)
-    )
-  )
-}
-
-.sirap_spatial_tip_labels <- function(tip_data, color_by) {
-  if (!identical(color_by, "identity") && color_by %in% colnames(tip_data)) {
-    values <- as.character(tip_data[[color_by]])
-    spatial_cluster <- grepl("^tree_cluster_[0-9]+$", values)
-    values[spatial_cluster] <- paste0(
-      "spatial_tip_cluster_",
-      sub("^tree_cluster_", "", values[spatial_cluster])
-    )
-    values
-  } else {
-    paste0("spatial_tip_cluster_", as.integer(tip_data$tip_color_id))
-  }
-}
-
-.sirap_plot_check_nproc <- function(nproc) {
-  nproc <- as.integer(nproc)
-  if (is.na(nproc) || nproc < 1L) {
-    rlang::abort("`nproc` must be a positive integer.")
-  }
-  nproc
-}
-
-.sirap_plot_lapply <- function(x, fun, nproc) {
-  if (nproc == 1L || length(x) <= 1L) {
-    return(lapply(x, fun))
-  }
-  if (.Platform$OS.type == "windows") {
-    warning("Parallel plotting with `nproc > 1` is not supported on Windows; using `nproc = 1`.", call. = FALSE)
-    return(lapply(x, fun))
-  }
-  parallel::mclapply(x, fun, mc.cores = nproc)
-}
-
 #' Save paired clone tree and spatial plots to a PDF
 #'
 #' @param pairs Output from `plotSpatialCloneTreePairs()`.
@@ -1518,6 +1410,114 @@ spatialCloneTreePairsToPDF <- function(pairs,
   }
 
   invisible(path)
+}
+
+.sirap_receptor_group_colors <- function(values, colors = NULL) {
+  n <- length(values)
+  if (is.null(colors)) {
+    if (requireNamespace("pals", quietly = TRUE)) {
+      colors <- .sirap_extend_palette(pals::glasbey(32), n)
+    } else {
+      colors <- .sirap_extend_palette(grDevices::hcl.colors(max(3L, n), palette = "Dark 3"), n)
+    }
+    names(colors) <- values
+    return(colors)
+  }
+
+  colors <- as.character(colors)
+  if (!is.null(names(colors)) && all(values %in% names(colors))) {
+    return(colors[values])
+  }
+  if (length(colors) < n) {
+    colors <- .sirap_extend_palette(colors, n)
+  }
+  colors <- colors[seq_len(n)]
+  names(colors) <- values
+  colors
+}
+
+.guess_barcode_col <- function(data, barcode_col = NULL) {
+  if (!is.null(barcode_col)) {
+    .check_required_cols(data, barcode_col, "receptors")
+    return(barcode_col)
+  }
+
+  candidates <- c(
+    "barcode",
+    "barcode_8um",
+    "barcode_2um",
+    "spatial_barcode",
+    "cell",
+    "cell_barcode",
+    "sequence_id"
+  )
+  barcode_col <- candidates[candidates %in% colnames(data)][1]
+  if (is.na(barcode_col)) {
+    rlang::abort("Could not guess `barcode_col`; pass the receptor barcode column explicitly.")
+  }
+  barcode_col
+}
+
+.sirap_spatial_tip_legend_info <- function(tip_data, color_by) {
+  tip_data$.sirap_tip_legend_label <- .sirap_spatial_tip_labels(tip_data, color_by = color_by)
+  legend_df <- tip_data[
+    !is.na(tip_data$.sirap_tip_legend_label) &
+      !is.na(tip_data$tip_color),
+    c(".sirap_tip_legend_label", "tip_color", "tip_color_id"),
+    drop = FALSE
+  ]
+  legend_df <- legend_df[order(as.integer(legend_df$tip_color_id)), , drop = FALSE]
+  legend_df <- legend_df[!duplicated(legend_df$.sirap_tip_legend_label), , drop = FALSE]
+
+  spatial <- grepl("^spatial_tip_cluster_[0-9]+$", legend_df$.sirap_tip_legend_label)
+  spatial_df <- legend_df[spatial, , drop = FALSE]
+  if (nrow(spatial_df) > 0L) {
+    spatial_id <- as.integer(sub("^spatial_tip_cluster_", "", spatial_df$.sirap_tip_legend_label))
+    spatial_df <- spatial_df[order(spatial_id), , drop = FALSE]
+  }
+  other_df <- legend_df[!spatial, , drop = FALSE]
+  legend_df <- rbind(spatial_df, other_df)
+
+  list(
+    tip_data = tip_data,
+    colors = stats::setNames(
+      as.character(legend_df$tip_color),
+      as.character(legend_df$.sirap_tip_legend_label)
+    )
+  )
+}
+
+.sirap_spatial_tip_labels <- function(tip_data, color_by) {
+  if (!identical(color_by, "identity") && color_by %in% colnames(tip_data)) {
+    values <- as.character(tip_data[[color_by]])
+    spatial_cluster <- grepl("^tree_cluster_[0-9]+$", values)
+    values[spatial_cluster] <- paste0(
+      "spatial_tip_cluster_",
+      sub("^tree_cluster_", "", values[spatial_cluster])
+    )
+    values
+  } else {
+    paste0("spatial_tip_cluster_", as.integer(tip_data$tip_color_id))
+  }
+}
+
+.sirap_plot_check_nproc <- function(nproc) {
+  nproc <- as.integer(nproc)
+  if (is.na(nproc) || nproc < 1L) {
+    rlang::abort("`nproc` must be a positive integer.")
+  }
+  nproc
+}
+
+.sirap_plot_lapply <- function(x, fun, nproc) {
+  if (nproc == 1L || length(x) <= 1L) {
+    return(lapply(x, fun))
+  }
+  if (.Platform$OS.type == "windows") {
+    warning("Parallel plotting with `nproc > 1` is not supported on Windows; using `nproc = 1`.", call. = FALSE)
+    return(lapply(x, fun))
+  }
+  parallel::mclapply(x, fun, mc.cores = nproc)
 }
 
 .sirap_write_clone_tree_pair_pdf <- function(pair,

@@ -11,7 +11,7 @@ toolkit for long-read spatial immune receptor sequencing: AIRR-style
 rearrangement tables with spatial barcodes and coordinates, Visium HD
 barcode mapping, pRESTO/IgBLAST shell pipeline generation, clonal
 summaries, lightweight SIRAP containers pairing spatial Seurat data with
-tibble-backed receptor tables, Seurat clone assays, tree plotting,
+tibble-backed receptor tables, tree plotting,
 int64-packed DNA primitives, and PAF parsing utilities.
 }
 \author{
@@ -19,6 +19,7 @@ int64-packed DNA primitives, and PAF parsing utilities.
 
 Authors:
 \itemize{
+  \item Hunter J. Melton \email{Hunter.J.Melton@dartmouth.edu}
   \item Chinmay Vaidya \email{chinmay.m.vaidya.gr@dartmouth.edu}
 }
 

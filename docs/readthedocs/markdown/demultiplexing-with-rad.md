@@ -361,7 +361,7 @@ the read header. They go through your aligner / IgBLAST step (outside
 rad and SIRAP) to produce AIRR-style rearrangement tables, at which
 point the [Visium HD processing guide](visium-hd-processing.html) takes
 over: `extractSpatialBarcode()` lifts the barcode back out of the
-`sequence_id`, `processSpatialAirr()` does length/locus QC, and the 2 µm
+`sequence_id`, `filterSpatialAirr()` does length/locus QC, and the 2 µm
 barcode is remapped to the 8 µm/16 µm grid for plotting.
 
 ## Keeping rad Up to Date

@@ -1,21 +1,5 @@
 .datatable.aware = TRUE
 
-# Shared FASTQ/FASTA header contract for writeFastqas / streamFastqas:
-#   - `id`      always present; short id (everything before first space),
-#               with no leading `@` (fastq) or `>` (fasta).
-#   - `full_id` present only when `full_id = TRUE`; full header (name +
-#               comment) with no leading `@`/`>`.
-#   - `seq`     always present.
-#   - `qual`    present for fastq.
-#   - Column order: id, full_id (if requested), seq, qual (if fastq).
-#
-# `type` accepts "fq" / "fastq" / "fa" / "fasta" in all three functions.
-
-.fastqas_normalize_type <- function(type) {
-  type <- match.arg(type, c("fq", "fastq", "fa", "fasta"))
-  if (type %in% c("fa", "fasta")) "fa" else "fq"
-}
-
 #' Write a data.table of sequences to FASTQ/FASTA
 #'
 #' @param df data.table or data.frame with at least `seq` (and `qual` for
@@ -199,4 +183,20 @@ sparseOnehotMatrix <- function(cigars, aln_starts, aln_ends,
                                    to   = region_start + nc,
                                    by   = 1L)[1:nc]
   M
+}
+
+# Shared FASTQ/FASTA header contract for writeFastqas / streamFastqas:
+#   - `id`      always present; short id (everything before first space),
+#               with no leading `@` (fastq) or `>` (fasta).
+#   - `full_id` present only when `full_id = TRUE`; full header (name +
+#               comment) with no leading `@`/`>`.
+#   - `seq`     always present.
+#   - `qual`    present for fastq.
+#   - Column order: id, full_id (if requested), seq, qual (if fastq).
+#
+# `type` accepts "fq" / "fastq" / "fa" / "fasta" in all three functions.
+
+.fastqas_normalize_type <- function(type) {
+  type <- match.arg(type, c("fq", "fastq", "fa", "fasta"))
+  if (type %in% c("fa", "fasta")) "fa" else "fq"
 }

@@ -1,23 +1,3 @@
-#' Build a clone-by-spatial-barcode count matrix
-#'
-#' @param clones Clone-assigned AIRR data frame.
-#' @param clone_col,barcode_col Column names.
-#' @param sparse Return a sparse Matrix when the optional `Matrix` package exists.
-#' @return Clone-by-barcode count matrix.
-#' @export
-buildCloneCountMatrix <- function(clones,
-                                     clone_col = "clone_id",
-                                     barcode_col = "barcode",
-                                     sparse = TRUE) {
-  .check_required_cols(clones, c(clone_col, barcode_col), "clones")
-  x <- clones[!is.na(clones[[clone_col]]) & !is.na(clones[[barcode_col]]), , drop = FALSE]
-  mat <- table(x[[clone_col]], x[[barcode_col]]) %>% as.matrix()
-  if (sparse && requireNamespace("Matrix", quietly = TRUE)) {
-    mat <- Matrix::Matrix(mat, sparse = TRUE)
-  }
-  mat
-}
-
 #' Cluster tree tips by cutting tree branches
 #'
 #' Partitions a phylogenetic tree into connected components by cutting `k - 1`
@@ -176,6 +156,312 @@ clusterTreeTips <- function(tree,
   out[[id_col]] <- out$.tip_id
   out[[cluster_col]] <- cluster_labels[as.character(out$.component)]
   out[, c(id_col, cluster_col), drop = FALSE]
+}
+
+#' Choose k for tree tip clustering
+#'
+#' Evaluates fixed-k tree partitions from `clusterTreeTips()` and chooses a
+#' useful number of connected tip clusters. The default rule picks the previous
+#' k when the relative improvement in within-cluster patristic distance falls
+#' below `improvement_threshold`.
+#'
+#' @param tree A phylogenetic tree object with `edge`, `edge.length`, and
+#'   `tip.label` fields.
+#' @param k_range Candidate k values.
+#' @param criterion Selection rule. `"relative_improvement"` chooses the
+#'   previous k once the score improvement falls below `improvement_threshold`.
+#'   `"elbow"` chooses the point farthest from the line connecting the first and
+#'   last candidate scores.
+#' @param score Score to minimize. `"mean_pairwise"` uses the mean within-cluster
+#'   patristic distance across all same-cluster tip pairs. `"sum_pairwise"` uses
+#'   the total within-cluster patristic distance.
+#' @param improvement_threshold Relative improvement threshold used when
+#'   `criterion = "relative_improvement"`.
+#' @param ignore_tips Optional tip labels to drop before scoring, for example
+#'   `"Germline"`.
+#' @param method,cut_terminal_edges Arguments passed to `clusterTreeTips()`.
+#' @return List with selected `k` and a candidate score data frame.
+#' @export
+chooseTreeTipK <- function(tree,
+                           k_range = 1:10,
+                           criterion = c("relative_improvement", "elbow"),
+                           score = c("mean_pairwise", "sum_pairwise"),
+                           improvement_threshold = 0.10,
+                           ignore_tips = "Germline",
+                           method = c("cut_largest_branches", "split_largest_subtrees"),
+                           cut_terminal_edges = TRUE) {
+  criterion <- match.arg(criterion)
+  score <- match.arg(score)
+  method <- match.arg(method)
+  retained_tips <- setdiff(tree$tip.label, ignore_tips)
+  max_k <- length(retained_tips)
+  k_range <- sort(unique(as.integer(k_range)))
+  k_range <- k_range[!is.na(k_range) & k_range >= 1L & k_range <= max_k]
+  if (length(k_range) == 0L) {
+    rlang::abort("`k_range` does not contain any valid k values for this tree.")
+  }
+
+  scores <- do.call(rbind, lapply(k_range, function(k) {
+    clusters <- clusterTreeTips(
+      tree,
+      k = k,
+      id_col = "sequence_id",
+      cluster_col = "tree_cluster",
+      ignore_tips = ignore_tips,
+      method = method,
+      cut_terminal_edges = cut_terminal_edges
+    )
+    cluster_score <- .sirap_tree_cluster_score(
+      tree,
+      clusters,
+      id_col = "sequence_id",
+      cluster_col = "tree_cluster",
+      score = score
+    )
+    data.frame(
+      k = k,
+      score = cluster_score,
+      stringsAsFactors = FALSE
+    )
+  }))
+
+  scores$relative_improvement <- NA_real_
+  if (nrow(scores) > 1L) {
+    previous <- scores$score[-nrow(scores)]
+    current <- scores$score[-1L]
+    scores$relative_improvement[-1L] <- ifelse(
+      previous == 0,
+      0,
+      (previous - current) / previous
+    )
+  }
+
+  if (criterion == "relative_improvement") {
+    low_gain <- which(!is.na(scores$relative_improvement) & scores$relative_improvement < improvement_threshold)
+    chosen_k <- if (length(low_gain) > 0L) {
+      scores$k[max(1L, low_gain[[1]] - 1L)]
+    } else {
+      scores$k[nrow(scores)]
+    }
+  } else {
+    chosen_k <- .sirap_choose_elbow_k(scores)
+  }
+
+  list(k = as.integer(chosen_k), scores = scores)
+}
+
+#' Cluster tips across a dowser trees object
+#'
+#' Applies `clusterTreeTips()` to each tree in a dowser `getTrees()` result and
+#' adds the resulting cluster column back to each tree's clone data.
+#'
+#' @param trees Dowser `getTrees()` output, or a list containing a `trees`
+#'   element with that output.
+#' @param k Number of connected tree components to form for each tree, or
+#'   `"auto"` to choose k separately for each tree with `chooseTreeTipK()`.
+#' @param id_col Column in each clone data frame matching tree tip labels.
+#' @param cluster_col Name of the cluster column to add.
+#' @param ignore_tips Optional tip labels to drop before joining clusters.
+#' @param prefix Prefix used for cluster labels.
+#' @param keep_col Optional column in each clone data frame used to choose
+#'   whether a tree has the expected retained tips. Clustering is run before
+#'   any keep-filtering; tips where `keep_col != keep_value` then have their
+#'   computed cluster labels overwritten with their `keep_col` value.
+#' @param keep_value Expected value in `keep_col`.
+#' @param method Tree clustering method passed to `clusterTreeTips()`.
+#' @param cut_terminal_edges Cut terminal branches when choosing branches to
+#'   remove. Defaults to `TRUE`; set to `FALSE` to prioritize internal clade
+#'   splits.
+#' @param k_range,criterion,score,improvement_threshold Arguments passed to
+#'   `chooseTreeTipK()` when `k = "auto"`.
+#' @return `trees`, with `cluster_col` added to each clone data object.
+#' @export
+clusterTreesTips <- function(trees,
+                             k,
+                             id_col = "sequence_id",
+                             cluster_col = "tree_cluster",
+                             ignore_tips = "Germline",
+                             prefix = "tree_cluster_",
+                             keep_col = NULL,
+                             keep_value = NULL,
+                             method = c("cut_largest_branches", "split_largest_subtrees"),
+                             cut_terminal_edges = TRUE,
+                             k_range = 1:8,
+                             criterion = c("relative_improvement", "elbow"),
+                             score = c("mean_pairwise", "sum_pairwise"),
+                             improvement_threshold = 0.10) {
+  method <- match.arg(method)
+  auto_k <- identical(k, "auto")
+  if (auto_k) {
+    criterion <- match.arg(criterion)
+    score <- match.arg(score)
+  }
+  if (is.list(trees) && !is.data.frame(trees) && "trees" %in% names(trees)) {
+    trees$trees <- clusterTreesTips(
+      trees$trees,
+      k = k,
+      id_col = id_col,
+      cluster_col = cluster_col,
+      ignore_tips = ignore_tips,
+      prefix = prefix,
+      keep_col = keep_col,
+      keep_value = keep_value,
+      method = method,
+      cut_terminal_edges = cut_terminal_edges,
+      k_range = k_range,
+      criterion = criterion,
+      score = score,
+      improvement_threshold = improvement_threshold
+    )
+    return(trees)
+  }
+
+  if (!is.data.frame(trees) || !all(c("trees", "data") %in% colnames(trees))) {
+    rlang::abort("`trees` must be a dowser trees data frame or a list containing one in `trees`.")
+  }
+
+  out <- trees
+  chosen_k <- integer(nrow(out))
+  k_scores <- vector("list", nrow(out))
+  use_keep_filter <- .sirap_check_tree_keep_args(keep_col, keep_value)
+  for (i in seq_len(nrow(out))) {
+    tree_for_clustering <- out$trees[[i]]
+    extra_tip_clusters <- NULL
+    if (use_keep_filter) {
+      extra_tip_clusters <- .sirap_tree_non_keep_clusters(
+        tree = out$trees[[i]],
+        clone_data = out$data[[i]],
+        id_col = id_col,
+        keep_col = keep_col,
+        keep_value = keep_value,
+        cluster_col = cluster_col,
+        ignore_tips = ignore_tips
+      )
+    }
+
+    tree_k <- k
+    if (auto_k) {
+      k_choice <- chooseTreeTipK(
+        tree_for_clustering,
+        k_range = k_range,
+        criterion = criterion,
+        score = score,
+        improvement_threshold = improvement_threshold,
+        ignore_tips = ignore_tips,
+        method = method,
+        cut_terminal_edges = cut_terminal_edges
+      )
+      tree_k <- k_choice$k
+      k_scores[[i]] <- k_choice$scores
+    }
+    chosen_k[[i]] <- as.integer(tree_k)
+    if (!auto_k) {
+      n_tree_tips <- length(tree_for_clustering$tip.label)
+      if (as.integer(tree_k) > n_tree_tips) {
+        warning(
+          .sirap_tree_row_label(out, i),
+          " requested k = ",
+          as.integer(tree_k),
+          " but has only ",
+          n_tree_tips,
+          " tips; using k = ",
+          n_tree_tips,
+          " for this tree.",
+          call. = FALSE
+        )
+        tree_k <- n_tree_tips
+        chosen_k[[i]] <- as.integer(tree_k)
+      }
+    }
+    tree_tip_clusters <- clusterTreeTips(
+      tree_for_clustering,
+      k = tree_k,
+      id_col = id_col,
+      cluster_col = cluster_col,
+      ignore_tips = ignore_tips,
+      prefix = prefix,
+      method = method,
+      cut_terminal_edges = cut_terminal_edges
+    )
+    if (!is.null(extra_tip_clusters) && nrow(extra_tip_clusters) > 0L) {
+      tree_tip_clusters <- tree_tip_clusters[
+        !tree_tip_clusters[[id_col]] %in% extra_tip_clusters[[id_col]],
+        ,
+        drop = FALSE
+      ]
+      tree_tip_clusters <- rbind(tree_tip_clusters, extra_tip_clusters)
+    }
+    tree_tip_clusters[[cluster_col]] <- .sirap_compact_tree_cluster_labels(
+      tree_tip_clusters[[cluster_col]],
+      prefix = prefix
+    )
+    out$data[[i]] <- .sirap_add_tree_tip_clusters(
+      out$data[[i]],
+      tree_tip_clusters,
+      id_col = id_col,
+      cluster_col = cluster_col
+    )
+  }
+  out[[paste0(cluster_col, "_k")]] <- chosen_k
+  attr(out, paste0(cluster_col, "_scores")) <- k_scores
+  out
+}
+
+#' Assign stable colors within selected clones
+#'
+#' Adds a per-tip color identifier and color value that can be used consistently
+#' in tree plots and matched spatial plots.
+#'
+#' @param clones Clone-assigned AIRR data frame.
+#' @param clone_ids Optional clone IDs to retain before assigning colors.
+#' @param clone_col,id_col Column names for clone and sequence/tip identifiers.
+#' @param shared_color_col Optional column whose shared values should receive
+#'   the same tip color within each clone, for example a spatial barcode column.
+#' @param palette Optional color vector. Defaults to `pals::glasbey()` when
+#'   available, otherwise base R qualitative colors.
+#' @return Data frame with `tip_color_id` and `tip_color` columns.
+#' @export
+assignTipColors <- function(clones,
+                              clone_ids = NULL,
+                              clone_col = "clone_id",
+                              id_col = "sequence_id",
+                              shared_color_col = NULL,
+                              palette = NULL) {
+  .check_required_cols(clones, c(clone_col, id_col), "clones")
+  if (!is.null(shared_color_col)) {
+    .check_required_cols(clones, shared_color_col, "clones")
+  }
+  out <- .as_data_frame(clones)
+  if (!is.null(clone_ids)) {
+    out <- out[out[[clone_col]] %in% clone_ids, , drop = FALSE]
+  }
+  out <- out[!is.na(out[[clone_col]]) & !is.na(out[[id_col]]), , drop = FALSE]
+  if (is.null(shared_color_col)) {
+    out <- out %>%
+      dplyr::group_by(dplyr::across(dplyr::all_of(clone_col))) %>%
+      dplyr::arrange(.data[[id_col]], .by_group = TRUE) %>%
+      dplyr::mutate(tip_color_id = as.character(dplyr::row_number())) %>%
+      dplyr::ungroup()
+  } else {
+    out <- out %>%
+      dplyr::group_by(dplyr::across(dplyr::all_of(clone_col))) %>%
+      dplyr::arrange(.data[[shared_color_col]], .data[[id_col]], .by_group = TRUE) %>%
+      dplyr::mutate(tip_color_id = as.character(dplyr::dense_rank(.data[[shared_color_col]]))) %>%
+      dplyr::ungroup()
+  }
+
+  n_colors <- max(as.integer(out$tip_color_id), na.rm = TRUE)
+  if (is.null(palette)) {
+    if (requireNamespace("pals", quietly = TRUE)) {
+      palette <- .sirap_extend_palette(pals::glasbey(32), n_colors)
+    } else {
+      palette <- grDevices::hcl.colors(max(12, n_colors), palette = "Dark 3")
+    }
+  } else if (length(palette) < n_colors) {
+    palette <- .sirap_extend_palette(palette, n_colors)
+  }
+  out$tip_color <- palette[as.integer(out$tip_color_id)]
+  out
 }
 
 .sirap_tree_cut_edges <- function(edge,
@@ -430,98 +716,6 @@ clusterTreeTips <- function(tree,
   distances
 }
 
-#' Choose k for tree tip clustering
-#'
-#' Evaluates fixed-k tree partitions from `clusterTreeTips()` and chooses a
-#' useful number of connected tip clusters. The default rule picks the previous
-#' k when the relative improvement in within-cluster patristic distance falls
-#' below `improvement_threshold`.
-#'
-#' @param tree A phylogenetic tree object with `edge`, `edge.length`, and
-#'   `tip.label` fields.
-#' @param k_range Candidate k values.
-#' @param criterion Selection rule. `"relative_improvement"` chooses the
-#'   previous k once the score improvement falls below `improvement_threshold`.
-#'   `"elbow"` chooses the point farthest from the line connecting the first and
-#'   last candidate scores.
-#' @param score Score to minimize. `"mean_pairwise"` uses the mean within-cluster
-#'   patristic distance across all same-cluster tip pairs. `"sum_pairwise"` uses
-#'   the total within-cluster patristic distance.
-#' @param improvement_threshold Relative improvement threshold used when
-#'   `criterion = "relative_improvement"`.
-#' @param ignore_tips Optional tip labels to drop before scoring, for example
-#'   `"Germline"`.
-#' @param method,cut_terminal_edges Arguments passed to `clusterTreeTips()`.
-#' @return List with selected `k` and a candidate score data frame.
-#' @export
-chooseTreeTipK <- function(tree,
-                           k_range = 1:10,
-                           criterion = c("relative_improvement", "elbow"),
-                           score = c("mean_pairwise", "sum_pairwise"),
-                           improvement_threshold = 0.10,
-                           ignore_tips = "Germline",
-                           method = c("cut_largest_branches", "split_largest_subtrees"),
-                           cut_terminal_edges = TRUE) {
-  criterion <- match.arg(criterion)
-  score <- match.arg(score)
-  method <- match.arg(method)
-  retained_tips <- setdiff(tree$tip.label, ignore_tips)
-  max_k <- length(retained_tips)
-  k_range <- sort(unique(as.integer(k_range)))
-  k_range <- k_range[!is.na(k_range) & k_range >= 1L & k_range <= max_k]
-  if (length(k_range) == 0L) {
-    rlang::abort("`k_range` does not contain any valid k values for this tree.")
-  }
-
-  scores <- do.call(rbind, lapply(k_range, function(k) {
-    clusters <- clusterTreeTips(
-      tree,
-      k = k,
-      id_col = "sequence_id",
-      cluster_col = "tree_cluster",
-      ignore_tips = ignore_tips,
-      method = method,
-      cut_terminal_edges = cut_terminal_edges
-    )
-    cluster_score <- .sirap_tree_cluster_score(
-      tree,
-      clusters,
-      id_col = "sequence_id",
-      cluster_col = "tree_cluster",
-      score = score
-    )
-    data.frame(
-      k = k,
-      score = cluster_score,
-      stringsAsFactors = FALSE
-    )
-  }))
-
-  scores$relative_improvement <- NA_real_
-  if (nrow(scores) > 1L) {
-    previous <- scores$score[-nrow(scores)]
-    current <- scores$score[-1L]
-    scores$relative_improvement[-1L] <- ifelse(
-      previous == 0,
-      0,
-      (previous - current) / previous
-    )
-  }
-
-  if (criterion == "relative_improvement") {
-    low_gain <- which(!is.na(scores$relative_improvement) & scores$relative_improvement < improvement_threshold)
-    chosen_k <- if (length(low_gain) > 0L) {
-      scores$k[max(1L, low_gain[[1]] - 1L)]
-    } else {
-      scores$k[nrow(scores)]
-    }
-  } else {
-    chosen_k <- .sirap_choose_elbow_k(scores)
-  }
-
-  list(k = as.integer(chosen_k), scores = scores)
-}
-
 .sirap_tree_cluster_score <- function(tree,
                                       clusters,
                                       id_col,
@@ -628,163 +822,6 @@ chooseTreeTipK <- function(tree,
     abs(line[[1]] * (start[[2]] - point[[2]]) - (start[[1]] - point[[1]]) * line[[2]]) / sqrt(sum(line^2))
   }, numeric(1))
   scores$k[which.max(distances)]
-}
-
-#' Cluster tips across a dowser trees object
-#'
-#' Applies `clusterTreeTips()` to each tree in a dowser `getTrees()` result and
-#' adds the resulting cluster column back to each tree's clone data.
-#'
-#' @param trees Dowser `getTrees()` output, or a list containing a `trees`
-#'   element with that output.
-#' @param k Number of connected tree components to form for each tree, or
-#'   `"auto"` to choose k separately for each tree with `chooseTreeTipK()`.
-#' @param id_col Column in each clone data frame matching tree tip labels.
-#' @param cluster_col Name of the cluster column to add.
-#' @param ignore_tips Optional tip labels to drop before joining clusters.
-#' @param prefix Prefix used for cluster labels.
-#' @param keep_col Optional column in each clone data frame used to choose
-#'   whether a tree has the expected retained tips. Clustering is run before
-#'   any keep-filtering; tips where `keep_col != keep_value` then have their
-#'   computed cluster labels overwritten with their `keep_col` value.
-#' @param keep_value Expected value in `keep_col`.
-#' @param method Tree clustering method passed to `clusterTreeTips()`.
-#' @param cut_terminal_edges Cut terminal branches when choosing branches to
-#'   remove. Defaults to `TRUE`; set to `FALSE` to prioritize internal clade
-#'   splits.
-#' @param k_range,criterion,score,improvement_threshold Arguments passed to
-#'   `chooseTreeTipK()` when `k = "auto"`.
-#' @return `trees`, with `cluster_col` added to each clone data object.
-#' @export
-clusterTreesTips <- function(trees,
-                             k,
-                             id_col = "sequence_id",
-                             cluster_col = "tree_cluster",
-                             ignore_tips = "Germline",
-                             prefix = "tree_cluster_",
-                             keep_col = NULL,
-                             keep_value = NULL,
-                             method = c("cut_largest_branches", "split_largest_subtrees"),
-                             cut_terminal_edges = TRUE,
-                             k_range = 1:8,
-                             criterion = c("relative_improvement", "elbow"),
-                             score = c("mean_pairwise", "sum_pairwise"),
-                             improvement_threshold = 0.10) {
-  method <- match.arg(method)
-  auto_k <- identical(k, "auto")
-  if (auto_k) {
-    criterion <- match.arg(criterion)
-    score <- match.arg(score)
-  }
-  if (is.list(trees) && !is.data.frame(trees) && "trees" %in% names(trees)) {
-    trees$trees <- clusterTreesTips(
-      trees$trees,
-      k = k,
-      id_col = id_col,
-      cluster_col = cluster_col,
-      ignore_tips = ignore_tips,
-      prefix = prefix,
-      keep_col = keep_col,
-      keep_value = keep_value,
-      method = method,
-      cut_terminal_edges = cut_terminal_edges,
-      k_range = k_range,
-      criterion = criterion,
-      score = score,
-      improvement_threshold = improvement_threshold
-    )
-    return(trees)
-  }
-
-  if (!is.data.frame(trees) || !all(c("trees", "data") %in% colnames(trees))) {
-    rlang::abort("`trees` must be a dowser trees data frame or a list containing one in `trees`.")
-  }
-
-  out <- trees
-  chosen_k <- integer(nrow(out))
-  k_scores <- vector("list", nrow(out))
-  use_keep_filter <- .sirap_check_tree_keep_args(keep_col, keep_value)
-  for (i in seq_len(nrow(out))) {
-    tree_for_clustering <- out$trees[[i]]
-    extra_tip_clusters <- NULL
-    if (use_keep_filter) {
-      extra_tip_clusters <- .sirap_tree_non_keep_clusters(
-        tree = out$trees[[i]],
-        clone_data = out$data[[i]],
-        id_col = id_col,
-        keep_col = keep_col,
-        keep_value = keep_value,
-        cluster_col = cluster_col,
-        ignore_tips = ignore_tips
-      )
-    }
-
-    tree_k <- k
-    if (auto_k) {
-      k_choice <- chooseTreeTipK(
-        tree_for_clustering,
-        k_range = k_range,
-        criterion = criterion,
-        score = score,
-        improvement_threshold = improvement_threshold,
-        ignore_tips = ignore_tips,
-        method = method,
-        cut_terminal_edges = cut_terminal_edges
-      )
-      tree_k <- k_choice$k
-      k_scores[[i]] <- k_choice$scores
-    }
-    chosen_k[[i]] <- as.integer(tree_k)
-    if (!auto_k) {
-      n_tree_tips <- length(tree_for_clustering$tip.label)
-      if (as.integer(tree_k) > n_tree_tips) {
-        warning(
-          .sirap_tree_row_label(out, i),
-          " requested k = ",
-          as.integer(tree_k),
-          " but has only ",
-          n_tree_tips,
-          " tips; using k = ",
-          n_tree_tips,
-          " for this tree.",
-          call. = FALSE
-        )
-        tree_k <- n_tree_tips
-        chosen_k[[i]] <- as.integer(tree_k)
-      }
-    }
-    tree_tip_clusters <- clusterTreeTips(
-      tree_for_clustering,
-      k = tree_k,
-      id_col = id_col,
-      cluster_col = cluster_col,
-      ignore_tips = ignore_tips,
-      prefix = prefix,
-      method = method,
-      cut_terminal_edges = cut_terminal_edges
-    )
-    if (!is.null(extra_tip_clusters) && nrow(extra_tip_clusters) > 0L) {
-      tree_tip_clusters <- tree_tip_clusters[
-        !tree_tip_clusters[[id_col]] %in% extra_tip_clusters[[id_col]],
-        ,
-        drop = FALSE
-      ]
-      tree_tip_clusters <- rbind(tree_tip_clusters, extra_tip_clusters)
-    }
-    tree_tip_clusters[[cluster_col]] <- .sirap_compact_tree_cluster_labels(
-      tree_tip_clusters[[cluster_col]],
-      prefix = prefix
-    )
-    out$data[[i]] <- .sirap_add_tree_tip_clusters(
-      out$data[[i]],
-      tree_tip_clusters,
-      id_col = id_col,
-      cluster_col = cluster_col
-    )
-  }
-  out[[paste0(cluster_col, "_k")]] <- chosen_k
-  attr(out, paste0(cluster_col, "_scores")) <- k_scores
-  out
 }
 
 .sirap_compact_tree_cluster_labels <- function(labels, prefix) {
@@ -910,63 +947,6 @@ clusterTreesTips <- function(trees,
   }
 
   rlang::abort("Could not find a clone data frame to add tree tip clusters to.")
-}
-
-#' Assign stable colors within selected clones
-#'
-#' Adds a per-tip color identifier and color value that can be used consistently
-#' in tree plots and matched spatial plots.
-#'
-#' @param clones Clone-assigned AIRR data frame.
-#' @param clone_ids Optional clone IDs to retain before assigning colors.
-#' @param clone_col,id_col Column names for clone and sequence/tip identifiers.
-#' @param shared_color_col Optional column whose shared values should receive
-#'   the same tip color within each clone, for example a spatial barcode column.
-#' @param palette Optional color vector. Defaults to `pals::glasbey()` when
-#'   available, otherwise base R qualitative colors.
-#' @return Data frame with `tip_color_id` and `tip_color` columns.
-#' @export
-assignTipColors <- function(clones,
-                              clone_ids = NULL,
-                              clone_col = "clone_id",
-                              id_col = "sequence_id",
-                              shared_color_col = NULL,
-                              palette = NULL) {
-  .check_required_cols(clones, c(clone_col, id_col), "clones")
-  if (!is.null(shared_color_col)) {
-    .check_required_cols(clones, shared_color_col, "clones")
-  }
-  out <- .as_data_frame(clones)
-  if (!is.null(clone_ids)) {
-    out <- out[out[[clone_col]] %in% clone_ids, , drop = FALSE]
-  }
-  out <- out[!is.na(out[[clone_col]]) & !is.na(out[[id_col]]), , drop = FALSE]
-  if (is.null(shared_color_col)) {
-    out <- out %>%
-      dplyr::group_by(dplyr::across(dplyr::all_of(clone_col))) %>%
-      dplyr::arrange(.data[[id_col]], .by_group = TRUE) %>%
-      dplyr::mutate(tip_color_id = as.character(dplyr::row_number())) %>%
-      dplyr::ungroup()
-  } else {
-    out <- out %>%
-      dplyr::group_by(dplyr::across(dplyr::all_of(clone_col))) %>%
-      dplyr::arrange(.data[[shared_color_col]], .data[[id_col]], .by_group = TRUE) %>%
-      dplyr::mutate(tip_color_id = as.character(dplyr::dense_rank(.data[[shared_color_col]]))) %>%
-      dplyr::ungroup()
-  }
-
-  n_colors <- max(as.integer(out$tip_color_id), na.rm = TRUE)
-  if (is.null(palette)) {
-    if (requireNamespace("pals", quietly = TRUE)) {
-      palette <- .sirap_extend_palette(pals::glasbey(32), n_colors)
-    } else {
-      palette <- grDevices::hcl.colors(max(12, n_colors), palette = "Dark 3")
-    }
-  } else if (length(palette) < n_colors) {
-    palette <- .sirap_extend_palette(palette, n_colors)
-  }
-  out$tip_color <- palette[as.integer(out$tip_color_id)]
-  out
 }
 
 .sirap_extend_palette <- function(palette, n) {

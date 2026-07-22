@@ -8,9 +8,9 @@
 #' @param bcrs BCR/AIRR-style data frame containing clone assignments and a
 #'   spatial barcode column. This may instead be a SIRAP object when `object`
 #'   is omitted.
-#' @param object Seurat object with spatial coordinates, metadata coordinate
-#'   columns supported by `spatialVariableData()`, or a SIRAP object. When this
-#'   is a SIRAP object, `bcrs` may be omitted.
+#' @param object Seurat object with spatial coordinates or metadata coordinate
+#'   columns, or a SIRAP object. When this is a SIRAP object, `bcrs` may be
+#'   omitted.
 #' @param polygon Data frame of polygon vertices in order. Must contain `x` and
 #'   `y` columns by default. If a `polygon` column is present, each polygon is
 #'   summarized independently unless `polygon_id` selects one or more polygons.
@@ -1460,42 +1460,6 @@ seuratSubsetPolygon <- function(object,
   out <- suppressWarnings(object[, keep_cells], classes = "validationWarning")
   out@meta.data[[metadata_col]] <- unname(polygon_lookup[rownames(out@meta.data)])
   out
-}
-
-#' Define key spatial areas interactively
-#'
-#' Compatibility wrapper for the older `defineKeyAreas()` workflow. It now
-#' returns polygon vertices directly; pass the result to `spatialCloneDominance()`.
-#'
-#' @param seurat_obj Seurat object, or a SIRAP object.
-#' @param assay Assay used for expression plotting.
-#' @param dataset Expression layer/slot used for expression plotting.
-#' @param autoload Retained for compatibility. Interior point expansion is no
-#'   longer performed; polygon vertices are returned.
-#' @param quiet Suppress warnings while the app is running.
-#' @param ... Passed to `selectSpatialPolygons()`.
-#' @return Data frame of polygon vertices.
-#' @export
-defineKeyAreas <- function(seurat_obj,
-                           assay = "Spatial",
-                           dataset = "scale.data",
-                           autoload = TRUE,
-                           quiet = TRUE,
-                           ...) {
-  if (isTRUE(autoload)) {
-    warning(
-      "`defineKeyAreas()` now returns polygon vertices directly; ",
-      "use `spatialCloneDominance()` or another polygon-aware function to select enclosed spots.",
-      call. = FALSE
-    )
-  }
-  selectSpatialPolygons(
-    object = seurat_obj,
-    assay = assay,
-    layer = dataset,
-    quiet = quiet,
-    ...
-  )
 }
 
 .sirap_select_polygon_vertices <- function(polygon,
