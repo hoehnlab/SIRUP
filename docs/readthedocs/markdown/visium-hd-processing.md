@@ -132,7 +132,7 @@ head(positions8um)
 ## Start from Raw IgBLAST Output
 
 Extract the 2 um spatial barcode before pRESTO and do a first
-length/locus filter. `processSpatialAirr()` keeps preprocessing in
+length/locus filter. `filterSpatialAirr()` keeps preprocessing in
 memory; we explicitly write AIRR tables and FASTA files only when we
 need pRESTO inputs.
 
@@ -158,7 +158,7 @@ tcrRaw <- extractSpatialBarcode(
   suffix = "-1"
 )
 
-bcrHeavy <- processSpatialAirr(
+bcrHeavy <- filterSpatialAirr(
   bcrRaw,
   loci = "IGH",
   min_v_length = 100,
@@ -168,7 +168,7 @@ bcrHeavy <- processSpatialAirr(
   add_full_id = TRUE
 )
 
-tcrBeta <- processSpatialAirr(
+tcrBeta <- filterSpatialAirr(
   tcrRaw,
   loci = "TRB",
   min_v_length = 100,
@@ -256,7 +256,7 @@ tcrConsensus <- extractSpatialBarcode(
   regex = ",([^,]+)"
 )
 
-bcrConsensusFiltered <- processSpatialAirr(
+bcrConsensusFiltered <- filterSpatialAirr(
   bcrConsensus,
   loci = "IGH",
   min_v_length = 250,
@@ -268,7 +268,7 @@ bcrConsensusFiltered <- processSpatialAirr(
   barcode_col = "barcode_2um"
 )
 
-tcrConsensusFiltered <- processSpatialAirr(
+tcrConsensusFiltered <- filterSpatialAirr(
   tcrConsensus,
   loci = "TRB",
   min_v_length = 250,

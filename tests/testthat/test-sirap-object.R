@@ -108,13 +108,6 @@ test_that("createSIRAP rejects receptor tables without spatial overlap", {
 test_that("SIRAP metadata supplies receptor inputs to spatial analyses", {
   x <- make_test_sirap(barcode_col = "spot", clone_col = "clonal_group")
 
-  variable <- spatialVariableData(
-    object = x,
-    variable = "receptor_present",
-    variable_type = "receptor"
-  )
-  expect_equal(variable$value[match(paste0("cell", 1:4), variable$cell)], c(1, 1, 0, 0))
-
   polygon <- data.frame(
     x = c(-1, 4, 4, -1, -1),
     y = c(-1, -1, 4, 4, -1)
@@ -125,6 +118,20 @@ test_that("SIRAP metadata supplies receptor inputs to spatial analyses", {
   expect_equal(dominance$metadata$receptor_fields$clone, "clonal_group")
   expect_equal(sort(dominance$dominance$clone_id), c("A", "B"))
   expect_equal(sort(dominance$region_bcrs$.sirap_barcode), c("cell1", "cell2"))
+})
+
+test_that("spatialLocalMoran uses the receptor barcode stored in SIRAP metadata", {
+  skip_if_not_installed("spdep")
+  x <- make_test_sirap(barcode_col = "spot", clone_col = "clonal_group")
+
+  local <- spatialLocalMoran(
+    object = x,
+    variable = "receptor_present",
+    variable_type = "receptor",
+    k = 1
+  )
+
+  expect_equal(local$value[match(paste0("cell", 1:4), local$cell)], c(1, 1, 0, 0))
 })
 
 test_that("SIRAP print reports spatial and receptor dimensions", {

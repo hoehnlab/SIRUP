@@ -217,60 +217,6 @@ radPath <- function(path = NULL) {
   )
 }
 
-.rad_flag <- function(flag, value) {
-  if (is.null(value)) return(character())
-  if (is.logical(value)) {
-    if (length(value) != 1L) {
-      rlang::abort(paste0("flag '", flag, "' must be length 1"))
-    }
-    if (isTRUE(value)) return(flag)
-    return(character())
-  }
-  if (length(value) != 1L) {
-    rlang::abort(paste0("flag '", flag, "' must be a length-1 scalar"))
-  }
-  c(flag, as.character(value))
-}
-
-.rad_call <- function(args,
-                      rad = radPath(),
-                      capture = FALSE,
-                      echo = TRUE,
-                      check = TRUE) {
-  args <- as.character(args)
-  if (echo && !capture) {
-    cat("$ ", rad, " ", paste(shQuote(args), collapse = " "), "\n", sep = "")
-  }
-  if (capture) {
-    out <- suppressWarnings(
-      system2(rad, args = args, stdout = TRUE, stderr = TRUE)
-    )
-    status <- attr(out, "status")
-    if (is.null(status)) status <- 0L
-    res <- list(
-      status = as.integer(status),
-      stdout = paste(out, collapse = "\n"),
-      stderr = NA_character_,
-      command = c(rad, args)
-    )
-  } else {
-    status <- system2(rad, args = args)
-    res <- list(
-      status = as.integer(status),
-      stdout = NULL,
-      stderr = NULL,
-      command = c(rad, args)
-    )
-  }
-  if (check && res$status != 0L) {
-    rlang::abort(
-      paste0("rad exited with status ", res$status, ". Command: ",
-             paste(shQuote(res$command), collapse = " "))
-    )
-  }
-  invisible(res)
-}
-
 #' Prepare read layout and/or position map (`rad prep`)
 #'
 #' Wraps `rad prep`. At least one of `read_layout` or `position_map` must be
@@ -792,4 +738,58 @@ radRun <- function(layout, fastq,
   }
 
   invisible(list(prep = prep_res, demux = demux_res, reformat = reformat_res))
+}
+
+.rad_flag <- function(flag, value) {
+  if (is.null(value)) return(character())
+  if (is.logical(value)) {
+    if (length(value) != 1L) {
+      rlang::abort(paste0("flag '", flag, "' must be length 1"))
+    }
+    if (isTRUE(value)) return(flag)
+    return(character())
+  }
+  if (length(value) != 1L) {
+    rlang::abort(paste0("flag '", flag, "' must be a length-1 scalar"))
+  }
+  c(flag, as.character(value))
+}
+
+.rad_call <- function(args,
+                      rad = radPath(),
+                      capture = FALSE,
+                      echo = TRUE,
+                      check = TRUE) {
+  args <- as.character(args)
+  if (echo && !capture) {
+    cat("$ ", rad, " ", paste(shQuote(args), collapse = " "), "\n", sep = "")
+  }
+  if (capture) {
+    out <- suppressWarnings(
+      system2(rad, args = args, stdout = TRUE, stderr = TRUE)
+    )
+    status <- attr(out, "status")
+    if (is.null(status)) status <- 0L
+    res <- list(
+      status = as.integer(status),
+      stdout = paste(out, collapse = "\n"),
+      stderr = NA_character_,
+      command = c(rad, args)
+    )
+  } else {
+    status <- system2(rad, args = args)
+    res <- list(
+      status = as.integer(status),
+      stdout = NULL,
+      stderr = NULL,
+      command = c(rad, args)
+    )
+  }
+  if (check && res$status != 0L) {
+    rlang::abort(
+      paste0("rad exited with status ", res$status, ". Command: ",
+             paste(shQuote(res$command), collapse = " "))
+    )
+  }
+  invisible(res)
 }

@@ -23,7 +23,7 @@ SIRAP should be framed as a two-part spAIRR toolkit:
    - RAD is the demultiplexing/read-structure package that works with SIRAP, not a method we should present as internal to SIRAP.
    - SIRAP provides pre-built downstream processing pipelines after RAD, including pRESTO/IgBLAST-based AIRR generation, QC, barcode extraction, Visium HD barcode mapping, and consensus/top-sequence filtering.
 2. Visualize and analyze spAIRR data.
-   - SIRAP provides spatial overlays, receptor/gene colocalization, clone dominance summaries, region/polygon workflows, lineage tree/spatial plot pairing, clone assays, and spatial statistics.
+   - SIRAP provides spatial overlays, receptor/gene colocalization, clone dominance summaries, region/polygon workflows, lineage tree/spatial plot pairing, and spatial statistics.
    - SPaCeD is its own method for spatial heavy/light pairing. In SIRAP, we re-implemented/integrated the SPaCeD-style analysis surface so it can be used alongside the rest of the spAIRR workflow.
 
 Manuscript language should keep these boundaries clear:
@@ -134,7 +134,6 @@ Panels:
 
 Existing anchors:
 
-- `spatialVariableData()`
 - `spatialMoran()`
 - `spatialLocalMoran()`
 - `spatialRipleyCrossK()`

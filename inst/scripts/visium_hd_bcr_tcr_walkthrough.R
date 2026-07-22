@@ -139,7 +139,7 @@ tcrRaw <- extractSpatialBarcode(
   suffix = "-1"
 )
 
-bcrHeavy <- processSpatialAirr(
+bcrHeavy <- filterSpatialAirr(
   bcrRaw,
   loci = "IGH",
   min_v_length = 100,
@@ -150,7 +150,7 @@ bcrHeavy <- processSpatialAirr(
 )
 cat("Kept BCR heavy chains: ", nrow(bcrHeavy), "\n")
 
-tcrBeta <- processSpatialAirr(
+tcrBeta <- filterSpatialAirr(
   tcrRaw,
   loci = "TRB",
   min_v_length = 100,
@@ -314,7 +314,7 @@ tcrConsensus <- extractSpatialBarcode(
 
 # Filter the consensus output further based on sequence v_length, j_length, junction length, productivity, and consensus cluster count
 # Also don't accept any sequences with an opening gap of more than 2
-bcrConsensusFiltered <- processSpatialAirr(
+bcrConsensusFiltered <- filterSpatialAirr(
   bcrConsensus,
   loci = "IGH",
   min_v_length = 250,
@@ -327,7 +327,7 @@ bcrConsensusFiltered <- processSpatialAirr(
 )
 cat("Kept BCR consensus sequences after filtering: ", nrow(bcrConsensusFiltered), "\n")
 
-tcrConsensusFiltered <- processSpatialAirr(
+tcrConsensusFiltered <- filterSpatialAirr(
   tcrConsensus,
   loci = "TRB",
   min_v_length = 250,

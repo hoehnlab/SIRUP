@@ -5,7 +5,7 @@
 #' rearrangement tables with spatial barcodes and coordinates, Visium HD
 #' barcode mapping, pRESTO/IgBLAST shell pipeline generation, clonal
 #' summaries, lightweight SIRAP containers pairing spatial Seurat data with
-#' tibble-backed receptor tables, Seurat clone assays, tree plotting,
+#' tibble-backed receptor tables, tree plotting,
 #' int64-packed DNA primitives, and PAF parsing utilities.
 #'
 #' @keywords internal

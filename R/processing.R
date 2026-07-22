@@ -1,4 +1,6 @@
-#' Process spatial AIRR seq data by filtering for productivity, v/j/junction length, a minimum 
+#' Filter spatial AIRR-seq data
+#'
+#' Filters spatial AIRR-seq data for productivity, V/J/junction length, a minimum
 #' consensus count, optional max opening gap length, and optionally adding a full_id combining sequence_id and
 #' spatial barcode.
 #'
@@ -21,19 +23,19 @@
 #' @return Preprocessed data frame with `vlength`, `jlength`, and optional
 #'   `full_id` columns.
 #' @export
-processSpatialAirr <- function(airr_df,
-                                 loci = NULL,
-                                 min_v_length = 100,
-                                 min_j_length = 10,
-                                 min_junction_length = 1,
-                                 productive_only = TRUE,
-                                 min_consensus_count = 2,
-                                 max_opening_gap = NULL,
-                                 sequence_alignment_col = "sequence_alignment",
-                                 sequence_id_col = "sequence_id",
-                                 barcode_col = NULL,
-                                 add_full_id = FALSE,
-                                 full_id_barcode_key = "barcode2um") {
+filterSpatialAirr <- function(airr_df,
+                              loci = NULL,
+                              min_v_length = 100,
+                              min_j_length = 10,
+                              min_junction_length = 1,
+                              productive_only = TRUE,
+                              min_consensus_count = 2,
+                              max_opening_gap = NULL,
+                              sequence_alignment_col = "sequence_alignment",
+                              sequence_id_col = "sequence_id",
+                              barcode_col = NULL,
+                              add_full_id = FALSE,
+                              full_id_barcode_key = "barcode2um") {
   required <- c(
     "v_sequence_end", "v_sequence_start",
     "j_sequence_end", "j_sequence_start",
@@ -69,7 +71,7 @@ processSpatialAirr <- function(airr_df,
   }
   if (!is.null(max_opening_gap)) {
     .check_required_cols(out, sequence_alignment_col, "airr_df")
-    gaps <- vapply(out[[sequence_alignment_col]], openingGapLength, integer(1))
+    gaps <- vapply(out[[sequence_alignment_col]], .sirap_opening_gap_length, integer(1))
     out <- out[gaps <= max_opening_gap, , drop = FALSE]
   }
 
@@ -89,45 +91,10 @@ processSpatialAirr <- function(airr_df,
   }
 
   message(
-    "processSpatialAirr kept ", nrow(out), " of ", n_input,
+    "filterSpatialAirr kept ", nrow(out), " of ", n_input,
     " rows (dropped ", n_input - nrow(out), ")."
   )
   out
-}
-
-#' Check the maximum internal gap run length
-#'
-#' @param seq Character sequence, typically `sequence_alignment`.
-#' @return Integer length of the longest run of periods.
-#' @export
-maxGapLength <- function(seq) {
-  seq <- as.character(seq)
-  if (is.na(seq)) {
-    return(NA_integer_)
-  }
-  gaps <- gregexpr("\\.+", seq)
-  matches <- regmatches(seq, gaps)[[1]]
-  if (length(matches) == 0 || identical(matches, character(0))) {
-    return(0L)
-  }
-  max(nchar(matches))
-}
-
-#' Check the opening gap run length
-#'
-#' @param seq Character sequence, typically `sequence_alignment`.
-#' @return Integer length of the leading run of periods.
-#' @export
-openingGapLength <- function(seq) {
-  seq <- as.character(seq)
-  if (is.na(seq)) {
-    return(NA_integer_)
-  }
-  gap_match <- regexpr("^\\.+", seq)
-  if (gap_match[[1]] == -1) {
-    return(0L)
-  }
-  attr(gap_match, "match.length")
 }
 
 #' Collapse to the most abundant consensus sequence per barcode and locus
@@ -180,8 +147,8 @@ collapseTopConsensusPerBarcode <- function(airr_df,
     out$non_N_nucleotide_prop <- stringr::str_count(out[[sequence_col]], "[ACGT]") / nchar(out[[sequence_col]])
   }
   if (alignment_col %in% colnames(out)) {
-    out$max_gap_length <- vapply(out[[alignment_col]], maxGapLength, integer(1))
-    out$opening_gap_length <- vapply(out[[alignment_col]], openingGapLength, integer(1))
+    out$max_gap_length <- vapply(out[[alignment_col]], .sirap_max_gap_length, integer(1))
+    out$opening_gap_length <- vapply(out[[alignment_col]], .sirap_opening_gap_length, integer(1))
   }
   out
 }
@@ -208,56 +175,6 @@ spatialReceptorSummary <- function(airr_df, barcode_col = "barcode_2um") {
     n_loci = if ("locus" %in% colnames(airr_df)) dplyr::n_distinct(airr_df$locus, na.rm = TRUE) else NA_integer_,
     n_productive = if ("productive" %in% colnames(airr_df)) sum(airr_df$productive %in% c(TRUE, "TRUE", "T"), na.rm = TRUE) else NA_integer_
   )
-}
-
-#' Determine a distance threshold via kernel density estimation to consider points as neighbors
-#'
-#' @param tissue_positions Spatial tissue positions data frame containing x and y columns.
-#' @param num_neighbors_non_boundary Number of nearby points needed to be
-#'   considered non-boundary.
-#' @param x Column name for x coordinates in tissue_positions.
-#' @param y Column name for y coordinates in tissue_positions.
-#' @return Distance threshold to consider points as neighbors.
-#' @export
-calculateNeighborDistanceThreshold <- function(tissue_positions, num_neighbors_non_boundary, x = "x", y = "y") {
-  dist_matrix <- tissue_positions %>%
-    dplyr::select(dplyr::all_of(c(x, y))) %>%
-    stats::dist(method = "euclidean") %>%
-    as.matrix()
-
-  neighbor_distances <- apply(dist_matrix, 1, function(row) {
-    sorted_distances <- sort(row[row > 0])
-    sorted_distances[num_neighbors_non_boundary]
-  })
-
-  neighbor_distances <- neighbor_distances[
-    !is.na(neighbor_distances) &
-      !is.nan(neighbor_distances) &
-      !is.infinite(neighbor_distances)
-  ]
-
-  unique_distances <- unique(neighbor_distances)
-  if (length(unique_distances) < 3) {
-    stop(
-      "The automated distance threshold calculation requires at least 3 unique distance values.\n",
-      "Found distance values: ", paste(unique_distances, collapse = ", ")
-    )
-  }
-
-  bandwidth <- kedd::h.ucv(unique_distances, 4)$h
-  dens <- KernSmooth::bkde(neighbor_distances, bandwidth = bandwidth, canonical = TRUE)
-  xdens <- dens$x
-  ydens <- dens$y
-
-  threshold <- tryCatch(
-    xdens[which(diff(sign(diff(ydens))) == 2)[1] + 1],
-    error = function(e) {
-      warning("No minimum was found between two modes.")
-      NULL
-    }
-  )
-
-  threshold
 }
 
 #' Collapse spatially contiguous spots with identical sequences
@@ -488,4 +405,29 @@ collapseIdenticalNeighbors <- function(data,
   )
 
   result
+}
+
+.sirap_max_gap_length <- function(seq) {
+  seq <- as.character(seq)
+  if (is.na(seq)) {
+    return(NA_integer_)
+  }
+  gaps <- gregexpr("\\.+", seq)
+  matches <- regmatches(seq, gaps)[[1]]
+  if (length(matches) == 0 || identical(matches, character(0))) {
+    return(0L)
+  }
+  max(nchar(matches))
+}
+
+.sirap_opening_gap_length <- function(seq) {
+  seq <- as.character(seq)
+  if (is.na(seq)) {
+    return(NA_integer_)
+  }
+  gap_match <- regexpr("^\\.+", seq)
+  if (gap_match[[1]] == -1) {
+    return(0L)
+  }
+  attr(gap_match, "match.length")
 }

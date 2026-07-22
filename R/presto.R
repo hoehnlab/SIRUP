@@ -1,30 +1,3 @@
-.presto_paths <- function(input_fasta, identity, consensus_freq, output_dir = NULL) {
-  if (is.null(output_dir)) {
-    output_dir <- dirname(input_fasta)
-  }
-  stem <- tools::file_path_sans_ext(basename(input_fasta))
-  cluster <- file.path(
-    output_dir,
-    sprintf("%s_ident_%s_barcode_cluster_cluster-pass.fasta", stem, identity)
-  )
-  reheader <- sub("\\.fasta$", "_reheader.fasta", cluster)
-  aligned <- sub("\\.fasta$", "_align-pass.fasta", reheader)
-  consensus <- file.path(
-    output_dir,
-    sprintf("%s_ident_%s_barcode_cluster_freq_%s_cluster-pass_reheader_align-pass_consensus-pass.fasta", stem, identity, consensus_freq)
-  )
-  fmt7 <- sub("\\.fasta$", "_igblast.fmt7", consensus)
-  db_pass <- sub("_igblast\\.fmt7$", "_igblast_db-pass.tsv", fmt7)
-  list(
-    input = input_fasta,
-    cluster = cluster,
-    reheader = reheader,
-    aligned = aligned,
-    consensus = consensus,
-    fmt7 = fmt7,
-    db_pass = db_pass
-  )
-}
 
 #' Run pRESTO/IgBLAST consensus calling for one spatial FASTA
 #'
@@ -203,4 +176,32 @@ processSpatialSamples <- function(input_fastas,
     )
   }
   invisible(results)
+}
+
+.presto_paths <- function(input_fasta, identity, consensus_freq, output_dir = NULL) {
+  if (is.null(output_dir)) {
+    output_dir <- dirname(input_fasta)
+  }
+  stem <- tools::file_path_sans_ext(basename(input_fasta))
+  cluster <- file.path(
+    output_dir,
+    sprintf("%s_ident_%s_barcode_cluster_cluster-pass.fasta", stem, identity)
+  )
+  reheader <- sub("\\.fasta$", "_reheader.fasta", cluster)
+  aligned <- sub("\\.fasta$", "_align-pass.fasta", reheader)
+  consensus <- file.path(
+    output_dir,
+    sprintf("%s_ident_%s_barcode_cluster_freq_%s_cluster-pass_reheader_align-pass_consensus-pass.fasta", stem, identity, consensus_freq)
+  )
+  fmt7 <- sub("\\.fasta$", "_igblast.fmt7", consensus)
+  db_pass <- sub("_igblast\\.fmt7$", "_igblast_db-pass.tsv", fmt7)
+  list(
+    input = input_fasta,
+    cluster = cluster,
+    reheader = reheader,
+    aligned = aligned,
+    consensus = consensus,
+    fmt7 = fmt7,
+    db_pass = db_pass
+  )
 }

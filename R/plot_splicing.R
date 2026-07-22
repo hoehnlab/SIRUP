@@ -145,23 +145,6 @@ normalizeGeneContacts <- function(G, method = c("none","ncpm","oe"), scale = 1e6
   out[!is.finite(out)] <- 0
   Matrix::Matrix(out, sparse = FALSE)
 }
-
-# tiny blur across the *gene index* (not bins); sigma in "genes"
-.gauss_k <- function(s) { if (s<=0) return(1); r <- ceiling(3*s); x <- -r:r; k <- exp(-0.5*(x/s)^2); k/sum(k) }
-.conv1d_reflect <- function(v, k) {
-  m <- length(v); if (length(k)==1L) return(v)
-  r <- (length(k)-1L)%/%2L; out <- numeric(m)
-  for (p in seq_len(m)) {
-    acc <- 0.0
-    for (t in -r:r) {
-      idx <- p + t
-      if (idx < 1L) idx <- 2L - idx else if (idx > m) idx <- 2L*m - idx
-      acc <- acc + v[idx] * k[t + r + 1L]
-    }
-    out[p] <- acc
-  }
-  out
-}
 #' @export
 blurGeneMatrix <- function(G, sigma_genes = 0) {
   if (!is.finite(sigma_genes) || sigma_genes <= 0) return(G)
@@ -1182,4 +1165,22 @@ plotGeneContactsGg <- function(
   ))
   p
   
+}
+
+# tiny blur across the *gene index* (not bins); sigma in "genes"
+.gauss_k <- function(s) { if (s<=0) return(1); r <- ceiling(3*s); x <- -r:r; k <- exp(-0.5*(x/s)^2); k/sum(k) }
+
+.conv1d_reflect <- function(v, k) {
+  m <- length(v); if (length(k)==1L) return(v)
+  r <- (length(k)-1L)%/%2L; out <- numeric(m)
+  for (p in seq_len(m)) {
+    acc <- 0.0
+    for (t in -r:r) {
+      idx <- p + t
+      if (idx < 1L) idx <- 2L - idx else if (idx > m) idx <- 2L*m - idx
+      acc <- acc + v[idx] * k[t + r + 1L]
+    }
+    out[p] <- acc
+  }
+  out
 }

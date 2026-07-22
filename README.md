@@ -82,7 +82,7 @@ m1_bcr_heavy <- extractSpatialBarcode(
   prefix = "s_002um_",
   suffix = "-1"
 )
-m1_bcr_heavy <- processSpatialAirr(
+m1_bcr_heavy <- filterSpatialAirr(
   m1_bcr_heavy,
   loci = "IGH",
   barcode_col = "barcode_2um",
@@ -111,7 +111,7 @@ processed <- extractSpatialBarcode(
   barcode_col = "barcode_2um",
   regex = ",([^,]+)"
 )
-processed <- processSpatialAirr(
+processed <- filterSpatialAirr(
   processed,
   loci = "IGH",
   min_v_length = 250,

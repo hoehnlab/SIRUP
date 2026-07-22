@@ -448,7 +448,7 @@ head(positions8um)</code></pre>
 </div>
 <div id="start-from-raw-igblast-output" class="section level2">
 <h2>Start from Raw IgBLAST Output</h2>
-<p>Extract the 2 um spatial barcode before pRESTO and do a first length/locus filter. <code>processSpatialAirr()</code> keeps preprocessing in memory; we explicitly write AIRR tables and FASTA files only when we need pRESTO inputs.</p>
+<p>Extract the 2 um spatial barcode before pRESTO and do a first length/locus filter. <code>filterSpatialAirr()</code> keeps preprocessing in memory; we explicitly write AIRR tables and FASTA files only when we need pRESTO inputs.</p>
 <pre class="r"><code>bcrRaw &lt;- data.table::fread(rawBCRIgblastPath)
 tcrRaw &lt;- data.table::fread(rawTCRIgblastPath)
 
@@ -470,7 +470,7 @@ tcrRaw &lt;- extractSpatialBarcode(
   suffix = &quot;-1&quot;
 )
 
-bcrHeavy &lt;- processSpatialAirr(
+bcrHeavy &lt;- filterSpatialAirr(
   bcrRaw,
   loci = &quot;IGH&quot;,
   min_v_length = 100,
@@ -480,7 +480,7 @@ bcrHeavy &lt;- processSpatialAirr(
   add_full_id = TRUE
 )
 
-tcrBeta &lt;- processSpatialAirr(
+tcrBeta &lt;- filterSpatialAirr(
   tcrRaw,
   loci = &quot;TRB&quot;,
   min_v_length = 100,
@@ -559,7 +559,7 @@ tcrConsensus &lt;- extractSpatialBarcode(
   regex = &quot;,([^,]+)&quot;
 )
 
-bcrConsensusFiltered &lt;- processSpatialAirr(
+bcrConsensusFiltered &lt;- filterSpatialAirr(
   bcrConsensus,
   loci = &quot;IGH&quot;,
   min_v_length = 250,
@@ -571,7 +571,7 @@ bcrConsensusFiltered &lt;- processSpatialAirr(
   barcode_col = &quot;barcode_2um&quot;
 )
 
-tcrConsensusFiltered &lt;- processSpatialAirr(
+tcrConsensusFiltered &lt;- filterSpatialAirr(
   tcrConsensus,
   loci = &quot;TRB&quot;,
   min_v_length = 250,
