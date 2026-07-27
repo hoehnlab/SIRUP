@@ -7,10 +7,11 @@
 spatialMoran(
   object,
   variable,
-  variable_type = c("feature", "metadata", "receptor"),
+  variable_type = c("feature", "metadata", "receptor", "clone"),
   value = NULL,
   receptors = NULL,
   barcode_col = "barcode_8um",
+  clone_col = "clone_id",
   positive = FALSE,
   layer = "counts",
   images = NULL,
@@ -28,14 +29,20 @@ spatialMoran(
 
 \item{variable}{Feature or metadata column to analyze.}
 
-\item{variable_type}{One of \code{feature}, \code{metadata}, or \code{receptor}.}
+\item{variable_type}{One of \code{feature}, \code{metadata}, \code{receptor}, or \code{clone}.
+Use \code{clone} to calculate Moran's I for a binary indicator marking spots
+that contain a particular clone ID.}
 
 \item{value}{Optional metadata value to convert to a binary indicator.}
 
 \item{receptors}{AIRR-style receptor data frame. Required when
-\code{variable_type = "receptor"} unless \code{object} is a SIRAP object.}
+\code{variable_type = "receptor"} or \code{"clone"} unless \code{object} is a SIRAP
+object.}
 
 \item{barcode_col}{Barcode column in \code{receptors}.}
+
+\item{clone_col}{Clone column in \code{receptors}; used only when
+\code{variable_type = "clone"}.}
 
 \item{positive}{Convert feature values to a positive-expression indicator.}
 

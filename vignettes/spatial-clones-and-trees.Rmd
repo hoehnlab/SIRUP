@@ -114,6 +114,24 @@ tcrSirap <- createSIRAP(
 )
 ```
 
+The object can also be created before clone calling. In that workflow,
+`updateReceptors(bcrSirap, scoper::hierarchicalClones, ...)` passes the stored
+receptor table to `hierarchicalClones()` and returns a SIRAP object containing
+the clone-called table. The usual `clone_id` output is recorded automatically.
+The same pattern works with `dowser::createGermlines()` or another function
+whose first argument is a receptor table. Use `withReceptors()` instead when
+the function result should be returned without replacing the receptor table.
+
+Dowser-formatted clones and trees can be retained without adding a
+package-specific slot:
+
+```{r store-tree-results, eval=FALSE}
+bcrSirap <- setAnalysis(bcrSirap, "dowser_clones", formattedBcrClones)
+bcrSirap <- setAnalysis(bcrSirap, "dowser_trees", bcrTrees)
+
+withAnalysis(bcrSirap, "dowser_trees", length)
+```
+
 ## Choose Clones to Plot
 
 For a first pass, choose a couple of clones with enough tips to be interesting

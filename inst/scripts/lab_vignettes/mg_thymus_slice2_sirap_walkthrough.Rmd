@@ -1,0 +1,1029 @@
+---
+title: "SIRAP walkthrough with MG thymus slice 2"
+author: "Hunter J. Melton"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+```{r setup, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = TRUE,
+  warning = TRUE,
+  fig.width = 8,
+  fig.height = 7,
+  dpi = 120
+)
+
+library(dplyr)
+library(stringr)
+library(data.table)
+library(ggplot2)
+library(cowplot)
+library(airr)
+library(Seurat)
+library(SeuratObject)
+library(scoper)
+library(dowser)
+library(alakazam)
+
+hunter_dir <- "/Volumes/HoehnK/Hunter"
+
+chinmay_dir <- "/Volumes/HoehnK/Chinmay"
+
+sirap_dir <- file.path(hunter_dir, "spatial_bcr_tcr_package", "SIRAP")
+thymus_dir <- file.path(hunter_dir, "Thymus_Spatial")
+walkthrough_dir <- file.path(thymus_dir, "sirap_lab_vignette", "mg_thymus_slice2")
+dir.create(walkthrough_dir, recursive = TRUE, showWarnings = FALSE)
+
+devtools::load_all(sirap_dir, quiet = TRUE)
+
+sample_id <- "KH02"
+dataset <- "mg_thymus_slice2"
+nproc <- 2
+image_scale <- "lowres"
+swap_coords <- TRUE # For standard Visium objects, the coordinates need to be swapped to get the correct shape
+```
+
+Starting with RAD-processed output for Visium thymus (igblast_bcr.tsv)
+slice 2.  We'll take a full tour of SIRAP and the major functionality.
+
+# Start with the RAD/IgBLAST output
+
+The starting BCR table is the direct IgBLAST output made after RAD
+demultiplexing.
+
+The full data is like 30G, so we're only loading 10k sequences to see how the processing
+works. Once we have the data, we run `extractSpatialBarcode`, which is just a convenience
+function that extracts a barcode from a column (sequence_id_col) using a regex expression
+(regex) and then makes a new column (barcode_col).
+
+```{r read-rad-output}
+raw_bcr_path <- file.path(
+  chinmay_dir,
+  "101724_KH02_compiled_out",
+  "igblast_data",
+  "igblast_bcr_10k.tsv"
+)
+
+# This is a 24 GB read-level table, so we just get 10k sequences
+raw_bcrs <- data.table::fread(
+  raw_bcr_path,
+  data.table = FALSE,
+  nThread = nproc,
+  showProgress = FALSE
+)
+
+raw_bcrs <- extractSpatialBarcode(
+  raw_bcrs,
+  sequence_id_col = "sequence_id",
+  barcode_col = "barcode",
+  regex = "\\|barcode:([ACGT]{16})(?:\\||$)"
+)
+
+raw_bcrs$sample_id <- sample_id
+
+raw_bcrs %>%
+  count(locus, productive, sort = TRUE) %>%
+  head(10)
+```
+
+Now we'll filter the spAIRR data with `filterSpatialAirr()`, which is another function of
+convenience to do the sort of filtering we've always done with spAIRR data. We have options to
+filter for locus, min v, j, junction length, productivity, min consensus count, and we point
+towards the spatial barcode column (technically optional argument).
+We don't do it here, but we can also filter for max
+opening gap in the seqeuence alignment column (max_opening_gap), and we can also add a
+"full_id" (add_full_id) which combines the sequence_id and the spatial barcode columns.
+
+Then I made another convenience function that plots the v, j, and junction lengths,
+`plotLengthQc()`.  That's all it does, but we've often used those plots, so I figured why not.
+spatialReceptorSummary is similar, it's a convenience function that prints the number of
+sequences, spatial barcodes, loci, and productive sequences.
+
+```{r filter-rad-output}
+raw_igh <- filterSpatialAirr(
+  raw_bcrs,
+  loci = "IGH",
+  min_v_length = 100,
+  min_j_length = 10,
+  min_junction_length = 1,
+  productive_only = TRUE,
+  min_consensus_count = 2,
+  barcode_col = "barcode"
+) %>%
+  filter(
+    !is.na(barcode),
+    !is.na(sequence_alignment),
+    sequence_alignment != ""
+  )
+
+plotLengthQc(raw_igh, bin_width = 5, title = "KH02 Length QC")
+spatialReceptorSummary(raw_igh, barcode_col = "barcode")
+```
+
+# Presto Pipeline - processSpatialSample()
+
+Before running `processSpatialSample()` and doing the major processing, we'll convert the
+raw_igh dataframe into a fasta file using dowser's `dfToFasta()` function. We'll also pretend
+that we want to carry a c_call column through the processing, so we add that to the sequence
+id so that it gets written to the fasta header. We're not actually going to run this locally
+because it takes a while.
+
+`processSpatialSample()` takes the spAIRR processing pipeline we made and wraps it up in a
+single R function.  It takes in a fasta file (and a lot of arguments for the different steps)
+and returns a list of paths to the processed output.  This function is a wrapper around
+* `ClusterSets.py set` groups reads within each spatial barcode `cluster_field`, the requested identity threshold `identity`, and vsearch. FASTA header delimiters are specified by `delimiters`.
+* `ParseHeaders.py merge` is used to write a new field into the headers that combines the spatial barcode and the cluster id (provided with parse_fields). These are combined using `parse_act` (default cat) and written to a new header field `parse_key`.  Uses `delimiters` to specify the FASTA header delimiters.
+* `AlignSets.py muscle` aligns reads within each `parse_key` group created by `ParseHeaders`. Takes `muscle_exec` as the path to the muscle aligner (https://github.com/rcedgar/muscle). Optionally logs results to `align_log`. Uses `delimiters` to specify the FASTA header delimiters.
+* `BuildConsensus.py` creates consensus sequences within each `parse_key` group. `consensus_min_count` specifies the minimum number of sequences needed to define a valid consensus sequence, and `consensus_freq` specifies the fraction of character occurrences under which an ambiguous character is assigned. Optionally logs results to `consensus_log`. If there are additional fields in the FASTA header that should be carried forward and copied to the consensus file, `consensus_copy_fields` specifies the field names and `consensus_copy_action` specifies how to copy them (majority, first, last, or all).
+* `AssignGenes.py igblast` assigns V(D)J gene annotations using IgBLAST. Takes either `ig` or `tr` as the argument to `receptor` (for bcr/tcr respectively). Takes `organism` as the argument to specify the species (e.g., human, mouse, etc.). `igblast_base` specifies the path to the IgBLAST installation, and `igblast_exec` can be provided if the igblast executable is not located in [`igblast_base`]/bin/igblastn.
+* `MakeDb.py igblast` converts IgBLAST output to an AIRR-style TSV using the specified IMGT germline reference `germline_glob`.
+
+
+```{r process-spatial-sample, eval=FALSE}
+presto_input_dir <- file.path(walkthrough_dir, "processing_input")
+presto_output_dir <- file.path(walkthrough_dir, "processing_output")
+dir.create(presto_input_dir, recursive = TRUE, showWarnings = FALSE)
+dir.create(presto_output_dir, recursive = TRUE, showWarnings = FALSE)
+
+raw_igh <- fread(file.path(presto_input_dir, "filtered_igh.tsv"), data.table = FALSE)
+
+raw_igh$c_call_for_header <- ifelse(
+  is.na(raw_igh$c_call) | raw_igh$c_call == "",
+  "NA",
+  raw_igh$c_call
+)
+raw_igh$seq_id_c_call <- paste0(
+  raw_igh$sequence_id,
+  "|c_call_og:",
+  raw_igh$c_call_for_header
+)
+
+presto_input_fasta <- file.path(presto_input_dir, "filtered_igh.fasta")
+dowser::dfToFasta(
+  raw_igh,
+  file = presto_input_fasta,
+  id = "seq_id_c_call",
+  seq = "sequence_alignment"
+)
+
+processed_paths <- processSpatialSample(
+  input_fasta = presto_input_fasta,
+  output_dir = presto_output_dir,
+  receptor = "ig",
+  identity = 1.0,
+  consensus_freq = 0.8,
+  germline_glob = file.path(
+    hunter_dir,
+    "germlines/imgt/human/vdj/imgt_human_IG*.fasta"
+  ),
+  igblast_base = "~/software/igblast",
+  muscle_exec = "~/software/muscle3.8.31_i86linux64",
+  nproc = nproc,
+  cluster_field = "barcode",
+  delimiters = "'|' ':' ','",
+  parse_fields = c("BARCODE", "CLUSTER"),
+  parse_key = "BARCODECLUSTER",
+  parse_act = "cat",
+  consensus_min_count = 2,
+  consensus_copy_fields = "C_CALL_OG",
+  consensus_copy_action = "majority"
+)
+```
+
+Now that we have the processed BCRs, we'll do a little more filtering with
+`filterSpatialAirr()`, which ....  How much we really needed this function I'm not sure, but I did this
+sort of filtering enough that I was okay with having it in the package.
+
+```{r read-processed-bcrs}
+processed_bcr_path <- file.path(
+  thymus_dir,
+  "sirap_visium_processing",
+  sample_id,
+  "bcr",
+  "presto_output",
+  paste0(
+    "filtered_igh_ident_1.0_barcode_cluster_freq_0.8_cluster-pass_",
+    "reheader_align-pass_consensus-pass_igblast_db-pass.tsv"
+  )
+)
+
+processed_bcrs <- airr::read_rearrangement(processed_bcr_path)
+
+processed_bcrs <- processed_bcrs %>%
+  mutate(
+    barcode = str_extract(sequence_id, "^[ACGT]{16}"),
+    barcode_10x = paste0(barcode, "-1"),
+    consensus_count = as.integer(str_match(sequence_id, "CONSCOUNT:([0-9]+)")[, 2]),
+    receptor_type = "BCR"
+  )
+
+processed_bcrs <- filterSpatialAirr(
+  processed_bcrs,
+  loci = "IGH",
+  min_v_length = 100,
+  min_j_length = 10,
+  min_junction_length = 1,
+  productive_only = TRUE,
+  min_consensus_count = 2,
+  barcode_col = "barcode_10x"
+)
+
+spatialReceptorSummary(processed_bcrs, barcode_col = "barcode_10x")
+summary(processed_bcrs$consensus_count)
+```
+
+# Load the spatial object
+
+```{r load-seurat}
+seurat_path <- file.path(
+  thymus_dir,
+  "data/240814_Visium/Intermediates/51T002-M5b/thy2_b_t_processed_seurat.rds"
+)
+
+mg_thymus_slice2 <- readRDS(seurat_path)
+mg_thymus_slice2
+```
+
+# Check for identical sequences in neighboring spots
+
+SIRAP can collapse the same sequence observed in neighboring spots. That is
+useful for data types where adjacent barcodes are technical subdivisions of the
+same biological unit. I show the diagnostic here, but I do not use its output
+for Visium because neighboring spots are separate mixtures of cells.
+
+`collapseTopConsensusPerBarcode()` is useful when we really want one
+sequence per barcode and locus. I am not using it here. A Visium spot can
+contain several cells and several real BCR sequences, so keeping only the most
+abundant sequence would throw away real biology.
+
+```{r neighboring-sequence-diagnostic}
+image_name <- Images(mg_thymus_slice2)[1]
+tissue_positions <- GetTissueCoordinates(
+  mg_thymus_slice2[[image_name]],
+  scale = image_scale
+)
+tissue_positions$barcode_10x <- rownames(tissue_positions)
+
+if (!all(c("x", "y") %in% colnames(tissue_positions))) {
+  stop("The tissue-coordinate table does not contain x and y columns.")
+}
+
+processed_bcrs_with_coordinates <- processed_bcrs %>%
+  left_join(
+    tissue_positions %>% select(barcode_10x, x, y),
+    by = "barcode_10x"
+  ) %>%
+  filter(!is.na(x), !is.na(y))
+
+neighbor_collapsed_bcrs <- collapseIdenticalNeighbors(
+  data = processed_bcrs_with_coordinates,
+  tissue_positions = tissue_positions,
+  barcode = "barcode_10x",
+  sequence = "sequence",
+  consensus_count = "consensus_count",
+  x = "x",
+  y = "y"
+)
+
+tibble(
+  version = c("original Visium table", "neighbor-collapsed diagnostic"),
+  n_sequences = c(nrow(processed_bcrs_with_coordinates), nrow(neighbor_collapsed_bcrs)),
+  n_spots = c(
+    n_distinct(processed_bcrs_with_coordinates$barcode_10x),
+    n_distinct(neighbor_collapsed_bcrs$barcode_10x)
+  )
+)
+
+# Everything below continues with processed_bcrs, not neighbor_collapsed_bcrs.
+```
+
+# Make a SIRAP object
+
+Clone IDs are optional in a SIRAP object, so I can make the object before clone
+calling and add the clone field later.
+
+```{r make-preclone-sirap-object}
+mg_thymus_slice2_sirap <- createSIRAP(
+  spatial = mg_thymus_slice2,
+  receptors = processed_bcrs,
+  barcode_col = "barcode_10x",
+  clone_col = NULL,
+  locus_col = "locus",
+  count_col = "consensus_count",
+  metadata = list(dataset = dataset, sample_id = sample_id)
+)
+
+mg_thymus_slice2_sirap
+summary(mg_thymus_slice2_sirap)
+spatialReceptorSummary(mg_thymus_slice2_sirap)
+
+spatialObject(mg_thymus_slice2_sirap)
+receptorTable(mg_thymus_slice2_sirap) %>% select(1:8) %>% head()
+listAnalyses(mg_thymus_slice2_sirap)
+```
+
+# Build BCR clones
+
+SIRAP does not replace `scoper`. The `withReceptors()` function passes the
+receptor table to any function and returns that function's result. Its partner
+`updateReceptors()` puts a data-frame result back into the SIRAP object. For
+example, if I wanted to call clones using only the receptors already stored in
+this object, I could do this:
+
+```{r sample-only-clone-example, eval=FALSE}
+sample_only_clones <- withReceptors(
+  mg_thymus_slice2_sirap,
+  scoper::hierarchicalClones,
+  threshold = 0.1,
+  cell_id = "sequence_id",
+  summarize_clones = FALSE,
+  nproc = nproc
+)
+
+mg_thymus_slice2_sirap <- updateReceptors(
+  mg_thymus_slice2_sirap,
+  scoper::hierarchicalClones,
+  threshold = 0.1,
+  cell_id = "sequence_id",
+  summarize_clones = FALSE,
+  nproc = nproc
+)
+```
+
+The `with*()` version is useful when I want the result separately. The
+`update*()` version returns a new SIRAP object with its receptor table replaced;
+it does not modify the original object in place. When `hierarchicalClones()`
+adds the usual `clone_id` column to an object made before clone calling,
+`updateReceptors()` records that column as the SIRAP clone field automatically.
+
+For this study, however, IGH clones were called jointly across both spatial
+slices, matched bulk thymus, and matched blood. That keeps one clone ID universe
+across all of those samples, so I make the combined table first and call
+`scoper` on that table.
+
+```{r build-clones, eval=FALSE}
+all_igh <- bind_rows(
+  spatial_igh_kh01,
+  spatial_igh_kh02,
+  bulk_thymus_igh,
+  blood_igh
+) %>%
+  filter(
+    productive,
+    locus == "IGH",
+    !is.na(v_call),
+    v_call != "",
+    !is.na(j_call),
+    j_call != "",
+    !is.na(junction),
+    junction != ""
+  ) %>%
+  mutate(tissue_seq_id = paste0(tissue_sample, "_", sequence_id))
+
+all_igh_clones <- scoper::hierarchicalClones(
+  all_igh,
+  threshold = 0.1,
+  cell_id = "tissue_seq_id",
+  summarize_clones = FALSE,
+  nproc = nproc
+)
+
+saveRDS(
+  all_igh_clones,
+  file.path(walkthrough_dir, "clones_thymus_spatial_bulk_igh.rds")
+)
+```
+
+The joint clone call has already been run, so I load it and take the KH02 rows
+for the spatial walkthrough.
+
+```{r load-clones}
+clone_path <- file.path(
+  thymus_dir,
+  "sirap_visium_processing/clones/clones_thymus_spatial_bulk_igh.rds"
+)
+
+all_igh_clones <- readRDS(clone_path)
+
+mg_thymus_slice2_bcr_clones <- all_igh_clones %>%
+  filter(tissue_sample == "visium_thymus_KH02") %>%
+  mutate(
+    barcode = str_extract(sequence_id, "^[ACGT]{16}"),
+    barcode_10x = paste0(barcode, "-1"),
+    consensus_count = coalesce(
+      as.numeric(consensus_count),
+      as.numeric(str_match(sequence_id, "CONSCOUNT:([0-9]+)")[, 2])
+    )
+  )
+
+mg_thymus_slice2_bcr_clones <- mg_thymus_slice2_bcr_clones %>%
+  mutate(
+    clone_id = as.character(clone_id),
+    receptor_type = "BCR"
+  )
+
+clone_counts <- mg_thymus_slice2_bcr_clones %>%
+  filter(!is.na(clone_id)) %>%
+  group_by(clone_id) %>%
+  summarize(
+    n_sequences = n(),
+    n_spots = n_distinct(barcode_10x),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(n_spots), desc(n_sequences))
+
+clone_counts %>% head(10)
+```
+
+I add the jointly inferred clone assignment to the receptor table already in
+the SIRAP object. The explicit mapping is optional here because the conventional
+name is `clone_id`, but I show it so that the same pattern is clear for studies
+that use another clone-column name.
+
+```{r update-sirap-with-clones}
+clone_assignments <- mg_thymus_slice2_bcr_clones %>%
+  select(sequence_id, clone_id) %>%
+  distinct()
+
+mg_thymus_slice2_sirap <- updateReceptors(
+  mg_thymus_slice2_sirap,
+  dplyr::left_join,
+  y = clone_assignments,
+  by = "sequence_id",
+  receptor_fields = list(clone = "clone_id")
+)
+
+mg_thymus_slice2_sirap
+```
+
+# Plot expression and BCRs
+
+```{r basic-spatial-plots}
+demo_clone_id <- clone_counts %>%
+  filter(n_spots >= 3) %>%
+  slice_head(n = 1) %>%
+  pull(clone_id)
+
+gex_plot <- spatialExpressionPlot(
+  mg_thymus_slice2_sirap,
+  features = "AICDA",
+  assay = "alra",
+  layer = "data",
+  image.scale = image_scale,
+  swap_coords = swap_coords
+)
+
+all_bcr_plot <- plotReceptors(
+  mg_thymus_slice2_sirap,
+  group_col = "receptor_type",
+  values = "BCR",
+  colors = "#0072B2",
+  receptor_size = 1.5,
+  image.scale = image_scale,
+  swap_coords = swap_coords,
+  title = "All BCR-positive spots"
+)
+
+gex_bcr_plot <- plotReceptorsExpression(
+  mg_thymus_slice2_sirap,
+  group_col = "receptor_type",
+  values = "BCR",
+  feature = "AICDA",
+  assay = "alra",
+  layer = "data",
+  colors = "#0072B2",
+  image.scale = image_scale,
+  swap_coords = swap_coords,
+  title = "AICDA expression and BCR-positive spots"
+)
+
+clone_plot <- plotReceptors(
+  mg_thymus_slice2_sirap,
+  group_col = "clone_id",
+  values = demo_clone_id,
+  colors = "#D55E00",
+  receptor_size = 1.8,
+  image.scale = image_scale,
+  swap_coords = swap_coords,
+  title = paste("BCR clone", demo_clone_id)
+)
+
+cowplot::plot_grid(gex_plot, all_bcr_plot, gex_bcr_plot, clone_plot, ncol = 2)
+```
+
+# Add the cell-type deconvolution results
+
+The CARD proportions remain continuous. I attach all of them to the Seurat
+metadata instead of assigning every mixed spot one dominant cell type.
+
+```{r attach-card-results}
+card_path <- file.path(
+  thymus_dir,
+  "data/240814_Visium/51T002-M5b/Cell_Type_Decon_CARD/CARD_thy2_b.rds"
+)
+
+card_thymus_slice2 <- readRDS(card_path)
+card_proportions <- as.data.frame(card_thymus_slice2@Proportion_CARD)
+card_proportions <- card_proportions[
+  colnames(spatialObject(mg_thymus_slice2_sirap)),
+  ,
+  drop = FALSE
+]
+
+# withSpatial() would return the updated Seurat object by itself. Here I want
+# to keep it in the SIRAP object, so I use updateSpatial().
+mg_thymus_slice2_sirap <- updateSpatial(
+  mg_thymus_slice2_sirap,
+  SeuratObject::AddMetaData,
+  metadata = card_proportions
+)
+
+spatialObject(mg_thymus_slice2_sirap)@meta.data %>%
+  select(`GC B`, T, `Proliferating GC B`, `Naive B`) %>%
+  summary()
+```
+
+# Moran's I and local Moran's I
+
+I use the same neighborhood definition for global and local Moran's I. The
+gene example uses AICDA expression and the cell-type example uses the
+continuous CARD GC B-cell proportion.
+
+```{r morans-i}
+aicda_moran <- spatialMoran(
+  mg_thymus_slice2_sirap,
+  variable = "AICDA",
+  variable_type = "feature",
+  layer = "data",
+  k = 6
+)
+aicda_moran$test
+
+gc_b_moran <- spatialMoran(
+  mg_thymus_slice2_sirap,
+  variable = "GC B",
+  variable_type = "metadata",
+  k = 6
+)
+gc_b_moran$test
+
+mg_thymus_slice2_sirap <- setAnalysis(
+  mg_thymus_slice2_sirap,
+  "morans_i",
+  list(AICDA = aicda_moran, GC_B = gc_b_moran)
+)
+```
+
+```{r local-morans-i}
+aicda_local_moran <- spatialLocalMoran(
+  mg_thymus_slice2_sirap,
+  variable = "AICDA",
+  variable_type = "feature",
+  layer = "data",
+  k = 6
+)
+
+gc_b_local_moran <- spatialLocalMoran(
+  mg_thymus_slice2_sirap,
+  variable = "GC B",
+  variable_type = "metadata",
+  k = 6
+)
+
+mg_thymus_slice2_sirap <- setAnalysis(
+  mg_thymus_slice2_sirap,
+  "local_morans_i",
+  list(AICDA = aicda_local_moran, GC_B = gc_b_local_moran)
+)
+
+aicda_local_plot <- plotSpatialLocalMoran(
+  mg_thymus_slice2_sirap,
+  aicda_local_moran,
+  image.scale = image_scale,
+  swap_coords = swap_coords,
+  title = "AICDA local Moran's I"
+)
+
+gc_b_local_plot <- plotSpatialLocalMoran(
+  mg_thymus_slice2_sirap,
+  gc_b_local_moran,
+  image.scale = image_scale,
+  swap_coords = swap_coords,
+  title = "GC B-cell proportion local Moran's I"
+)
+
+cowplot::plot_grid(aicda_local_plot, gc_b_local_plot, ncol = 2)
+```
+
+# Ripley's cross K
+
+For this analysis I say that a spot contains a cell type when its CARD
+proportion is greater than 10%. A spot above 10% for both cell types is left
+out of this pairwise marked-point analysis because `Kcross` assigns one mark to
+each point.
+
+```{r ripley-marks}
+mg_thymus_slice2_sirap <- updateSpatial(
+  mg_thymus_slice2_sirap,
+  function(spatial) {
+    spatial$gc_b_present <- spatial$`GC B` > 0.10
+    spatial$t_cell_present <- spatial$T > 0.10
+    spatial$ripley_gc_b_t_mark <- dplyr::case_when(
+      spatial$gc_b_present & !spatial$t_cell_present ~ "GC B > 10%",
+      spatial$t_cell_present & !spatial$gc_b_present ~ "T > 10%",
+      TRUE ~ NA_character_
+    )
+    spatial
+  }
+)
+
+table(
+  spatialObject(mg_thymus_slice2_sirap)$ripley_gc_b_t_mark,
+  useNA = "ifany"
+)
+```
+
+```{r ripley-cross-k}
+gc_b_t_k <- spatialRipleyCrossK(
+  mg_thymus_slice2_sirap,
+  mark_col = "ripley_gc_b_t_mark",
+  i = "GC B > 10%",
+  j = "T > 10%",
+  nsim = 99,
+  max_r = 500
+)
+
+mg_thymus_slice2_sirap <- setAnalysis(
+  mg_thymus_slice2_sirap,
+  "ripley_gc_b_t",
+  gc_b_t_k
+)
+
+plotRipleyCrossK(
+  gc_b_t_k,
+  title = "Ripley's cross K: GC B-cell and T-cell containing spots"
+)
+```
+
+# Join count for one B-cell clone
+
+The join-count test asks whether receptor-positive neighboring spots are more
+likely to contain the same clone than expected under random labeling. I return
+the barcode-level data because the plotting function uses the exact spots and
+neighbor graph from the test.
+
+```{r clone-join-count}
+join_count_clone_id <- clone_counts %>%
+  filter(n_spots >= 3) %>%
+  slice_head(n = 1) %>%
+  pull(clone_id)
+
+clone_join_count <- spatialCloneJoinCount(
+  object = mg_thymus_slice2_sirap,
+  clone_ids = join_count_clone_id,
+  min_barcodes = 3,
+  k = 6,
+  alternative = "greater",
+  return_data = TRUE
+)
+
+clone_join_count$summary
+
+mg_thymus_slice2_sirap <- setAnalysis(
+  mg_thymus_slice2_sirap,
+  "clone_join_count",
+  clone_join_count
+)
+
+# withAnalysis() can inspect or summarize a stored result without removing it.
+withAnalysis(
+  mg_thymus_slice2_sirap,
+  "clone_join_count",
+  function(result) result$summary
+)
+
+plotSpatialCloneJoinCount(
+  join_count = clone_join_count,
+  object = mg_thymus_slice2_sirap,
+  clone_id = join_count_clone_id,
+  image.scale = image_scale,
+  swap_coords = swap_coords,
+  show_neighbors = TRUE
+)
+```
+
+# Select or load GC polygons
+
+I already saved these GC polygons, so the walkthrough reads them directly. If
+the CSV is not present, the same code falls back to the interactive SIRAP
+polygon selector.
+
+```{r load-or-select-polygons}
+polygon_path <- file.path(
+  thymus_dir,
+  "plots/gc_clonal_dominance/mg_thymus_slice2",
+  "mg_thymus_slice2_gc_polygons_vertices.csv"
+)
+
+if (file.exists(polygon_path)) {
+  mg_thymus_slice2_polygons <- fread(polygon_path) %>% as.data.frame()
+} else {
+  mg_thymus_slice2_polygons <- selectSpatialPolygons(
+    object = mg_thymus_slice2_sirap,
+    assay = "alra",
+    layer = "data",
+    feature = "AICDA",
+    image.scale = image_scale,
+    swap_coords = swap_coords,
+    save_path = polygon_path,
+    host = "0.0.0.0",
+    port = 8788L,
+    plot_image = TRUE,
+    launch.browser = FALSE
+  )
+}
+
+plotSpatialPolygons(
+  object = mg_thymus_slice2_sirap,
+  polygon = mg_thymus_slice2_polygons,
+  image.scale = image_scale,
+  swap_coords = swap_coords,
+  polygon_alpha = 0.2
+)
+```
+
+# Clonal dominance inside the GC polygons
+
+```{r clonal-dominance}
+gc_clonal_dominance <- spatialCloneDominance(
+  object = mg_thymus_slice2_sirap,
+  polygon = mg_thymus_slice2_polygons,
+  locus = "IGH",
+  image.scale = image_scale,
+  swap_coords = swap_coords,
+  exclude_singletons = FALSE
+)
+
+gc_clonal_dominance_no_singletons <- spatialCloneDominance(
+  object = mg_thymus_slice2_sirap,
+  polygon = mg_thymus_slice2_polygons,
+  locus = "IGH",
+  image.scale = image_scale,
+  swap_coords = swap_coords,
+  exclude_singletons = TRUE
+)
+
+mg_thymus_slice2_sirap <- setAnalysis(
+  mg_thymus_slice2_sirap,
+  "gc_clonal_dominance",
+  gc_clonal_dominance
+)
+
+# updateAnalysis() applies a function to one stored result and saves the result
+# back under the same name. Here I add the sample identifier to its metadata.
+mg_thymus_slice2_sirap <- updateAnalysis(
+  mg_thymus_slice2_sirap,
+  "gc_clonal_dominance",
+  function(result, sample_id) {
+    result$metadata$sample_id <- sample_id
+    result
+  },
+  sample_id = sample_id
+)
+
+withAnalysis(
+  mg_thymus_slice2_sirap,
+  "gc_clonal_dominance",
+  function(result) result$dominance
+) %>%
+  arrange(polygon, desc(proportion)) %>%
+  group_by(polygon) %>%
+  slice_head(n = 5)
+```
+
+```{r clonal-dominance-spatial-plots}
+gc_clone_plot <- plotSpatialRegionReceptors(
+  dominance = gc_clonal_dominance,
+  object = mg_thymus_slice2_sirap,
+  color_by = "clone_id",
+  top_n = 20,
+  image.scale = image_scale,
+  swap_coords = swap_coords,
+  point_size = 1.2,
+  polygon_alpha = 0.08
+)
+
+gc_v_gene_plot <- plotSpatialRegionReceptors(
+  dominance = gc_clonal_dominance,
+  object = mg_thymus_slice2_sirap,
+  color_by = "v_gene_family",
+  top_n = 20,
+  image.scale = image_scale,
+  swap_coords = swap_coords,
+  point_size = 1.2,
+  polygon_alpha = 0.08
+)
+
+cowplot::plot_grid(gc_clone_plot, gc_v_gene_plot, ncol = 2)
+```
+
+```{r clonal-dominance-pies}
+gc_clone_pies <- plotSpatialPolygonPies(
+  dominance = gc_clonal_dominance,
+  object = mg_thymus_slice2_sirap,
+  fill_by = "clone_id",
+  mode = "side_by_side",
+  top_n = 10,
+  label_top_n = 5,
+  image.scale = image_scale,
+  swap_coords = swap_coords
+)
+
+gc_v_family_pies <- plotSpatialPolygonPies(
+  dominance = gc_clonal_dominance,
+  object = mg_thymus_slice2_sirap,
+  fill_by = "v_gene_family",
+  mode = "side_by_side",
+  top_n = 10,
+  label_top_n = 10,
+  image.scale = image_scale,
+  swap_coords = swap_coords
+)
+
+cowplot::plot_grid(gc_clone_pies, gc_v_family_pies, ncol = 1)
+```
+
+The 3D density plot is interactive, so I run this chunk directly when I am
+showing the vignette rather than during a headless render.
+
+```{r clonal-dominance-3d, eval=FALSE}
+plotSpatialCloneDensity3D(
+  dominance = gc_clonal_dominance,
+  object = mg_thymus_slice2_sirap,
+  polygon_id = unique(gc_clonal_dominance$polygons$polygon)[1],
+  top_n = 10,
+  image.scale = image_scale,
+  swap_coords = swap_coords,
+  plot_type = "density",
+  show_polygon = TRUE,
+  as_widget = TRUE
+)
+```
+
+# Build and plot BCR trees
+
+I pick a few expanded clones that are large enough to make an interesting tree
+but small enough to read on a slide.
+
+```{r choose-tree-clones}
+tree_clone_ids <- mg_thymus_slice2_bcr_clones %>%
+  filter(!is.na(clone_id), !is.na(sequence_alignment), sequence_alignment != "") %>%
+  group_by(clone_id) %>%
+  summarize(
+    n_sequences = n(),
+    n_unique_sequences = n_distinct(sequence_alignment),
+    n_spots = n_distinct(barcode_10x),
+    .groups = "drop"
+  ) %>%
+  filter(
+    n_sequences >= 8,
+    n_sequences <= 15,
+    n_unique_sequences >= 5,
+    n_spots >= 2
+  ) %>%
+  arrange(n_sequences, desc(n_unique_sequences), desc(n_spots)) %>%
+  slice_head(n = 3) %>%
+  pull(clone_id)
+
+clone_counts %>% filter(clone_id %in% tree_clone_ids)
+```
+
+```{r build-trees}
+tree_path <- file.path(walkthrough_dir, "mg_thymus_slice2_bcr_trees.rds")
+
+if (!file.exists(tree_path)) {
+  imgt_refs <- dowser::readIMGT(
+    file.path(hunter_dir, "germlines/imgt/human/vdj")
+  )
+
+  tree_input <- mg_thymus_slice2_bcr_clones %>%
+    filter(clone_id %in% tree_clone_ids)
+
+  tree_input <- dowser::createGermlines(
+    tree_input,
+    imgt_refs,
+    id = "sequence_id"
+  )
+
+  formatted_clones <- dowser::formatClones(
+    tree_input,
+    id = "sequence_id",
+    germ = "germline_alignment",
+    traits = "barcode_10x",
+    filterstop = FALSE,
+    collapse = TRUE,
+    add_count = TRUE,
+    num_fields = "consensus_count"
+  )
+
+  bcr_trees <- dowser::getTrees(
+    formatted_clones,
+    nproc = 1
+  )
+
+  saveRDS(bcr_trees, tree_path)
+} else {
+  bcr_trees <- readRDS(tree_path)
+}
+
+mg_thymus_slice2_sirap <- setAnalysis(
+  mg_thymus_slice2_sirap,
+  "dowser_trees",
+  bcr_trees
+)
+
+listAnalyses(mg_thymus_slice2_sirap)
+```
+
+First I give each tree tip its own color and use the same colors at its spatial
+location.
+
+```{r plot-tree-spatial-pairs}
+tree_spatial_pairs <- plotSpatialCloneTreePairs(
+  bcr_trees,
+  object = mg_thymus_slice2_sirap,
+  clone_ids = tree_clone_ids,
+  id_col = "sequence_id",
+  image.scale = image_scale,
+  swap_coords = swap_coords,
+  treescale = 0.01,
+  zoom = FALSE
+)
+
+first_tree_clone <- names(tree_spatial_pairs)[1]
+cowplot::plot_grid(
+  tree_spatial_pairs[[first_tree_clone]]$tree,
+  tree_spatial_pairs[[first_tree_clone]]$spatial_clone,
+  ncol = 2,
+  rel_widths = c(1.2, 1)
+)
+```
+
+For a larger tree, I can use SIRAP to group genetically related tips and carry
+those group colors onto the tissue.
+
+```{r cluster-and-plot-tree-tips}
+clustered_bcr_trees <- clusterTreesTips(
+  bcr_trees,
+  k = "auto",
+  id_col = "sequence_id",
+  cluster_col = "tree_cluster",
+  k_range = 2:8,
+  cut_terminal_edges = FALSE
+)
+
+clustered_tree_spatial_pairs <- plotSpatialCloneTreePairs(
+  clustered_bcr_trees,
+  object = mg_thymus_slice2_sirap,
+  clone_ids = tree_clone_ids,
+  id_col = "sequence_id",
+  color_by = "tree_cluster",
+  image.scale = image_scale,
+  swap_coords = swap_coords,
+  treescale = 0.01,
+  zoom = FALSE
+)
+
+first_tree_clone <- names(clustered_tree_spatial_pairs)[1]
+cowplot::plot_grid(
+  clustered_tree_spatial_pairs[[first_tree_clone]]$tree,
+  clustered_tree_spatial_pairs[[first_tree_clone]]$spatial_clone,
+  ncol = 2,
+  rel_widths = c(1.2, 1)
+)
+```
+
+```{r save-all-tree-pairs, eval=FALSE}
+spatialCloneTreePairsToPDF(
+  trees = clustered_bcr_trees,
+  object = mg_thymus_slice2_sirap,
+  file = file.path(walkthrough_dir, "mg_thymus_slice2_tree_spatial_pairs.pdf"),
+  clone_ids = tree_clone_ids,
+  id_col = "sequence_id",
+  color_by = "tree_cluster",
+  image.scale = image_scale,
+  swap_coords = swap_coords,
+  treescale = 0.01
+)
+```
+
+# Session information
+
+```{r session-info}
+sessionInfo()
+```

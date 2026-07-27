@@ -15,6 +15,9 @@
 ^docs/readthedocs/markdown$
 ^docs$
 ^helper_function_audit[.]md$
+^ai$
+^\.claude$
+^\.vscode$
 ^\.smbdelete.*
 ^\.git$
 ^\.gitignore$

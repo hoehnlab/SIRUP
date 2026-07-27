@@ -1,10 +1,11 @@
 #' Plot V/J/junction length QC histograms
 #'
 #' @param airr_df AIRR-style data frame or a SIRAP object.
+#' @param bin_width Width of histogram bins.
 #' @param title Optional plot title prefix.
 #' @return A ggplot object.
 #' @export
-plotLengthQc <- function(airr_df, title = NULL) {
+plotLengthQc <- function(airr_df, bin_width = 5, title = NULL) {
   airr_df <- .sirap_receptor_input(airr_df)$receptors
   .check_required_cols(airr_df, c("v_sequence_end", "v_sequence_start", "j_sequence_end", "j_sequence_start", "junction_length"), "airr_df")
   out <- .as_data_frame(airr_df)
@@ -18,7 +19,7 @@ plotLengthQc <- function(airr_df, title = NULL) {
   ) %>%
     dplyr::mutate(metric = factor(.data$metric, levels = c("vlength", "jlength", "junction_length"), labels = c("V Length", "J Length", "Junction Length")))
   ggplot2::ggplot(long, ggplot2::aes(x = .data$length)) +
-    ggplot2::geom_histogram(binwidth = 5, na.rm = TRUE) +
+    ggplot2::geom_histogram(binwidth = bin_width, na.rm = TRUE) +
     ggplot2::facet_wrap(ggplot2::vars(.data$metric), scales = "free_x") +
     ggplot2::theme_minimal() +
     ggplot2::labs(title = title, x = "Length", y = "Count")

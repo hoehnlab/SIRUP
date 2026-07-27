@@ -97,6 +97,226 @@ filterSpatialAirr <- function(airr_df,
   out
 }
 
+#' Run pRESTO/Change-O/IgBLAST processing for one spatial FASTA
+#'
+#' This function keeps the external Immcantation/pRESTO command-line workflow
+#' inside an R script. It builds and runs the following files in order:
+#'
+#' * `ClusterSets.py set` groups reads within each spatial barcode using `cluster_field`,
+#'   the requested identity threshold `identity`, and vsearch.
+#' * `ParseHeaders.py merge` is used to write a new field into the headers that combines
+#'   the spatial barcode and the cluster id (provided with parse_fields). These are
+#'   combined using `parse_act` (default cat) and written to a new header field `parse_key`.
+#'   Uses `delimiters` to specify the FASTA header delimiters.
+#' * `AlignSets.py muscle` aligns reads within each `parse_key` group created by `ParseHeaders`.
+#'   Takes `muscle_exec` as the path to the muscle aligner (https://github.com/rcedgar/muscle).
+#'   Optionally logs results to `align_log`. Uses `delimiters` to specify the FASTA header delimiters.
+#' * `BuildConsensus.py` creates consensus sequences within each `parse_key` group. `consensus_min_count`
+#'   specifies the minimum number of sequences needed to define a valid consensus sequence, and
+#'   `consensus_freq` specifies the fraction of character occurrences under which an ambiguous
+#'   character is assigned. Optionally logs results to `consensus_log`. If there are additional
+#'   fields in the FASTA header that should be carried forward and copied to the consensus file,
+#'   `consensus_copy_fields` specifies the field names and `consensus_copy_action` specifies how
+#'   to copy them (majority, first, last, or all).
+#' * `AssignGenes.py igblast` assigns V(D)J gene annotations using IgBLAST. Takes either `ig` or `tr`
+#'   as the argument to `receptor` (for bcr/tcr respectively). Takes `organism` as the argument to
+#'   specify the species (e.g., human, mouse, etc.). `igblast_base` specifies the path to the IgBLAST
+#'   installation, and `igblast_exec` can be provided if the igblast executable is not located in
+#'   the `bin/igblastn` path beneath `igblast_base`.
+#' * `MakeDb.py igblast` converts IgBLAST output to an AIRR-style TSV using the specified IMGT
+#'   germline reference `germline_glob`.
+#'
+#' Each command is printed before it is run, and any non-zero exit status stops
+#' the function with the failing command in the error message.
+#'
+#' @param input_fasta Spatial FASTA written from preprocessed receptor reads.
+#' @param output_dir Directory for pRESTO/Change-O/IgBLAST outputs. Defaults to the
+#'   input FASTA directory.
+#' @param receptor Either `ig` for BCR or `tr` for TCR IgBLAST loci.
+#' @param organism The organism for which to perform the analysis.
+#' @param identity Cluster identity threshold passed to `ClusterSets.py`.
+#' @param consensus_freq Consensus frequency threshold passed to
+#'   `BuildConsensus.py`.
+#' @param germline_glob IMGT germline glob passed to `MakeDb.py -r`.
+#' @param igblast_base Path passed to `AssignGenes.py igblast -b`.
+#' @param igblast_exec Optional path passed to `AssignGenes.py --exec`. When
+#'   `NULL`, defaults to `file.path(igblast_base, "bin", "igblastn")`.
+#' @param muscle_exec Path passed to `AlignSets.py --exec`.
+#' @param nproc Number of processors for pRESTO and AssignGenes steps.
+#' @param cluster_field Required FASTA header field used for within-spot
+#'   clustering. This has no default because barcode fields vary by platform
+#'   and preprocessing workflow.
+#' @param delimiters String of pRESTO delimiter values passed after `--delim`.
+#'   Defaults to `"'|' '=' ','"`.
+#' @param parse_fields Header fields passed to `ParseHeaders.py merge -f`.
+#' @param parse_key Header field name created by `ParseHeaders.py merge -k`.
+#' @param parse_act Action passed to `ParseHeaders.py merge --act`.
+#' @param consensus_min_count Minimum sequence count passed to
+#'   `BuildConsensus.py -n`. Recommended to be at least 2 for non-single-cell resolution data.
+#' @param consensus_copy_fields Optional fields passed to `BuildConsensus.py
+#'   --cf`.
+#' @param consensus_copy_action Action passed to `BuildConsensus.py --act` when
+#'   `consensus_copy_fields` is provided.
+#' @param align_log Optional log path passed to `AlignSets.py --log`.
+#' @param consensus_log Optional log path passed to `BuildConsensus.py --log`.
+#' @return A named list of output paths, invisibly.
+#' @export
+processSpatialSample <- function(input_fasta,
+                                 output_dir = NULL,
+                                 receptor = c("ig", "tr"),
+                                 organism = "human",
+                                 identity = 0.975,
+                                 consensus_freq = 0.51,
+                                 germline_glob,
+                                 igblast_base = "~/software/igblast",
+                                 igblast_exec = NULL,
+                                 muscle_exec = "~/software/muscle3.8.31_i86linux64",
+                                 nproc = 8,
+                                 cluster_field,
+                                 delimiters = "'|' '=' ','",
+                                 parse_fields = c(cluster_field, "cluster"),
+                                 parse_key = paste0(cluster_field, "_cluster"),
+                                 parse_act = "cat",
+                                 consensus_min_count = 1,
+                                 consensus_copy_fields = NULL,
+                                 consensus_copy_action = "majority",
+                                 align_log = NULL,
+                                 consensus_log = NULL) {
+  receptor <- match.arg(receptor)
+  if (missing(cluster_field) || length(cluster_field) != 1L || is.na(cluster_field) || !nzchar(cluster_field)) {
+    rlang::abort("`cluster_field` must name one FASTA header field, for example `barcode2um` or `barcode_8um`.")
+  }
+
+  paths <- .presto_paths(input_fasta, identity, consensus_freq, output_dir)
+  if (!dir.exists(dirname(paths$cluster))) {
+    dir.create(dirname(paths$cluster), recursive = TRUE, showWarnings = FALSE)
+  }
+
+  quote_path <- function(x) shQuote(path.expand(x))
+  if (is.null(igblast_exec)) {
+    igblast_exec <- file.path(igblast_base, "bin", "igblastn")
+  }
+
+  delim_args <- paste("--delim", delimiters)
+  align_log_args <- if (is.null(align_log)) "" else paste("--log", quote_path(align_log))
+  consensus_log_args <- if (is.null(consensus_log)) "" else paste("--log", quote_path(consensus_log))
+  consensus_copy_args <- ""
+  if (!is.null(consensus_copy_fields) && length(consensus_copy_fields) > 0L) {
+    consensus_copy_args <- sprintf(
+      "--cf %s --act %s",
+      paste(consensus_copy_fields, collapse = " "),
+      consensus_copy_action
+    )
+  }
+
+  # Cluster reads per spatial barcode, then preserve the barcode-cluster
+  # grouping in the FASTA headers used by alignment and consensus calling.
+  commands <- c(
+    sprintf(
+      "ClusterSets.py set -s %s -f %s -k cluster --ident %s --cluster vsearch %s --nproc %s -o %s",
+      quote_path(paths$input),
+      cluster_field,
+      identity,
+      delim_args,
+      nproc,
+      quote_path(paths$cluster)
+    ),
+    sprintf(
+      "ParseHeaders.py merge -s %s -f %s -k %s %s --act %s",
+      quote_path(paths$cluster),
+      paste(parse_fields, collapse = " "),
+      parse_key,
+      delim_args,
+      parse_act
+    ),
+    sprintf(
+      "AlignSets.py muscle -s %s %s %s --nproc %s --bf %s --exec %s",
+      quote_path(paths$reheader),
+      align_log_args,
+      delim_args,
+      nproc,
+      parse_key,
+      quote_path(muscle_exec)
+    )
+  )
+
+  # Build consensus sequences from aligned barcode-cluster groups, assign
+  # V(D)J genes with IgBLAST, then make an AIRR-style database table.
+  commands <- c(
+    commands,
+    sprintf(
+      "BuildConsensus.py -s %s -o %s %s --nproc %s -n %s -q 20 --freq %s --bf %s --maxerror 0.1 --maxgap 0.3 --fasta %s %s",
+      quote_path(paths$aligned),
+      quote_path(paths$consensus),
+      consensus_log_args,
+      nproc,
+      consensus_min_count,
+      consensus_freq,
+      parse_key,
+      delim_args,
+      consensus_copy_args
+    ),
+    sprintf(
+      "AssignGenes.py igblast -s %s -b %s --organism %s --loci %s --format blast --exec %s --nproc %s",
+      quote_path(paths$consensus),
+      quote_path(igblast_base),
+      organism,
+      receptor,
+      quote_path(igblast_exec),
+      nproc
+    ),
+    sprintf(
+      "MakeDb.py igblast -i %s -s %s -r %s --extended",
+      quote_path(paths$fmt7),
+      quote_path(paths$consensus),
+      path.expand(germline_glob)
+    )
+  )
+
+  for (command in commands) {
+    message("$ ", command)
+    status <- system(command)
+    if (!identical(status, 0L)) {
+      rlang::abort(paste0("Command failed with status ", status, ": ", command))
+    }
+  }
+
+  invisible(paths)
+}
+
+#' Run pRESTO/IgBLAST consensus calling for multiple spatial FASTA files
+#'
+#' @param input_fastas Character vector of spatial FASTA files.
+#' @param output_dirs Optional vector of output directories, one per FASTA.
+#' @param ... Passed to `processSpatialSample()`.
+#' @return A list of output path lists, invisibly.
+#' @export
+processSpatialSamples <- function(input_fastas,
+                                  output_dirs = NULL,
+                                  ...) {
+  if (is.null(output_dirs)) {
+    output_dirs <- rep(NA_character_, length(input_fastas))
+  }
+  if (length(output_dirs) != length(input_fastas)) {
+    rlang::abort("output_dirs must be NULL or the same length as input_fastas.")
+  }
+  results <- vector("list", length(input_fastas))
+  names(results) <- basename(input_fastas)
+  for (i in seq_along(input_fastas)) {
+    output_dir <- output_dirs[[i]]
+    if (is.na(output_dir)) {
+      output_dir <- NULL
+    }
+    message("Processing spatial FASTA ", i, " of ", length(input_fastas), ": ", input_fastas[[i]])
+    results[[i]] <- processSpatialSample(
+      input_fasta = input_fastas[[i]],
+      output_dir = output_dir,
+      ...
+    )
+  }
+  invisible(results)
+}
+
 #' Collapse to the most abundant consensus sequence per barcode and locus
 #'
 #' Adds `prop_total_consensus`, `non_N_nucleotide_prop`, `max_gap_length`, and
@@ -203,6 +423,8 @@ collapseIdenticalNeighbors <- function(data,
                                        x = "x",
                                        y = "y",
                                        num_neighbors_non_boundary = 6L) {
+  # A barcode can contain duplicate rows for the same sequence. Collapse those
+  # first so the spatial graph only has one observation per barcode/sequence.
   cli::cli_progress_step("Ensuring one row per barcode/sequence...")
   data <- data %>%
     dplyr::group_by(dplyr::across(dplyr::all_of(c(barcode, sequence)))) %>%
@@ -217,6 +439,9 @@ collapseIdenticalNeighbors <- function(data,
 
   cli::cli_progress_step("Estimating distance threshold from full tissue positions...")
 
+  # Estimate the spacing between neighboring spots from the full tissue grid.
+  # The first density minimum separates immediate spot-neighbors from longer
+  # distances across gaps, image boundaries, or unobserved tissue.
   all_coords <- as.matrix(tissue_positions[, c(x, y)])
   n_all <- nrow(all_coords)
   k_search <- min(num_neighbors_non_boundary + 1L, n_all)
@@ -269,6 +494,9 @@ collapseIdenticalNeighbors <- function(data,
 
   cli::cli_progress_step("Filtering to spots with observed sequences...")
 
+  # Build the graph only on spots with receptor observations, but keep the
+  # threshold learned from all tissue positions so boundary spots are not
+  # over-connected.
   barcodes <- unique(data[[barcode]])
   tissue_data <- tissue_positions[tissue_positions[[barcode]] %in% barcodes, ]
   coords <- as.matrix(tissue_data[, c(x, y)])
@@ -281,6 +509,8 @@ collapseIdenticalNeighbors <- function(data,
 
   cli::cli_progress_step("Building adjacency matrix over spots with observed sequences...")
 
+  # Keep undirected edges only between nearby observed spots. Connected
+  # components inside this graph are candidate bleedover regions.
   knn_full <- RANN::nn2(
     data = coords,
     query = coords,
@@ -323,6 +553,8 @@ collapseIdenticalNeighbors <- function(data,
     seq_barcodes <- data[[barcode]][data[[sequence]] == seq_i]
     seq_idx <- barcode_to_idx[seq_barcodes]
 
+    # For each exact sequence, connected components identify spatially
+    # contiguous spots carrying that sequence.
     if (length(seq_idx) == 1L) {
       component_labels[[si]] <- data.frame(
         barcode = seq_barcodes,
@@ -369,6 +601,8 @@ collapseIdenticalNeighbors <- function(data,
         return(grp)
       }
 
+      # Prefer the most abundant consensus. If counts tie, use the point
+      # closest to the component centroid; remaining ties are random.
       max_count <- max(grp[[consensus_count]])
       grp <- grp[grp[[consensus_count]] == max_count, , drop = FALSE]
       if (nrow(grp) == 1L) {
@@ -407,6 +641,37 @@ collapseIdenticalNeighbors <- function(data,
   result
 }
 
+# Build the expected pRESTO/IgBLAST output filenames from the input FASTA stem
+# and the clustering/consensus thresholds.
+.presto_paths <- function(input_fasta, identity, consensus_freq, output_dir = NULL) {
+  if (is.null(output_dir)) {
+    output_dir <- dirname(input_fasta)
+  }
+  stem <- tools::file_path_sans_ext(basename(input_fasta))
+  cluster <- file.path(
+    output_dir,
+    sprintf("%s_ident_%s_barcode_cluster_cluster-pass.fasta", stem, identity)
+  )
+  reheader <- sub("\\.fasta$", "_reheader.fasta", cluster)
+  aligned <- sub("\\.fasta$", "_align-pass.fasta", reheader)
+  consensus <- file.path(
+    output_dir,
+    sprintf("%s_ident_%s_barcode_cluster_freq_%s_cluster-pass_reheader_align-pass_consensus-pass.fasta", stem, identity, consensus_freq)
+  )
+  fmt7 <- sub("\\.fasta$", "_igblast.fmt7", consensus)
+  db_pass <- sub("_igblast\\.fmt7$", "_igblast_db-pass.tsv", fmt7)
+  list(
+    input = input_fasta,
+    cluster = cluster,
+    reheader = reheader,
+    aligned = aligned,
+    consensus = consensus,
+    fmt7 = fmt7,
+    db_pass = db_pass
+  )
+}
+
+# Return the longest internal gap run in an aligned receptor sequence.
 .sirap_max_gap_length <- function(seq) {
   seq <- as.character(seq)
   if (is.na(seq)) {
@@ -420,6 +685,7 @@ collapseIdenticalNeighbors <- function(data,
   max(nchar(matches))
 }
 
+# Return the length of the leading gap run in an aligned receptor sequence.
 .sirap_opening_gap_length <- function(seq) {
   seq <- as.character(seq)
   if (is.na(seq)) {

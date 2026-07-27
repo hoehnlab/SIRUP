@@ -4,10 +4,12 @@
 \alias{plotLengthQc}
 \title{Plot V/J/junction length QC histograms}
 \usage{
-plotLengthQc(airr_df, title = NULL)
+plotLengthQc(airr_df, bin_width = 5, title = NULL)
 }
 \arguments{
 \item{airr_df}{AIRR-style data frame or a SIRAP object.}
+
+\item{bin_width}{Width of histogram bins.}
 
 \item{title}{Optional plot title prefix.}
 }

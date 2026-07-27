@@ -464,6 +464,7 @@ assignTipColors <- function(clones,
   out
 }
 
+# Dispatch to the requested strategy for choosing which tree edges to remove.
 .sirap_tree_cut_edges <- function(edge,
                                   edge_length,
                                   n_tips,
@@ -489,6 +490,7 @@ assignTipColors <- function(clones,
   )
 }
 
+# Choose the globally longest eligible branches for fixed-k tree clustering.
 .sirap_tree_cut_largest_branches <- function(edge,
                                              edge_length,
                                              n_tips,
@@ -504,6 +506,7 @@ assignTipColors <- function(clones,
   c(internal_edges, terminal_edges)[seq_len(n_cut)]
 }
 
+# Recursively split the current component with the largest tip-to-tip span.
 .sirap_tree_split_largest_subtrees <- function(edge,
                                                edge_length,
                                                n_tips,
@@ -586,6 +589,7 @@ assignTipColors <- function(clones,
   cut_edges
 }
 
+# Score candidate branch cuts and choose the most balanced split.
 .sirap_best_tree_cut_edge <- function(candidate_edges,
                                       edge,
                                       edge_length,
@@ -632,6 +636,7 @@ assignTipColors <- function(clones,
   candidate_scores$edge_idx[[1]]
 }
 
+# Return connected components after dropping selected tree edges.
 .sirap_tree_components <- function(edge, keep_edge, nodes) {
   kept_edge <- edge[keep_edge, , drop = FALSE]
   adjacency <- stats::setNames(vector("list", length(nodes)), as.character(nodes))
@@ -669,6 +674,7 @@ assignTipColors <- function(clones,
   components
 }
 
+# Build a branch-length-weighted adjacency list for retained tree edges.
 .sirap_tree_weighted_adjacency <- function(edge, edge_length, keep_edge, nodes) {
   kept_idx <- which(keep_edge)
   adjacency <- stats::setNames(vector("list", length(nodes)), as.character(nodes))
@@ -682,6 +688,7 @@ assignTipColors <- function(clones,
   adjacency
 }
 
+# Measure a component's genetic span as its largest tip-to-tip distance.
 .sirap_tree_component_diameter <- function(component, n_tips, weighted_adjacency) {
   tips <- component[component <= n_tips]
   if (length(tips) < 2L) {
@@ -697,6 +704,7 @@ assignTipColors <- function(clones,
   max_distance
 }
 
+# Compute shortest branch-length distances from one tree node.
 .sirap_tree_distances_from_node <- function(start, weighted_adjacency) {
   start <- as.character(start)
   distances <- stats::setNames(rep(NA_real_, length(weighted_adjacency)), names(weighted_adjacency))
@@ -716,6 +724,7 @@ assignTipColors <- function(clones,
   distances
 }
 
+# Score clustering quality for one candidate k in automatic k selection.
 .sirap_tree_cluster_score <- function(tree,
                                       clusters,
                                       id_col,
@@ -743,6 +752,7 @@ assignTipColors <- function(clones,
   }
 }
 
+# Return patristic distances among selected tips, preserving tip order.
 .sirap_tip_patristic_matrix <- function(tree, tip_labels) {
   edge <- as.matrix(tree$edge)
   edge_length <- as.numeric(tree$edge.length)
@@ -784,6 +794,7 @@ assignTipColors <- function(clones,
   out
 }
 
+# Calculate root-to-node depth from parent and branch-length maps.
 .sirap_node_depth <- function(node, parent, branch_length, depth) {
   node_name <- as.character(node)
   if (!is.na(depth[[node_name]])) {
@@ -796,6 +807,7 @@ assignTipColors <- function(clones,
   .sirap_node_depth(parent_node, parent, branch_length, depth) + branch_length[[node_name]]
 }
 
+# Walk from a node to the root and return its ancestor chain.
 .sirap_node_ancestors <- function(node, parent) {
   ancestors <- integer()
   current <- node
@@ -806,6 +818,7 @@ assignTipColors <- function(clones,
   ancestors
 }
 
+# Pick the elbow in the k-score curve by distance from the endpoint line.
 .sirap_choose_elbow_k <- function(scores) {
   if (nrow(scores) < 3L) {
     return(scores$k[nrow(scores)])
@@ -824,6 +837,7 @@ assignTipColors <- function(clones,
   scores$k[which.max(distances)]
 }
 
+# Relabel arbitrary component IDs as compact, stable cluster labels.
 .sirap_compact_tree_cluster_labels <- function(labels, prefix) {
   labels <- as.character(labels)
   prefix_re <- gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", prefix)
@@ -840,6 +854,7 @@ assignTipColors <- function(clones,
   labels
 }
 
+# Build a human-readable label for a row in a dowser-style tree table.
 .sirap_tree_row_label <- function(trees, i) {
   label_cols <- intersect(
     c("clone_id", "clone", "clone_id_rank", "sample_id", "sample", "locus"),
@@ -854,6 +869,7 @@ assignTipColors <- function(clones,
   paste0("Tree at row ", i)
 }
 
+# Validate the paired arguments used to ignore reference/germline tips.
 .sirap_check_tree_keep_args <- function(keep_col, keep_value) {
   has_keep_col <- !is.null(keep_col)
   has_keep_value <- !is.null(keep_value)
@@ -872,6 +888,7 @@ assignTipColors <- function(clones,
   TRUE
 }
 
+# Identify clusters that contain no retained non-reference tips.
 .sirap_tree_non_keep_clusters <- function(tree,
                                           clone_data,
                                           id_col,
@@ -906,6 +923,7 @@ assignTipColors <- function(clones,
   non_keep_tip_data
 }
 
+# Extract the clone metadata data frame from common dowser tree containers.
 .sirap_tree_clone_data_frame <- function(clone_data) {
   if (inherits(clone_data, "airrClone")) {
     return(.as_data_frame(clone_data@data))
@@ -919,6 +937,7 @@ assignTipColors <- function(clones,
   rlang::abort("Could not find a clone data frame in `trees$data`.")
 }
 
+# Add computed tip cluster labels back into the original clone-data container.
 .sirap_add_tree_tip_clusters <- function(clone_data,
                                          tree_tip_clusters,
                                          id_col,
@@ -949,6 +968,7 @@ assignTipColors <- function(clones,
   rlang::abort("Could not find a clone data frame to add tree tip clusters to.")
 }
 
+# Extend a user palette with hue colors when there are more groups than colors.
 .sirap_extend_palette <- function(palette, n) {
   palette <- unique(as.character(stats::na.omit(palette)))
   if (length(palette) == 0L) {

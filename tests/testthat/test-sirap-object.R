@@ -37,7 +37,8 @@ test_that("createSIRAP creates a validated tibble-backed container", {
   expect_s3_class(x, "sirap")
   expect_true(isSIRAP(x))
   expect_s3_class(x$receptors, "tbl_df")
-  expect_identical(names(x), c("spatial", "receptors", "metadata"))
+  expect_identical(names(x), c("spatial", "receptors", "metadata", "analyses"))
+  expect_identical(x$analyses, list())
   expect_identical(x$metadata$receptor_fields$barcode, "barcode")
   expect_identical(x$metadata$receptor_fields$clone, "clone_id")
   expect_identical(x$metadata$receptor_fields$locus, "locus")
@@ -46,6 +47,113 @@ test_that("createSIRAP creates a validated tibble-backed container", {
   expect_identical(SIRAP:::.sirap_spatial_input(x), x$spatial)
   expect_identical(SIRAP:::.sirap_receptor_input(x)$receptors, x$receptors)
   expect_invisible(validateSIRAP(x))
+})
+
+test_that("analysis accessors store arbitrary named results", {
+  x <- make_test_sirap()
+  x <- setAnalysis(x, "clone_counts", data.frame(clone_id = "A", n = 2))
+  x <- setAnalysis(x, "dowser_trees", list(tree = "(A,B);"))
+  x <- setAnalysis(x, "empty_result", NULL)
+
+  expect_identical(
+    listAnalyses(x),
+    c("clone_counts", "dowser_trees", "empty_result")
+  )
+  expect_equal(getAnalysis(x, "clone_counts")$n, 2)
+  expect_identical(getAnalysis(x, "dowser_trees"), list(tree = "(A,B);"))
+  expect_null(getAnalysis(x, "empty_result"))
+
+  x <- removeAnalysis(x, "dowser_trees")
+  expect_identical(listAnalyses(x), c("clone_counts", "empty_result"))
+  expect_error(getAnalysis(x, "dowser_trees"), "is not stored")
+  expect_error(setAnalysis(x, "", 1), "non-empty")
+})
+
+test_that("legacy SIRAP objects behave as though analyses are empty", {
+  x <- make_test_sirap()
+  x$analyses <- NULL
+
+  expect_invisible(validateSIRAP(x))
+  expect_identical(listAnalyses(x), character())
+
+  x <- setAnalysis(x, "result", 1)
+  expect_identical(getAnalysis(x, "result"), 1)
+  expect_identical(names(x), c("spatial", "receptors", "metadata", "analyses"))
+})
+
+test_that("createSIRAP validates initial analyses", {
+  x <- make_test_sirap()
+  spatial <- spatialObject(x)
+  receptors <- receptorTable(x)
+
+  with_result <- createSIRAP(
+    spatial,
+    receptors,
+    analyses = list(note = "already analyzed")
+  )
+  expect_identical(getAnalysis(with_result, "note"), "already analyzed")
+  expect_error(
+    createSIRAP(spatial, receptors, analyses = list(1)),
+    "unique, non-empty names"
+  )
+  expect_error(
+    createSIRAP(spatial, receptors, analyses = "not a list"),
+    "named list"
+  )
+})
+
+test_that("with and update receptor functions operate on the receptor table", {
+  x <- make_test_sirap()
+  x$metadata$receptor_fields["clone"] <- list(NULL)
+  x$receptors$clone_id <- NULL
+
+  n_records <- withReceptors(x, nrow)
+  expect_identical(n_records, 3L)
+  expect_null(x$metadata$receptor_fields$clone)
+
+  x <- updateReceptors(
+    x,
+    function(receptors, prefix) {
+      receptors$clone_id <- paste0(prefix, c("1", "2", "1"))
+      receptors
+    },
+    prefix = "clone_"
+  )
+  expect_identical(x$metadata$receptor_fields$clone, "clone_id")
+  expect_identical(x$receptors$clone_id, c("clone_1", "clone_2", "clone_1"))
+
+  x <- updateReceptors(
+    x,
+    transform,
+    clonal_group = clone_id,
+    receptor_fields = list(clone = "clonal_group")
+  )
+  expect_identical(x$metadata$receptor_fields$clone, "clonal_group")
+  expect_error(updateReceptors(x, function(receptors) 1), "must return a data frame")
+})
+
+test_that("with and update spatial functions operate on the Seurat object", {
+  x <- make_test_sirap()
+
+  expect_equal(withSpatial(x, ncol), 4)
+  x <- updateSpatial(x, function(spatial, value) {
+    spatial$new_field <- value
+    spatial
+  }, value = 1:4)
+
+  expect_identical(unname(x$spatial$new_field), 1:4)
+  expect_error(updateSpatial(x, function(spatial) data.frame()), "must return a Seurat")
+})
+
+test_that("with and update analysis functions operate on one named result", {
+  x <- setAnalysis(make_test_sirap(), "scores", c(3, 1, 2))
+
+  expect_identical(withAnalysis(x, "scores", sort), c(1, 2, 3))
+  expect_identical(getAnalysis(x, "scores"), c(3, 1, 2))
+
+  x <- updateAnalysis(x, "scores", sort, decreasing = TRUE)
+  expect_identical(getAnalysis(x, "scores"), c(3, 2, 1))
+  expect_error(withAnalysis(x, "missing", identity), "is not stored")
 })
 
 test_that("createSIRAP retains unmatched nonspatial receptors", {
@@ -145,7 +253,8 @@ test_that("SIRAP print reports spatial and receptor dimensions", {
       "Receptor data:   tibble, 3 receptor sequences x 8 columns\\n",
       "Spatial overlap: 2/3 receptor barcodes in spatial data \\(66.7%\\)\\n",
       "Barcode field:   barcode\\n",
-      "Clone field:     clone_id"
+      "Clone field:     clone_id\\n",
+      "Analyses:        0"
     )
   )
 })

@@ -79,6 +79,52 @@ test_that("spatialRipleyCrossK keeps all non-missing marks in the point pattern"
   expect_equal(sirap_out$points, out$points)
 })
 
+test_that("spatialMoran can test a particular clone from a SIRAP object", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("spdep")
+
+  object <- SeuratObject::CreateSeuratObject(
+    counts = matrix(
+      1,
+      nrow = 1,
+      ncol = 6,
+      dimnames = list("gene", paste0("cell", 1:6))
+    )
+  )
+  object$x <- c(0, 1, 2, 10, 11, 12)
+  object$y <- c(0, 0, 0, 0, 0, 0)
+  receptors <- data.frame(
+    spot = paste0("cell", 1:6),
+    clonal_group = c("A", "A", "A", "B", "B", "C"),
+    stringsAsFactors = FALSE
+  )
+  sirap <- createSIRAP(
+    object,
+    receptors,
+    barcode_col = "spot",
+    clone_col = "clonal_group"
+  )
+
+  out <- spatialMoran(
+    sirap,
+    variable = "A",
+    variable_type = "clone",
+    k = 1
+  )
+  local <- spatialLocalMoran(
+    sirap,
+    variable = "A",
+    variable_type = "clone",
+    k = 1
+  )
+
+  expect_equal(out$variable, "clone_A")
+  expect_equal(out$data$value, c(1, 1, 1, 0, 0, 0))
+  expect_true(inherits(out$test, "htest"))
+  expect_equal(local$variable, rep("clone_A", 6))
+  expect_true(all(c("local_i", "p_value") %in% names(local)))
+})
+
 test_that("spatialCloneJoinCount tests clone marks from receptor barcodes", {
   skip_if_not_installed("SeuratObject")
   skip_if_not_installed("spdep")
@@ -111,4 +157,66 @@ test_that("spatialCloneJoinCount tests clone marks from receptor barcodes", {
   expect_true("A" %in% out$summary$clone_id)
   expect_equal(out$summary$n_clone_barcodes[out$summary$clone_id == "A"], 3)
   expect_true(all(c("join_count_mark", "clone_id", ".sirap_barcode") %in% names(out$data)))
+})
+
+test_that("plotSpatialCloneJoinCount returns one combined plot", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("spdep")
+  skip_if_not_installed("cowplot")
+
+  object <- SeuratObject::CreateSeuratObject(
+    counts = matrix(
+      1,
+      nrow = 1,
+      ncol = 6,
+      dimnames = list("gene", paste0("cell", 1:6))
+    )
+  )
+  object$x <- c(0, 1, 2, 10, 11, 12)
+  object$y <- c(0, 0, 0, 0, 0, 0)
+  receptors <- data.frame(
+    barcode_8um = paste0("cell", 1:6),
+    clone_id = c("A", "A", "A", "B", "B", "C"),
+    stringsAsFactors = FALSE
+  )
+  join_count <- spatialCloneJoinCount(
+    object = object,
+    receptors = receptors,
+    clone_ids = "A",
+    k = 1,
+    min_barcodes = 2,
+    return_data = TRUE
+  )
+
+  plot <- plotSpatialCloneJoinCount(
+    join_count = join_count,
+    object = object,
+    clone_id = "A",
+    polygon = data.frame(
+      x = c(-1, 4, 4, -1, -1),
+      y = c(-1, -1, 4, 4, -1),
+      polygon = "test"
+    )
+  )
+
+  expect_s3_class(plot, "ggplot")
+  expect_false(is.list(plot) && !inherits(plot, "ggplot"))
+})
+
+test_that("plotSpatialCloneJoinCount requires stored mark data", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("cowplot")
+
+  object <- SeuratObject::CreateSeuratObject(
+    counts = matrix(1, nrow = 1, ncol = 2, dimnames = list("gene", c("cell1", "cell2")))
+  )
+  object$x <- c(0, 1)
+  object$y <- c(0, 0)
+  join_count <- list(summary = data.frame(clone_id = "A"), data = NULL)
+
+  expect_error(
+    plotSpatialCloneJoinCount(join_count, object, clone_id = "A"),
+    "return_data = TRUE",
+    fixed = TRUE
+  )
 })
