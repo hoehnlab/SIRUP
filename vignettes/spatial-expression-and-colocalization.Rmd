@@ -68,6 +68,10 @@ tcrSirap <- createSIRAP(
 The SIRAP objects retain ordinary Seurat and AIRR-style data internally, while
 recording which receptor column joins to spatial barcodes. Their receptor
 components are tibbles and remain available through `receptorTable()`.
+`withSpatial()` can pass the stored Seurat object to any compatible function,
+and `updateSpatial()` returns a SIRAP object containing the updated Seurat
+result. Spatial statistics or other derived objects can be saved with
+`setAnalysis()` and retrieved later with `getAnalysis()`.
 
 Add a receptor-type metadata column to the Seurat object. This lets us use the
 same object for plotting and spatial statistics.

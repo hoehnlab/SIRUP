@@ -148,6 +148,19 @@ sirap <- createSIRAP(
 
 sirap
 receptorTable(sirap)
+listAnalyses(sirap)
+
+# Pass the receptor table to any compatible function without unpacking it.
+clone_counts <- withReceptors(
+  sirap,
+  dplyr::count,
+  clone_id,
+  sort = TRUE
+)
+
+# Store a derived result with the data that produced it.
+sirap <- setAnalysis(sirap, "clone_counts", clone_counts)
+getAnalysis(sirap, "clone_counts")
 
 plotReceptors(
   object = sirap,
@@ -165,3 +178,19 @@ spatialReceptorSummary(sirap)
 Read-only plotting, spatial-analysis, and receptor-summary functions accept a
 SIRAP object directly. Functions continue to accept separate Seurat and
 receptor objects, so existing workflows remain supported.
+
+The component helpers work with functions from SIRAP, other packages, or your
+own code:
+
+- `withReceptors()`, `withSpatial()`, and `withAnalysis()` return a function's
+  result without changing the SIRAP object.
+- `updateReceptors()`, `updateSpatial()`, and `updateAnalysis()` put the result
+  back into a returned SIRAP object.
+- `setAnalysis()`, `getAnalysis()`, `listAnalyses()`, and `removeAnalysis()`
+  manage arbitrary derived results, including Dowser clones or trees and
+  spatial statistics.
+
+This means clone calling or germline creation can be run directly against the
+stored receptor table, for example
+`updateReceptors(sirap, scoper::hierarchicalClones, ...)`. A conventional
+`clone_id` column added by the function is recorded automatically.

@@ -381,6 +381,25 @@ summary(tcrSirap)
 spatialReceptorSummary(bcrSirap)
 ```
 
+The paired components can be passed to ordinary R functions without manually
+extracting them. `withReceptors()` and `withSpatial()` return the function
+result, while `updateReceptors()` and `updateSpatial()` return a SIRAP object
+with the result stored back in the appropriate component. Derived results can
+be kept alongside the input data with `setAnalysis()` and retrieved with
+`getAnalysis()`.
+
+```{r sirap-component-helpers}
+bcrCounts <- withReceptors(
+  bcrSirap,
+  dplyr::count,
+  locus,
+  sort = TRUE
+)
+
+bcrSirap <- setAnalysis(bcrSirap, "receptor_counts", bcrCounts)
+listAnalyses(bcrSirap)
+```
+
 ## Plot BCRs and TCRs Over Tissue
 
 `plotReceptorExpression()` and `spatialDiscretePlot()` draw points over the

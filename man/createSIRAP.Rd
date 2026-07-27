@@ -14,6 +14,7 @@ createSIRAP(
   locus_col = "locus",
   count_col = NULL,
   metadata = list(),
+  analyses = list(),
   validate = TRUE
 )
 }
@@ -43,6 +44,8 @@ counts.}
 
 \item{metadata}{Optional named list of dataset-level metadata.}
 
+\item{analyses}{Optional named list of derived analysis results.}
+
 \item{validate}{Whether to validate the completed object.}
 }
 \value{
@@ -51,7 +54,9 @@ A SIRAP object with S3 class \code{sirap}.
 \description{
 A SIRAP object keeps a spatial Seurat object and an AIRR-style receptor
 table together with receptor field mappings needed to join and interpret
-them. Field mappings are stored in \code{metadata$receptor_fields}.
+them. Field mappings are stored in \code{metadata$receptor_fields}. Derived
+results can be kept in the optional named \code{analyses} list so that the data
+and the analyses made from them can travel together.
 The receptor table is stored as a \code{\link[tibble:tibble]{tibble::tibble()}}. Unmatched receptor
 rows are retained, which allows a table to contain bulk or other
 nonspatial receptor records alongside spatial records.
