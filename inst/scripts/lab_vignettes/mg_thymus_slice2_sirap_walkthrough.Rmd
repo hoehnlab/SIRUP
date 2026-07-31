@@ -599,7 +599,7 @@ calculation, if `radius` is not used, `k` is the number of nearest neighbors to 
 way, and `alternative` is the alternative hypothesis for the Moran's I test. The function 
 returns a list with `test`, which contains the Moran's I statistic, expected value, variance, 
 z-score, and p-value, `weights`, which contains the weight matrix used for the calculation 
-layer, `data`, `neighbors`, `radius`, `k`, and `variable`.
+`data`, `neighbors`, `radius`, `k`, and `variable`.
 
 `spatialLocalMoran()` is the same, but it computes local Moran's I for each spot and returns a dataframe that includes, among other things, the `local_i`, `expected_i`, `variance_i`, `z_i`, `p_value`, and `k` for each spot.  It's also better to plot in space with 
 `plotSpatialLocalMoran()`.
@@ -691,6 +691,13 @@ table(
 ```
 
 `spatialRipleyCrossK()` is the function to call Ripley's K. It takes a SIRAP object (or spatial Seurat object) in `object`, the spatial metadata column that has the labels for the types (or marks) in `mark_col`, the two types to compare in `i` and `j`, the number of simulations to run in `nsim`, and the maximum radius to consider in `max_r`. We can also determine the cross K value for a specific radius by specifying `r`. The function works by setting the spatial window, setting up spatstat point processes with the x/y values and the marks, then running kcross and envelope from spatstat. It returns a list with the observed K, the simulated K (envelopes), data for plotting, etc.
+
+We plot the results of Ripley's cross K with `plotRipleyCrossK()`, which takes the Ripley's 
+cross K result list `kcross`, an optional plot title `title`, `observed_color` and 
+`simulated_color` for the observed and simulated K values, `envelope_fill` and `envelope_alpha`
+for the confidence envelope fill color and alpha, `facet` (default TRUE) to facet the plot by 
+image if multiple images are present (never the case for me), and `log_y` (default FALSE) to 
+log-transform the y-axis.
 
 ```{r ripley-cross-k}
 gc_b_tfh_k <- spatialRipleyCrossK(
