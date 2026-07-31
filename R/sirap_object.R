@@ -188,7 +188,7 @@ isSIRAP <- function(x) {
 #'
 #' @param x A SIRAP object.
 #'
-#' @return `spatialObject()` returns the Seurat object. `receptorTable()`
+#' @return `getSpatial()` returns the Seurat object. `getReceptors()`
 #'   returns the receptor tibble.
 #' @name sirap-accessors
 NULL
@@ -198,14 +198,14 @@ NULL
 
 #' @rdname sirap-accessors
 #' @export
-spatialObject <- function(x) {
+getSpatial <- function(x) {
   validateSIRAP(x)
   x$spatial
 }
 
 #' @rdname sirap-accessors
 #' @export
-receptorTable <- function(x) {
+getReceptors <- function(x) {
   validateSIRAP(x)
   x$receptors
 }
@@ -486,9 +486,9 @@ print.summary.sirap <- function(x, ...) {
 
 # Resolve a function supplied to the with/update APIs and apply it to the
 # selected SIRAP component as its first argument.
-.sirap_apply <- function(fun, .sirap_data, ...) {
+.sirap_apply <- function(fun, sirap_data, ...) {
   fun <- match.fun(fun)
-  fun(.sirap_data, ...)
+  fun(sirap_data, ...)
 }
 
 # Preserve receptor mappings after an update, infer conventional clone/locus

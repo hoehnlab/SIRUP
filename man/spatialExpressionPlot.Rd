@@ -10,7 +10,7 @@ spatialExpressionPlot(
   assay = NULL,
   layer = "counts",
   images = NULL,
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   feature_colors = c("#D3D3D3", "#FFFF00"),
   zero_tol = 0,
@@ -18,7 +18,7 @@ spatialExpressionPlot(
   point_alpha = 1,
   order_points = TRUE,
   title = NULL,
-  image.alpha = 1,
+  image_alpha = 1,
   zoom = FALSE,
   combine = TRUE
 )
@@ -34,7 +34,7 @@ spatialExpressionPlot(
 
 \item{images}{Optional Seurat image names.}
 
-\item{image.scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. Defaults to \code{FALSE},
@@ -56,12 +56,12 @@ value.}
 feature-name title. For multiple combined panels, this is used as an
 overall patchwork title and individual panels keep their feature titles.}
 
-\item{image.alpha}{Tissue image opacity.}
+\item{image_alpha}{Tissue image opacity.}
 
 \item{zoom}{Zoom to non-zero spots. Defaults to \code{FALSE}, which shows the
 full tissue area covered by the spatial coordinates.}
 
-\item{combine}{Combine plots with patchwork when possible.}
+\item{combine}{Combine plots into one figure with patchwork if multiple images/features.}
 }
 \value{
 A ggplot/patchwork object, list, or \code{NULL} when all spots are zero.

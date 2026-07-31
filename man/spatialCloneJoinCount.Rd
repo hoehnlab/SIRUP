@@ -13,7 +13,7 @@ spatialCloneJoinCount(
   polygon = NULL,
   polygon_id = NULL,
   images = NULL,
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   x_col = "x",
   y_col = "y",
@@ -54,7 +54,7 @@ exists.}
 
 \item{images}{Optional Seurat image names.}
 
-\item{image.scale}{Image scale passed to
+\item{image_scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate

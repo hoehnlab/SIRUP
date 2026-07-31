@@ -11,7 +11,7 @@ plotSpatialCloneJoinCount(
   images = NULL,
   polygon_id = NULL,
   polygon = NULL,
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   show_neighbors = TRUE,
   clone_color = "#D55E00",
@@ -22,7 +22,7 @@ plotSpatialCloneJoinCount(
   edge_alpha = 0.75,
   polygon_color = "black",
   polygon_linewidth = 0.6,
-  image.alpha = 1,
+  image_alpha = 1,
   zoom = FALSE,
   title = NULL
 )
@@ -41,7 +41,7 @@ plotSpatialCloneJoinCount(
 
 \item{polygon}{Optional polygon vertex data frame to draw over the tissue.}
 
-\item{image.scale}{Image scale passed to
+\item{image_scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate axes.}
@@ -59,7 +59,7 @@ the selected clone.}
 
 \item{polygon_color, polygon_linewidth}{Color and width of polygon outlines.}
 
-\item{image.alpha}{Tissue image opacity.}
+\item{image_alpha}{Tissue image opacity.}
 
 \item{zoom}{Zoom the spatial panel to the spots used in the test.}
 

@@ -29,7 +29,7 @@
 #' @param exclude_singletons Exclude clones represented by only one receptor row
 #'   after locus filtering.
 #' @param images Optional Seurat image names to use for spatial coordinates.
-#' @param image.scale Image scale passed to
+#' @param image_scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
@@ -58,7 +58,7 @@ spatialCloneDominance <- function(receptors = NULL,
                                   v_call_col = "v_call",
                                   exclude_singletons = FALSE,
                                   images = NULL,
-                                  image.scale = "hires",
+                                  image_scale = "hires",
                                   swap_coords = FALSE,
                                   polygon_id = NULL,
                                   x_col = "x",
@@ -132,7 +132,7 @@ spatialCloneDominance <- function(receptors = NULL,
     receptors <- receptors[clone_ids %in% names(clone_counts)[clone_counts > 1L], , drop = FALSE]
   }
 
-  coords <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, swap_coords = swap_coords)
+  coords <- .sirap_spatial_coordinate_table(object, images = images, image_scale = image_scale, swap_coords = swap_coords)
   coords <- coords[is.finite(coords$x) & is.finite(coords$y), , drop = FALSE]
   polygon_specs <- .sirap_polygon_specs(polygon, polygon_id = polygon_id, polygon_col = polygon_col)
   polygon_plot_data <- .sirap_polygon_plot_data(
@@ -314,7 +314,7 @@ spatialCloneDominance <- function(receptors = NULL,
 #' @param assay Optional assay to set before fetching feature values.
 #' @param layer Expression layer/slot used for `feature`.
 #' @param images Optional Seurat image names to show.
-#' @param image.scale Image scale passed to
+#' @param image_scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
@@ -328,7 +328,7 @@ spatialCloneDominance <- function(receptors = NULL,
 #' @param downsample_seed Random seed used when `downsample_n` is not `NULL`.
 #' @param point_size Size of spatial points in the plot.
 #' @param point_alpha Initial opacity for spatial points.
-#' @param launch.browser Passed to `shiny::runApp()`.
+#' @param launch_browser Passed to `shiny::runApp()`.
 #' @param host,port Optional host and port passed to `shiny::runApp()`. These
 #'   are useful when running from an interactive HPC session through an SSH
 #'   tunnel.
@@ -340,7 +340,7 @@ selectSpatialPolygons <- function(object,
                                   assay = "Spatial",
                                   layer = "counts",
                                   images = NULL,
-                                  image.scale = "hires",
+                                  image_scale = "hires",
                                   swap_coords = FALSE,
                                   save_path = NULL,
                                   plot_image = FALSE,
@@ -348,7 +348,7 @@ selectSpatialPolygons <- function(object,
                                   downsample_seed = 1L,
                                   point_size = 0.8,
                                   point_alpha = 0.9,
-                                  launch.browser = TRUE,
+                                  launch_browser = TRUE,
                                   host = getOption("shiny.host", "127.0.0.1"),
   port = getOption("shiny.port", NULL),
   quiet = TRUE) {
@@ -365,7 +365,7 @@ selectSpatialPolygons <- function(object,
     SeuratObject::DefaultAssay(object) <- assay
   }
 
-  coords <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, swap_coords = swap_coords)
+  coords <- .sirap_spatial_coordinate_table(object, images = images, image_scale = image_scale, swap_coords = swap_coords)
   if (nrow(coords) == 0L) {
     rlang::abort("No spatial coordinates were found in `object`.")
   }
@@ -602,7 +602,7 @@ selectSpatialPolygons <- function(object,
 
   shiny::runApp(
     shiny::shinyApp(ui, server),
-    launch.browser = launch.browser,
+    launch.browser = launch_browser,
     host = host,
     port = port
   )
@@ -636,7 +636,7 @@ selectSpatialPolygons <- function(object,
 #' @param order_col Optional column used to order points within each polygon
 #'   before formatting. This is mainly useful with `point_type = "boundary"`.
 #' @param images Optional Seurat image names to use for spatial coordinates.
-#' @param image.scale Image scale passed to
+#' @param image_scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate axes.
 #' @param close_polygons Close each polygon by repeating the first vertex when
@@ -655,7 +655,7 @@ formatSpatialPolygons <- function(object,
                                   buffer_radius = NULL,
                                   order_col = NULL,
                                   images = NULL,
-                                  image.scale = "hires",
+                                  image_scale = "hires",
                                   swap_coords = FALSE,
                                   close_polygons = TRUE) {
   object <- .sirap_spatial_input(object)
@@ -689,7 +689,7 @@ formatSpatialPolygons <- function(object,
   coords <- .sirap_spatial_coordinate_table(
     object,
     images = images,
-    image.scale = image.scale,
+    image_scale = image_scale,
     swap_coords = swap_coords
   )
   coords$cell <- as.character(coords$cell)
@@ -783,7 +783,7 @@ formatSpatialPolygons <- function(object,
 #'   `y` columns by default. If a `polygon` column is present, each polygon is
 #'   drawn independently.
 #' @param images Optional Seurat image names to show.
-#' @param image.scale Image scale passed to
+#' @param image_scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
@@ -796,7 +796,7 @@ formatSpatialPolygons <- function(object,
 #' @param fill Fill color for polygons.
 #' @param color Outline color for polygons.
 #' @param linewidth Outline width for polygons.
-#' @param image.alpha Tissue image opacity.
+#' @param image_alpha Tissue image opacity.
 #' @param label Plot labels at polygon centers.
 #' @param label_col Column in the polygon data to use for labels.
 #' @param label_size Text size for polygon labels.
@@ -811,7 +811,7 @@ formatSpatialPolygons <- function(object,
 plotSpatialPolygons <- function(object,
                                 polygon,
                                 images = NULL,
-                                image.scale = "hires",
+                                image_scale = "hires",
                                 swap_coords = FALSE,
                                 polygon_id = NULL,
                                 x_col = "x",
@@ -821,7 +821,7 @@ plotSpatialPolygons <- function(object,
                                 fill = "#0072B2",
                                 color = "#0072B2",
                                 linewidth = 0.6,
-                                image.alpha = 1,
+                                image_alpha = 1,
                                 label = TRUE,
                                 label_col = "polygon",
                                 label_size = 3,
@@ -865,11 +865,11 @@ plotSpatialPolygons <- function(object,
   plots <- list()
   full_image_data <- data.frame(x = numeric(), .sirap_y = numeric())
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
+    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
     plots[[image]] <- .sirap_spatial_base(
       plot_data = polygon_data,
       image = spatial$image,
-      image.alpha = image.alpha,
+      image_alpha = image_alpha,
       zoom = zoom,
       view_data = if (isTRUE(zoom)) NULL else full_image_data
     ) +
@@ -909,7 +909,7 @@ plotSpatialPolygons <- function(object,
 #'   points. When omitted, the clone column recorded by
 #'   `spatialCloneDominance()` is used.
 #' @param images Optional Seurat image names to show.
-#' @param image.scale Image scale passed to
+#' @param image_scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
@@ -921,7 +921,7 @@ plotSpatialPolygons <- function(object,
 #' @param polygon_alpha Fill opacity for polygons.
 #' @param polygon_fill Fill color for polygons.
 #' @param polygon_color Outline color for polygons.
-#' @param image.alpha Tissue image opacity.
+#' @param image_alpha Tissue image opacity.
 #' @param top_n Optional number of most frequent `color_by` levels to keep
 #'   before grouping remaining levels as `other_label`.
 #' @param other_label Label for grouped lower-frequency levels.
@@ -937,7 +937,7 @@ plotSpatialRegionReceptors <- function(dominance,
                                        object,
                                        color_by = "clone_id",
                                        images = NULL,
-                                       image.scale = "hires",
+                                       image_scale = "hires",
                                        swap_coords = FALSE,
                                        polygon_id = NULL,
                                        point_size = 1,
@@ -945,7 +945,7 @@ plotSpatialRegionReceptors <- function(dominance,
                                        polygon_alpha = 0.12,
                                        polygon_fill = "#FFFFFF",
                                        polygon_color = "black",
-                                       image.alpha = 1,
+                                       image_alpha = 1,
                                        top_n = NULL,
                                        other_label = "Other",
                                        other_color = "#D3D3D3",
@@ -981,12 +981,12 @@ plotSpatialRegionReceptors <- function(dominance,
   plots <- list()
   full_image_data <- data.frame(x = numeric(), .sirap_y = numeric())
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
+    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
     plot_receptors <- region$bcrs[region$bcrs$image == image | region$bcrs$image == "metadata", , drop = FALSE]
     plots[[image]] <- .sirap_spatial_base(
       plot_data = if (isTRUE(zoom)) region$polygons else spatial$coords,
       image = spatial$image,
-      image.alpha = image.alpha,
+      image_alpha = image_alpha,
       zoom = zoom,
       view_data = if (isTRUE(zoom)) NULL else full_image_data
     ) +
@@ -1028,7 +1028,7 @@ plotSpatialRegionReceptors <- function(dominance,
 #' @param weight_col Optional numeric column used as receptor weights. When
 #'   `NULL`, each receptor row contributes one count.
 #' @param images Optional Seurat image names to show.
-#' @param image.scale Image scale passed to
+#' @param image_scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
@@ -1085,7 +1085,7 @@ plotSpatialCloneDensity3D <- function(dominance,
                                       clone_col = "clone_id",
                                       weight_col = NULL,
                                       images = NULL,
-                                      image.scale = "hires",
+                                      image_scale = "hires",
                                       swap_coords = FALSE,
                                       polygon_id = NULL,
                                       top_n = 10,
@@ -1141,7 +1141,7 @@ plotSpatialCloneDensity3D <- function(dominance,
 
   plot_data <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
+    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
     image_bcrs <- region_bcrs[region_bcrs$image == image | region_bcrs$image == "metadata", , drop = FALSE]
     if (nrow(image_bcrs) == 0L) {
       next
@@ -1230,7 +1230,7 @@ plotSpatialCloneDensity3D <- function(dominance,
 #' @param other_color Color used for `other_label`.
 #' @param plot_other Plot grouped lower-frequency BCRs as `other_label`.
 #' @param images Optional Seurat image names to show.
-#' @param image.scale Image scale passed to
+#' @param image_scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
@@ -1238,7 +1238,7 @@ plotSpatialCloneDensity3D <- function(dominance,
 #' @param polygon_id Optional polygon ID value(s) to select from the dominance
 #'   result.
 #' @param polygon_alpha Fill opacity for polygons in the numbered map.
-#' @param image.alpha Tissue image opacity.
+#' @param image_alpha Tissue image opacity.
 #' @param pie_alpha Pie opacity.
 #' @param label_size Text size for polygon and pie labels.
 #' @param pies_per_page Maximum number of ordinary pie charts to show per page
@@ -1260,11 +1260,11 @@ plotSpatialPolygonPies <- function(dominance,
                                    other_color = "#D3D3D3",
                                    plot_other = TRUE,
                                    images = NULL,
-                                   image.scale = "hires",
+                                   image_scale = "hires",
                                    swap_coords = FALSE,
                                    polygon_id = NULL,
                                    polygon_alpha = 0.2,
-                                   image.alpha = 1,
+                                   image_alpha = 1,
                                    pie_alpha = 0.9,
                                    label_size = 3,
                                    pies_per_page = 6L,
@@ -1314,14 +1314,14 @@ plotSpatialPolygonPies <- function(dominance,
     .sirap_side_by_side_polygon_pies(
       object = object,
       images = images,
-      image.scale = image.scale,
+      image_scale = image_scale,
       swap_coords = swap_coords,
       polygon_plot_data = region$polygons,
       centers = centers,
       pie_data = pie_data,
       fill_values = fill_values,
       polygon_alpha = polygon_alpha,
-      image.alpha = image.alpha,
+      image_alpha = image_alpha,
       label_size = label_size,
       pies_per_page = pies_per_page,
       zoom = zoom
@@ -1330,14 +1330,14 @@ plotSpatialPolygonPies <- function(dominance,
     .sirap_spatial_clipped_polygon_pies(
       object = object,
       images = images,
-      image.scale = image.scale,
+      image_scale = image_scale,
       swap_coords = swap_coords,
       polygon_plot_data = region$polygons,
       centers = centers,
       pie_data = pie_data,
       fill_values = fill_values,
       fill_by = fill_by,
-      image.alpha = image.alpha,
+      image_alpha = image_alpha,
       pie_alpha = pie_alpha,
       label_size = label_size,
       spatial_legend = spatial_legend,
@@ -1357,7 +1357,7 @@ plotSpatialPolygonPies <- function(dominance,
 #'   `y` columns by default. If a `polygon` column is present, each polygon is
 #'   evaluated independently.
 #' @param images Optional Seurat image names to use for spatial coordinates.
-#' @param image.scale Image scale passed to
+#' @param image_scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
@@ -1378,7 +1378,7 @@ plotSpatialPolygonPies <- function(dominance,
 seuratSubsetPolygon <- function(object,
                                 polygon,
                                 images = NULL,
-                                image.scale = "hires",
+                                image_scale = "hires",
                                 swap_coords = FALSE,
                                 polygon_id = NULL,
                                 x_col = "x",
@@ -1394,7 +1394,7 @@ seuratSubsetPolygon <- function(object,
 
   polygon <- .as_data_frame(polygon)
   .check_required_cols(polygon, c(x_col, y_col), "polygon")
-  coords <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, swap_coords = swap_coords)
+  coords <- .sirap_spatial_coordinate_table(object, images = images, image_scale = image_scale, swap_coords = swap_coords)
   coords <- coords[is.finite(coords$x) & is.finite(coords$y), , drop = FALSE]
   if (nrow(coords) == 0L) {
     rlang::abort("No finite spatial coordinates were found in `object`.")
@@ -2430,14 +2430,14 @@ seuratSubsetPolygon <- function(object,
 
 .sirap_side_by_side_polygon_pies <- function(object,
                                              images,
-                                             image.scale,
+                                             image_scale,
                                              swap_coords,
                                              polygon_plot_data,
                                              centers,
                                              pie_data,
                                              fill_values,
                                              polygon_alpha,
-                                             image.alpha,
+                                             image_alpha,
                                              label_size,
                                              pies_per_page,
                                              zoom) {
@@ -2448,11 +2448,11 @@ seuratSubsetPolygon <- function(object,
     object = object,
     polygon = map_polygon_data,
     images = images,
-    image.scale = image.scale,
+    image_scale = image_scale,
     swap_coords = swap_coords,
     polygon_col = "polygon",
     polygon_alpha = polygon_alpha,
-    image.alpha = image.alpha,
+    image_alpha = image_alpha,
     label = TRUE,
     label_col = "polygon_label",
     label_size = label_size,
@@ -2527,14 +2527,14 @@ seuratSubsetPolygon <- function(object,
 
 .sirap_spatial_clipped_polygon_pies <- function(object,
                                                 images,
-                                                image.scale,
+                                                image_scale,
                                                 swap_coords,
                                                 polygon_plot_data,
                                                 centers,
                                                 pie_data,
                                                 fill_values,
                                                 fill_by,
-                                                image.alpha,
+                                                image_alpha,
                                                 pie_alpha,
                                                 label_size,
                                                 spatial_legend,
@@ -2549,11 +2549,11 @@ seuratSubsetPolygon <- function(object,
 
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
+    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
     plots[[image]] <- .sirap_spatial_base(
       plot_data = if (isTRUE(zoom)) zoom_data else full_image_data,
       image = spatial$image,
-      image.alpha = image.alpha,
+      image_alpha = image_alpha,
       zoom = zoom,
       view_data = NULL
     ) +

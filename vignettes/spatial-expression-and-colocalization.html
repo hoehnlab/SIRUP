@@ -370,7 +370,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb1-36" data-line-number="36">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
 <a class="sourceLine" id="cb1-37" data-line-number="37">  <span class="dt">metadata =</span> <span class="kw">list</span>(<span class="dt">sample_id =</span> sampleId, <span class="dt">receptor_type =</span> <span class="st">&quot;TCR&quot;</span>)</a>
 <a class="sourceLine" id="cb1-38" data-line-number="38">)</a></code></pre></div>
-<p>The SIRAP objects retain ordinary Seurat and AIRR-style data internally, while recording which receptor column joins to spatial barcodes. Their receptor components are tibbles and remain available through <code>receptorTable()</code>.</p>
+<p>The SIRAP objects retain ordinary Seurat and AIRR-style data internally, while recording which receptor column joins to spatial barcodes. Their receptor components are tibbles and remain available through <code>getReceptors()</code>.</p>
 <p>Add a receptor-type metadata column to the Seurat object. This lets us use the same object for plotting and spatial statistics.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">bcr_spots &lt;-<span class="st"> </span><span class="kw">unique</span>(bcrTopBarcode<span class="op">$</span>barcode_8um)</a>
 <a class="sourceLine" id="cb2-2" data-line-number="2">tcr_spots &lt;-<span class="st"> </span><span class="kw">unique</span>(tcrTopBarcode<span class="op">$</span>barcode_8um)</a>

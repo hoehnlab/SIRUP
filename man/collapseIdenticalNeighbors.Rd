@@ -11,7 +11,7 @@ collapseIdenticalNeighbors(
   sequence_col = "sequence",
   consensus_count_col = "consensus_count",
   images = NULL,
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   num_neighbors_non_boundary = 6L,
   validate = TRUE
@@ -35,7 +35,7 @@ the representative spot within a connected component.}
 
 \item{images}{Optional Seurat image names to use for spatial coordinates.}
 
-\item{image.scale}{Image scale passed to
+\item{image_scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Swap x/y coordinates after reading Seurat tissue

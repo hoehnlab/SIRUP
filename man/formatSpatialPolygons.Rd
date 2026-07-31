@@ -16,7 +16,7 @@ formatSpatialPolygons(
   buffer_radius = NULL,
   order_col = NULL,
   images = NULL,
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   close_polygons = TRUE
 )
@@ -50,7 +50,7 @@ before formatting. This is mainly useful with \code{point_type = "boundary"}.}
 
 \item{images}{Optional Seurat image names to use for spatial coordinates.}
 
-\item{image.scale}{Image scale passed to
+\item{image_scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate axes.}

@@ -32,7 +32,7 @@ plotLengthQc <- function(airr_df, bin_width = 5, title = NULL) {
 #' @param assay Optional assay to set before plotting.
 #' @param layer Seurat expression layer to fetch.
 #' @param images Optional Seurat image names.
-#' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
 #'   which uses Seurat image coordinates natively.
@@ -46,10 +46,10 @@ plotLengthQc <- function(airr_df, bin_width = 5, title = NULL) {
 #' @param title Optional plot title. For a single panel, this replaces the
 #'   feature-name title. For multiple combined panels, this is used as an
 #'   overall patchwork title and individual panels keep their feature titles.
-#' @param image.alpha Tissue image opacity.
+#' @param image_alpha Tissue image opacity.
 #' @param zoom Zoom to non-zero spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
-#' @param combine Combine plots with patchwork when possible.
+#' @param combine Combine plots into one figure with patchwork if multiple images/features.
 #' @return A ggplot/patchwork object, list, or `NULL` when all spots are zero.
 #' @export
 spatialExpressionPlot <- function(object,
@@ -57,7 +57,7 @@ spatialExpressionPlot <- function(object,
                                       assay = NULL,
                                       layer = "counts",
                                       images = NULL,
-                                      image.scale = "hires",
+                                      image_scale = "hires",
                                       swap_coords = FALSE,
                                       feature_colors = c("#D3D3D3", "#FFFF00"),
                                       zero_tol = 0,
@@ -65,7 +65,7 @@ spatialExpressionPlot <- function(object,
                                       point_alpha = 1,
                                       order_points = TRUE,
                                       title = NULL,
-                                      image.alpha = 1,
+                                      image_alpha = 1,
                                       zoom = FALSE,
                                       combine = TRUE) {
   object <- .sirap_spatial_input(object)
@@ -83,7 +83,7 @@ spatialExpressionPlot <- function(object,
   spatial_images <- .sirap_spatial_images(object, images = images)
   single_panel <- length(features) == 1L && length(spatial_images) == 1L
   for (image in spatial_images) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
+    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
     dat <- merge(spatial$coords, expr, by.x = "cell", by.y = 0, all.x = TRUE)
     for (feature in features) {
       keep <- !is.na(dat[[feature]]) & dat[[feature]] > zero_tol
@@ -97,7 +97,7 @@ spatialExpressionPlot <- function(object,
       plots[[paste(image, feature, sep = "_")]] <- .sirap_spatial_base(
         plot_data,
         spatial$image,
-        image.alpha = image.alpha,
+        image_alpha = image_alpha,
         zoom = zoom,
         view_data = spatial$coords
       ) +
@@ -125,7 +125,7 @@ spatialExpressionPlot <- function(object,
 #' @param meta_col Metadata column to plot.
 #' @param zero_value Value treated as not present.
 #' @param images Optional Seurat image names.
-#' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
 #'   which uses Seurat image coordinates natively.
@@ -134,7 +134,7 @@ spatialExpressionPlot <- function(object,
 #' @param point_alpha Opacity for plotted spots.
 #' @param order_points Plot lower numeric values or earlier factor levels first
 #'   so higher/later values appear on top.
-#' @param image.alpha Tissue image opacity.
+#' @param image_alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
 #' @param combine Combine plots with patchwork when possible.
@@ -144,13 +144,13 @@ spatialDiscretePlot <- function(object,
                                   meta_col,
                                   zero_value = 0,
                                   images = NULL,
-                                  image.scale = "hires",
+                                  image_scale = "hires",
                                   swap_coords = FALSE,
                                   cols = NULL,
                                   point_size = 1.6,
                                   point_alpha = 1,
                                   order_points = TRUE,
-                                  image.alpha = 1,
+                                  image_alpha = 1,
                                   zoom = FALSE,
                                   combine = TRUE) {
   object <- .sirap_spatial_input(object)
@@ -166,7 +166,7 @@ spatialDiscretePlot <- function(object,
 
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
+    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
     plot_data <- spatial$coords[spatial$coords$cell %in% keep_cells, , drop = FALSE]
     if (nrow(plot_data) == 0L) {
       next
@@ -188,7 +188,7 @@ spatialDiscretePlot <- function(object,
     plots[[image]] <- .sirap_spatial_base(
       plot_data,
       spatial$image,
-      image.alpha = image.alpha,
+      image_alpha = image_alpha,
       zoom = zoom,
       view_data = spatial$coords
     ) +
@@ -219,7 +219,7 @@ spatialDiscretePlot <- function(object,
 #'   two-feature blend grid.
 #' @param zero_tol Values at or below this threshold are treated as zero.
 #' @param images Optional Seurat image names.
-#' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
 #'   which uses Seurat image coordinates natively.
@@ -227,7 +227,7 @@ spatialDiscretePlot <- function(object,
 #' @param point_alpha Opacity for plotted spots.
 #' @param order_points Plot lower blended expression intensity first so higher
 #'   intensity spots appear on top.
-#' @param image.alpha Tissue image opacity.
+#' @param image_alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
 #' @return A ggplot/patchwork object or a list when `combine = FALSE`.
@@ -246,12 +246,12 @@ spatialExpressionBlendPlot <- function(object,
                                                 top_right = "#FFFF00",
                                                 zero_tol = 0,
                                                 images = NULL,
-                                                image.scale = "hires",
+                                                image_scale = "hires",
                                                 swap_coords = FALSE,
                                                 point_size = 0.6,
                                                 point_alpha = 1,
                                                 order_points = TRUE,
-                                                image.alpha = 1,
+                                                image_alpha = 1,
                                                 zoom = FALSE) {
   object <- .sirap_spatial_input(object)
   .require_namespace("SeuratObject")
@@ -272,7 +272,7 @@ spatialExpressionBlendPlot <- function(object,
   )
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
+    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
     dat <- merge(spatial$coords, expr, by.x = "cell", by.y = 0, all.x = TRUE)
     keep <- rowSums(dat[, features, drop = FALSE] > zero_tol, na.rm = TRUE) > 0
     if (!any(keep)) {
@@ -289,7 +289,7 @@ spatialExpressionBlendPlot <- function(object,
     blended <- .sirap_spatial_base(
       dat,
       spatial$image,
-      image.alpha = image.alpha,
+      image_alpha = image_alpha,
       zoom = zoom,
       view_data = spatial$coords
     ) +
@@ -316,14 +316,14 @@ spatialExpressionBlendPlot <- function(object,
         object,
         features[[1]],
         images = image,
-        image.scale = image.scale,
+        image_scale = image_scale,
         swap_coords = swap_coords,
         feature_colors = c(bottom_left, bottom_right),
         zero_tol = zero_tol,
         point_size = point_size,
         point_alpha = point_alpha,
         order_points = order_points,
-        image.alpha = image.alpha,
+        image_alpha = image_alpha,
         zoom = zoom,
         combine = TRUE
       )
@@ -331,14 +331,14 @@ spatialExpressionBlendPlot <- function(object,
         object,
         features[[2]],
         images = image,
-        image.scale = image.scale,
+        image_scale = image_scale,
         swap_coords = swap_coords,
         feature_colors = c(bottom_left, top_left),
         zero_tol = zero_tol,
         point_size = point_size,
         point_alpha = point_alpha,
         order_points = order_points,
-        image.alpha = image.alpha,
+        image_alpha = image_alpha,
         zoom = zoom,
         combine = TRUE
       )
@@ -361,7 +361,7 @@ spatialExpressionBlendPlot <- function(object,
 #' @param colors One color per feature.
 #' @param breadth_metric Metric used to choose default feature order.
 #' @param images Optional Seurat image names.
-#' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
 #'   which uses Seurat image coordinates natively.
@@ -370,7 +370,7 @@ spatialExpressionBlendPlot <- function(object,
 #' @param order_points Plot lower-priority feature assignments first so later
 #'   feature levels appear on top.
 #' @param zero_tol Values at or below this threshold are treated as zero.
-#' @param image.alpha Tissue image opacity.
+#' @param image_alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
 #' @return A ggplot/patchwork object or a list when `combine = FALSE`.
@@ -384,13 +384,13 @@ spatialExpressionMultiPlot <- function(object,
                                     colors = NULL,
                                     breadth_metric = c("n_expressing"),
                                     images = NULL,
-                                    image.scale = "hires",
+                                    image_scale = "hires",
                                     swap_coords = FALSE,
                                     point_size = 0.6,
                                     point_alpha = 1,
                                     order_points = TRUE,
                                     zero_tol = 0,
-                                    image.alpha = 1,
+                                    image_alpha = 1,
                                     zoom = FALSE) {
   object <- .sirap_spatial_input(object)
   .require_namespace("SeuratObject")
@@ -410,7 +410,7 @@ spatialExpressionMultiPlot <- function(object,
   expr <- .sirap_fetch_data(object, vars = features, layer = layer)
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
+    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
     dat <- merge(spatial$coords, expr, by.x = "cell", by.y = 0, all.x = TRUE)
     keep <- rowSums(dat[, features, drop = FALSE] > zero_tol, na.rm = TRUE) > 0
     if (!any(keep)) {
@@ -437,7 +437,7 @@ spatialExpressionMultiPlot <- function(object,
     spatial_plot <- .sirap_spatial_base(
       dat,
       spatial$image,
-      image.alpha = image.alpha,
+      image_alpha = image_alpha,
       zoom = zoom,
       view_data = spatial$coords
     ) +
@@ -487,10 +487,10 @@ spatialExpressionMultiPlot <- function(object,
 #' @param title Optional plot title.
 #' @param order_points Plot lower expression values first so higher expression
 #'   appears on top. Receptor groups are drawn in `values` order.
-#' @param assay,layer,image.scale Additional plotting controls.
+#' @param assay,layer,image_scale Additional plotting controls.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate axes.
 #' @param images Optional Seurat image names.
-#' @param image.alpha Tissue image opacity.
+#' @param image_alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`.
 #' @param receptor_legend_title Title for the receptor-group legend. Defaults
 #'   to `group_col`.
@@ -517,10 +517,10 @@ plotReceptorsExpression <- function(object,
                                     order_points = TRUE,
                                     assay = NULL,
                                     layer = "counts",
-                                    image.scale = "hires",
+                                    image_scale = "hires",
                                     swap_coords = FALSE,
                                     images = NULL,
-                                    image.alpha = 1,
+                                    image_alpha = 1,
                                     zoom = FALSE,
                                     receptor_legend_title = NULL,
                                     show_receptor_legend = TRUE,
@@ -587,7 +587,7 @@ plotReceptorsExpression <- function(object,
     spatial <- .sirap_spatial_data(
       object,
       image = image,
-      image.scale = image.scale,
+      image_scale = image_scale,
       swap_coords = swap_coords
     )
     expression_data <- merge(
@@ -629,7 +629,7 @@ plotReceptorsExpression <- function(object,
     p <- .sirap_spatial_base(
       spatial$coords,
       spatial$image,
-      image.alpha = image.alpha,
+      image_alpha = image_alpha,
       zoom = zoom,
       view_data = spatial$coords
     )
@@ -719,13 +719,13 @@ plotReceptorsExpression <- function(object,
 #' @param title Optional title.
 #' @param order_points Plot earlier receptor groups first so later groups appear
 #'   on top.
-#' @param image.scale Image scale passed to
+#' @param image_scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
 #'   which uses Seurat image coordinates natively.
 #' @param images Optional Seurat image names.
-#' @param image.alpha Tissue image opacity.
+#' @param image_alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
 #' @param receptor_legend_title Legend title for receptor groups. Defaults to
@@ -744,10 +744,10 @@ plotReceptors <- function(object,
                           receptor_alpha = 1,
                           title = NULL,
                           order_points = TRUE,
-                          image.scale = "hires",
+                          image_scale = "hires",
                           swap_coords = FALSE,
                           images = NULL,
-                          image.alpha = 1,
+                          image_alpha = 1,
                           zoom = FALSE,
                           receptor_legend_title = NULL,
                           show_receptor_legend = TRUE,
@@ -793,7 +793,7 @@ plotReceptors <- function(object,
   receptor_lookup <- receptor_lookup[!duplicated(receptor_lookup), , drop = FALSE]
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
+    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
     receptor_data <- merge(
       spatial$coords,
       receptor_lookup,
@@ -820,7 +820,7 @@ plotReceptors <- function(object,
     p <- .sirap_spatial_base(
       receptor_data,
       spatial$image,
-      image.alpha = image.alpha,
+      image_alpha = image_alpha,
       zoom = zoom,
       view_data = spatial$coords
     )
@@ -857,7 +857,7 @@ plotReceptors <- function(object,
 #' @param legend_title Title for the color legend.
 #' @param legend_colors Optional named color vector used for the legend.
 #' @param title Optional title.
-#' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
 #'   which uses Seurat image coordinates natively.
@@ -866,10 +866,10 @@ plotReceptors <- function(object,
 #' @param order_points Plot earlier tip-color groups first so later groups
 #'   appear on top.
 #' @param images Optional Seurat image names.
-#' @param image.alpha Tissue image opacity.
+#' @param image_alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
-#' @param show.legend Show color legend.
+#' @param show_legend Show color legend.
 #' @return A ggplot/patchwork object.
 #' @export
 plotSpatialColorTips <- function(object,
@@ -880,15 +880,15 @@ plotSpatialColorTips <- function(object,
                                 legend_title = "Tip color",
                                 legend_colors = NULL,
                                 title = NULL,
-                                image.scale = "hires",
+                                image_scale = "hires",
                                 swap_coords = FALSE,
                                 point_size = 1.6,
                                 point_alpha = 1,
                                 order_points = TRUE,
                                 images = NULL,
-                                image.alpha = 1,
+                                image_alpha = 1,
                                 zoom = FALSE,
-                                show.legend = FALSE) {
+                                show_legend = FALSE) {
   barcode_missing <- missing(barcode_col)
   if (isSIRAP(object) && barcode_missing) {
     barcode_col <- .sirap_receptor_fields(object)$barcode
@@ -919,7 +919,7 @@ plotSpatialColorTips <- function(object,
 
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
+    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
     dat <- spatial$coords[spatial$coords$cell %in% names(spot_color), , drop = FALSE]
     if (nrow(dat) == 0L) {
       next
@@ -937,7 +937,7 @@ plotSpatialColorTips <- function(object,
     p <- .sirap_spatial_base(
       dat,
       spatial$image,
-      image.alpha = image.alpha,
+      image_alpha = image_alpha,
       zoom = zoom,
       view_data = spatial$coords
     ) +
@@ -955,7 +955,7 @@ plotSpatialColorTips <- function(object,
         drop = FALSE
       ) +
       ggplot2::labs(title = title)
-    if (!isTRUE(show.legend)) {
+    if (!isTRUE(show_legend)) {
       p <- p + ggplot2::theme(legend.position = "none")
     }
     plots[[image]] <- p
@@ -1037,7 +1037,7 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #'   groups in that column.
 #' @param palette Optional colors. If fewer colors are supplied than needed,
 #'   additional colors are generated by averaging supplied colors.
-#' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
 #'   which uses Seurat image coordinates natively.
@@ -1065,7 +1065,7 @@ plotSpatialCloneTreePairs <- function(trees,
                                       clone_col = "clone_id",
                                       color_by = "identity",
                                       palette = NULL,
-                                      image.scale = "hires",
+                                      image_scale = "hires",
                                       swap_coords = FALSE,
                                       images = NULL,
                                       zoom = FALSE,
@@ -1134,9 +1134,9 @@ plotSpatialCloneTreePairs <- function(trees,
       label_col = ".sirap_tip_legend_label",
       legend_title = "Tip cluster",
       legend_colors = legend_info$colors,
-      show.legend = show_spatial_legend,
-      legend.position = "bottom",
-      legend.ncol = min(3L, length(legend_info$colors))
+      show_legend = show_spatial_legend,
+      legend_position = "bottom",
+      legend_ncol = min(3L, length(legend_info$colors))
     )
     tree_legend <- if (isTRUE(show_spatial_legend)) {
       cowplot::get_legend(tree_plot)
@@ -1151,14 +1151,14 @@ plotSpatialCloneTreePairs <- function(trees,
       barcode_col = barcode_col,
       color_col = "tip_color",
       title = NULL,
-      image.scale = image.scale,
+      image_scale = image_scale,
       swap_coords = swap_coords,
       images = images,
       point_size = spatial_tip_size,
       point_alpha = spatial_tip_alpha,
       order_points = order_points,
       zoom = zoom,
-      show.legend = FALSE,
+      show_legend = FALSE,
       ...
     )
     if (!is.null(tree_legend)) {
@@ -1452,9 +1452,9 @@ spatialCloneTreePairsToPDF <- function(pairs,
                                      label_col = NULL,
                                      legend_title = "Tip cluster",
                                      legend_colors = NULL,
-                                     show.legend = FALSE,
-                                     legend.position = "right",
-                                     legend.ncol = NULL) {
+                                     show_legend = FALSE,
+                                     legend_position = "right",
+                                     legend_ncol = NULL) {
   p <- ggtree::ggtree(tree, layout = layout)
   join_cols <- c(id_col, color_col)
   if (!is.null(label_col)) {
@@ -1491,7 +1491,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
       ) +
       ggplot2::guides(
         color = ggplot2::guide_legend(
-          ncol = legend.ncol,
+          ncol = legend_ncol,
           byrow = TRUE,
           override.aes = list(size = tip_size)
         )
@@ -1500,7 +1500,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
 
   p +
     ggplot2::theme(
-      legend.position = if (isTRUE(show.legend)) legend.position else "none",
+      legend.position = if (isTRUE(show_legend)) legend_position else "none",
       plot.title = ggplot2::element_text(hjust = 0)
     )
 }
@@ -1528,13 +1528,13 @@ spatialCloneTreePairsToPDF <- function(pairs,
   as.data.frame(out, stringsAsFactors = FALSE)
 }
 
-.sirap_spatial_data <- function(object, image, image.scale = "hires", swap_coords = FALSE) {
+.sirap_spatial_data <- function(object, image, image_scale = "hires", swap_coords = FALSE) {
   .require_namespace("SeuratObject")
   image_obj <- object[[image]]
   if (isTRUE(swap_coords)) {
-    coords <- .sirap_swapped_spatial_coordinates(image_obj, image.scale = image.scale)
+    coords <- .sirap_swapped_spatial_coordinates(image_obj, image_scale = image_scale)
   } else {
-    coords <- .sirap_tissue_spatial_coordinates(image_obj, image.scale = image.scale)
+    coords <- .sirap_tissue_spatial_coordinates(image_obj, image_scale = image_scale)
   }
   if (is.null(coords)) {
     rlang::abort("Could not identify x/y coordinate columns in Seurat tissue coordinates.")
@@ -1546,8 +1546,8 @@ spatialCloneTreePairsToPDF <- function(pairs,
   list(coords = coords, image = image_obj)
 }
 
-.sirap_tissue_spatial_coordinates <- function(image, image.scale = "hires") {
-  coords <- SeuratObject::GetTissueCoordinates(image, scale = image.scale)
+.sirap_tissue_spatial_coordinates <- function(image, image_scale = "hires") {
+  coords <- SeuratObject::GetTissueCoordinates(image, scale = image_scale)
   coords <- as.data.frame(coords, stringsAsFactors = FALSE)
   if ("cell" %in% colnames(coords)) {
     coords$cell <- as.character(coords$cell)
@@ -1568,8 +1568,8 @@ spatialCloneTreePairsToPDF <- function(pairs,
   )
 }
 
-.sirap_swapped_spatial_coordinates <- function(image, image.scale = "hires") {
-  coords <- SeuratObject::GetTissueCoordinates(image, scale = image.scale)
+.sirap_swapped_spatial_coordinates <- function(image, image_scale = "hires") {
+  coords <- SeuratObject::GetTissueCoordinates(image, scale = image_scale)
   coords <- as.data.frame(coords, stringsAsFactors = FALSE)
   if ("cell" %in% colnames(coords)) {
     coords$cell <- as.character(coords$cell)
@@ -1597,14 +1597,14 @@ spatialCloneTreePairsToPDF <- function(pairs,
 
 .sirap_spatial_coordinate_candidates <- function(coords,
                                                 image,
-                                                image.scale = "hires",
+                                                image_scale = "hires",
                                                 include_all_scales = FALSE) {
   raster <- .sirap_image_raster(image, alpha = 1)
   image_dim <- dim(raster)
   height <- image_dim[[1L]]
   width <- image_dim[[2L]]
   scale_factors <- .sirap_image_scale_factors(image)
-  requested_scale_factor <- .sirap_image_scale_factor(image, image.scale)
+  requested_scale_factor <- .sirap_image_scale_factor(image, image_scale)
   scale_transforms <- c(raw = 1)
   if (is.finite(requested_scale_factor) && requested_scale_factor > 0) {
     scale_transforms <- c(requested = requested_scale_factor, scale_transforms)
@@ -1676,17 +1676,17 @@ spatialCloneTreePairsToPDF <- function(pairs,
   )
 }
 
-.sirap_image_scale_factor <- function(image, image.scale = "hires") {
-  if (is.null(image.scale) || length(image.scale) == 0L || is.na(image.scale[[1L]])) {
+.sirap_image_scale_factor <- function(image, image_scale = "hires") {
+  if (is.null(image_scale) || length(image_scale) == 0L || is.na(image_scale[[1L]])) {
     return(NA_real_)
   }
   scale_factors <- tryCatch(methods::slot(image, "scale.factors"), error = function(e) NULL)
   if (is.null(scale_factors)) {
     return(NA_real_)
   }
-  scale_value <- tryCatch(scale_factors[[image.scale[[1L]]]], error = function(e) NULL)
+  scale_value <- tryCatch(scale_factors[[image_scale[[1L]]]], error = function(e) NULL)
   if (is.null(scale_value)) {
-    scale_value <- tryCatch(scale_factors[[paste0(image.scale[[1L]], ".scale")]], error = function(e) NULL)
+    scale_value <- tryCatch(scale_factors[[paste0(image_scale[[1L]], ".scale")]], error = function(e) NULL)
   }
   scale_value <- suppressWarnings(as.numeric(scale_value))
   if (length(scale_value) == 0L || !is.finite(scale_value[[1L]])) {
@@ -1712,10 +1712,10 @@ spatialCloneTreePairsToPDF <- function(pairs,
 
 .sirap_spatial_base <- function(plot_data,
                                 image,
-                                image.alpha = 1,
+                                image_alpha = 1,
                                 zoom = FALSE,
                                 view_data = NULL) {
-  raster <- .sirap_image_raster(image, alpha = image.alpha)
+  raster <- .sirap_image_raster(image, alpha = image_alpha)
   image_dim <- dim(raster)
   height <- image_dim[[1]]
   width <- image_dim[[2]]

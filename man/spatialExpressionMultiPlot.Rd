@@ -14,13 +14,13 @@ spatialExpressionMultiPlot(
   colors = NULL,
   breadth_metric = c("n_expressing"),
   images = NULL,
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   point_size = 0.6,
   point_alpha = 1,
   order_points = TRUE,
   zero_tol = 0,
-  image.alpha = 1,
+  image_alpha = 1,
   zoom = FALSE
 )
 }
@@ -44,7 +44,7 @@ rare/high priority last.}
 
 \item{images}{Optional Seurat image names.}
 
-\item{image.scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. Defaults to \code{FALSE},
@@ -59,7 +59,7 @@ feature levels appear on top.}
 
 \item{zero_tol}{Values at or below this threshold are treated as zero.}
 
-\item{image.alpha}{Tissue image opacity.}
+\item{image_alpha}{Tissue image opacity.}
 
 \item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
 full tissue area covered by the spatial coordinates.}

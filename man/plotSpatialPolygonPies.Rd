@@ -15,11 +15,11 @@ plotSpatialPolygonPies(
   other_color = "#D3D3D3",
   plot_other = TRUE,
   images = NULL,
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   polygon_id = NULL,
   polygon_alpha = 0.2,
-  image.alpha = 1,
+  image_alpha = 1,
   pie_alpha = 0.9,
   label_size = 3,
   pies_per_page = 6L,
@@ -54,7 +54,7 @@ everywhere; remaining levels are grouped as \code{other_label}.}
 
 \item{images}{Optional Seurat image names to show.}
 
-\item{image.scale}{Image scale passed to
+\item{image_scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
@@ -66,7 +66,7 @@ result.}
 
 \item{polygon_alpha}{Fill opacity for polygons in the numbered map.}
 
-\item{image.alpha}{Tissue image opacity.}
+\item{image_alpha}{Tissue image opacity.}
 
 \item{pie_alpha}{Pie opacity.}
 
