@@ -7,8 +7,6 @@
 chooseTreeTipK(
   tree,
   k_range = 1:10,
-  criterion = c("relative_improvement", "elbow"),
-  score = c("mean_pairwise", "sum_pairwise"),
   improvement_threshold = 0.1,
   ignore_tips = "Germline",
   method = c("cut_largest_branches", "split_largest_subtrees"),
@@ -21,17 +19,9 @@ chooseTreeTipK(
 
 \item{k_range}{Candidate k values.}
 
-\item{criterion}{Selection rule. \code{"relative_improvement"} chooses the
-previous k once the score improvement falls below \code{improvement_threshold}.
-\code{"elbow"} chooses the point farthest from the line connecting the first and
-last candidate scores.}
-
-\item{score}{Score to minimize. \code{"mean_pairwise"} uses the mean within-cluster
-patristic distance across all same-cluster tip pairs. \code{"sum_pairwise"} uses
-the total within-cluster patristic distance.}
-
-\item{improvement_threshold}{Relative improvement threshold used when
-\code{criterion = "relative_improvement"}.}
+\item{improvement_threshold}{Relative improvement threshold. The previous
+\code{k} is chosen once the improvement in mean within-cluster patristic
+distance falls below this value.}
 
 \item{ignore_tips}{Optional tip labels to drop before scoring, for example
 \code{"Germline"}.}

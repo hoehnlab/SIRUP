@@ -2,43 +2,67 @@
 % Please edit documentation in R/processing.R
 \name{collapseIdenticalNeighbors}
 \alias{collapseIdenticalNeighbors}
-\title{Collapse spatially contiguous spots with identical sequences}
+\title{Collapse spatially contiguous spots with identical receptor sequences}
 \usage{
 collapseIdenticalNeighbors(
-  data,
-  tissue_positions,
-  barcode = "barcode",
-  sequence = "sequence",
-  consensus_count = "consensus_count",
-  x = "x",
-  y = "y",
-  num_neighbors_non_boundary = 6L
+  object,
+  seurat_object = NULL,
+  barcode_col = NULL,
+  sequence_col = "sequence",
+  consensus_count_col = "consensus_count",
+  images = NULL,
+  image.scale = "hires",
+  swap_coords = FALSE,
+  num_neighbors_non_boundary = 6L,
+  validate = TRUE
 )
 }
 \arguments{
-\item{data}{AIRR-style data frame.}
+\item{object}{A SIRAP object, or an AIRR-style receptor data frame.}
 
-\item{tissue_positions}{Data frame with spatial coordinates for all spots.}
+\item{seurat_object}{Optional Seurat object used only when \code{object} is a
+receptor data frame.}
 
-\item{barcode}{Column name for spot barcodes in both data frames.}
+\item{barcode_col}{Column in the receptor table matching Seurat spot/cell
+barcodes. When omitted for a SIRAP object, the recorded SIRAP barcode field
+is used. When omitted for a receptor table, a barcode-like column is
+guessed.}
 
-\item{sequence}{Column name for sequence in data.}
+\item{sequence_col}{Column containing receptor sequence strings.}
 
-\item{consensus_count}{Column name for consensus count in data.}
+\item{consensus_count_col}{Column containing consensus counts used to choose
+the representative spot within a connected component.}
 
-\item{x}{Column name for x coordinates.}
+\item{images}{Optional Seurat image names to use for spatial coordinates.}
 
-\item{y}{Column name for y coordinates.}
+\item{image.scale}{Image scale passed to
+\code{SeuratObject::GetTissueCoordinates()}.}
+
+\item{swap_coords}{Swap x/y coordinates after reading Seurat tissue
+coordinates.}
 
 \item{num_neighbors_non_boundary}{Number of nearby points needed to be
 considered non-boundary.}
+
+\item{validate}{Whether to validate the updated SIRAP object before
+returning it. Only used when \code{object} is a SIRAP object.}
 }
 \value{
-\code{data} with bleedover rows removed, retaining only the representative
-spot for each contiguous group of identical sequences.
+A SIRAP object or receptor data frame with bleedover rows removed,
+retaining only the representative spot for each contiguous group of
+identical sequences.
 }
 \description{
 For each unique receptor sequence, finds connected components of neighboring
 spots sharing that sequence, then collapses each component to a single
-representative spot.
+representative spot. A SIRAP object is the preferred input: receptor barcodes
+are read from the SIRAP field mapping and spatial coordinates are read from
+the stored Seurat object. If you are not using a SIRAP object, pass an
+AIRR-style receptor table as \code{object} and the matching Seurat object as
+\code{seurat_object}.
+}
+\details{
+When \code{object} is a SIRAP object, the returned value is the updated SIRAP
+object with its receptor table replaced. When \code{object} is a receptor table,
+the returned value is the collapsed receptor table.
 }

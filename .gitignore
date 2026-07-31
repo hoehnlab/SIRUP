@@ -6,3 +6,6 @@
 *.tar.gz
 Rplots.pdf
 .smbdelete*
+ai/runs/
+ai/**/*.secret.*
+ai/**/.env

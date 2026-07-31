@@ -10,17 +10,14 @@ spatialMoran(
   variable_type = c("feature", "metadata", "receptor", "clone"),
   value = NULL,
   receptors = NULL,
-  barcode_col = "barcode_8um",
-  clone_col = "clone_id",
-  positive = FALSE,
+  barcode_col = NULL,
+  clone_col = NULL,
   layer = "counts",
   images = NULL,
   image.scale = "hires",
   swap_coords = FALSE,
-  zero_tol = 0,
   radius = NULL,
   k = 6,
-  style = "W",
   alternative = "greater"
 )
 }
@@ -39,12 +36,13 @@ that contain a particular clone ID.}
 \code{variable_type = "receptor"} or \code{"clone"} unless \code{object} is a SIRAP
 object.}
 
-\item{barcode_col}{Barcode column in \code{receptors}.}
+\item{barcode_col}{Barcode column in \code{receptors}. Defaults to \code{NULL}; when
+\code{object} is a SIRAP object, the stored receptor barcode field is used.
+Pass this explicitly when using separate Seurat and receptor objects.}
 
 \item{clone_col}{Clone column in \code{receptors}; used only when
-\code{variable_type = "clone"}.}
-
-\item{positive}{Convert feature values to a positive-expression indicator.}
+\code{variable_type = "clone"}. Defaults to \code{NULL}; when \code{object} is a SIRAP
+object, the stored receptor clone field is used when available.}
 
 \item{layer}{Seurat expression layer to fetch for features.}
 
@@ -56,13 +54,9 @@ object.}
 axes before plotting or polygon membership checks. Defaults to \code{FALSE},
 which uses Seurat image coordinates natively.}
 
-\item{zero_tol}{Values at or below this threshold are treated as zero.}
-
 \item{radius}{Optional distance radius defining neighborhoods.}
 
 \item{k}{Number of nearest neighbors when \code{radius} is \code{NULL}.}
-
-\item{style}{Spatial weights style passed to \code{spdep::nb2listw()}.}
 
 \item{alternative}{Alternative hypothesis passed to \code{spdep::moran.test()}.}
 }

@@ -117,32 +117,41 @@ cowplot::plot_grid(cd3ePlot, ms4a1Plot, ncol = 2)
 
 ## Receptors Over Gene Expression
 
-`plotReceptorExpression()` plots positive gene-expression spots as filled
+`plotReceptorsExpression()` plots positive gene-expression spots as filled
 points and overlays receptor-positive locations as hollow circles.
 
 ```{r receptor-expression}
-tcrCd3ePlot <- plotReceptorExpression(
-  object = tcrSirap,
+tcrReceptors <- dplyr::mutate(tcrTopBarcode, receptor_type = "TCR")
+bcrReceptors <- dplyr::mutate(bcrTopBarcode, receptor_type = "BCR")
+
+tcrCd3ePlot <- plotReceptorsExpression(
+  object = thymus,
+  receptors = tcrReceptors,
+  group_col = "receptor_type",
+  values = "TCR",
   gene = "CD3E",
-  receptor_color = "#d95f02",
+  barcode_col = "barcode_8um",
+  colors = "#d95f02",
   receptor_size = 0.55,
   receptor_stroke = 0.25,
   feature_colors = c("grey80", "#7f2704"),
   feature_size = 0.45,
-  title = "CD3E expression with TCR-positive spots",
-  receptor_label = "TCR"
+  title = "CD3E expression with TCR-positive spots"
 )
 
-bcrMs4a1Plot <- plotReceptorExpression(
-  object = bcrSirap,
+bcrMs4a1Plot <- plotReceptorsExpression(
+  object = thymus,
+  receptors = bcrReceptors,
+  group_col = "receptor_type",
+  values = "BCR",
   gene = "MS4A1",
-  receptor_color = "#2c7fb8",
+  barcode_col = "barcode_8um",
+  colors = "#2c7fb8",
   receptor_size = 0.55,
   receptor_stroke = 0.25,
   feature_colors = c("grey80", "#08306b"),
   feature_size = 0.45,
-  title = "MS4A1 expression with BCR-positive spots",
-  receptor_label = "BCR"
+  title = "MS4A1 expression with BCR-positive spots"
 )
 
 cowplot::plot_grid(tcrCd3ePlot, bcrMs4a1Plot, ncol = 2)

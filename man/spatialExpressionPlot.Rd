@@ -17,6 +17,7 @@ spatialExpressionPlot(
   point_size = 0.6,
   point_alpha = 1,
   order_points = TRUE,
+  title = NULL,
   image.alpha = 1,
   zoom = FALSE,
   combine = TRUE
@@ -50,6 +51,10 @@ value.}
 \item{point_alpha}{Opacity for plotted spots.}
 
 \item{order_points}{Plot lower values first so higher values appear on top.}
+
+\item{title}{Optional plot title. For a single panel, this replaces the
+feature-name title. For multiple combined panels, this is used as an
+overall patchwork title and individual panels keep their feature titles.}
 
 \item{image.alpha}{Tissue image opacity.}
 

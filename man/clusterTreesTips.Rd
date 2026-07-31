@@ -6,18 +6,16 @@
 \usage{
 clusterTreesTips(
   trees,
-  k,
+  k = "auto",
   id_col = "sequence_id",
   cluster_col = "tree_cluster",
-  ignore_tips = "Germline",
   prefix = "tree_cluster_",
+  ignore_tips = "Germline",
   keep_col = NULL,
   keep_value = NULL,
-  method = c("cut_largest_branches", "split_largest_subtrees"),
-  cut_terminal_edges = TRUE,
+  method = c("split_largest_subtrees", "cut_largest_branches"),
+  cut_terminal_edges = FALSE,
   k_range = 1:8,
-  criterion = c("relative_improvement", "elbow"),
-  score = c("mean_pairwise", "sum_pairwise"),
   improvement_threshold = 0.1
 )
 }
@@ -32,25 +30,25 @@ element with that output.}
 
 \item{cluster_col}{Name of the cluster column to add.}
 
-\item{ignore_tips}{Optional tip labels to drop before joining clusters.}
-
 \item{prefix}{Prefix used for cluster labels.}
+
+\item{ignore_tips}{Optional tip labels to drop before joining clusters.}
 
 \item{keep_col}{Optional column in each clone data frame used to choose
 whether a tree has the expected retained tips. Clustering is run before
 any keep-filtering; tips where \code{keep_col != keep_value} then have their
 computed cluster labels overwritten with their \code{keep_col} value.}
 
-\item{keep_value}{Expected value in \code{keep_col}.}
+\item{keep_value}{Value in \code{keep_col} that indicates a tip should be kept.}
 
 \item{method}{Tree clustering method passed to \code{clusterTreeTips()}.}
 
 \item{cut_terminal_edges}{Cut terminal branches when choosing branches to
-remove. Defaults to \code{TRUE}; set to \code{FALSE} to prioritize internal clade
-splits.}
+remove. Defaults to \code{FALSE}, which prioritizes internal clade splits; set
+to \code{TRUE} to allow terminal tips to be peeled off by branch cuts.}
 
-\item{k_range, criterion, score, improvement_threshold}{Arguments passed to
-\code{chooseTreeTipK()} when \code{k = "auto"}.}
+\item{k_range, improvement_threshold}{Arguments passed to \code{chooseTreeTipK()}
+when \code{k = "auto"}.}
 }
 \value{
 \code{trees}, with \code{cluster_col} added to each clone data object.

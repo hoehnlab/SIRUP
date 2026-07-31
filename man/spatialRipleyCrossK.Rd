@@ -4,25 +4,14 @@
 \alias{spatialRipleyCrossK}
 \title{Calculate Ripley's cross K for marked spatial points}
 \usage{
-spatialRipleyCrossK(
-  object,
-  mark_col,
-  i,
-  j,
-  correction = "border",
-  nsim = 0,
-  max_r = NULL,
-  r = NULL
-)
+spatialRipleyCrossK(object, mark_col, i, j, nsim = 0, max_r = NULL, r = NULL)
 }
 \arguments{
-\item{object}{Seurat object with spatial images, or a SIRAP object.}
+\item{object}{SIRAP object, or a spatial Seurat object.}
 
 \item{mark_col}{Metadata column containing point types.}
 
 \item{i, j}{Mark levels to compare.}
-
-\item{correction}{Edge correction to plot/use, usually \code{border}.}
 
 \item{nsim}{Number of random-label simulations for an envelope. Use \code{0} for
 observed K only.}

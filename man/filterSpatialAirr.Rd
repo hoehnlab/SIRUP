@@ -17,7 +17,7 @@ filterSpatialAirr(
   sequence_id_col = "sequence_id",
   barcode_col = NULL,
   add_full_id = FALSE,
-  full_id_barcode_key = "barcode2um"
+  full_id_barcode_key = "seq_barcode_id"
 )
 }
 \arguments{

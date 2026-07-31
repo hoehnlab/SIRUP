@@ -433,7 +433,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">bcrRaw &lt;-<span class="st"> </span>data.table<span class="op">::</span><span class="kw">fread</span>(rawBCRIgblastPath)</a>
 <a class="sourceLine" id="cb5-2" data-line-number="2">tcrRaw &lt;-<span class="st"> </span>data.table<span class="op">::</span><span class="kw">fread</span>(rawTCRIgblastPath)</a>
 <a class="sourceLine" id="cb5-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb5-4" data-line-number="4">bcrRaw &lt;-<span class="st"> </span><span class="kw">extractSpatialBarcode</span>(</a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">bcrRaw &lt;-<span class="st"> </span><span class="kw">extractSpatialBarcodes</span>(</a>
 <a class="sourceLine" id="cb5-5" data-line-number="5">  bcrRaw,</a>
 <a class="sourceLine" id="cb5-6" data-line-number="6">  <span class="dt">sequence_id_col =</span> <span class="st">&quot;sequence_id&quot;</span>,</a>
 <a class="sourceLine" id="cb5-7" data-line-number="7">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>
@@ -442,7 +442,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb5-10" data-line-number="10">  <span class="dt">suffix =</span> <span class="st">&quot;-1&quot;</span></a>
 <a class="sourceLine" id="cb5-11" data-line-number="11">)</a>
 <a class="sourceLine" id="cb5-12" data-line-number="12"></a>
-<a class="sourceLine" id="cb5-13" data-line-number="13">tcrRaw &lt;-<span class="st"> </span><span class="kw">extractSpatialBarcode</span>(</a>
+<a class="sourceLine" id="cb5-13" data-line-number="13">tcrRaw &lt;-<span class="st"> </span><span class="kw">extractSpatialBarcodes</span>(</a>
 <a class="sourceLine" id="cb5-14" data-line-number="14">  tcrRaw,</a>
 <a class="sourceLine" id="cb5-15" data-line-number="15">  <span class="dt">sequence_id_col =</span> <span class="st">&quot;sequence_id&quot;</span>,</a>
 <a class="sourceLine" id="cb5-16" data-line-number="16">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>
@@ -523,14 +523,14 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1">bcrConsensus &lt;-<span class="st"> </span>airr<span class="op">::</span><span class="kw">read_rearrangement</span>(bcrPrestoPaths<span class="op">$</span>db_pass)</a>
 <a class="sourceLine" id="cb8-2" data-line-number="2">tcrConsensus &lt;-<span class="st"> </span>airr<span class="op">::</span><span class="kw">read_rearrangement</span>(tcrPrestoPaths<span class="op">$</span>db_pass)</a>
 <a class="sourceLine" id="cb8-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb8-4" data-line-number="4">bcrConsensus &lt;-<span class="st"> </span><span class="kw">extractSpatialBarcode</span>(</a>
+<a class="sourceLine" id="cb8-4" data-line-number="4">bcrConsensus &lt;-<span class="st"> </span><span class="kw">extractSpatialBarcodes</span>(</a>
 <a class="sourceLine" id="cb8-5" data-line-number="5">  bcrConsensus,</a>
 <a class="sourceLine" id="cb8-6" data-line-number="6">  <span class="dt">sequence_id_col =</span> <span class="st">&quot;sequence_id&quot;</span>,</a>
 <a class="sourceLine" id="cb8-7" data-line-number="7">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>
 <a class="sourceLine" id="cb8-8" data-line-number="8">  <span class="dt">regex =</span> <span class="st">&quot;,([^,]+)&quot;</span></a>
 <a class="sourceLine" id="cb8-9" data-line-number="9">)</a>
 <a class="sourceLine" id="cb8-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb8-11" data-line-number="11">tcrConsensus &lt;-<span class="st"> </span><span class="kw">extractSpatialBarcode</span>(</a>
+<a class="sourceLine" id="cb8-11" data-line-number="11">tcrConsensus &lt;-<span class="st"> </span><span class="kw">extractSpatialBarcodes</span>(</a>
 <a class="sourceLine" id="cb8-12" data-line-number="12">  tcrConsensus,</a>
 <a class="sourceLine" id="cb8-13" data-line-number="13">  <span class="dt">sequence_id_col =</span> <span class="st">&quot;sequence_id&quot;</span>,</a>
 <a class="sourceLine" id="cb8-14" data-line-number="14">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>

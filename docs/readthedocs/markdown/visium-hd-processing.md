@@ -140,7 +140,7 @@ need pRESTO inputs.
 bcrRaw <- data.table::fread(rawBCRIgblastPath)
 tcrRaw <- data.table::fread(rawTCRIgblastPath)
 
-bcrRaw <- extractSpatialBarcode(
+bcrRaw <- extractSpatialBarcodes(
   bcrRaw,
   sequence_id_col = "sequence_id",
   barcode_col = "barcode_2um",
@@ -149,7 +149,7 @@ bcrRaw <- extractSpatialBarcode(
   suffix = "-1"
 )
 
-tcrRaw <- extractSpatialBarcode(
+tcrRaw <- extractSpatialBarcodes(
   tcrRaw,
   sequence_id_col = "sequence_id",
   barcode_col = "barcode_2um",
@@ -242,14 +242,14 @@ barcodes, add tissue positions, and collapse obvious spatial bleedover.
 bcrConsensus <- airr::read_rearrangement(bcrPrestoPaths$db_pass)
 tcrConsensus <- airr::read_rearrangement(tcrPrestoPaths$db_pass)
 
-bcrConsensus <- extractSpatialBarcode(
+bcrConsensus <- extractSpatialBarcodes(
   bcrConsensus,
   sequence_id_col = "sequence_id",
   barcode_col = "barcode_2um",
   regex = ",([^,]+)"
 )
 
-tcrConsensus <- extractSpatialBarcode(
+tcrConsensus <- extractSpatialBarcodes(
   tcrConsensus,
   sequence_id_col = "sequence_id",
   barcode_col = "barcode_2um",

@@ -2,12 +2,13 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{spatialCloneDominance}
 \alias{spatialCloneDominance}
-\title{Calculate BCR clone dominance inside spatial polygons}
+\title{Calculate receptor clone dominance inside spatial polygons}
 \usage{
 spatialCloneDominance(
-  bcrs = NULL,
+  receptors = NULL,
   object = NULL,
   polygon,
+  bcrs = NULL,
   barcode_col = NULL,
   clone_col = "clone_id",
   locus = NULL,
@@ -27,36 +28,38 @@ spatialCloneDominance(
 )
 }
 \arguments{
-\item{bcrs}{BCR/AIRR-style data frame containing clone assignments and a
-spatial barcode column. This may instead be a SIRAP object when \code{object}
-is omitted.}
+\item{receptors}{AIRR-style receptor data frame containing clone assignments
+and a spatial barcode column. This may instead be a SIRAP object when
+\code{object} is omitted.}
 
 \item{object}{Seurat object with spatial coordinates or metadata coordinate
-columns, or a SIRAP object. When this is a SIRAP object, \code{bcrs} may be
-omitted.}
+columns, or a SIRAP object. When this is a SIRAP object, \code{receptors} may
+be omitted.}
 
 \item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
 \code{y} columns by default. If a \code{polygon} column is present, each polygon is
 summarized independently unless \code{polygon_id} selects one or more polygons.}
 
-\item{barcode_col}{Column in \code{bcrs} matching Seurat spot/cell barcodes. If
-\code{NULL}, a barcode-like column is guessed.}
+\item{bcrs}{Deprecated alias for \code{receptors}.}
 
-\item{clone_col}{Column in \code{bcrs} containing clone IDs.}
+\item{barcode_col}{Column in \code{receptors} matching Seurat spot/cell barcodes.
+If \code{NULL}, a barcode-like column is guessed.}
 
-\item{locus}{Optional locus value(s) used to filter \code{bcrs}, for example
+\item{clone_col}{Column in \code{receptors} containing clone IDs.}
+
+\item{locus}{Optional locus value(s) used to filter \code{receptors}, for example
 \code{"IGH"}. Use \code{NULL} to keep all loci.}
 
-\item{locus_col}{Column in \code{bcrs} containing locus calls.}
+\item{locus_col}{Column in \code{receptors} containing locus calls.}
 
-\item{count_col}{Optional numeric count column. When \code{NULL}, each BCR row
-counts once.}
+\item{count_col}{Optional numeric count column. When \code{NULL}, each receptor
+row counts once.}
 
-\item{v_call_col}{Column in \code{bcrs} containing V-gene calls. When present,
-distinct allele-level V genes, V genes without alleles, and V-gene
+\item{v_call_col}{Column in \code{receptors} containing V-gene calls. When
+present, distinct allele-level V genes, V genes without alleles, and V-gene
 superfamilies are returned for each clone.}
 
-\item{exclude_singletons}{Exclude clones represented by only one BCR row
+\item{exclude_singletons}{Exclude clones represented by only one receptor row
 after locus filtering.}
 
 \item{images}{Optional Seurat image names to use for spatial coordinates.}
@@ -82,13 +85,13 @@ Set to \code{FALSE} to close open polygons automatically.}
 }
 \value{
 A spatial clone dominance object containing the dominance table,
-regional barcodes, regional coordinate rows, regional BCR rows, polygon
+regional barcodes, regional coordinate rows, regional receptor rows, polygon
 vertices prepared for plotting, and analysis metadata containing the
 receptor field mappings used for the analysis.
 }
 \description{
 Finds Seurat spatial barcodes whose coordinates fall inside closed polygons,
-subsets BCR rows to those barcodes, and returns the fraction of regional BCRs
-represented by each clone. Points on the polygon boundary are included by
-default.
+subsets receptor rows to those barcodes, and returns the fraction of regional
+receptors represented by each clone. Points on the polygon boundary are
+included by default.
 }

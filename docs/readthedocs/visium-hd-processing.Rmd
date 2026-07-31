@@ -153,7 +153,7 @@ write AIRR tables and FASTA files only when we need pRESTO inputs.
 bcrRaw <- data.table::fread(rawBCRIgblastPath)
 tcrRaw <- data.table::fread(rawTCRIgblastPath)
 
-bcrRaw <- extractSpatialBarcode(
+bcrRaw <- extractSpatialBarcodes(
   bcrRaw,
   sequence_id_col = "sequence_id",
   barcode_col = "barcode_2um",
@@ -162,7 +162,7 @@ bcrRaw <- extractSpatialBarcode(
   suffix = "-1"
 )
 
-tcrRaw <- extractSpatialBarcode(
+tcrRaw <- extractSpatialBarcodes(
   tcrRaw,
   sequence_id_col = "sequence_id",
   barcode_col = "barcode_2um",
@@ -255,14 +255,14 @@ tissue positions, and collapse obvious spatial bleedover.
 bcrConsensus <- airr::read_rearrangement(bcrPrestoPaths$db_pass)
 tcrConsensus <- airr::read_rearrangement(tcrPrestoPaths$db_pass)
 
-bcrConsensus <- extractSpatialBarcode(
+bcrConsensus <- extractSpatialBarcodes(
   bcrConsensus,
   sequence_id_col = "sequence_id",
   barcode_col = "barcode_2um",
   regex = ",([^,]+)"
 )
 
-tcrConsensus <- extractSpatialBarcode(
+tcrConsensus <- extractSpatialBarcodes(
   tcrConsensus,
   sequence_id_col = "sequence_id",
   barcode_col = "barcode_2um",
@@ -358,24 +358,28 @@ airr::write_rearrangement(tcrTopBarcode, finalTCRPath)
 
 ## Plot BCRs and TCRs Over Tissue
 
-`plotReceptorExpression()` and `spatialDiscretePlot()` draw points over the
-tissue image rather than over a blank coordinate plane.
+`plotReceptors()` and `spatialDiscretePlot()` draw points over the tissue image
+rather than over a blank coordinate plane.
 
 ```{r receptor-plots}
-allBCRPlot <- plotReceptorExpression(
+allBCRPlot <- plotReceptors(
   object = thymus,
-  receptors = bcrTopBarcode,
+  receptors = dplyr::mutate(bcrTopBarcode, receptor_type = "BCR"),
+  group_col = "receptor_type",
+  values = "BCR",
   barcode_col = "barcode_8um",
-  receptor_color = "white",
+  colors = "white",
   receptor_size = 0.5,
   title = paste(sampleId, "all BCR-positive spots")
 )
 
-allTCRPlot <- plotReceptorExpression(
+allTCRPlot <- plotReceptors(
   object = thymus,
-  receptors = tcrTopBarcode,
+  receptors = dplyr::mutate(tcrTopBarcode, receptor_type = "TCR"),
+  group_col = "receptor_type",
+  values = "TCR",
   barcode_col = "barcode_8um",
-  receptor_color = "#d95f02",
+  colors = "#d95f02",
   receptor_size = 0.5,
   title = paste(sampleId, "all TCR-positive spots")
 )

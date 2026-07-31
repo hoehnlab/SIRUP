@@ -31,6 +31,37 @@ make_test_sirap <- function(barcode_col = "barcode", clone_col = "clone_id") {
   )
 }
 
+make_collapse_test_sirap <- function() {
+  skip_if_not_installed("SeuratObject")
+  coords <- expand.grid(x = seq_len(5), y = seq_len(5))
+  cells <- paste0("cell", seq_len(nrow(coords)))
+  spatial <- SeuratObject::CreateSeuratObject(
+    counts = matrix(
+      1,
+      nrow = 1,
+      ncol = length(cells),
+      dimnames = list("gene", cells)
+    )
+  )
+  spatial$x <- coords$x
+  spatial$y <- coords$y
+
+  receptors <- data.frame(
+    spot = c("cell1", "cell2", "cell25", "cell13"),
+    sequence_alignment = c("AAAA", "AAAA", "AAAA", "CCCC"),
+    consensus_count = c(1L, 5L, 3L, 2L),
+    locus = "IGH",
+    stringsAsFactors = FALSE
+  )
+  createSIRAP(
+    spatial = spatial,
+    receptors = receptors,
+    barcode_col = "spot",
+    locus_col = "locus",
+    count_col = "consensus_count"
+  )
+}
+
 test_that("createSIRAP creates a validated tibble-backed container", {
   x <- make_test_sirap()
 
@@ -178,6 +209,52 @@ test_that("receptor summaries and QC plots accept SIRAP objects", {
   expect_s3_class(plotLengthQc(x), "ggplot")
 })
 
+test_that("collapseIdenticalNeighbors updates SIRAP objects", {
+  skip_if_not_installed("kedd")
+  skip_if_not_installed("RANN")
+  skip_if_not_installed("igraph")
+
+  set.seed(1)
+  x <- make_collapse_test_sirap()
+  collapsed <- collapseIdenticalNeighbors(
+    x,
+    sequence_col = "sequence_alignment",
+    consensus_count_col = "consensus_count",
+    num_neighbors_non_boundary = 2L
+  )
+
+  expect_s3_class(collapsed, "sirap")
+  expect_equal(nrow(receptorTable(collapsed)), 3)
+  expect_false("cell1" %in% receptorTable(collapsed)$spot)
+  expect_true(all(c("cell2", "cell13", "cell25") %in% receptorTable(collapsed)$spot))
+  expect_identical(collapsed$metadata$receptor_fields$barcode, "spot")
+})
+
+test_that("collapseIdenticalNeighbors accepts receptor tables with a Seurat object", {
+  skip_if_not_installed("kedd")
+  skip_if_not_installed("RANN")
+  skip_if_not_installed("igraph")
+
+  set.seed(1)
+  x <- make_collapse_test_sirap()
+  collapsed <- collapseIdenticalNeighbors(
+    receptorTable(x),
+    seurat_object = spatialObject(x),
+    barcode_col = "spot",
+    sequence_col = "sequence_alignment",
+    consensus_count_col = "consensus_count",
+    num_neighbors_non_boundary = 2L
+  )
+
+  expect_s3_class(collapsed, "data.frame")
+  expect_equal(nrow(collapsed), 3)
+  expect_false(isSIRAP(collapsed))
+  expect_error(
+    collapseIdenticalNeighbors(receptorTable(x), barcode_col = "spot"),
+    "`seurat_object` is required"
+  )
+})
+
 test_that("default optional receptor fields are NULL when absent", {
   skip_if_not_installed("SeuratObject")
   spatial <- SeuratObject::CreateSeuratObject(
@@ -240,6 +317,46 @@ test_that("spatialLocalMoran uses the receptor barcode stored in SIRAP metadata"
   )
 
   expect_equal(local$value[match(paste0("cell", 1:4), local$cell)], c(1, 1, 0, 0))
+})
+
+test_that("spatialCloneJoinCount uses receptor fields stored in SIRAP metadata", {
+  skip_if_not_installed("spdep")
+  spatial <- SeuratObject::CreateSeuratObject(
+    counts = matrix(
+      1,
+      nrow = 1,
+      ncol = 4,
+      dimnames = list("gene", paste0("cell", 1:4))
+    )
+  )
+  spatial$x <- c(0, 1, 2, 3)
+  spatial$y <- c(0, 0, 0, 0)
+  receptors <- data.frame(
+    spot = c("cell1", "cell2", "cell3"),
+    clonal_group = c("A", "A", "B"),
+    stringsAsFactors = FALSE
+  )
+  x <- createSIRAP(
+    spatial = spatial,
+    receptors = receptors,
+    barcode_col = "spot",
+    clone_col = "clonal_group"
+  )
+
+  out <- spatialCloneJoinCount(
+    object = x,
+    clone_ids = "A",
+    k = 1,
+    min_barcodes = 2,
+    return_data = TRUE
+  )
+
+  expect_true("A" %in% out$summary$clone_id)
+  expect_equal(out$summary$n_clone_barcodes[out$summary$clone_id == "A"], 2)
+  expect_true(all(c("join_count_mark", "clone_id", ".sirap_barcode") %in% names(out$data)))
+  expect_false("style" %in% names(out))
+  expect_false("style" %in% names(out$summary))
+  expect_equal(sort(unique(out$data$.sirap_barcode)), c("cell1", "cell2", "cell3"))
 })
 
 test_that("SIRAP print reports spatial and receptor dimensions", {

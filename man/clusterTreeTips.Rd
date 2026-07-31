@@ -11,7 +11,7 @@ clusterTreeTips(
   cluster_col = "tree_cluster",
   ignore_tips = "Germline",
   prefix = "tree_cluster_",
-  method = c("cut_largest_branches", "split_largest_subtrees"),
+  method = c("split_largest_subtrees", "cut_largest_branches"),
   cut_terminal_edges = TRUE
 )
 }
