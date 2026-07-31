@@ -1,31 +1,32 @@
-#' Calculate BCR clone dominance inside spatial polygons
+#' Calculate receptor clone dominance inside spatial polygons
 #'
 #' Finds Seurat spatial barcodes whose coordinates fall inside closed polygons,
-#' subsets BCR rows to those barcodes, and returns the fraction of regional BCRs
-#' represented by each clone. Points on the polygon boundary are included by
-#' default.
+#' subsets receptor rows to those barcodes, and returns the fraction of regional
+#' receptors represented by each clone. Points on the polygon boundary are
+#' included by default.
 #'
-#' @param bcrs BCR/AIRR-style data frame containing clone assignments and a
-#'   spatial barcode column. This may instead be a SIRAP object when `object`
-#'   is omitted.
+#' @param receptors AIRR-style receptor data frame containing clone assignments
+#'   and a spatial barcode column. This may instead be a SIRAP object when
+#'   `object` is omitted.
 #' @param object Seurat object with spatial coordinates or metadata coordinate
-#'   columns, or a SIRAP object. When this is a SIRAP object, `bcrs` may be
-#'   omitted.
+#'   columns, or a SIRAP object. When this is a SIRAP object, `receptors` may
+#'   be omitted.
 #' @param polygon Data frame of polygon vertices in order. Must contain `x` and
 #'   `y` columns by default. If a `polygon` column is present, each polygon is
 #'   summarized independently unless `polygon_id` selects one or more polygons.
-#' @param barcode_col Column in `bcrs` matching Seurat spot/cell barcodes. If
-#'   `NULL`, a barcode-like column is guessed.
-#' @param clone_col Column in `bcrs` containing clone IDs.
-#' @param locus Optional locus value(s) used to filter `bcrs`, for example
+#' @param bcrs Deprecated alias for `receptors`.
+#' @param barcode_col Column in `receptors` matching Seurat spot/cell barcodes.
+#'   If `NULL`, a barcode-like column is guessed.
+#' @param clone_col Column in `receptors` containing clone IDs.
+#' @param locus Optional locus value(s) used to filter `receptors`, for example
 #'   `"IGH"`. Use `NULL` to keep all loci.
-#' @param locus_col Column in `bcrs` containing locus calls.
-#' @param count_col Optional numeric count column. When `NULL`, each BCR row
-#'   counts once.
-#' @param v_call_col Column in `bcrs` containing V-gene calls. When present,
-#'   distinct allele-level V genes, V genes without alleles, and V-gene
+#' @param locus_col Column in `receptors` containing locus calls.
+#' @param count_col Optional numeric count column. When `NULL`, each receptor
+#'   row counts once.
+#' @param v_call_col Column in `receptors` containing V-gene calls. When
+#'   present, distinct allele-level V genes, V genes without alleles, and V-gene
 #'   superfamilies are returned for each clone.
-#' @param exclude_singletons Exclude clones represented by only one BCR row
+#' @param exclude_singletons Exclude clones represented by only one receptor row
 #'   after locus filtering.
 #' @param images Optional Seurat image names to use for spatial coordinates.
 #' @param image.scale Image scale passed to
@@ -41,13 +42,14 @@
 #' @param require_closed Require the final polygon vertex to equal the first.
 #'   Set to `FALSE` to close open polygons automatically.
 #' @return A spatial clone dominance object containing the dominance table,
-#'   regional barcodes, regional coordinate rows, regional BCR rows, polygon
+#'   regional barcodes, regional coordinate rows, regional receptor rows, polygon
 #'   vertices prepared for plotting, and analysis metadata containing the
 #'   receptor field mappings used for the analysis.
 #' @export
-spatialCloneDominance <- function(bcrs = NULL,
+spatialCloneDominance <- function(receptors = NULL,
                                   object = NULL,
                                   polygon,
+                                  bcrs = NULL,
                                   barcode_col = NULL,
                                   clone_col = "clone_id",
                                   locus = NULL,
@@ -67,17 +69,23 @@ spatialCloneDominance <- function(bcrs = NULL,
   clone_missing <- missing(clone_col)
   locus_missing <- missing(locus_col)
   count_missing <- missing(count_col)
-  if (isSIRAP(bcrs) && is.null(object)) {
-    object <- bcrs
-    bcrs <- NULL
+  if (!is.null(receptors) && !is.null(bcrs)) {
+    rlang::abort("Use `receptors`, not both `receptors` and deprecated `bcrs`.")
+  }
+  if (is.null(receptors) && !is.null(bcrs)) {
+    receptors <- bcrs
+  }
+  if (isSIRAP(receptors) && is.null(object)) {
+    object <- receptors
+    receptors <- NULL
   }
   is_sirap <- isSIRAP(object)
-  inputs <- .sirap_resolve_inputs(object, bcrs, barcode_col)
+  inputs <- .sirap_resolve_inputs(object, receptors, barcode_col)
   object <- inputs$object
-  bcrs <- inputs$receptors
+  receptors <- inputs$receptors
   barcode_col <- inputs$barcode_col
-  if (is.null(bcrs)) {
-    rlang::abort("`bcrs` is required when `object` is not a SIRAP object.")
+  if (is.null(receptors)) {
+    rlang::abort("`receptors` is required when `object` is not a SIRAP object.")
   }
   if (is_sirap && clone_missing && !is.null(inputs$receptor_fields$clone)) {
     clone_col <- inputs$receptor_fields$clone
@@ -88,17 +96,17 @@ spatialCloneDominance <- function(bcrs = NULL,
   if (is_sirap && count_missing && !is.null(inputs$receptor_fields$count)) {
     count_col <- inputs$receptor_fields$count
   }
-  bcrs <- .as_data_frame(bcrs)
+  receptors <- .as_data_frame(receptors)
   polygon <- .as_data_frame(polygon)
-  barcode_col <- .guess_barcode_col(bcrs, barcode_col)
-  .check_required_cols(bcrs, c(barcode_col, clone_col), "bcrs")
+  barcode_col <- .guess_barcode_col(receptors, barcode_col)
+  .check_required_cols(receptors, c(barcode_col, clone_col), "receptors")
   .check_required_cols(polygon, c(x_col, y_col), "polygon")
   if (!is.null(locus)) {
-    .check_required_cols(bcrs, locus_col, "bcrs")
-    missing_locus <- setdiff(as.character(locus), unique(as.character(bcrs[[locus_col]])))
+    .check_required_cols(receptors, locus_col, "receptors")
+    missing_locus <- setdiff(as.character(locus), unique(as.character(receptors[[locus_col]])))
     if (length(missing_locus) == length(locus)) {
       rlang::warn(paste0(
-        "No rows in `bcrs` match `locus = ",
+        "No rows in `receptors` match `locus = ",
         paste(as.character(locus), collapse = ","),
         "` using `locus_col = \"",
         locus_col,
@@ -107,21 +115,21 @@ spatialCloneDominance <- function(bcrs = NULL,
     }
   }
   if (!is.null(count_col)) {
-    .check_required_cols(bcrs, count_col, "bcrs")
+    .check_required_cols(receptors, count_col, "receptors")
   }
-  bcrs <- bcrs[
-    !is.na(bcrs[[clone_col]]) &
-      as.character(bcrs[[clone_col]]) != "",
+  receptors <- receptors[
+    !is.na(receptors[[clone_col]]) &
+      as.character(receptors[[clone_col]]) != "",
     ,
     drop = FALSE
   ]
   if (!is.null(locus)) {
-    bcrs <- bcrs[bcrs[[locus_col]] %in% locus, , drop = FALSE]
+    receptors <- receptors[receptors[[locus_col]] %in% locus, , drop = FALSE]
   }
   if (isTRUE(exclude_singletons)) {
-    clone_ids <- as.character(bcrs[[clone_col]])
+    clone_ids <- as.character(receptors[[clone_col]])
     clone_counts <- table(clone_ids, useNA = "no")
-    bcrs <- bcrs[clone_ids %in% names(clone_counts)[clone_counts > 1L], , drop = FALSE]
+    receptors <- receptors[clone_ids %in% names(clone_counts)[clone_counts > 1L], , drop = FALSE]
   }
 
   coords <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, swap_coords = swap_coords)
@@ -155,7 +163,7 @@ spatialCloneDominance <- function(bcrs = NULL,
     region_coords <- coords[inside, , drop = FALSE]
     region_barcodes <- unique(as.character(region_coords$cell))
 
-    regional_bcrs <- bcrs[as.character(bcrs[[barcode_col]]) %in% region_barcodes, , drop = FALSE]
+    regional_bcrs <- receptors[as.character(receptors[[barcode_col]]) %in% region_barcodes, , drop = FALSE]
 
     if (nrow(regional_bcrs) == 0L) {
       out <- data.frame(
@@ -1281,9 +1289,9 @@ plotSpatialPolygonPies <- function(dominance,
   }
   pies_per_page <- as.integer(pies_per_page)
   if (nrow(region$bcrs) == 0L) {
-    rlang::abort("No BCR rows were found inside the selected polygon(s).")
+    rlang::abort("No receptor rows were found inside the selected polygon(s).")
   }
-  .check_required_cols(region$bcrs, fill_by, "bcrs")
+  .check_required_cols(region$bcrs, fill_by, "receptors")
   pie_data <- .sirap_polygon_pie_summary(
     region$bcrs,
     fill_by = fill_by,
@@ -1293,7 +1301,7 @@ plotSpatialPolygonPies <- function(dominance,
     plot_other = plot_other
   )
   if (nrow(pie_data) == 0L) {
-    rlang::abort("No BCR rows remain to plot after applying `top_n` and `plot_other`.")
+    rlang::abort("No receptor rows remain to plot after applying `top_n` and `plot_other`.")
   }
   fill_values <- .sirap_discrete_palette_values(
     unique(as.character(pie_data$level)),

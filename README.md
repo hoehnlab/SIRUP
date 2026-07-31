@@ -74,7 +74,7 @@ radDemux(
 library(SIRAP)
 
 m1_bcr_heavy <- data.table::fread("igblast_bcr.tsv")
-m1_bcr_heavy <- extractSpatialBarcode(
+m1_bcr_heavy <- extractSpatialBarcodes(
   m1_bcr_heavy,
   sequence_id_col = "sequence_id",
   barcode_col = "barcode_2um",
@@ -105,7 +105,7 @@ processSpatialSample(
 
 ```r
 processed <- airr::read_rearrangement("processed_db-pass.tsv")
-processed <- extractSpatialBarcode(
+processed <- extractSpatialBarcodes(
   processed,
   sequence_id_col = "sequence_id",
   barcode_col = "barcode_2um",

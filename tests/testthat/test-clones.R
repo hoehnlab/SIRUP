@@ -70,6 +70,7 @@ test_that("chooseTreeTipK returns a selected k and score table", {
 
   expect_true(choice$k %in% 1:4)
   expect_true(all(c("k", "score", "relative_improvement") %in% colnames(choice$scores)))
+  expect_false(any(c("criterion", "score") %in% names(formals(chooseTreeTipK))))
 })
 
 test_that("clusterTreesTips adds clusters to dowser-style tree data frames", {
@@ -97,4 +98,5 @@ test_that("clusterTreesTips adds clusters to dowser-style tree data frames", {
 
   expect_true("tree_cluster" %in% colnames(out$data[[1]]))
   expect_true("tree_cluster_k" %in% colnames(out))
+  expect_false(any(c("criterion", "score") %in% names(formals(clusterTreesTips))))
 })

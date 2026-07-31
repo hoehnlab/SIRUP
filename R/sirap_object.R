@@ -23,7 +23,7 @@
 #' @param locus_col Optional receptor-locus column. The default is recorded
 #'   when present and otherwise stored as `NULL`.
 #' @param count_col Optional column containing receptor observation weights or
-#'   counts.
+#'   counts. Default is `NULL`.
 #' @param metadata Optional named list of dataset-level metadata.
 #' @param analyses Optional named list of derived analysis results.
 #' @param validate Whether to validate the completed object.
@@ -35,7 +35,7 @@ createSIRAP <- function(spatial,
                         barcode_col = NULL,
                         image_col = NULL,
                         sample_col = NULL,
-                        clone_col = "clone_id",
+                        clone_col = NULL,
                         locus_col = "locus",
                         count_col = NULL,
                         metadata = list(),
@@ -332,7 +332,7 @@ updateReceptors <- function(x,
   validateSIRAP(x)
   receptors <- .sirap_apply(fun, x$receptors, ...)
   if (!is.data.frame(receptors)) {
-    rlang::abort("`fun` must return a data frame when used with `updateReceptors()`.")
+    rlang::abort("`fun` must return a data frame/tibble when used with `updateReceptors()`.")
   }
   x$receptors <- tibble::as_tibble(receptors)
   x$metadata$receptor_fields <- .sirap_update_receptor_fields(

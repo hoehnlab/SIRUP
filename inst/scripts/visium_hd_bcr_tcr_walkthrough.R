@@ -121,7 +121,7 @@ tcrRaw <- data.table::fread(rawTCRIgblastPath)
 dim(bcrRaw)
 dim(tcrRaw)
 
-bcrRaw <- extractSpatialBarcode(
+bcrRaw <- extractSpatialBarcodes(
   bcrRaw,
   sequence_id_col = "sequence_id",
   barcode_col = "barcode_2um",
@@ -130,7 +130,7 @@ bcrRaw <- extractSpatialBarcode(
   suffix = "-1"
 )
 
-tcrRaw <- extractSpatialBarcode(
+tcrRaw <- extractSpatialBarcodes(
   tcrRaw,
   sequence_id_col = "sequence_id",
   barcode_col = "barcode_2um",
@@ -298,14 +298,14 @@ if (requireNamespace("airr", quietly = TRUE)) {
 }
 
 # Get the spatial barcode back out of the sequence_id
-bcrConsensus <- extractSpatialBarcode(
+bcrConsensus <- extractSpatialBarcodes(
   bcrConsensus,
   sequence_id_col = "sequence_id",
   barcode_col = "barcode_2um",
   regex = ",([^,]+)"
 )
 
-tcrConsensus <- extractSpatialBarcode(
+tcrConsensus <- extractSpatialBarcodes(
   tcrConsensus,
   sequence_id_col = "sequence_id",
   barcode_col = "barcode_2um",
@@ -397,11 +397,13 @@ if (remove_bleed_example) {
     seqName <- paste0("seq_", which(bcrConsensusBigSeqs == seq))
 
     if (!is.null(thymus)) {
-      seqPlot <- plotReceptorExpression(
+      seqPlot <- plotReceptors(
         object = thymus,
         receptors = seqMatches,
+        group_col = "sequence_alignment",
+        values = seq,
         barcode_col = "barcode_8um",
-        receptor_color = "#2c7fb8",
+        colors = "#2c7fb8",
         receptor_size = 1.2,
         title = paste("Identical sequence:", seq)
       )
@@ -433,11 +435,13 @@ if (remove_bleed_example) {
     seqName <- paste0("seq_", which(bcrConsensusBigSeqs == seq))
     
     if (!is.null(thymus)) {
-      seqPlot <- plotReceptorExpression(
+      seqPlot <- plotReceptors(
         object = thymus,
         receptors = seqMatches,
+        group_col = "sequence_alignment",
+        values = seq,
         barcode_col = "barcode_8um",
-        receptor_color = "#2c7fb8",
+        colors = "#2c7fb8",
         receptor_size = 1.2,
         title = paste("Identical sequence:", seq)
       )
@@ -522,11 +526,13 @@ if (loadSeuratObject && file.exists(seuratPath)) {
 }
 
 if (!is.null(thymus)) {
-  allBCRPlot <- plotReceptorExpression(
+  allBCRPlot <- plotReceptors(
     object = thymus,
-    receptors = bcrTopBarcode,
+    receptors = dplyr::mutate(bcrTopBarcode, receptor_type = "BCR"),
+    group_col = "receptor_type",
+    values = "BCR",
     barcode_col = "barcode_8um",
-    receptor_color = "white",
+    colors = "white",
     receptor_size = 0.5,
     title = paste(sampleId, "all BCR-positive spots")
   )
@@ -534,11 +540,13 @@ if (!is.null(thymus)) {
     ggsave(file.path(plotDir, sprintf("%s_all_bcr_locations.png", sampleLower)), allBCRPlot, width = 6, height = 5, dpi = 300)
   }
 
-  allTCRPlot <- plotReceptorExpression(
+  allTCRPlot <- plotReceptors(
     object = thymus,
-    receptors = tcrTopBarcode,
+    receptors = dplyr::mutate(tcrTopBarcode, receptor_type = "TCR"),
+    group_col = "receptor_type",
+    values = "TCR",
     barcode_col = "barcode_8um",
-    receptor_color = "#d95f02",
+    colors = "#d95f02",
     receptor_size = 0.5,
     title = paste(sampleId, "all TCR-positive spots")
   )
@@ -584,12 +592,14 @@ if (!is.null(thymus)) {
       next
     }
 
-    bcrGenePlot <- plotReceptorExpression(
+    bcrGenePlot <- plotReceptorsExpression(
       object = thymus,
-      receptors = bcrTopBarcode,
+      receptors = dplyr::mutate(bcrTopBarcode, receptor_type = "BCR"),
+      group_col = "receptor_type",
+      values = "BCR",
       gene = gene,
       barcode_col = "barcode_8um",
-      receptor_color = "#2c7fb8",
+      colors = "#2c7fb8",
       receptor_size = 0.5,
       receptor_stroke = 0.25,
       receptor_alpha = 0.8,
@@ -598,12 +608,14 @@ if (!is.null(thymus)) {
       title = paste(gene, "expression with BCR spots")
     ) 
 
-    tcrGenePlot <- plotReceptorExpression(
+    tcrGenePlot <- plotReceptorsExpression(
       object = thymus,
-      receptors = tcrTopBarcode,
+      receptors = dplyr::mutate(tcrTopBarcode, receptor_type = "TCR"),
+      group_col = "receptor_type",
+      values = "TCR",
       gene = gene,
       barcode_col = "barcode_8um",
-      receptor_color = "#d95f02",
+      colors = "#d95f02",
       receptor_size = 0.5,
       receptor_stroke = 0.25,
       receptor_alpha = 0.8,
@@ -676,12 +688,16 @@ if (!is.null(thymus)) {
     )
     cd79aExpressionMoran$test
 
+    thymus$CD79A_positive <- SeuratObject::FetchData(
+      thymus,
+      vars = "CD79A",
+      layer = "counts"
+    )$CD79A > 0
+
     cd79aPositiveMoran <- spatialMoran(
       thymus,
-      variable = "CD79A",
-      variable_type = "feature",
-      positive = TRUE,
-      layer = "counts",
+      variable = "CD79A_positive",
+      variable_type = "metadata",
       k = spatialStatsK
     )
     cd79aPositiveMoran$test
@@ -858,11 +874,13 @@ if (!is.null(thymus)) {
   bcrClonePlots <- lapply(
     bcrCloneIds,
     function(cloneId) {
-      plotReceptorExpression(
+      plotReceptors(
         object = thymus,
         receptors = filter(bcrClones, .data$clone_id == .env$cloneId),
+        group_col = "clone_id",
+        values = cloneId,
         barcode_col = "barcode_8um",
-        receptor_color = "#2c7fb8",
+        colors = "#2c7fb8",
         receptor_size = 1.7,
         title = paste("BCR clone", cloneId)
       )
@@ -881,11 +899,13 @@ if (!is.null(thymus)) {
   tcrClonePlots <- lapply(
     tcrCloneIds,
     function(cloneId) {
-      plotReceptorExpression(
+      plotReceptors(
         object = thymus,
         receptors = filter(tcrClones, .data$clone_id == .env$cloneId),
+        group_col = "clone_id",
+        values = cloneId,
         barcode_col = "barcode_8um",
-        receptor_color = "#d95f02",
+        colors = "#d95f02",
         receptor_size = 1.7,
         title = paste("TCR clone", cloneId)
       )

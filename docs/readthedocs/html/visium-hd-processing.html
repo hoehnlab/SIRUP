@@ -452,7 +452,7 @@ head(positions8um)</code></pre>
 <pre class="r"><code>bcrRaw &lt;- data.table::fread(rawBCRIgblastPath)
 tcrRaw &lt;- data.table::fread(rawTCRIgblastPath)
 
-bcrRaw &lt;- extractSpatialBarcode(
+bcrRaw &lt;- extractSpatialBarcodes(
   bcrRaw,
   sequence_id_col = &quot;sequence_id&quot;,
   barcode_col = &quot;barcode_2um&quot;,
@@ -461,7 +461,7 @@ bcrRaw &lt;- extractSpatialBarcode(
   suffix = &quot;-1&quot;
 )
 
-tcrRaw &lt;- extractSpatialBarcode(
+tcrRaw &lt;- extractSpatialBarcodes(
   tcrRaw,
   sequence_id_col = &quot;sequence_id&quot;,
   barcode_col = &quot;barcode_2um&quot;,
@@ -545,14 +545,14 @@ tcrPrestoPaths &lt;- processSpatialSample(
 <pre class="r"><code>bcrConsensus &lt;- airr::read_rearrangement(bcrPrestoPaths$db_pass)
 tcrConsensus &lt;- airr::read_rearrangement(tcrPrestoPaths$db_pass)
 
-bcrConsensus &lt;- extractSpatialBarcode(
+bcrConsensus &lt;- extractSpatialBarcodes(
   bcrConsensus,
   sequence_id_col = &quot;sequence_id&quot;,
   barcode_col = &quot;barcode_2um&quot;,
   regex = &quot;,([^,]+)&quot;
 )
 
-tcrConsensus &lt;- extractSpatialBarcode(
+tcrConsensus &lt;- extractSpatialBarcodes(
   tcrConsensus,
   sequence_id_col = &quot;sequence_id&quot;,
   barcode_col = &quot;barcode_2um&quot;,

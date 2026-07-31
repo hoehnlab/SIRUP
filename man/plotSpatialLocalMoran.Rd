@@ -22,7 +22,7 @@ plotSpatialLocalMoran(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images, or a SIRAP object.}
+\item{object}{SIRAP object, or a spatial Seurat object.}
 
 \item{local_moran}{Output from \code{spatialLocalMoran()}.}
 

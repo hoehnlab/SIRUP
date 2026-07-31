@@ -35,7 +35,7 @@ filterSpatialAirr <- function(airr_df,
                               sequence_id_col = "sequence_id",
                               barcode_col = NULL,
                               add_full_id = FALSE,
-                              full_id_barcode_key = "barcode2um") {
+                              full_id_barcode_key = "seq_barcode_id") {
   required <- c(
     "v_sequence_end", "v_sequence_start",
     "j_sequence_end", "j_sequence_start",
@@ -397,42 +397,140 @@ spatialReceptorSummary <- function(airr_df, barcode_col = "barcode_2um") {
   )
 }
 
-#' Collapse spatially contiguous spots with identical sequences
+#' Collapse spatially contiguous spots with identical receptor sequences
 #'
 #' For each unique receptor sequence, finds connected components of neighboring
 #' spots sharing that sequence, then collapses each component to a single
-#' representative spot.
+#' representative spot. A SIRAP object is the preferred input: receptor barcodes
+#' are read from the SIRAP field mapping and spatial coordinates are read from
+#' the stored Seurat object. If you are not using a SIRAP object, pass an
+#' AIRR-style receptor table as `object` and the matching Seurat object as
+#' `seurat_object`.
 #'
-#' @param data AIRR-style data frame.
-#' @param tissue_positions Data frame with spatial coordinates for all spots.
-#' @param barcode Column name for spot barcodes in both data frames.
-#' @param sequence Column name for sequence in data.
-#' @param consensus_count Column name for consensus count in data.
-#' @param x Column name for x coordinates.
-#' @param y Column name for y coordinates.
+#' When `object` is a SIRAP object, the returned value is the updated SIRAP
+#' object with its receptor table replaced. When `object` is a receptor table,
+#' the returned value is the collapsed receptor table.
+#'
+#' @param object A SIRAP object, or an AIRR-style receptor data frame.
+#' @param seurat_object Optional Seurat object used only when `object` is a
+#'   receptor data frame.
+#' @param barcode_col Column in the receptor table matching Seurat spot/cell
+#'   barcodes. When omitted for a SIRAP object, the recorded SIRAP barcode field
+#'   is used. When omitted for a receptor table, a barcode-like column is
+#'   guessed.
+#' @param sequence_col Column containing receptor sequence strings.
+#' @param consensus_count_col Column containing consensus counts used to choose
+#'   the representative spot within a connected component.
+#' @param images Optional Seurat image names to use for spatial coordinates.
+#' @param image.scale Image scale passed to
+#'   `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Swap x/y coordinates after reading Seurat tissue
+#'   coordinates.
 #' @param num_neighbors_non_boundary Number of nearby points needed to be
 #'   considered non-boundary.
-#' @return `data` with bleedover rows removed, retaining only the representative
-#'   spot for each contiguous group of identical sequences.
+#' @param validate Whether to validate the updated SIRAP object before
+#'   returning it. Only used when `object` is a SIRAP object.
+#' @return A SIRAP object or receptor data frame with bleedover rows removed,
+#'   retaining only the representative spot for each contiguous group of
+#'   identical sequences.
 #' @export
-collapseIdenticalNeighbors <- function(data,
-                                       tissue_positions,
-                                       barcode = "barcode",
-                                       sequence = "sequence",
-                                       consensus_count = "consensus_count",
-                                       x = "x",
-                                       y = "y",
-                                       num_neighbors_non_boundary = 6L) {
+collapseIdenticalNeighbors <- function(object,
+                                       seurat_object = NULL,
+                                       barcode_col = NULL,
+                                       sequence_col = "sequence",
+                                       consensus_count_col = "consensus_count",
+                                       images = NULL,
+                                       image.scale = "hires",
+                                       swap_coords = FALSE,
+                                       num_neighbors_non_boundary = 6L,
+                                       validate = TRUE) {
+  is_sirap <- isSIRAP(object)
+  if (is_sirap) {
+    if (!is.null(seurat_object)) {
+      rlang::abort("`seurat_object` should not be supplied when `object` is a SIRAP object.")
+    }
+    validateSIRAP(object)
+    receptor_fields <- .sirap_receptor_fields(object)
+    receptors <- object$receptors
+    barcode_col <- barcode_col %||% receptor_fields$barcode
+    seurat_object <- object$spatial
+  } else {
+    if (is.null(seurat_object)) {
+      rlang::abort("`seurat_object` is required when `object` is a receptor table.")
+    }
+    receptors <- .as_data_frame(object)
+    barcode_col <- .guess_barcode_col(receptors, barcode_col)
+  }
+
+  coords <- .sirap_spatial_coordinate_table(
+    seurat_object,
+    images = images,
+    image.scale = image.scale,
+    swap_coords = swap_coords
+  )
+  collapsed <- .collapse_identical_neighbors_table(
+    receptors = receptors,
+    tissue_positions = coords,
+    barcode_col = barcode_col,
+    sequence_col = sequence_col,
+    consensus_count_col = consensus_count_col,
+    num_neighbors_non_boundary = num_neighbors_non_boundary
+  )
+
+  if (!is_sirap) {
+    return(collapsed)
+  }
+
+  object$receptors <- tibble::as_tibble(collapsed)
+  if (isTRUE(validate)) {
+    validateSIRAP(object)
+  }
+  object
+}
+
+# Collapse identical neighboring receptors after SIRAP/Seurat inputs have been
+# resolved to a receptor table and a coordinate table.
+.collapse_identical_neighbors_table <- function(receptors,
+                                                tissue_positions,
+                                                barcode_col,
+                                                sequence_col,
+                                                consensus_count_col,
+                                                num_neighbors_non_boundary) {
+  data <- .as_data_frame(receptors)
+  .check_required_cols(data, c(barcode_col, sequence_col, consensus_count_col), "receptors")
+  .check_required_cols(tissue_positions, c("cell", "x", "y"), "spatial coordinates")
+
+  temp <- .collapse_identical_neighbors_temp_cols(data)
+  data[[temp$barcode]] <- as.character(data[[barcode_col]])
+  data[[temp$sequence]] <- as.character(data[[sequence_col]])
+  data[[temp$row]] <- seq_len(nrow(data))
+
+  tissue_positions <- .as_data_frame(tissue_positions)
+  tissue_positions <- tissue_positions[is.finite(tissue_positions$x) & is.finite(tissue_positions$y), , drop = FALSE]
+  tissue_positions <- tissue_positions[!duplicated(tissue_positions$cell), c("cell", "x", "y"), drop = FALSE]
+  colnames(tissue_positions) <- c(temp$barcode, temp$x, temp$y)
+
+  data <- merge(
+    data,
+    tissue_positions,
+    by = temp$barcode,
+    all.x = FALSE,
+    all.y = FALSE,
+    sort = FALSE
+  )
+  if (nrow(data) == 0L) {
+    rlang::abort("No receptor barcodes matched finite spatial coordinates in `seurat_object`.")
+  }
+
   # A barcode can contain duplicate rows for the same sequence. Collapse those
   # first so the spatial graph only has one observation per barcode/sequence.
   cli::cli_progress_step("Ensuring one row per barcode/sequence...")
   data <- data %>%
-    dplyr::group_by(dplyr::across(dplyr::all_of(c(barcode, sequence)))) %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(c(temp$barcode, temp$sequence)))) %>%
     dplyr::summarise(
-      dplyr::across(dplyr::all_of(consensus_count), sum),
-      dplyr::across(dplyr::all_of(x), mean),
-      dplyr::across(dplyr::all_of(y), mean),
-      dplyr::across(-dplyr::all_of(consensus_count), dplyr::first),
+      dplyr::across(dplyr::all_of(consensus_count_col), sum),
+      dplyr::across(dplyr::all_of(c(temp$x, temp$y)), mean),
+      dplyr::across(-dplyr::all_of(c(consensus_count_col, temp$x, temp$y)), dplyr::first),
       .groups = "drop"
     )
   cli::cli_progress_done()
@@ -442,7 +540,7 @@ collapseIdenticalNeighbors <- function(data,
   # Estimate the spacing between neighboring spots from the full tissue grid.
   # The first density minimum separates immediate spot-neighbors from longer
   # distances across gaps, image boundaries, or unobserved tissue.
-  all_coords <- as.matrix(tissue_positions[, c(x, y)])
+  all_coords <- as.matrix(tissue_positions[, c(temp$x, temp$y)])
   n_all <- nrow(all_coords)
   k_search <- min(num_neighbors_non_boundary + 1L, n_all)
   sample_size <- min(2000L, n_all)
@@ -465,25 +563,27 @@ collapseIdenticalNeighbors <- function(data,
   ]
 
   unique_distances <- unique(neighbor_distances)
-  if (length(unique_distances) < 3) {
-    stop(
-      "The automated distance threshold calculation requires at least 3 unique distance values.\n",
-      "Found distance values: ", paste(unique_distances, collapse = ", ")
+  if (length(unique_distances) == 0L) {
+    rlang::abort("Could not find positive neighbor distances in the spatial coordinate table.")
+  } else if (length(unique_distances) < 3L) {
+    threshold <- max(unique_distances)
+    cli::cli_alert_info(
+      "Neighbor distances are nearly uniform; using {round(threshold, 4)} as the distance threshold."
+    )
+  } else {
+    bandwidth <- kedd::h.ucv(unique_distances, 4)$h
+    dens <- KernSmooth::bkde(neighbor_distances, bandwidth = bandwidth, canonical = TRUE)
+    xdens <- dens$x
+    ydens <- dens$y
+
+    threshold <- tryCatch(
+      xdens[which(diff(sign(diff(ydens))) == 2)[1] + 1],
+      error = function(e) {
+        warning("No minimum was found between two modes.")
+        NULL
+      }
     )
   }
-
-  bandwidth <- kedd::h.ucv(unique_distances, 4)$h
-  dens <- KernSmooth::bkde(neighbor_distances, bandwidth = bandwidth, canonical = TRUE)
-  xdens <- dens$x
-  ydens <- dens$y
-
-  threshold <- tryCatch(
-    xdens[which(diff(sign(diff(ydens))) == 2)[1] + 1],
-    error = function(e) {
-      warning("No minimum was found between two modes.")
-      NULL
-    }
-  )
 
   if (is.null(threshold) || is.na(threshold)) {
     stop("Could not determine a valid distance threshold from the density estimate.")
@@ -497,29 +597,37 @@ collapseIdenticalNeighbors <- function(data,
   # Build the graph only on spots with receptor observations, but keep the
   # threshold learned from all tissue positions so boundary spots are not
   # over-connected.
-  barcodes <- unique(data[[barcode]])
-  tissue_data <- tissue_positions[tissue_positions[[barcode]] %in% barcodes, ]
-  coords <- as.matrix(tissue_data[, c(x, y)])
-  barcodes_ordered <- tissue_data[[barcode]]
+  barcodes <- unique(data[[temp$barcode]])
+  tissue_data <- tissue_positions[tissue_positions[[temp$barcode]] %in% barcodes, ]
+  coords <- as.matrix(tissue_data[, c(temp$x, temp$y)])
+  barcodes_ordered <- tissue_data[[temp$barcode]]
   n <- nrow(tissue_data)
   n_pretty <- scales::comma(n)
   n_all_pretty <- scales::comma(n_all)
   cli::cli_progress_done()
   cli::cli_alert_info("Sequence-positive spots: {n_pretty} (of {n_all_pretty} total)")
 
+  if (n < 2L) {
+    result <- data[, setdiff(colnames(data), unlist(temp, use.names = FALSE)), drop = FALSE]
+    cli::cli_alert_success("Done! Fewer than two sequence-positive spots were found, so no neighboring spots were collapsed.")
+    return(result)
+  }
+
   cli::cli_progress_step("Building adjacency matrix over spots with observed sequences...")
+
+  k_observed <- min(k_search, n)
 
   # Keep undirected edges only between nearby observed spots. Connected
   # components inside this graph are candidate bleedover regions.
   knn_full <- RANN::nn2(
     data = coords,
     query = coords,
-    k = k_search,
+    k = k_observed,
     treetype = "kd",
     searchtype = "standard"
   )
 
-  row_idx <- rep(seq_len(n), times = k_search)
+  row_idx <- rep(seq_len(n), times = k_observed)
   col_idx <- as.vector(knn_full$nn.idx)
   dists <- as.vector(knn_full$nn.dists)
 
@@ -538,7 +646,7 @@ collapseIdenticalNeighbors <- function(data,
   cli::cli_progress_done()
 
   barcode_to_idx <- stats::setNames(seq_len(n), barcodes_ordered)
-  unique_sequences <- unique(data[[sequence]])
+  unique_sequences <- unique(data[[temp$sequence]])
   n_seqs <- length(unique_sequences)
   component_labels <- vector("list", n_seqs)
 
@@ -550,15 +658,15 @@ collapseIdenticalNeighbors <- function(data,
 
   for (si in seq_len(n_seqs)) {
     seq_i <- unique_sequences[[si]]
-    seq_barcodes <- data[[barcode]][data[[sequence]] == seq_i]
+    seq_barcodes <- data[[temp$barcode]][data[[temp$sequence]] == seq_i]
     seq_idx <- barcode_to_idx[seq_barcodes]
 
     # For each exact sequence, connected components identify spatially
     # contiguous spots carrying that sequence.
     if (length(seq_idx) == 1L) {
       component_labels[[si]] <- data.frame(
-        barcode = seq_barcodes,
-        sequence = seq_i,
+        .sirap_barcode = seq_barcodes,
+        .sirap_sequence = seq_i,
         component = 1L
       )
     } else {
@@ -567,8 +675,8 @@ collapseIdenticalNeighbors <- function(data,
       components <- igraph::components(g)
 
       component_labels[[si]] <- data.frame(
-        barcode = seq_barcodes,
-        sequence = seq_i,
+        .sirap_barcode = seq_barcodes,
+        .sirap_sequence = seq_i,
         component = components$membership
       )
     }
@@ -583,19 +691,19 @@ collapseIdenticalNeighbors <- function(data,
   cli::cli_progress_step("Collapsing components to representative spots...")
 
   coords_df <- data.frame(barcodes_ordered, cx = coords[, 1], cy = coords[, 2])
-  colnames(coords_df)[1] <- barcode
+  colnames(coords_df)[1] <- temp$barcode
 
-  colnames(component_df)[colnames(component_df) == "barcode"] <- barcode
-  colnames(component_df)[colnames(component_df) == "sequence"] <- sequence
-  component_df <- merge(component_df, coords_df, by = barcode)
+  colnames(component_df)[colnames(component_df) == ".sirap_barcode"] <- temp$barcode
+  colnames(component_df)[colnames(component_df) == ".sirap_sequence"] <- temp$sequence
+  component_df <- merge(component_df, coords_df, by = temp$barcode)
   component_df <- merge(
     component_df,
-    data[, c(barcode, sequence, consensus_count)],
-    by = c(barcode, sequence)
+    data[, c(temp$barcode, temp$sequence, consensus_count_col)],
+    by = c(temp$barcode, temp$sequence)
   )
 
   representative_rows <- lapply(
-    split(component_df, list(component_df[[sequence]], component_df$component), drop = TRUE),
+    split(component_df, list(component_df[[temp$sequence]], component_df$component), drop = TRUE),
     function(grp) {
       if (nrow(grp) == 1L) {
         return(grp)
@@ -603,8 +711,8 @@ collapseIdenticalNeighbors <- function(data,
 
       # Prefer the most abundant consensus. If counts tie, use the point
       # closest to the component centroid; remaining ties are random.
-      max_count <- max(grp[[consensus_count]])
-      grp <- grp[grp[[consensus_count]] == max_count, , drop = FALSE]
+      max_count <- max(grp[[consensus_count_col]])
+      grp <- grp[grp[[consensus_count_col]] == max_count, , drop = FALSE]
       if (nrow(grp) == 1L) {
         return(grp)
       }
@@ -626,9 +734,10 @@ collapseIdenticalNeighbors <- function(data,
 
   cli::cli_progress_step("Filtering data to representative spots...")
 
-  keep_keys <- paste(representative_df[[barcode]], representative_df[[sequence]], sep = "___")
-  all_keys <- paste(data[[barcode]], data[[sequence]], sep = "___")
+  keep_keys <- paste(representative_df[[temp$barcode]], representative_df[[temp$sequence]], sep = "___")
+  all_keys <- paste(data[[temp$barcode]], data[[temp$sequence]], sep = "___")
   result <- data[all_keys %in% keep_keys, ]
+  result <- result[, setdiff(colnames(result), unlist(temp, use.names = FALSE)), drop = FALSE]
   n_result_pretty <- scales::comma(nrow(result))
   n_data_pretty <- scales::comma(nrow(data))
   n_removed_pretty <- scales::comma(nrow(data) - nrow(result))
@@ -639,6 +748,28 @@ collapseIdenticalNeighbors <- function(data,
   )
 
   result
+}
+
+# Reserve internal column names before temporarily joining receptor rows to
+# Seurat coordinates.
+.collapse_identical_neighbors_temp_cols <- function(data) {
+  temp <- c(
+    barcode = ".sirap_collapse_barcode",
+    sequence = ".sirap_collapse_sequence",
+    row = ".sirap_collapse_row",
+    x = ".sirap_collapse_x",
+    y = ".sirap_collapse_y"
+  )
+  overlapping <- intersect(unname(temp), colnames(data))
+  if (length(overlapping) > 0L) {
+    rlang::abort(paste0(
+      "Temporary collapse column",
+      if (length(overlapping) == 1L) " " else "s ",
+      paste0("'", overlapping, "'", collapse = ", "),
+      " already present in `receptors`."
+    ))
+  }
+  as.list(temp)
 }
 
 # Build the expected pRESTO/IgBLAST output filenames from the input FASTA stem

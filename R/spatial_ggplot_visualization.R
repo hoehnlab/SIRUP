@@ -43,6 +43,9 @@ plotLengthQc <- function(airr_df, bin_width = 5, title = NULL) {
 #' @param point_size Size of plotted spots.
 #' @param point_alpha Opacity for plotted spots.
 #' @param order_points Plot lower values first so higher values appear on top.
+#' @param title Optional plot title. For a single panel, this replaces the
+#'   feature-name title. For multiple combined panels, this is used as an
+#'   overall patchwork title and individual panels keep their feature titles.
 #' @param image.alpha Tissue image opacity.
 #' @param zoom Zoom to non-zero spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
@@ -61,6 +64,7 @@ spatialExpressionPlot <- function(object,
                                       point_size = 0.6,
                                       point_alpha = 1,
                                       order_points = TRUE,
+                                      title = NULL,
                                       image.alpha = 1,
                                       zoom = FALSE,
                                       combine = TRUE) {
@@ -76,7 +80,9 @@ spatialExpressionPlot <- function(object,
 
   expr <- .sirap_fetch_data(object, vars = features, layer = layer)
   plots <- list()
-  for (image in .sirap_spatial_images(object, images = images)) {
+  spatial_images <- .sirap_spatial_images(object, images = images)
+  single_panel <- length(features) == 1L && length(spatial_images) == 1L
+  for (image in spatial_images) {
     spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
     dat <- merge(spatial$coords, expr, by.x = "cell", by.y = 0, all.x = TRUE)
     for (feature in features) {
@@ -102,11 +108,15 @@ spatialExpressionPlot <- function(object,
           na.rm = TRUE
         ) +
         ggplot2::scale_color_gradientn(colors = feature_colors, name = feature) +
-        ggplot2::labs(title = feature)
+        ggplot2::labs(title = if (single_panel) title %||% feature else feature)
     }
   }
 
-  .sirap_return_spatial_plots(plots, combine = combine)
+  out <- .sirap_return_spatial_plots(plots, combine = combine)
+  if (!is.null(out) && !single_panel && isTRUE(combine) && !is.null(title)) {
+    out <- out + patchwork::plot_annotation(title = title)
+  }
+  out
 }
 
 #' Plot spatial metadata groups after excluding zero/blank spots
@@ -444,182 +454,6 @@ spatialExpressionMultiPlot <- function(object,
   }
 
   .sirap_return_spatial_plots(plots, combine = combine)
-}
-
-#' Plot receptor-positive spatial spots over a tissue image
-#'
-#' @param object Seurat object, or a SIRAP object containing both spatial and
-#'   receptor data.
-#' @param receptors AIRR-style receptor table containing a spatial barcode.
-#'   May be omitted when `object` is a SIRAP object.
-#' @param barcode_col Column in `receptors` matching Seurat spot names. If
-#'   `NULL`, the first available barcode-like column is used.
-#' @param feature Optional gene/feature to plot underneath receptor-positive
-#'   spots.
-#' @param gene Alias for `feature`, retained for readability in receptor plots.
-#' @param receptor_color Color for receptor-positive spots.
-#' @param receptor_size Size for receptor-positive spots.
-#' @param receptor_stroke Stroke width for hollow receptor circles.
-#' @param receptor_alpha Alpha for receptor circles.
-#' @param feature_colors Colors used, in order, to build the continuous gene
-#'   expression ramp when `feature` is set.
-#' @param feature_size Size for gene expression points.
-#' @param feature_alpha Alpha for gene expression points.
-#' @param zero_tol Values at or below this threshold are treated as zero.
-#' @param title Optional title.
-#' @param order_points Plot lower feature expression first so higher expression
-#'   points appear on top.
-#' @param assay,layer,image.scale Additional plotting controls.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate axes.
-#' @param images Optional Seurat image names.
-#' @param image.alpha Tissue image opacity.
-#' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
-#'   full tissue area covered by the spatial coordinates.
-#' @param receptor_label Legend label for receptor-positive spots.
-#' @param show_receptor_legend Show the receptor legend. Defaults to `TRUE`
-#'   when a feature is shown and `FALSE` for receptor-only plots.
-#' @return A ggplot/patchwork object.
-#' @export
-plotReceptorExpression <- function(object,
-                                      receptors = NULL,
-                                      barcode_col = NULL,
-                                      feature = NULL,
-                                      gene = NULL,
-                                      receptor_color = "black",
-                                      receptor_size = 1,
-                                      receptor_stroke = 0.7,
-                                      receptor_alpha = 1,
-                                      feature_colors = c("#939393", "#FFFF00"),
-                                      feature_size = 1,
-                                      feature_alpha = 1,
-                                      zero_tol = 0,
-                                      title = NULL,
-                                      order_points = TRUE,
-                                      assay = NULL,
-                                      layer = "counts",
-                                      image.scale = "hires",
-                                      swap_coords = FALSE,
-                                      images = NULL,
-                                      image.alpha = 1,
-                                      zoom = FALSE,
-                                      receptor_label = "Receptor",
-                                      show_receptor_legend = NULL) {
-  inputs <- .sirap_resolve_inputs(object, receptors, barcode_col)
-  object <- inputs$object
-  receptors <- inputs$receptors
-  barcode_col <- inputs$barcode_col
-  if (is.null(receptors)) {
-    rlang::abort("`receptors` is required when `object` is not a SIRAP object.")
-  }
-  .require_namespace("SeuratObject")
-  feature <- feature %||% gene
-  show_receptor_legend <- show_receptor_legend %||% !is.null(feature)
-  receptors <- .as_data_frame(receptors)
-  barcode_col <- .guess_barcode_col(receptors, barcode_col)
-  receptor_barcodes <- unique(stats::na.omit(as.character(receptors[[barcode_col]])))
-  if (!is.null(assay)) {
-    SeuratObject::DefaultAssay(object) <- assay
-  }
-  if (!is.null(feature) && length(feature_colors) < 2L) {
-    rlang::abort("`feature_colors` must contain at least two colors.")
-  }
-
-  expr <- if (!is.null(feature)) {
-    .sirap_fetch_data(object, vars = feature, layer = layer)
-  } else {
-    NULL
-  }
-
-  plots <- list()
-  for (image in .sirap_spatial_images(object, images = images)) {
-    spatial <- .sirap_spatial_data(object, image = image, image.scale = image.scale, swap_coords = swap_coords)
-    dat <- spatial$coords
-    dat$.sirap_receptor <- dat$cell %in% receptor_barcodes
-    if (!is.null(feature)) {
-      dat <- merge(dat, expr, by.x = "cell", by.y = 0, all.x = TRUE)
-      dat$.sirap_expressed <- !is.na(dat[[feature]]) & dat[[feature]] > zero_tol
-      keep <- dat$.sirap_expressed | dat$.sirap_receptor
-    } else {
-      keep <- dat$.sirap_receptor
-    }
-    if (!any(keep)) {
-      next
-    }
-    dat <- dat[keep, , drop = FALSE]
-
-    p <- .sirap_spatial_base(
-      dat,
-      spatial$image,
-      image.alpha = image.alpha,
-      zoom = zoom,
-      view_data = spatial$coords
-    )
-
-    if (!is.null(feature)) {
-      gene_data <- dat[dat$.sirap_expressed, , drop = FALSE]
-      if (nrow(gene_data) > 0L) {
-        if (isTRUE(order_points)) {
-          gene_data <- gene_data[order(gene_data[[feature]], na.last = TRUE), , drop = FALSE]
-        }
-        p <- p +
-          ggplot2::geom_point(
-            data = gene_data,
-            ggplot2::aes(x = .data$x, y = .data$.sirap_y, color = .data[[feature]]),
-            size = feature_size,
-            alpha = feature_alpha,
-            inherit.aes = FALSE,
-            na.rm = TRUE
-          ) +
-          ggplot2::scale_color_gradientn(colors = feature_colors, name = feature)
-      }
-    }
-
-    receptor_data <- dat[dat$.sirap_receptor, , drop = FALSE]
-    if (nrow(receptor_data) > 0L) {
-      if (isTRUE(show_receptor_legend)) {
-        receptor_data$.sirap_receptor_label <- receptor_label
-        p <- p +
-          ggplot2::geom_point(
-            data = receptor_data,
-            ggplot2::aes(x = .data$x, y = .data$.sirap_y, shape = .data$.sirap_receptor_label),
-            color = receptor_color,
-            fill = NA,
-            size = receptor_size,
-            stroke = receptor_stroke,
-            alpha = receptor_alpha,
-            inherit.aes = FALSE,
-            na.rm = TRUE
-          ) +
-          ggplot2::scale_shape_manual(
-            values = stats::setNames(21, receptor_label),
-            name = "Receptor"
-          ) +
-          ggplot2::guides(
-            shape = ggplot2::guide_legend(
-              override.aes = list(color = receptor_color, fill = NA, stroke = receptor_stroke)
-            )
-          )
-      } else {
-        p <- p +
-          ggplot2::geom_point(
-            data = receptor_data,
-            ggplot2::aes(x = .data$x, y = .data$.sirap_y),
-            color = receptor_color,
-            fill = NA,
-            size = receptor_size,
-            stroke = receptor_stroke,
-            shape = 21,
-            alpha = receptor_alpha,
-            inherit.aes = FALSE,
-            na.rm = TRUE,
-            show.legend = FALSE
-          )
-      }
-    }
-    plots[[image]] <- p + ggplot2::labs(title = title %||% feature %||% receptor_label)
-  }
-
-  .sirap_return_spatial_plots(plots, combine = TRUE)
 }
 
 #' Plot grouped receptors over spatial gene expression
@@ -1240,7 +1074,7 @@ plotSpatialCloneTreePairs <- function(trees,
                                       treescale = 0.01,
                                       spatial_tip_size = 1.6,
                                       spatial_tip_alpha = 1,
-                                      order_points = TRUE,
+                                      order_points = FALSE,
                                       show_spatial_legend = FALSE,
                                       nproc = 1L,
                                       ...) {

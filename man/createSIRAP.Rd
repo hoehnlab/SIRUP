@@ -10,7 +10,7 @@ createSIRAP(
   barcode_col = NULL,
   image_col = NULL,
   sample_col = NULL,
-  clone_col = "clone_id",
+  clone_col = NULL,
   locus_col = "locus",
   count_col = NULL,
   metadata = list(),
@@ -40,7 +40,7 @@ when present and otherwise stored as \code{NULL}.}
 when present and otherwise stored as \code{NULL}.}
 
 \item{count_col}{Optional column containing receptor observation weights or
-counts.}
+counts. Default is \code{NULL}.}
 
 \item{metadata}{Optional named list of dataset-level metadata.}
 

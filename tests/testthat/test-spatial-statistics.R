@@ -3,7 +3,7 @@ test_that("kcross data frame conversion uses theoretical fallback", {
     r = c(0, 1, 2),
     border = c(0, 2, 8)
   )
-  out <- SIRAP:::.sirap_kcross_df(k, correction = "border", image = "sample")
+  out <- SIRAP:::.sirap_kcross_df(k, image = "sample")
 
   expect_equal(out$image, rep("sample", 3))
   expect_equal(out$observed, k$border)
@@ -148,6 +148,8 @@ test_that("spatialCloneJoinCount tests clone marks from receptor barcodes", {
   out <- spatialCloneJoinCount(
     object = object,
     receptors = receptors,
+    clone_col = "clone_id",
+    barcode_col = "barcode_8um",
     clone_ids = "A",
     k = 1,
     min_barcodes = 2,
@@ -182,6 +184,8 @@ test_that("plotSpatialCloneJoinCount returns one combined plot", {
   join_count <- spatialCloneJoinCount(
     object = object,
     receptors = receptors,
+    clone_col = "clone_id",
+    barcode_col = "barcode_8um",
     clone_ids = "A",
     k = 1,
     min_barcodes = 2,

@@ -10,20 +10,20 @@
 #' @param receptors AIRR-style receptor data frame. Required when
 #'   `variable_type = "receptor"` or `"clone"` unless `object` is a SIRAP
 #'   object.
-#' @param barcode_col Barcode column in `receptors`.
+#' @param barcode_col Barcode column in `receptors`. Defaults to `NULL`; when
+#'   `object` is a SIRAP object, the stored receptor barcode field is used.
+#'   Pass this explicitly when using separate Seurat and receptor objects.
 #' @param clone_col Clone column in `receptors`; used only when
-#'   `variable_type = "clone"`.
-#' @param positive Convert feature values to a positive-expression indicator.
+#'   `variable_type = "clone"`. Defaults to `NULL`; when `object` is a SIRAP
+#'   object, the stored receptor clone field is used when available.
 #' @param layer Seurat expression layer to fetch for features.
 #' @param images Optional Seurat image names.
 #' @param image.scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
 #'   which uses Seurat image coordinates natively.
-#' @param zero_tol Values at or below this threshold are treated as zero.
 #' @param radius Optional distance radius defining neighborhoods.
 #' @param k Number of nearest neighbors when `radius` is `NULL`.
-#' @param style Spatial weights style passed to `spdep::nb2listw()`.
 #' @param alternative Alternative hypothesis passed to `spdep::moran.test()`.
 #' @return List containing the Moran test, input data, neighbors, and weights.
 #' @export
@@ -32,20 +32,15 @@ spatialMoran <- function(object,
                          variable_type = c("feature", "metadata", "receptor", "clone"),
                          value = NULL,
                          receptors = NULL,
-                         barcode_col = "barcode_8um",
-                         clone_col = "clone_id",
-                         positive = FALSE,
+                         barcode_col = NULL,
+                         clone_col = NULL,
                          layer = "counts",
                          images = NULL,
                          image.scale = "hires",
                          swap_coords = FALSE,
-                         zero_tol = 0,
                          radius = NULL,
                          k = 6,
-                         style = "W",
                          alternative = "greater") {
-  barcode_missing <- missing(barcode_col)
-  clone_missing <- missing(clone_col)
   .require_namespace("spdep")
   dat <- .sirap_spatial_variable_values(
     object = object,
@@ -53,20 +48,18 @@ spatialMoran <- function(object,
     variable_type = variable_type,
     value = value,
     receptors = receptors,
-    barcode_col = if (isSIRAP(object) && barcode_missing) NULL else barcode_col,
-    clone_col = if (isSIRAP(object) && clone_missing) NULL else clone_col,
-    positive = positive,
+    barcode_col = barcode_col,
+    clone_col = clone_col,
     layer = layer,
     images = images,
     image.scale = image.scale,
-    swap_coords = swap_coords,
-    zero_tol = zero_tol
+    swap_coords = swap_coords
   )
   dat <- dat[is.finite(dat$value), , drop = FALSE]
   .check_spatial_values(dat$value)
 
   nb <- .sirap_spatial_neighbors(dat, radius = radius, k = k)
-  listw <- spdep::nb2listw(nb, style = style, zero.policy = TRUE)
+  listw <- spdep::nb2listw(nb, style = "W", zero.policy = TRUE)
   test <- spdep::moran.test(dat$value, listw, zero.policy = TRUE, alternative = alternative)
 
   list(
@@ -93,19 +86,14 @@ spatialLocalMoran <- function(object,
                               variable_type = c("feature", "metadata", "receptor", "clone"),
                               value = NULL,
                               receptors = NULL,
-                              barcode_col = "barcode_8um",
-                              clone_col = "clone_id",
-                              positive = FALSE,
+                              barcode_col = NULL,
+                              clone_col = NULL,
                               layer = "counts",
                               images = NULL,
                               image.scale = "hires",
                               swap_coords = FALSE,
-                              zero_tol = 0,
                               radius = NULL,
-                              k = 6,
-                              style = "W") {
-  barcode_missing <- missing(barcode_col)
-  clone_missing <- missing(clone_col)
+                              k = 6) {
   .require_namespace("spdep")
 
   dat <- .sirap_spatial_variable_values(
@@ -114,20 +102,18 @@ spatialLocalMoran <- function(object,
     variable_type = variable_type,
     value = value,
     receptors = receptors,
-    barcode_col = if (isSIRAP(object) && barcode_missing) NULL else barcode_col,
-    clone_col = if (isSIRAP(object) && clone_missing) NULL else clone_col,
-    positive = positive,
+    barcode_col = barcode_col,
+    clone_col = clone_col,
     layer = layer,
     images = images,
     image.scale = image.scale,
-    swap_coords = swap_coords,
-    zero_tol = zero_tol
+    swap_coords = swap_coords
   )
   dat <- dat[is.finite(dat$value), , drop = FALSE]
   .check_spatial_values(dat$value)
 
   nb <- .sirap_spatial_neighbors(dat, radius = radius, k = k)
-  listw <- spdep::nb2listw(nb, style = style, zero.policy = TRUE)
+  listw <- spdep::nb2listw(nb, style = "W", zero.policy = TRUE)
   lisa <- spdep::localmoran(dat$value, listw, zero.policy = TRUE)
   lisa <- as.data.frame(lisa)
 
@@ -152,8 +138,13 @@ spatialLocalMoran <- function(object,
 #' @param object Seurat object with spatial images, or a SIRAP object.
 #' @param receptors AIRR-style receptor data frame containing spatial barcodes
 #'   and clone calls. May be omitted when `object` is a SIRAP object.
-#' @param clone_col Column in `receptors` containing clone IDs.
+#' @param clone_col Column in `receptors` containing clone IDs. Defaults to
+#'   `NULL`; when `object` is a SIRAP object, the stored receptor clone field
+#'   is used when available.
 #' @param barcode_col Column in `receptors` matching Seurat spot/cell barcodes.
+#'   Defaults to `NULL`; when `object` is a SIRAP object, the stored receptor
+#'   barcode field is used. Pass this explicitly when using separate Seurat and
+#'   receptor objects.
 #' @param clone_ids Optional clone ID values to test. Defaults to all clones
 #'   observed in at least `min_barcodes` spatial barcodes.
 #' @param polygon Optional polygon vertex data frame used to restrict the test
@@ -174,8 +165,6 @@ spatialLocalMoran <- function(object,
 #'   that clone to be tested.
 #' @param radius Optional distance radius defining neighborhoods.
 #' @param k Number of nearest neighbors when `radius` is `NULL`.
-#' @param style Spatial weights style passed to `spdep::nb2listw()`. Join-count
-#'   tests are typically run with binary weights (`"B"`).
 #' @param alternative Alternative hypothesis passed to
 #'   `spdep::joincount.test()`.
 #' @param other_label Label used for non-target clone barcodes in each binary
@@ -186,8 +175,8 @@ spatialLocalMoran <- function(object,
 #' @export
 spatialCloneJoinCount <- function(object,
                                   receptors = NULL,
-                                  clone_col = "clone_id",
-                                  barcode_col = "barcode_8um",
+                                  clone_col = NULL,
+                                  barcode_col = NULL,
                                   clone_ids = NULL,
                                   polygon = NULL,
                                   polygon_id = NULL,
@@ -202,26 +191,28 @@ spatialCloneJoinCount <- function(object,
                                   min_barcodes = 2,
                                   radius = NULL,
                                   k = 6,
-                                  style = "B",
                                   alternative = "greater",
                                   other_label = "Other",
                                   return_data = FALSE) {
-  clone_missing <- missing(clone_col)
-  barcode_missing <- missing(barcode_col)
-  is_sirap <- isSIRAP(object)
   inputs <- .sirap_resolve_inputs(
     object,
     receptors,
-    if (is_sirap && barcode_missing) NULL else barcode_col
+    barcode_col
   )
   object <- inputs$object
   receptors <- inputs$receptors
-  barcode_col <- inputs$barcode_col %||% "barcode_8um"
+  barcode_col <- inputs$barcode_col
   if (is.null(receptors)) {
     rlang::abort("`receptors` is required when `object` is not a SIRAP object.")
   }
-  if (is_sirap && clone_missing && !is.null(inputs$receptor_fields$clone)) {
+  if (is.null(clone_col) && !is.null(inputs$receptor_fields$clone)) {
     clone_col <- inputs$receptor_fields$clone
+  }
+  if (is.null(barcode_col)) {
+    rlang::abort("`barcode_col` is required when it cannot be resolved from a SIRAP object.")
+  }
+  if (is.null(clone_col)) {
+    rlang::abort("`clone_col` is required when it cannot be resolved from a SIRAP object.")
   }
   .require_namespace("spdep")
   if (!is.numeric(min_barcodes) || length(min_barcodes) != 1L || is.na(min_barcodes) || min_barcodes < 1) {
@@ -279,7 +270,7 @@ spatialCloneJoinCount <- function(object,
       next
     }
     nb <- .sirap_spatial_neighbors(sites, radius = radius, k = k)
-    listw <- spdep::nb2listw(nb, style = style, zero.policy = TRUE)
+    listw <- spdep::nb2listw(nb, style = "B", zero.policy = TRUE)
     neighbors[[group_name]] <- nb
     weights[[group_name]] <- listw
 
@@ -311,7 +302,6 @@ spatialCloneJoinCount <- function(object,
         n_clone_barcodes = n_clone_barcodes,
         radius = radius,
         k = if (is.null(radius)) k else NA_integer_,
-        style = style,
         alternative = alternative
       )
       if (isTRUE(return_data)) {
@@ -338,7 +328,6 @@ spatialCloneJoinCount <- function(object,
     weights = weights,
     radius = radius,
     k = k,
-    style = style,
     alternative = alternative,
     min_barcodes = min_barcodes
   )
@@ -644,7 +633,7 @@ plotSpatialCloneJoinCount <- function(join_count,
 
 #' Plot local Moran's I over a tissue image
 #'
-#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param object SIRAP object, or a spatial Seurat object.
 #' @param local_moran Output from `spatialLocalMoran()`.
 #' @param value_col Column to color. Defaults to `z_i`.
 #' @param images Optional Seurat image names.
@@ -716,10 +705,9 @@ plotSpatialLocalMoran <- function(object,
 
 #' Calculate Ripley's cross K for marked spatial points
 #'
-#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param object SIRAP object, or a spatial Seurat object.
 #' @param mark_col Metadata column containing point types.
 #' @param i,j Mark levels to compare.
-#' @param correction Edge correction to plot/use, usually `border`.
 #' @param nsim Number of random-label simulations for an envelope. Use `0` for
 #'   observed K only.
 #' @param max_r Optional maximum radius to evaluate. Ignored if `r` is supplied.
@@ -730,7 +718,6 @@ spatialRipleyCrossK <- function(object,
                                 mark_col,
                                 i,
                                 j,
-                                correction = "border",
                                 nsim = 0,
                                 max_r = NULL,
                                 r = NULL) {
@@ -741,6 +728,7 @@ spatialRipleyCrossK <- function(object,
     .require_namespace("spatstat.random")
   }
 
+  # Get the spatial coordinates
   dat <- .sirap_spatial_coordinate_table(object)
   .check_required_cols(object@meta.data, mark_col, "object@meta.data")
   dat$mark <- object@meta.data[dat$cell, mark_col]
@@ -770,7 +758,7 @@ spatialRipleyCrossK <- function(object,
     if (is.null(r_eval) && !is.null(max_r)) {
       r_eval <- seq(0, max_r, length.out = 513L)
     }
-    k_obs <- spatstat.explore::Kcross(pp, i = i, j = j, correction = correction, r = r_eval)
+    k_obs <- spatstat.explore::Kcross(pp, i = i, j = j, correction = "border", r = r_eval)
     observed[[image]] <- k_obs
 
     if (nsim > 0L) {
@@ -781,12 +769,12 @@ spatialRipleyCrossK <- function(object,
         simulate = expression(spatstat.random::rlabel(pp)),
         i = i,
         j = j,
-        correction = correction,
+        correction = "border",
         r = r_eval
       )
-      plot_data[[image]] <- .sirap_kcross_df(envelopes[[image]], correction = correction, image = image)
+      plot_data[[image]] <- .sirap_kcross_df(envelopes[[image]], image = image)
     } else {
-      plot_data[[image]] <- .sirap_kcross_df(k_obs, correction = correction, image = image)
+      plot_data[[image]] <- .sirap_kcross_df(k_obs, image = image)
     }
   }
 
@@ -797,7 +785,7 @@ spatialRipleyCrossK <- function(object,
     points = dat,
     i = i,
     j = j,
-    correction = correction,
+    correction = "border",
     nsim = nsim,
     max_r = max_r,
     r = r
@@ -900,16 +888,14 @@ plotRipleyCrossK <- function(kcross,
                                            receptors,
                                            barcode_col,
                                            clone_col,
-                                           positive,
                                            layer,
                                            images,
                                            image.scale,
-                                           swap_coords,
-                                           zero_tol) {
+                                           swap_coords) {
   inputs <- .sirap_resolve_inputs(object, receptors, barcode_col)
   object <- inputs$object
   receptors <- inputs$receptors
-  barcode_col <- inputs$barcode_col %||% "barcode_8um"
+  barcode_col <- inputs$barcode_col
   if (is.null(clone_col) && !is.null(inputs$receptor_fields$clone)) {
     clone_col <- inputs$receptor_fields$clone
   }
@@ -921,17 +907,12 @@ plotRipleyCrossK <- function(kcross,
   dat <- .sirap_spatial_coordinate_table(object, images = images, image.scale = image.scale, swap_coords = swap_coords)
 
   if (variable_type == "feature") {
-    # Features are pulled from the requested expression layer and can be kept as
-    # quantitative values or thresholded to present/absent indicators.
+    # Features are pulled from the requested expression layer and analyzed as
+    # quantitative values.
     expr <- .sirap_fetch_data(object, vars = variable, layer = layer)
     dat <- merge(dat, expr, by.x = "cell", by.y = 0, all.x = TRUE)
     dat$value <- dat[[variable]]
-    if (isTRUE(positive)) {
-      dat$value <- as.integer(!is.na(dat$value) & dat$value > zero_tol)
-      dat$variable <- paste0(variable, "_positive")
-    } else {
-      dat$variable <- variable
-    }
+    dat$variable <- variable
   } else if (variable_type == "metadata") {
     # Numeric/logical metadata are analyzed directly. Categorical metadata need
     # an explicit level so the statistic is a binary indicator.
@@ -954,6 +935,9 @@ plotRipleyCrossK <- function(kcross,
     if (is.null(receptors)) {
       rlang::abort("`receptors` is required when `variable_type = 'receptor'`.")
     }
+    if (is.null(barcode_col)) {
+      rlang::abort("`barcode_col` is required when it cannot be resolved from a SIRAP object.")
+    }
     receptors <- .as_data_frame(receptors)
     .check_required_cols(receptors, barcode_col, "receptors")
     receptor_barcodes <- unique(as.character(receptors[[barcode_col]]))
@@ -965,8 +949,11 @@ plotRipleyCrossK <- function(kcross,
     if (is.null(receptors)) {
       rlang::abort("`receptors` is required when `variable_type = 'clone'`.")
     }
+    if (is.null(barcode_col)) {
+      rlang::abort("`barcode_col` is required when it cannot be resolved from a SIRAP object.")
+    }
     if (is.null(clone_col)) {
-      rlang::abort("`clone_col` is required when `variable_type = 'clone'`.")
+      rlang::abort("`clone_col` is required when it cannot be resolved from a SIRAP object.")
     }
     receptors <- .as_data_frame(receptors)
     .check_required_cols(receptors, c(barcode_col, clone_col), "receptors")
@@ -1143,7 +1130,6 @@ plotRipleyCrossK <- function(kcross,
                                          n_clone_barcodes,
                                          radius,
                                          k,
-                                         style,
                                          alternative) {
   htest <- .sirap_joincount_clone_htest(test, clone_id)
   estimate <- htest$estimate %||% numeric()
@@ -1172,7 +1158,6 @@ plotRipleyCrossK <- function(kcross,
     method = htest$method %||% NA_character_,
     radius = radius %||% NA_real_,
     k = k,
-    style = style,
     alternative = alternative,
     stringsAsFactors = FALSE
   )
@@ -1203,12 +1188,12 @@ plotRipleyCrossK <- function(kcross,
 }
 
 # Convert a spatstat Kcross object to a consistent plotting data frame.
-.sirap_kcross_df <- function(x, correction, image) {
+.sirap_kcross_df <- function(x, image) {
   dat <- as.data.frame(x)
   theoretical_col <- intersect(c("theo", "theoretical"), colnames(dat))
   simulated_col <- intersect(c("mmean", "mean", "simulated", "simmean", theoretical_col), colnames(dat))
-  observed_col <- if (correction %in% colnames(dat)) {
-    correction
+  observed_col <- if ("border" %in% colnames(dat)) {
+    "border"
   } else if ("obs" %in% colnames(dat)) {
     "obs"
   } else {

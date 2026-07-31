@@ -18,7 +18,7 @@ readBarcodeMapping <- function(path) {
   .as_data_frame(data.table::fread(path))
 }
 
-#' Extract a spatial barcode from sequence IDs
+#' Extract spatial barcodes from sequence IDs
 #'
 #' @param airr_df AIRR-style data frame.
 #' @param sequence_id_col Column containing read or consensus identifiers.
@@ -29,7 +29,7 @@ readBarcodeMapping <- function(path) {
 #' @param prefix,suffix Optional text added before or after the extracted match.
 #' @return Input data with `barcode_col` added.
 #' @export
-extractSpatialBarcode <- function(airr_df,
+extractSpatialBarcodes <- function(airr_df,
                                     sequence_id_col = "sequence_id",
                                     barcode_col = "barcode",
                                     regex,
@@ -39,6 +39,7 @@ extractSpatialBarcode <- function(airr_df,
   out <- .as_data_frame(airr_df)
   ids <- as.character(out[[sequence_id_col]])
 
+  # str_match makes a matrix with the full match in the first column and capture groups in subsequent columns
   match_matrix <- stringr::str_match(ids, regex)
   if (ncol(match_matrix) > 1) {
     barcode <- match_matrix[, 2]

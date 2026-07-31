@@ -127,18 +127,19 @@ tcrCloneCounts %>% filter(clone_id %in% tcrCloneIds)
 
 ## Plot Clone Locations Over Tissue
 
-`plotReceptorExpression()` can plot any receptor table, including a subset of
-one clone.
+`plotReceptors()` can plot any receptor table, including a subset of one clone.
 
 ```{r clone-location-plots}
 bcrClonePlots <- lapply(
   bcrCloneIds,
   function(cloneId) {
-    plotReceptorExpression(
+    plotReceptors(
       object = thymus,
       receptors = filter(bcrClones, .data$clone_id == .env$cloneId),
+      group_col = "clone_id",
+      values = cloneId,
       barcode_col = "barcode_8um",
-      receptor_color = "#2c7fb8",
+      colors = "#2c7fb8",
       receptor_size = 1.7,
       title = paste("BCR clone", cloneId)
     )
@@ -148,11 +149,13 @@ bcrClonePlots <- lapply(
 tcrClonePlots <- lapply(
   tcrCloneIds,
   function(cloneId) {
-    plotReceptorExpression(
+    plotReceptors(
       object = thymus,
       receptors = filter(tcrClones, .data$clone_id == .env$cloneId),
+      group_col = "clone_id",
+      values = cloneId,
       barcode_col = "barcode_8um",
-      receptor_color = "#d95f02",
+      colors = "#d95f02",
       receptor_size = 1.7,
       title = paste("TCR clone", cloneId)
     )

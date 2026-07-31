@@ -22,7 +22,7 @@ plotSpatialCloneTreePairs(
   treescale = 0.01,
   spatial_tip_size = 1.6,
   spatial_tip_alpha = 1,
-  order_points = TRUE,
+  order_points = FALSE,
   show_spatial_legend = FALSE,
   nproc = 1L,
   ...

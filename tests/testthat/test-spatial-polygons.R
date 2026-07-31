@@ -305,7 +305,7 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
     }
   })
 
-  bcrs <- data.frame(
+  receptors <- data.frame(
     barcode = c("cell1", "cell1", "cell2", "cell3", "cell4", "cell5"),
     clone_id = c("A", "A", "B", "A", "C", "D"),
     locus = c("IGH", "IGK", "IGH", "IGH", "IGH", "IGH"),
@@ -322,7 +322,7 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   )
 
   out <- spatialCloneDominance(
-    bcrs = bcrs,
+    receptors = receptors,
     object = list(),
     polygon = polygon,
     barcode_col = "barcode"
@@ -349,9 +349,18 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   expect_equal(out$metadata$receptor_fields$locus, "locus")
   expect_null(out$metadata$receptor_fields$count)
   expect_equal(out$metadata$receptor_fields$v_call, "v_call")
+  expect_equal(names(formals(spatialCloneDominance))[1], "receptors")
+
+  legacy_out <- spatialCloneDominance(
+    bcrs = receptors,
+    object = list(),
+    polygon = polygon,
+    barcode_col = "barcode"
+  )
+  expect_equal(legacy_out$dominance, out$dominance)
 
   igh <- spatialCloneDominance(
-    bcrs = bcrs,
+    receptors = receptors,
     object = list(),
     polygon = polygon,
     barcode_col = "barcode",
@@ -363,7 +372,7 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   expect_equal(igh$dominance$proportion, c(2 / 3, 1 / 3))
 
   no_singletons <- spatialCloneDominance(
-    bcrs = bcrs,
+    receptors = receptors,
     object = list(),
     polygon = polygon,
     barcode_col = "barcode",
@@ -435,7 +444,7 @@ test_that("spatialCloneDominance summarizes multiple polygons independently", {
     }
   })
 
-  bcrs <- data.frame(
+  receptors <- data.frame(
     barcode = c("cell1", "cell2", "cell3", "cell4", "cell5"),
     clone_id = c("A", "B", "C", "D", "D"),
     stringsAsFactors = FALSE
@@ -456,7 +465,7 @@ test_that("spatialCloneDominance summarizes multiple polygons independently", {
   )
 
   out <- spatialCloneDominance(
-    bcrs = bcrs,
+    receptors = receptors,
     object = list(),
     polygon = polygon,
     barcode_col = "barcode"
@@ -469,7 +478,7 @@ test_that("spatialCloneDominance summarizes multiple polygons independently", {
   expect_equal(out$dominance$proportion[out$dominance$polygon == "right" & out$dominance$clone_id == "D"], 1)
 
   right <- spatialCloneDominance(
-    bcrs = bcrs,
+    receptors = receptors,
     object = list(),
     polygon = polygon,
     barcode_col = "barcode",

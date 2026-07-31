@@ -7,8 +7,8 @@
 spatialCloneJoinCount(
   object,
   receptors = NULL,
-  clone_col = "clone_id",
-  barcode_col = "barcode_8um",
+  clone_col = NULL,
+  barcode_col = NULL,
   clone_ids = NULL,
   polygon = NULL,
   polygon_id = NULL,
@@ -23,7 +23,6 @@ spatialCloneJoinCount(
   min_barcodes = 2,
   radius = NULL,
   k = 6,
-  style = "B",
   alternative = "greater",
   other_label = "Other",
   return_data = FALSE
@@ -35,9 +34,14 @@ spatialCloneJoinCount(
 \item{receptors}{AIRR-style receptor data frame containing spatial barcodes
 and clone calls. May be omitted when \code{object} is a SIRAP object.}
 
-\item{clone_col}{Column in \code{receptors} containing clone IDs.}
+\item{clone_col}{Column in \code{receptors} containing clone IDs. Defaults to
+\code{NULL}; when \code{object} is a SIRAP object, the stored receptor clone field
+is used when available.}
 
-\item{barcode_col}{Column in \code{receptors} matching Seurat spot/cell barcodes.}
+\item{barcode_col}{Column in \code{receptors} matching Seurat spot/cell barcodes.
+Defaults to \code{NULL}; when \code{object} is a SIRAP object, the stored receptor
+barcode field is used. Pass this explicitly when using separate Seurat and
+receptor objects.}
 
 \item{clone_ids}{Optional clone ID values to test. Defaults to all clones
 observed in at least \code{min_barcodes} spatial barcodes.}
@@ -71,9 +75,6 @@ that clone to be tested.}
 \item{radius}{Optional distance radius defining neighborhoods.}
 
 \item{k}{Number of nearest neighbors when \code{radius} is \code{NULL}.}
-
-\item{style}{Spatial weights style passed to \code{spdep::nb2listw()}. Join-count
-tests are typically run with binary weights (\code{"B"}).}
 
 \item{alternative}{Alternative hypothesis passed to
 \code{spdep::joincount.test()}.}

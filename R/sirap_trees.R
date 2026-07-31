@@ -61,7 +61,7 @@ clusterTreeTips <- function(tree,
                             cluster_col = "tree_cluster",
                             ignore_tips = "Germline",
                             prefix = "tree_cluster_",
-                            method = c("cut_largest_branches", "split_largest_subtrees"),
+                            method = c("split_largest_subtrees", "cut_largest_branches"),
                             cut_terminal_edges = TRUE) {
   method <- match.arg(method)
   if (!is.list(tree) || !all(c("edge", "edge.length", "tip.label") %in% names(tree))) {
@@ -168,15 +168,9 @@ clusterTreeTips <- function(tree,
 #' @param tree A phylogenetic tree object with `edge`, `edge.length`, and
 #'   `tip.label` fields.
 #' @param k_range Candidate k values.
-#' @param criterion Selection rule. `"relative_improvement"` chooses the
-#'   previous k once the score improvement falls below `improvement_threshold`.
-#'   `"elbow"` chooses the point farthest from the line connecting the first and
-#'   last candidate scores.
-#' @param score Score to minimize. `"mean_pairwise"` uses the mean within-cluster
-#'   patristic distance across all same-cluster tip pairs. `"sum_pairwise"` uses
-#'   the total within-cluster patristic distance.
-#' @param improvement_threshold Relative improvement threshold used when
-#'   `criterion = "relative_improvement"`.
+#' @param improvement_threshold Relative improvement threshold. The previous
+#'   `k` is chosen once the improvement in mean within-cluster patristic
+#'   distance falls below this value.
 #' @param ignore_tips Optional tip labels to drop before scoring, for example
 #'   `"Germline"`.
 #' @param method,cut_terminal_edges Arguments passed to `clusterTreeTips()`.
@@ -184,14 +178,10 @@ clusterTreeTips <- function(tree,
 #' @export
 chooseTreeTipK <- function(tree,
                            k_range = 1:10,
-                           criterion = c("relative_improvement", "elbow"),
-                           score = c("mean_pairwise", "sum_pairwise"),
                            improvement_threshold = 0.10,
                            ignore_tips = "Germline",
                            method = c("cut_largest_branches", "split_largest_subtrees"),
                            cut_terminal_edges = TRUE) {
-  criterion <- match.arg(criterion)
-  score <- match.arg(score)
   method <- match.arg(method)
   retained_tips <- setdiff(tree$tip.label, ignore_tips)
   max_k <- length(retained_tips)
@@ -215,8 +205,7 @@ chooseTreeTipK <- function(tree,
       tree,
       clusters,
       id_col = "sequence_id",
-      cluster_col = "tree_cluster",
-      score = score
+      cluster_col = "tree_cluster"
     )
     data.frame(
       k = k,
@@ -236,15 +225,11 @@ chooseTreeTipK <- function(tree,
     )
   }
 
-  if (criterion == "relative_improvement") {
-    low_gain <- which(!is.na(scores$relative_improvement) & scores$relative_improvement < improvement_threshold)
-    chosen_k <- if (length(low_gain) > 0L) {
-      scores$k[max(1L, low_gain[[1]] - 1L)]
-    } else {
-      scores$k[nrow(scores)]
-    }
+  low_gain <- which(!is.na(scores$relative_improvement) & scores$relative_improvement < improvement_threshold)
+  chosen_k <- if (length(low_gain) > 0L) {
+    scores$k[max(1L, low_gain[[1]] - 1L)]
   } else {
-    chosen_k <- .sirap_choose_elbow_k(scores)
+    scores$k[nrow(scores)]
   }
 
   list(k = as.integer(chosen_k), scores = scores)
@@ -267,35 +252,29 @@ chooseTreeTipK <- function(tree,
 #'   whether a tree has the expected retained tips. Clustering is run before
 #'   any keep-filtering; tips where `keep_col != keep_value` then have their
 #'   computed cluster labels overwritten with their `keep_col` value.
-#' @param keep_value Expected value in `keep_col`.
+#' @param keep_value Value in `keep_col` that indicates a tip should be kept.
 #' @param method Tree clustering method passed to `clusterTreeTips()`.
 #' @param cut_terminal_edges Cut terminal branches when choosing branches to
-#'   remove. Defaults to `TRUE`; set to `FALSE` to prioritize internal clade
-#'   splits.
-#' @param k_range,criterion,score,improvement_threshold Arguments passed to
-#'   `chooseTreeTipK()` when `k = "auto"`.
+#'   remove. Defaults to `FALSE`, which prioritizes internal clade splits; set
+#'   to `TRUE` to allow terminal tips to be peeled off by branch cuts.
+#' @param k_range,improvement_threshold Arguments passed to `chooseTreeTipK()`
+#'   when `k = "auto"`.
 #' @return `trees`, with `cluster_col` added to each clone data object.
 #' @export
 clusterTreesTips <- function(trees,
-                             k,
+                             k = "auto",
                              id_col = "sequence_id",
                              cluster_col = "tree_cluster",
-                             ignore_tips = "Germline",
                              prefix = "tree_cluster_",
+                             ignore_tips = "Germline",
                              keep_col = NULL,
                              keep_value = NULL,
-                             method = c("cut_largest_branches", "split_largest_subtrees"),
-                             cut_terminal_edges = TRUE,
+                             method = c("split_largest_subtrees", "cut_largest_branches"),
+                             cut_terminal_edges = FALSE,
                              k_range = 1:8,
-                             criterion = c("relative_improvement", "elbow"),
-                             score = c("mean_pairwise", "sum_pairwise"),
                              improvement_threshold = 0.10) {
   method <- match.arg(method)
   auto_k <- identical(k, "auto")
-  if (auto_k) {
-    criterion <- match.arg(criterion)
-    score <- match.arg(score)
-  }
   if (is.list(trees) && !is.data.frame(trees) && "trees" %in% names(trees)) {
     trees$trees <- clusterTreesTips(
       trees$trees,
@@ -309,8 +288,6 @@ clusterTreesTips <- function(trees,
       method = method,
       cut_terminal_edges = cut_terminal_edges,
       k_range = k_range,
-      criterion = criterion,
-      score = score,
       improvement_threshold = improvement_threshold
     )
     return(trees)
@@ -344,8 +321,6 @@ clusterTreesTips <- function(trees,
       k_choice <- chooseTreeTipK(
         tree_for_clustering,
         k_range = k_range,
-        criterion = criterion,
-        score = score,
         improvement_threshold = improvement_threshold,
         ignore_tips = ignore_tips,
         method = method,
@@ -728,8 +703,7 @@ assignTipColors <- function(clones,
 .sirap_tree_cluster_score <- function(tree,
                                       clusters,
                                       id_col,
-                                      cluster_col,
-                                      score) {
+                                      cluster_col) {
   dist_mat <- .sirap_tip_patristic_matrix(tree, clusters[[id_col]])
   total <- 0
   n_pairs <- 0L
@@ -743,9 +717,7 @@ assignTipColors <- function(clones,
     total <- total + sum(values, na.rm = TRUE)
     n_pairs <- n_pairs + length(values)
   }
-  if (score == "sum_pairwise") {
-    total
-  } else if (n_pairs == 0L) {
+  if (n_pairs == 0L) {
     0
   } else {
     total / n_pairs
@@ -816,25 +788,6 @@ assignTipColors <- function(clones,
     current <- parent[[as.character(current)]]
   }
   ancestors
-}
-
-# Pick the elbow in the k-score curve by distance from the endpoint line.
-.sirap_choose_elbow_k <- function(scores) {
-  if (nrow(scores) < 3L) {
-    return(scores$k[nrow(scores)])
-  }
-  x <- scores$k
-  y <- scores$score
-  x <- (x - min(x)) / (max(x) - min(x))
-  y <- if (max(y) == min(y)) rep(0, length(y)) else (y - min(y)) / (max(y) - min(y))
-  start <- c(x[[1]], y[[1]])
-  end <- c(x[[length(x)]], y[[length(y)]])
-  line <- end - start
-  distances <- vapply(seq_along(x), function(i) {
-    point <- c(x[[i]], y[[i]])
-    abs(line[[1]] * (start[[2]] - point[[2]]) - (start[[1]] - point[[1]]) * line[[2]]) / sqrt(sum(line^2))
-  }, numeric(1))
-  scores$k[which.max(distances)]
 }
 
 # Relabel arbitrary component IDs as compact, stable cluster labels.
