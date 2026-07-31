@@ -19,12 +19,12 @@ spatialExpressionBlendPlot(
   top_right = "#FFFF00",
   zero_tol = 0,
   images = NULL,
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   point_size = 0.6,
   point_alpha = 1,
   order_points = TRUE,
-  image.alpha = 1,
+  image_alpha = 1,
   zoom = FALSE
 )
 }
@@ -51,7 +51,7 @@ two-feature blend grid.}
 
 \item{images}{Optional Seurat image names.}
 
-\item{image.scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. Defaults to \code{FALSE},
@@ -64,7 +64,7 @@ which uses Seurat image coordinates natively.}
 \item{order_points}{Plot lower blended expression intensity first so higher
 intensity spots appear on top.}
 
-\item{image.alpha}{Tissue image opacity.}
+\item{image_alpha}{Tissue image opacity.}
 
 \item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
 full tissue area covered by the spatial coordinates.}

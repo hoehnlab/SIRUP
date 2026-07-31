@@ -88,9 +88,7 @@ raw_bcrs <- extractSpatialBarcodes(
 
 raw_bcrs$sample_id <- sample_id
 
-raw_bcrs %>%
-  count(locus, productive, sort = TRUE) %>%
-  head(10)
+raw_bcrs %>% select(sequence_id, barcode) %>% head(3)
 ```
 
 Now we'll filter the spAIRR data with `filterSpatialAirr()`, which is another convenience
@@ -116,18 +114,13 @@ raw_igh <- filterSpatialAirr(
   productive_only = TRUE,
   min_consensus_count = 2,
   barcode_col = "barcode"
-) %>%
-  filter(
-    !is.na(barcode),
-    !is.na(sequence_alignment),
-    sequence_alignment != ""
-  )
+) 
 
 plotLengthQc(raw_igh, bin_width = 5, title = "KH02 Length QC")
 spatialReceptorSummary(raw_igh, barcode_col = "barcode")
 ```
 
-# Presto Pipeline - processSpatialSample()
+# Post RAD major processing step - processSpatialSample()
 
 Before running `processSpatialSample()` and doing the major processing, we'll convert the
 raw_igh dataframe into a fasta file using dowser's `dfToFasta()` function. We'll also pretend
@@ -138,7 +131,8 @@ because it takes a while.
 `processSpatialSample()` takes the spAIRR processing pipeline we made and wraps it up in a
 single R function.  It takes in a fasta file (and a lot of arguments for the different steps)
 and returns a list of paths to the processed output.  This function is a wrapper around
-* `ClusterSets.py set` groups reads within each spatial barcode `cluster_field`, the requested identity threshold `identity`, and vsearch. FASTA header delimiters are specified by `delimiters`.
+
+* `ClusterSets.py set` groups reads within each spatial barcode `cluster_field`, the requested identity threshold `identity`, and vsearch. FASTA header delimiters are specified by `delimiters` (i.e., | then : then ,).
 * `ParseHeaders.py merge` is used to write a new field into the headers that combines the spatial barcode and the cluster id (provided with parse_fields). These are combined using `parse_act` (default cat) and written to a new header field `parse_key`.  Uses `delimiters` to specify the FASTA header delimiters.
 * `AlignSets.py muscle` aligns reads within each `parse_key` group created by `ParseHeaders`. Takes `muscle_exec` as the path to the muscle aligner (https://github.com/rcedgar/muscle). Optionally logs results to `align_log`. Uses `delimiters` to specify the FASTA header delimiters.
 * `BuildConsensus.py` creates consensus sequences within each `parse_key` group. `consensus_min_count` specifies the minimum number of sequences needed to define a valid consensus sequence, and `consensus_freq` specifies the fraction of character occurrences under which an ambiguous character is assigned. Optionally logs results to `consensus_log`. If there are additional fields in the FASTA header that should be carried forward and copied to the consensus file, `consensus_copy_fields` specifies the field names and `consensus_copy_action` specifies how to copy them (majority, first, last, or all).
@@ -198,7 +192,7 @@ processed_paths <- processSpatialSample(
 ```
 
 Now that we have the processed BCRs, we'll do a little more filtering with
-`filterSpatialAirr()`, which is a convenience function that filters for v gene length (`min_v_length`), j gene length (`min_j_length`), junction length (`min_junction_length`), locus (`locus`), minimum consensus count (`min_consensus_count`), maximum gap to start the sequence - spAIRR data can often be very ................AGC at the beginning of sequences (`max_opening_gap`). We also specify the `sequence_alignment_col`, `sequence_id_col`, and `barcode_col`. To make things easier later and ensure we have unique identifiers for mixed datasets, we can also request a full_id be made by combining the sequence id and the spatial barcode with `add_full_id`, and we can name this column with `full_id_barcode_key`. How much we really needed this function I'm not sure, but I did this sort of filtering enough that I was okay with having an easy way to do it in the package. Prior to using `filterSpatialAirr()`, we extract the spatial barcode from the `sequence_id` column with `extractSpatialBarcodes()`, which is just a quick function that pulls a regex from a column and puts it in a new column.  We also add a `consensus_count` column and receptor type column.
+`filterSpatialAirr()`, which, again,  is a convenience function that filters for v gene length (`min_v_length`), j gene length (`min_j_length`), junction length (`min_junction_length`), locus (`locus`), minimum consensus count (`min_consensus_count`), maximum gap to start the sequence - spAIRR data can often be very ................AGC at the beginning of sequences (`max_opening_gap`). We also specify the `sequence_alignment_col`, `sequence_id_col`, and `barcode_col`. To make things easier later and ensure we have unique identifiers for mixed datasets, we can also request a full_id be made by combining the sequence id and the spatial barcode with `add_full_id`, and we can name this column with `full_id_barcode_key`. How much we really needed this function I'm not sure, but I did this sort of filtering enough that I was okay with having an easy way to do it in the package. Prior to using `filterSpatialAirr()`, we extract the spatial barcode from the `sequence_id` column with `extractSpatialBarcodes()`, which is just a quick function that pulls a regex from a column and puts it in a new column.  We also add a `consensus_count` column and receptor type column.
 
 ```{r read-processed-bcrs}
 processed_bcr_path <- file.path(
@@ -245,7 +239,7 @@ spatialReceptorSummary(processed_bcrs, barcode_col = "barcode_10x")
 summary(processed_bcrs$consensus_count)
 ```
 
-# Load the spatial object
+# Load the spatial Seurat object
 
 ```{r load-seurat}
 seurat_path <- file.path(
@@ -261,17 +255,17 @@ mg_thymus_slice2
 
 A SIRAP object is our native S3 object for spAIRR data.  At base level, it consists of a 
 spatial seurat object (`spatial`) and an airr-style receptor table (`receptors`). When we
-create a SIRAP object, we pass a barcode column (`barcode_col`) that corresponds to the 
-barcodes in the Seurat object, i.e., the column names in the GEX matrix. Optional arguments
-for a clone ID column (`clone_col`), a locus column (`locus_col`), and a consensus count
-column (`count_col`) exist too.  The SIRAP object also has a list of metadata (`metadata`)
-and a list of analyses (`analyses`).  
+create a SIRAP object, we pass a barcode column (`barcode_col`) from the spAIRR data that 
+corresponds to the barcodes in the Seurat object, i.e., the column names in the GEX matrix. 
+Optional argumentsfor a clone ID column (`clone_col`), a locus column (`locus_col`), and a 
+consensus countcolumn (`count_col`) exist too.  The SIRAP object also has a list of metadata 
+(`metadata`) and a list of analyses (`analyses`).  
 
 The metadata list stores common receptor column names and other information about the sample.
-It includes the `dataset` ("mg_thymus_slice2"), the `sample_id` ("KH02"), and important columns from the receptors dataframe `receptor_fields`. `receptor_fields` is itself a list that includes the `barcode` column name ("barcode_10x"), the `image` column name (currently NULL), the `image` and `sample` column names, the `clone` column name ("clone_id"), the `locus` column name ("locus"), and the `count` column name ("consensus_count"). The idea here is that sometimes the receptor data has different column names (like clone_family_id in the original Engblom tonsil data), and we want to make the SIRAP object easily respect those.
+It includes the `dataset` ("mg_thymus_slice2"), the `sample_id` ("KH02"), and important columns from the receptors dataframe `receptor_fields`. `receptor_fields` is itself a list that includes the `barcode` column name ("barcode_10x"), the `image` column name (currently NULL), the `sample` column name, the `clone` column name ("clone_id"), the `locus` column name ("locus"), and the `count` column name ("consensus_count"). The idea here is that sometimes the receptor data has different column names (like clone_family_id in the original Engblom tonsil data), and we want to make the SIRAP object easily respect those.
 
-When working with a SIRAP object, we can use `spatialObject()` to get the Seurat object,
-`receptorTable()` to get the receptor table, and `listAnalyses()` to see what analyses have
+When working with a SIRAP object, we can use `getSpatial()` to get the Seurat object,
+`getReceptors()` to get the receptor table, and `listAnalyses()` to see what analyses have
 been run and stored in the object.  We can also use `summary()` to get a quick overview. When
 we want to run a function on the SIRAP spatial data, we can use `withSpatial()` to pass the
 spatial data to a function and return the result.  We can do the same but update the SIRAP
@@ -294,10 +288,9 @@ mg_thymus_slice2_sirap <- createSIRAP(
 
 mg_thymus_slice2_sirap
 summary(mg_thymus_slice2_sirap)
-spatialReceptorSummary(mg_thymus_slice2_sirap)
 
-spatialObject(mg_thymus_slice2_sirap)
-receptorTable(mg_thymus_slice2_sirap) %>% head()
+getSpatial(mg_thymus_slice2_sirap)
+getReceptors(mg_thymus_slice2_sirap) %>% head()
 listAnalyses(mg_thymus_slice2_sirap)
 ```
 
@@ -333,22 +326,23 @@ choose the spot closest to the component centroid. If there is still a tie, pick
 random.
 
 ```{r neighboring-sequence-diagnostic}
-image_name <- Images(spatialObject(mg_thymus_slice2_sirap))[1]
+image_name <- Images(getSpatial(mg_thymus_slice2_sirap))[1]
+image_name
 
 neighbor_collapsed_sirap <- collapseIdenticalNeighbors(
   mg_thymus_slice2_sirap,
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   num_neighbors_non_boundary = 6
 )
 
-neighbor_collapsed_bcrs <- receptorTable(neighbor_collapsed_sirap)
+neighbor_collapsed_bcrs <- getReceptors(neighbor_collapsed_sirap)
 
 tibble(
   version = c("original Visium table", "neighbor-collapsed diagnostic"),
-  n_sequences = c(nrow(receptorTable(mg_thymus_slice2_sirap)), nrow(neighbor_collapsed_bcrs)),
+  n_sequences = c(nrow(getReceptors(mg_thymus_slice2_sirap)), nrow(neighbor_collapsed_bcrs)),
   n_spots = c(
-    n_distinct(receptorTable(mg_thymus_slice2_sirap)$barcode_10x),
+    n_distinct(getReceptors(mg_thymus_slice2_sirap)$barcode_10x),
     n_distinct(neighbor_collapsed_bcrs$barcode_10x)
   )
 )
@@ -356,24 +350,24 @@ tibble(
 # Everything below continues with mg_thymus_slice2_sirap, not neighbor_collapsed_sirap.
 plotReceptors(
   mg_thymus_slice2_sirap,
-  group_col = "receptor_type",
-  values = "BCR",
+  group_col = "sequence_alignment",
+  values = "GAGGTGCCGCTGGTGCAGTCTGGAGCA...GAGGTGAAAAAGCCCGGGGAGTCTCTGAAGATCTCCTGTAAGGGTTCTGGATTCAGCTTT............ACCAGTTACTGGATCGGCTGGGTGCGCCAGATGCCCGGGAAAGGCCTGGAGTGGATGGGGATCATCTATCCTGGT......GACTCTGATACCAGATACAGCCCGTCCTTCCAA...GGCCAGGTCACCATCTCAGCCGACAAGTCCATCAACACCGCCTACCTGCAGTGGAGCAGCCTGAAGGCCTCGGACACCGCCATGTATTACTGTGCAAGAGTTACAAGTTCGGGTCTGGACACGTTCGACCTCGATTTCGACCCCTGGGGCCAGGGAACCCTGGTCACCGTCTCCTCAG",
   colors = "#0072B2",
   receptor_size = 1.5,
   receptor_alpha = 0.5,
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   title = "All spots",
   show_receptor_legend = FALSE
 )
 plotReceptors(
   neighbor_collapsed_sirap,
-  group_col = "receptor_type",
-  values = "BCR",
+  group_col = "sequence_alignment",
+  values = "GAGGTGCCGCTGGTGCAGTCTGGAGCA...GAGGTGAAAAAGCCCGGGGAGTCTCTGAAGATCTCCTGTAAGGGTTCTGGATTCAGCTTT............ACCAGTTACTGGATCGGCTGGGTGCGCCAGATGCCCGGGAAAGGCCTGGAGTGGATGGGGATCATCTATCCTGGT......GACTCTGATACCAGATACAGCCCGTCCTTCCAA...GGCCAGGTCACCATCTCAGCCGACAAGTCCATCAACACCGCCTACCTGCAGTGGAGCAGCCTGAAGGCCTCGGACACCGCCATGTATTACTGTGCAAGAGTTACAAGTTCGGGTCTGGACACGTTCGACCTCGATTTCGACCCCTGGGGCCAGGGAACCCTGGTCACCGTCTCCTCAG",
   colors = "#0072B2",
   receptor_size = 1.5,
   receptor_alpha = 0.5,
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   title = "Identical neighbor collapsed spots",
   show_receptor_legend = FALSE
@@ -422,24 +416,31 @@ BCRs/TCRs.
 (`object`), the features to plot (`features`) (if length(features) > 1, then the function will
 return a list or patchwork of plots instead of just one), an assay (`assay`) and layer
 (`layer`) and images (`images` - usually leave as null because we're just doing one image at a
-time), image scale (`image.scale` (hires or lowres)), we can swap coordinates (`swap_coords` -
+time), image scale (`image_scale` (hires or lowres)), we can swap coordinates (`swap_coords` -
 set TRUE for Visium and FALSE for HD, has to do with the structure of Visium spatial data),
 feature colors (`feature_colors` - first entry is low color second is high), the zero 
 tolerance - the value at which expression below is called 0 and isn't shown in the plot 
 (`zero_tol`), `point_size` and `point_alpha`, whether or not we want points with highest 
-expression on top (`order_points` - default TRUE), `image.alpha`, `zoom` (default FALSE) which
+expression on top (`order_points` - default TRUE), `image_alpha`, `zoom` (default FALSE) which
 refers to whether or not we want to zoom in the spatial plot to focus on the nonzero regions 
 only, `combine` (default TRUE) which will make it so that multiple plots are combined if 
-the number of features is >1, and `title` (default NULL) which sets a title for the one/many plots. 
+the number of features images is > 1, and `title` (default NULL) which sets a title for the 
+one/many plots. 
 
-We can also plot multiple genes expression at the same time with `spatialExpressionBlendPlot()` and `spatialExpressionMultiPlot()`.
+We can also plot multiple genes' expression at the same time with 
+`spatialExpressionBlendPlot()` and `spatialExpressionMultiPlot()` (see below).
 
 `plotReceptors()` is basically the same, but you can pass an airr tsv dataframe to receptors if
 you don't pass a sirap object. It also requires a `group_col` argument, which is a column to
-group on (like clone_id, receptor_type, etc.), and a `values` argument, which is the value in
-that column to plot (defaults to all values). All other arguments are the same, but with the
-addition of `receptor_legend_title`(default NULL) and `show_receptor_legend` (default TRUE),
-which both do exactly what you'd think.
+group on and color by(like clone_id, receptor_type, etc.), and a `values` argument, which is 
+the value in that column to plot (defaults to all values). All other arguments are the same, 
+but with the addition of `receptor_legend_title`(default NULL) and `show_receptor_legend` 
+(default TRUE), which both do exactly what you'd think.
+
+Lastly, `plotReceptorsExpression()` is a combination of `plotReceptors()` and 
+`spatialExpressionPlot()`, so it takes basically all of the arguments from both functions. The 
+output is a spatial expression plot with hollow rings around spots with positive receptor 
+expression.
 
 ```{r basic-spatial-plots}
 gex_plot <- spatialExpressionPlot(
@@ -447,7 +448,7 @@ gex_plot <- spatialExpressionPlot(
   features = "AICDA",
   assay = "alra",
   layer = "data",
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   title = "AICDA expression"
 )
@@ -459,9 +460,13 @@ blend_plot <- spatialExpressionBlendPlot(
   features = features,
   assay = "alra",
   layer = "data",
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
-  point_size = 0.6,
+  point_size = 1,
+  bottom_left = "#000000", # colors
+  bottom_right = "#FF0000",
+  top_left = "#00FF00",
+  top_right = "#FFFF00",
   only_blended = TRUE #if false shows individual plots of gex too
 )
 blend_plot
@@ -471,7 +476,7 @@ multi_plot <- spatialExpressionMultiPlot(
   features = features,
   assay = "alra",
   layer = "data",
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   point_size = 0.6
 )
@@ -484,7 +489,7 @@ all_bcr_plot <- plotReceptors(
   colors = "#0072B2",
   receptor_size = 1.5,
   receptor_alpha = 0.5,
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   title = "All BCR-positive spots"
 )
@@ -498,7 +503,7 @@ gex_bcr_plot <- plotReceptorsExpression(
   assay = "alra",
   layer = "data",
   colors = "#0072B2",
-  image.scale = image_scale,
+  image_scale = image_scale,
   receptor_alpha = 0.8,
   swap_coords = swap_coords,
   title = "AICDA expression and BCR-positive spots"
@@ -512,7 +517,7 @@ clone_plot <- plotReceptors(
   values = demo_clone_id,
   colors = "#D55E00",
   receptor_size = 1.8,
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   title = paste("BCR clone", demo_clone_id)
 )
@@ -542,7 +547,7 @@ cell2location_proportions <- read.csv(
 rownames(cell2location_proportions) <- cell2location_proportions$barcode
 cell2location_proportions$barcode <- NULL
 cell2location_proportions <- cell2location_proportions[
-  colnames(spatialObject(mg_thymus_slice2_sirap)),
+  colnames(getSpatial(mg_thymus_slice2_sirap)),
   ,
   drop = FALSE
 ]
@@ -554,7 +559,7 @@ mg_thymus_slice2_sirap <- updateSpatial(
   metadata = cell2location_proportions
 )
 
-spatialObject(mg_thymus_slice2_sirap)@meta.data %>%
+getSpatial(mg_thymus_slice2_sirap)@meta.data %>%
   select(`GC B`, Tfh, `Conventional CD4`, `Naive/activated B`) %>%
   summary()
 ```
@@ -581,14 +586,14 @@ Our `spatialMoran()` function computes Moran's I for a given feature or metadata
 sirap object. Arguments are `object` for the SIRAP object (or a spatial Seurat object), 
 `variable` for the feature/clone/metadata/etc. to compute Moran's I for, 
 `variable_type`(`feature`, `metadata`, `receptor`, or `clone`) for the type of variable (we can
-computer Moran's I for binary data, i.e., clone presence, but it's suggested to examine a join 
+compute Moran's I for binary data, i.e., clone presence, but it's suggested to examine a join 
 count statistic instead), `value` is an optional argument used to specify a positive value (1) 
 for converting a character variable (i.e., if we have variable = "sirap_receptor_type", 
 variable_type = "metadata", value = "BCR" to set 1s in the spots where the value of 
 sirap_receptor type = "BCR" and 0s in the spots where that isn't the case), `barcode_col` and 
 `clone_col` can be specified if needed, and if they aren't then they get pulled from the sirap 
 object (if possible), `layer` is the assay layer to use for features and `images` is the same 
-if we have multiple images in the spatial object, `image.scale` and `swap_coords` are the same 
+if we have multiple images in the spatial object, `image_scale` and `swap_coords` are the same 
 as earlier, `radius` is a distance by which to define neighbors for the weight in the Moran's I
 calculation, if `radius` is not used, `k` is the number of nearest neighbors to use in a knn 
 way, and `alternative` is the alternative hypothesis for the Moran's I test. The function 
@@ -605,7 +610,7 @@ aicda_moran <- spatialMoran(
   variable = "AICDA",
   variable_type = "feature",
   layer = "data",
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   k = 6
 )
@@ -624,7 +629,7 @@ aicda_local_moran <- spatialLocalMoran(
   variable = "AICDA",
   variable_type = "feature",
   layer = "data",
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   k = 6
 )
@@ -638,7 +643,7 @@ mg_thymus_slice2_sirap <- setAnalysis(
 aicda_local_plot <- plotSpatialLocalMoran(
   mg_thymus_slice2_sirap,
   aicda_local_moran,
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   title = "AICDA local Moran's I"
 )
@@ -681,7 +686,7 @@ mg_thymus_slice2_sirap <- updateSpatial(
 )
 
 table(
-  spatialObject(mg_thymus_slice2_sirap)$ripley_gc_b_tfh_mark
+  getSpatial(mg_thymus_slice2_sirap)$ripley_gc_b_tfh_mark
 )
 ```
 
@@ -734,7 +739,7 @@ clone_join_count <- spatialCloneJoinCount(
   k = 6,
   alternative = "greater",
   return_data = TRUE,
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords
 )
 
@@ -757,7 +762,7 @@ plotSpatialCloneJoinCount(
   join_count = clone_join_count,
   object = mg_thymus_slice2_sirap,
   clone_id = join_count_clone_id,
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   show_neighbors = TRUE
 )
@@ -765,11 +770,11 @@ plotSpatialCloneJoinCount(
 
 # Select or load GC polygons
 
-These polygons already exist because I can't really knit the vignette with calling the Rshiny app, but I can still show how it works. The `selectSpatialPolygons()` function takes a SIRAP object `object`, an `assay` and `layer` to use for plotting, a `feature` to show on the plot (i.e., AICDA), the `image.scale` and whether or not to swap coordinates `swap_coords`, a save path to save the polygon vertices, and arguments for the Rshiny app (`host`, `port`, `plot_image`, `launch.browser`). The function returns a dataframe with the polygon vertices. If the save path already exists, it will load the polygons from that file instead of launching the Rshiny app.
+These polygons already exist because I can't really knit the vignette with calling the Rshiny app, but I can still show how it works. The `selectSpatialPolygons()` function takes a SIRAP object `object`, an `assay` and `layer` to use for plotting, a `feature` to show on the plot (i.e., AICDA), the `image_scale` and whether or not to swap coordinates `swap_coords`, a save path to save the polygon vertices, and arguments for the Rshiny app (`host`, `port`, `plot_image`, `launch_browser`). The function returns a dataframe with the polygon vertices. If the save path already exists, it will load the polygons from that file instead of launching the Rshiny app.
 
 `selectSpatialPolygons()` is an interactive Shiny helper for drawing region boundaries on a 
 spatial Seurat/SIRAP object. At a high level, it pulls the tissue coordinates from the spatial 
-object, optionally swaps/scales them using the same `image.scale` and `swap_coords` conventions
+object, optionally swaps/scales them using the same `image_scale` and `swap_coords` conventions
 as the other SIRAP spatial functions, and opens a clickable plot of the spots. You can color 
 the spots by a `feature`, optionally show the histology image underneath, adjust point 
 size/opacity, and then click around the boundary of a region. Each click is snapped to the 
@@ -796,20 +801,20 @@ if (file.exists(polygon_path)) {
     assay = "alra",
     layer = "data",
     feature = "AICDA",
-    image.scale = image_scale,
+    image_scale = image_scale,
     swap_coords = swap_coords,
     save_path = polygon_path,
     host = "0.0.0.0",
     port = 8788L,
     plot_image = TRUE,
-    launch.browser = TRUE
+    launch_browser = TRUE
   )
 }
 
 plotSpatialPolygons(
   object = mg_thymus_slice2_sirap,
   polygon = mg_thymus_slice2_polygons,
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   polygon_alpha = 0.2
 )
@@ -834,7 +839,7 @@ those IDs to `polygon_id`. `barcode_col`, `clone_col`, `locus_col`, `count_col`,
 `v_call_col` are all arguments to point to those columns in the spAIRR data. If `count_col` is 
 NULL (which it is by default), each receptor row counts once. `locus` restricts the analysis to
 specific receptor loci, and `exclude_singletons` removes singleton clones. `images`, 
-`image.scale`, and `swap_coords` control which spatial coordinates are used, just as in every 
+`image_scale`, and `swap_coords` control which spatial coordinates are used, just as in every 
 function. `include_boundary` (TRUE/FALSE - default TRUE) determines whether or not we count 
 sequences on a polygon bounadry as inside or outside and `require_closed` (TRUE/FALSE - default
 TRUE) determines whether or not we require the polygon to be closed (i.e., first and last 
@@ -850,7 +855,7 @@ gc_clonal_dominance <- spatialCloneDominance(
   object = mg_thymus_slice2_sirap,
   polygon = mg_thymus_slice2_polygons,
   locus = "IGH",
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   exclude_singletons = TRUE
 )
@@ -888,7 +893,7 @@ str(gc_clonal_dominance)
 We can then plot the dominance results, and every function requires the dominance result 
 (`dominance`) and the SIRAP object (`object`).  `plotSpatialRegionReceptors()` just plots a 
 scatter plot with points colored to represent the top n (`top_n`) most present values in the 
-`color_by` column. We also pass `image.scale`, `swap_coords`, and `images` as in all plots. 
+`color_by` column. We also pass `image_scale`, `swap_coords`, and `images` as in all plots. 
 Other arguments include `polygon_id` to restrict the plot to a particular polygon, 
 `point_size`, `point_alpha`, `polygon_alpha`, `polygon_color`, `polygon_fill`, and 
 `image_alpha`, all of which I think are self-explanatory. Lastly, we have `other_label` to 
@@ -918,7 +923,7 @@ gc_clone_plot <- plotSpatialRegionReceptors(
   object = mg_thymus_slice2_sirap,
   color_by = "clone_id",
   top_n = 20,
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   point_size = 1.2,
   polygon_alpha = 0.08
@@ -929,7 +934,7 @@ gc_v_gene_plot <- plotSpatialRegionReceptors(
   object = mg_thymus_slice2_sirap,
   color_by = "v_gene_family",
   top_n = 20,
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   point_size = 1.2,
   polygon_alpha = 0.08
@@ -947,7 +952,7 @@ gc_clone_pies <- plotSpatialPolygonPies(
   mode = "side_by_side",
   top_n = 10,
   label_top_n = 5,
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords
 )
 
@@ -958,7 +963,7 @@ gc_v_family_pies <- plotSpatialPolygonPies(
   mode = "spatial_clipped",
   top_n = 10,
   label_top_n = 1,
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords
 )
 gc_clone_pies
@@ -975,7 +980,7 @@ plotSpatialCloneDensity3D(
   object = mg_thymus_slice2_sirap,
   polygon_id = unique(gc_clonal_dominance$polygons$polygon)[1],
   top_n = 10,
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   plot_type = "density",
   show_polygon = TRUE,
@@ -1048,7 +1053,7 @@ saying only plot these clones. `id_col` identifies the data column matching tree
 and `clone_col` identifies the clone ID column. `color_by` controls how we color the tips, 
 "identity" gives each tip its own color, or we could provide another column (perhaps v_call) to
 color by. `palette` is an optional color palette, the default is the 32 color panel `glasbey` 
-from the `pals` package (if we need >32 colors we start averaging them). `image.scale`, 
+from the `pals` package (if we need >32 colors we start averaging them). `image_scale`, 
 `swap_coords`, `images`, and `zoom` are all the same as usual. `tree_layout` (default 
 rectangular) is passed to ggtree, as are `tree_tip_size`, and `treescale`, which all do exactly
 what you'd think to the tree (how big are tips, how big is the scale bar). `spatial_tip_size` 
@@ -1065,7 +1070,7 @@ tree_spatial_pairs <- plotSpatialCloneTreePairs(
   object = mg_thymus_slice2_sirap,
   clone_ids = tree_clone_ids,
   id_col = "sequence_id",
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   treescale = 0.01,
   zoom = FALSE
@@ -1115,7 +1120,7 @@ clustered_tree_spatial_pairs <- plotSpatialCloneTreePairs(
   clone_ids = tree_clone_ids,
   id_col = "sequence_id",
   color_by = "tree_cluster",
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   treescale = 0.01,
   zoom = FALSE
@@ -1138,7 +1143,7 @@ spatialCloneTreePairsToPDF(
   clone_ids = tree_clone_ids,
   id_col = "sequence_id",
   color_by = "tree_cluster",
-  image.scale = image_scale,
+  image_scale = image_scale,
   swap_coords = swap_coords,
   treescale = 0.01
 )

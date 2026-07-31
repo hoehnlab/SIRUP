@@ -15,10 +15,10 @@ plotReceptors(
   receptor_alpha = 1,
   title = NULL,
   order_points = TRUE,
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   images = NULL,
-  image.alpha = 1,
+  image_alpha = 1,
   zoom = FALSE,
   receptor_legend_title = NULL,
   show_receptor_legend = TRUE,
@@ -53,7 +53,7 @@ to \code{values}; otherwise colors are used in value order.}
 \item{order_points}{Plot earlier receptor groups first so later groups appear
 on top.}
 
-\item{image.scale}{Image scale passed to
+\item{image_scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
@@ -62,7 +62,7 @@ which uses Seurat image coordinates natively.}
 
 \item{images}{Optional Seurat image names.}
 
-\item{image.alpha}{Tissue image opacity.}
+\item{image_alpha}{Tissue image opacity.}
 
 \item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
 full tissue area covered by the spatial coordinates.}

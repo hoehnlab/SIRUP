@@ -14,7 +14,7 @@ spatialLocalMoran(
   clone_col = NULL,
   layer = "counts",
   images = NULL,
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   radius = NULL,
   k = 6
@@ -47,7 +47,7 @@ object, the stored receptor clone field is used when available.}
 
 \item{images}{Optional Seurat image names.}
 
-\item{image.scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. Defaults to \code{FALSE},

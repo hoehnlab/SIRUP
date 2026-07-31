@@ -117,13 +117,13 @@ if (file.exists(gcMantlePolygonPath)) {
   gcMantlePolygon <- selectSpatialPolygons(
     object = thymus,
     feature = dominanceFeature,
-    image.scale = "hires",
+    image_scale = "hires",
     save_path = gcMantlePolygonPath,
     downsample_n = dominanceDownsampleN,
     host = dominanceShinyHost,
     port = dominanceShinyPort,
     plot_image = dominancePlotImage,
-    launch.browser = FALSE
+    launch_browser = FALSE
   )
 }
 ```
@@ -142,13 +142,13 @@ if (file.exists(gcPolygonPath)) {
   gcPolygon <- selectSpatialPolygons(
     object = thymus,
     feature = dominanceFeature,
-    image.scale = "hires",
+    image_scale = "hires",
     save_path = gcPolygonPath,
     downsample_n = dominanceDownsampleN,
     host = dominanceShinyHost,
     port = dominanceShinyPort,
     plot_image = dominancePlotImage,
-    launch.browser = FALSE
+    launch_browser = FALSE
   )
 }
 ```
@@ -169,13 +169,13 @@ if (file.exists(allGcsPolygonsPath)) {
   allGcsPolygons <- selectSpatialPolygons(
     object = thymus,
     feature = dominanceFeature,
-    image.scale = "hires",
+    image_scale = "hires",
     save_path = allGcsPolygonsPath,
     downsample_n = dominanceDownsampleN,
     host = dominanceShinyHost,
     port = dominanceShinyPort,
     plot_image = dominancePlotImage,
-    launch.browser = FALSE
+    launch_browser = FALSE
   )
 }
 ```
@@ -187,7 +187,7 @@ using them for dominance summaries.
 allGcsPolygonOverlay <- plotSpatialPolygons(
   object = thymus,
   polygon = allGcsPolygons,
-  image.scale = "hires",
+  image_scale = "hires",
   polygon_alpha = 0.2
 )
 

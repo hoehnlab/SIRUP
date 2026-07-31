@@ -9,7 +9,7 @@ plotSpatialRegionReceptors(
   object,
   color_by = "clone_id",
   images = NULL,
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   polygon_id = NULL,
   point_size = 1,
@@ -17,7 +17,7 @@ plotSpatialRegionReceptors(
   polygon_alpha = 0.12,
   polygon_fill = "#FFFFFF",
   polygon_color = "black",
-  image.alpha = 1,
+  image_alpha = 1,
   top_n = NULL,
   other_label = "Other",
   other_color = "#D3D3D3",
@@ -37,7 +37,7 @@ points. When omitted, the clone column recorded by
 
 \item{images}{Optional Seurat image names to show.}
 
-\item{image.scale}{Image scale passed to
+\item{image_scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
@@ -57,7 +57,7 @@ result.}
 
 \item{polygon_color}{Outline color for polygons.}
 
-\item{image.alpha}{Tissue image opacity.}
+\item{image_alpha}{Tissue image opacity.}
 
 \item{top_n}{Optional number of most frequent \code{color_by} levels to keep
 before grouping remaining levels as \code{other_label}.}

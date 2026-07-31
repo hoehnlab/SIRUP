@@ -24,10 +24,10 @@ plotReceptorsExpression(
   order_points = TRUE,
   assay = NULL,
   layer = "counts",
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   images = NULL,
-  image.alpha = 1,
+  image_alpha = 1,
   zoom = FALSE,
   receptor_legend_title = NULL,
   show_receptor_legend = TRUE,
@@ -76,13 +76,13 @@ to \code{values}; otherwise colors are used in value order.}
 \item{order_points}{Plot lower expression values first so higher expression
 appears on top. Receptor groups are drawn in \code{values} order.}
 
-\item{assay, layer, image.scale}{Additional plotting controls.}
+\item{assay, layer, image_scale}{Additional plotting controls.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate axes.}
 
 \item{images}{Optional Seurat image names.}
 
-\item{image.alpha}{Tissue image opacity.}
+\item{image_alpha}{Tissue image opacity.}
 
 \item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}.}
 

@@ -422,7 +422,7 @@ spatialReceptorSummary <- function(airr_df, barcode_col = "barcode_2um") {
 #' @param consensus_count_col Column containing consensus counts used to choose
 #'   the representative spot within a connected component.
 #' @param images Optional Seurat image names to use for spatial coordinates.
-#' @param image.scale Image scale passed to
+#' @param image_scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Swap x/y coordinates after reading Seurat tissue
 #'   coordinates.
@@ -440,7 +440,7 @@ collapseIdenticalNeighbors <- function(object,
                                        sequence_col = "sequence",
                                        consensus_count_col = "consensus_count",
                                        images = NULL,
-                                       image.scale = "hires",
+                                       image_scale = "hires",
                                        swap_coords = FALSE,
                                        num_neighbors_non_boundary = 6L,
                                        validate = TRUE) {
@@ -465,7 +465,7 @@ collapseIdenticalNeighbors <- function(object,
   coords <- .sirap_spatial_coordinate_table(
     seurat_object,
     images = images,
-    image.scale = image.scale,
+    image_scale = image_scale,
     swap_coords = swap_coords
   )
   collapsed <- .collapse_identical_neighbors_table(

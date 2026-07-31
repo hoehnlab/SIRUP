@@ -10,7 +10,7 @@ selectSpatialPolygons(
   assay = "Spatial",
   layer = "counts",
   images = NULL,
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   save_path = NULL,
   plot_image = FALSE,
@@ -18,7 +18,7 @@ selectSpatialPolygons(
   downsample_seed = 1L,
   point_size = 0.8,
   point_alpha = 0.9,
-  launch.browser = TRUE,
+  launch_browser = TRUE,
   host = getOption("shiny.host", "127.0.0.1"),
   port = getOption("shiny.port", NULL),
   quiet = TRUE
@@ -36,7 +36,7 @@ vertices. The app also lets you change this interactively.}
 
 \item{images}{Optional Seurat image names to show.}
 
-\item{image.scale}{Image scale passed to
+\item{image_scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
@@ -58,7 +58,7 @@ barcode in the full coordinate table.}
 
 \item{point_alpha}{Initial opacity for spatial points.}
 
-\item{launch.browser}{Passed to \code{shiny::runApp()}.}
+\item{launch_browser}{Passed to \code{shiny::runApp()}.}
 
 \item{host, port}{Optional host and port passed to \code{shiny::runApp()}. These
 are useful when running from an interactive HPC session through an SSH

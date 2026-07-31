@@ -567,7 +567,7 @@ if (!is.null(thymus)) {
     thymus,
     meta_col = "sirap_receptor_type",
     zero_value = "0",
-    image.scale = "hires",
+    image_scale = "hires",
     point_size = 0.5,
     cols = c("BCR" = "#2c7fb8", "TCR" = "#d95f02", "BCR + TCR" = "white")
   ) +
@@ -645,7 +645,7 @@ if (!is.null(thymus)) {
     features = c("CXCR4", "CXCR5"),
     assay = "Spatial.008um",
     layer = "counts",
-    image.scale = "hires",
+    image_scale = "hires",
     point_size = 0.2,
     only_blended = TRUE,
     top_left = "blue",
@@ -1168,13 +1168,13 @@ if (runClonalDominance) {
     gcMantlePolygon <- selectSpatialPolygons(
       object = thymus,
       feature = dominanceFeature,
-      image.scale = "hires",
+      image_scale = "hires",
       save_path = gcMantlePolygonPath,
       downsample_n = dominanceDownsampleN,
       host = dominanceShinyHost,
       port = dominanceShinyPort,
       plot_image = dominancePlotImage,
-      launch.browser = FALSE
+      launch_browser = FALSE
     )
   }
 
@@ -1190,13 +1190,13 @@ if (runClonalDominance) {
     gcPolygon <- selectSpatialPolygons(
       object = thymus,
       feature = dominanceFeature,
-      image.scale = "hires",
+      image_scale = "hires",
       save_path = gcPolygonPath,
       downsample_n = dominanceDownsampleN,
       host = dominanceShinyHost,
       port = dominanceShinyPort,
       plot_image = dominancePlotImage,
-      launch.browser = FALSE
+      launch_browser = FALSE
     )
   }
 
@@ -1212,20 +1212,20 @@ if (runClonalDominance) {
     allGcsPolygons <- selectSpatialPolygons(
       object = thymus,
       feature = dominanceFeature,
-      image.scale = "hires",
+      image_scale = "hires",
       save_path = allGcsPolygonsPath,
       downsample_n = dominanceDownsampleN,
       host = dominanceShinyHost,
       port = dominanceShinyPort,
       plot_image = dominancePlotImage,
-      launch.browser = FALSE
+      launch_browser = FALSE
     )
   }
 
   allGcsPolygonOverlay <- plotSpatialPolygons(
     object = thymus,
     polygon = allGcsPolygons,
-    image.scale = "hires",
+    image_scale = "hires",
     polygon_alpha = 0.2
   )
   ggsave(

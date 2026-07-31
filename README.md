@@ -147,7 +147,7 @@ sirap <- createSIRAP(
 )
 
 sirap
-receptorTable(sirap)
+getReceptors(sirap)
 listAnalyses(sirap)
 
 # Pass the receptor table to any compatible function without unpacking it.

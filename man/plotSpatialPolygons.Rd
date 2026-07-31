@@ -8,7 +8,7 @@ plotSpatialPolygons(
   object,
   polygon,
   images = NULL,
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   polygon_id = NULL,
   x_col = "x",
@@ -18,7 +18,7 @@ plotSpatialPolygons(
   fill = "#0072B2",
   color = "#0072B2",
   linewidth = 0.6,
-  image.alpha = 1,
+  image_alpha = 1,
   label = TRUE,
   label_col = "polygon",
   label_size = 3,
@@ -37,7 +37,7 @@ drawn independently.}
 
 \item{images}{Optional Seurat image names to show.}
 
-\item{image.scale}{Image scale passed to
+\item{image_scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
@@ -59,7 +59,7 @@ exists.}
 
 \item{linewidth}{Outline width for polygons.}
 
-\item{image.alpha}{Tissue image opacity.}
+\item{image_alpha}{Tissue image opacity.}
 
 \item{label}{Plot labels at polygon centers.}
 

@@ -9,13 +9,13 @@ spatialDiscretePlot(
   meta_col,
   zero_value = 0,
   images = NULL,
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   cols = NULL,
   point_size = 1.6,
   point_alpha = 1,
   order_points = TRUE,
-  image.alpha = 1,
+  image_alpha = 1,
   zoom = FALSE,
   combine = TRUE
 )
@@ -29,7 +29,7 @@ spatialDiscretePlot(
 
 \item{images}{Optional Seurat image names.}
 
-\item{image.scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. Defaults to \code{FALSE},
@@ -44,7 +44,7 @@ which uses Seurat image coordinates natively.}
 \item{order_points}{Plot lower numeric values or earlier factor levels first
 so higher/later values appear on top.}
 
-\item{image.alpha}{Tissue image opacity.}
+\item{image_alpha}{Tissue image opacity.}
 
 \item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
 full tissue area covered by the spatial coordinates.}

@@ -2,19 +2,19 @@
 % Please edit documentation in R/sirap_object.R
 \name{sirap-accessors}
 \alias{sirap-accessors}
-\alias{spatialObject}
-\alias{receptorTable}
+\alias{getSpatial}
+\alias{getReceptors}
 \title{Extract data from a SIRAP object}
 \usage{
-spatialObject(x)
+getSpatial(x)
 
-receptorTable(x)
+getReceptors(x)
 }
 \arguments{
 \item{x}{A SIRAP object.}
 }
 \value{
-\code{spatialObject()} returns the Seurat object. \code{receptorTable()}
+\code{getSpatial()} returns the Seurat object. \code{getReceptors()}
 returns the receptor tibble.
 }
 \description{

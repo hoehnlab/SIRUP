@@ -73,8 +73,8 @@ test_that("createSIRAP creates a validated tibble-backed container", {
   expect_identical(x$metadata$receptor_fields$barcode, "barcode")
   expect_identical(x$metadata$receptor_fields$clone, "clone_id")
   expect_identical(x$metadata$receptor_fields$locus, "locus")
-  expect_identical(receptorTable(x), x$receptors)
-  expect_identical(spatialObject(x), x$spatial)
+  expect_identical(getReceptors(x), x$receptors)
+  expect_identical(getSpatial(x), x$spatial)
   expect_identical(SIRAP:::.sirap_spatial_input(x), x$spatial)
   expect_identical(SIRAP:::.sirap_receptor_input(x)$receptors, x$receptors)
   expect_invisible(validateSIRAP(x))
@@ -114,8 +114,8 @@ test_that("legacy SIRAP objects behave as though analyses are empty", {
 
 test_that("createSIRAP validates initial analyses", {
   x <- make_test_sirap()
-  spatial <- spatialObject(x)
-  receptors <- receptorTable(x)
+  spatial <- getSpatial(x)
+  receptors <- getReceptors(x)
 
   with_result <- createSIRAP(
     spatial,
@@ -191,7 +191,7 @@ test_that("createSIRAP retains unmatched nonspatial receptors", {
   x <- make_test_sirap()
   info <- summary(x)
 
-  expect_equal(nrow(receptorTable(x)), 3)
+  expect_equal(nrow(getReceptors(x)), 3)
   expect_equal(info$n_receptor_barcodes, 3)
   expect_equal(info$n_matched_barcodes, 2)
   expect_equal(info$n_matched_records, 2)
@@ -224,9 +224,9 @@ test_that("collapseIdenticalNeighbors updates SIRAP objects", {
   )
 
   expect_s3_class(collapsed, "sirap")
-  expect_equal(nrow(receptorTable(collapsed)), 3)
-  expect_false("cell1" %in% receptorTable(collapsed)$spot)
-  expect_true(all(c("cell2", "cell13", "cell25") %in% receptorTable(collapsed)$spot))
+  expect_equal(nrow(getReceptors(collapsed)), 3)
+  expect_false("cell1" %in% getReceptors(collapsed)$spot)
+  expect_true(all(c("cell2", "cell13", "cell25") %in% getReceptors(collapsed)$spot))
   expect_identical(collapsed$metadata$receptor_fields$barcode, "spot")
 })
 
@@ -238,8 +238,8 @@ test_that("collapseIdenticalNeighbors accepts receptor tables with a Seurat obje
   set.seed(1)
   x <- make_collapse_test_sirap()
   collapsed <- collapseIdenticalNeighbors(
-    receptorTable(x),
-    seurat_object = spatialObject(x),
+    getReceptors(x),
+    seurat_object = getSpatial(x),
     barcode_col = "spot",
     sequence_col = "sequence_alignment",
     consensus_count_col = "consensus_count",
@@ -250,7 +250,7 @@ test_that("collapseIdenticalNeighbors accepts receptor tables with a Seurat obje
   expect_equal(nrow(collapsed), 3)
   expect_false(isSIRAP(collapsed))
   expect_error(
-    collapseIdenticalNeighbors(receptorTable(x), barcode_col = "spot"),
+    collapseIdenticalNeighbors(getReceptors(x), barcode_col = "spot"),
     "`seurat_object` is required"
   )
 })

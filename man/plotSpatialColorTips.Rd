@@ -13,15 +13,15 @@ plotSpatialColorTips(
   legend_title = "Tip color",
   legend_colors = NULL,
   title = NULL,
-  image.scale = "hires",
+  image_scale = "hires",
   swap_coords = FALSE,
   point_size = 1.6,
   point_alpha = 1,
   order_points = TRUE,
   images = NULL,
-  image.alpha = 1,
+  image_alpha = 1,
   zoom = FALSE,
-  show.legend = FALSE
+  show_legend = FALSE
 )
 }
 \arguments{
@@ -41,7 +41,7 @@ plotSpatialColorTips(
 
 \item{title}{Optional title.}
 
-\item{image.scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. Defaults to \code{FALSE},
@@ -56,12 +56,12 @@ appear on top.}
 
 \item{images}{Optional Seurat image names.}
 
-\item{image.alpha}{Tissue image opacity.}
+\item{image_alpha}{Tissue image opacity.}
 
 \item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
 full tissue area covered by the spatial coordinates.}
 
-\item{show.legend}{Show color legend.}
+\item{show_legend}{Show color legend.}
 }
 \value{
 A ggplot/patchwork object.

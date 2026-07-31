@@ -15,7 +15,7 @@ test_that("plotReceptorsExpression layers grouped receptors over expression", {
       out
     },
     .sirap_spatial_images = function(object, images = NULL) "image1",
-    .sirap_spatial_data = function(object, image, image.scale, swap_coords) {
+    .sirap_spatial_data = function(object, image, image_scale, swap_coords) {
       list(
         coords = data.frame(
           cell = c("spot1", "spot2", "spot3"),

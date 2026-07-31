@@ -437,13 +437,13 @@ and the browser connection arrives through the login node tunnel.</p>
 <span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>  gcMantlePolygon <span class="ot">&lt;-</span> <span class="fu">selectSpatialPolygons</span>(</span>
 <span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>    <span class="at">object =</span> thymus,</span>
 <span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>    <span class="at">feature =</span> dominanceFeature,</span>
-<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>    <span class="at">image.scale =</span> <span class="st">&quot;hires&quot;</span>,</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>    <span class="at">image_scale =</span> <span class="st">&quot;hires&quot;</span>,</span>
 <span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>    <span class="at">save_path =</span> gcMantlePolygonPath,</span>
 <span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>    <span class="at">downsample_n =</span> dominanceDownsampleN,</span>
 <span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>    <span class="at">host =</span> dominanceShinyHost,</span>
 <span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a>    <span class="at">port =</span> dominanceShinyPort,</span>
 <span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a>    <span class="at">plot_image =</span> dominancePlotImage,</span>
-<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a>    <span class="at">launch.browser =</span> <span class="cn">FALSE</span></span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a>    <span class="at">launch_browser =</span> <span class="cn">FALSE</span></span>
 <span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a>  )</span>
 <span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a>}</span></code></pre></div>
 <p>Draw or load a single GC polygon.</p>
@@ -458,13 +458,13 @@ and the browser connection arrives through the login node tunnel.</p>
 <span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>  gcPolygon <span class="ot">&lt;-</span> <span class="fu">selectSpatialPolygons</span>(</span>
 <span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a>    <span class="at">object =</span> thymus,</span>
 <span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a>    <span class="at">feature =</span> dominanceFeature,</span>
-<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a>    <span class="at">image.scale =</span> <span class="st">&quot;hires&quot;</span>,</span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a>    <span class="at">image_scale =</span> <span class="st">&quot;hires&quot;</span>,</span>
 <span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a>    <span class="at">save_path =</span> gcPolygonPath,</span>
 <span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a>    <span class="at">downsample_n =</span> dominanceDownsampleN,</span>
 <span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a>    <span class="at">host =</span> dominanceShinyHost,</span>
 <span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a>    <span class="at">port =</span> dominanceShinyPort,</span>
 <span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a>    <span class="at">plot_image =</span> dominancePlotImage,</span>
-<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a>    <span class="at">launch.browser =</span> <span class="cn">FALSE</span></span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a>    <span class="at">launch_browser =</span> <span class="cn">FALSE</span></span>
 <span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a>  )</span>
 <span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a>}</span></code></pre></div>
 <p>Draw or load multiple GC polygons. If you draw more than one polygon
@@ -482,13 +482,13 @@ polygon.</p>
 <span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>  allGcsPolygons <span class="ot">&lt;-</span> <span class="fu">selectSpatialPolygons</span>(</span>
 <span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>    <span class="at">object =</span> thymus,</span>
 <span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>    <span class="at">feature =</span> dominanceFeature,</span>
-<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>    <span class="at">image.scale =</span> <span class="st">&quot;hires&quot;</span>,</span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>    <span class="at">image_scale =</span> <span class="st">&quot;hires&quot;</span>,</span>
 <span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a>    <span class="at">save_path =</span> allGcsPolygonsPath,</span>
 <span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a>    <span class="at">downsample_n =</span> dominanceDownsampleN,</span>
 <span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a>    <span class="at">host =</span> dominanceShinyHost,</span>
 <span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a>    <span class="at">port =</span> dominanceShinyPort,</span>
 <span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a>    <span class="at">plot_image =</span> dominancePlotImage,</span>
-<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a>    <span class="at">launch.browser =</span> <span class="cn">FALSE</span></span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a>    <span class="at">launch_browser =</span> <span class="cn">FALSE</span></span>
 <span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a>  )</span>
 <span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a>}</span></code></pre></div>
 <p>Plot the selected polygons to check that the regions are correct
@@ -496,7 +496,7 @@ before using them for dominance summaries.</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>allGcsPolygonOverlay <span class="ot">&lt;-</span> <span class="fu">plotSpatialPolygons</span>(</span>
 <span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="at">object =</span> thymus,</span>
 <span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="at">polygon =</span> allGcsPolygons,</span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="at">image.scale =</span> <span class="st">&quot;hires&quot;</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="at">image_scale =</span> <span class="st">&quot;hires&quot;</span>,</span>
 <span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  <span class="at">polygon_alpha =</span> <span class="fl">0.2</span></span>
 <span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>)</span>
 <span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a></span>
