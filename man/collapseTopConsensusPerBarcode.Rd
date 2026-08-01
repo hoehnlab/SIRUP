@@ -6,22 +6,22 @@
 \usage{
 collapseTopConsensusPerBarcode(
   airr_df,
-  barcode_col = "barcode_2um",
-  locus_col = "locus",
-  consensus_col = "consensus_count",
-  sequence_col = "sequence",
-  alignment_col = "sequence_alignment",
+  barcode = "spatial_barcode_2um",
+  locus = "locus",
+  consensus = "consensus_count",
+  sequence = "sequence",
+  alignment = "sequence_alignment",
   ties = c("all", "first")
 )
 }
 \arguments{
 \item{airr_df}{AIRR-style data frame.}
 
-\item{barcode_col, locus_col, consensus_col}{Column names for grouping/ranking.}
+\item{barcode, locus, consensus}{Column names for grouping/ranking.}
 
-\item{sequence_col}{Sequence column for non-N proportion.}
+\item{sequence}{Sequence column for non-N proportion.}
 
-\item{alignment_col}{Alignment column for gap metrics.}
+\item{alignment}{Alignment column for gap metrics.}
 
 \item{ties}{Keep all tied top rows or only the first tied row.}
 }

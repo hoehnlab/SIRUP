@@ -6,10 +6,12 @@
 \usage{
 plotSpatialCloneColorTips(
   colored_clones,
-  clone_id,
+  clone_val,
   tissue_positions = NULL,
-  clone_col = "clone_id",
-  barcode_col = "barcode_8um",
+  clone = "clone_id",
+  barcode = "spatial_barcode_8um",
+  image_scale = NULL,
+  swap_coords = NULL,
   ...
 )
 }
@@ -17,14 +19,14 @@ plotSpatialCloneColorTips(
 \item{colored_clones}{Output from \code{assignTipColors()}, or a SIRAP object
 whose receptor table contains tip colors.}
 
-\item{clone_id}{Clone ID to plot.}
+\item{clone_val}{Clone ID to plot.}
 
 \item{tissue_positions}{Seurat object with spatial images, or a SIRAP
 object. May be omitted when \code{colored_clones} is a SIRAP object.}
 
-\item{clone_col}{Clone ID column.}
+\item{clone}{Clone ID column.}
 
-\item{barcode_col}{Spatial barcode column in \code{colored_clones}.}
+\item{barcode}{Spatial barcode column in \code{colored_clones}.}
 
 \item{...}{Additional arguments passed to \code{plotSpatialColorTips()}.}
 }

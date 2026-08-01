@@ -15,7 +15,7 @@ test_that("buildSpacedCloneTable joins coordinates and aggregates clone counts",
   out <- buildSpacedCloneTable(
     clones,
     positions = positions,
-    count_col = "consensus_count",
+    count = "consensus_count",
     clone_prefix = "heavy_"
   )
 

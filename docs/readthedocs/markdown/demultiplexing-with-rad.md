@@ -1,3 +1,6 @@
+Demultiplexing Long Reads with RAD from R
+================
+
 This vignette drives the [`rad`](https://github.com/indianewok/rad)
 command-line demultiplexer from R using SIRAP’s `rad*()` wrappers. It is
 the upstream step that produces the demultiplexed, barcode-corrected
@@ -104,12 +107,12 @@ your own layout CSV instead of a key; the [Custom Read
 Layouts](custom-read-layouts-with-rad.html) guide walks through writing
 and validating one from R, and rad’s [layouts-and-whitelists
 guide](https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md)
-documents the CSV schema
-(`id, seq, expected_length, type, class, whitelist`).
+documents the CSV schema (`id, seq, expected_length, type, class,
+whitelist`).
 
 ## Get the Example Reads
 
-rad publishes a small simulated scTagger long-read dataset: ~98,873
+rad publishes a small simulated scTagger long-read dataset: \~98,873
 reads from 50 known cells, with each read’s true 16 bp barcode embedded
 in its header. It is the ideal thing to demultiplex first.
 
@@ -198,7 +201,7 @@ radDemux(
 This writes `demo.fq.gz` (the corrected, tagged reads) plus the
 whitelist summaries `demo_whitelist_true.csv` and
 `demo_whitelist_global.csv` under `runDir`. On this dataset roughly
-**33,700 reads pass** the filter, ~71% of them an exact `CB:Z` match to
+**33,700 reads pass** the filter, \~71% of them an exact `CB:Z` match to
 the barcode in the read header.
 
 When you have a trusted list of real barcodes, hand it to rad as a
@@ -225,24 +228,24 @@ radDemux(
 
 Other knobs worth knowing (all optional arguments to `radDemux()`):
 
-- `bc_correction_mode = "offensive"` (default) or `"defensive"` — how
-  aggressively rad reassigns near-miss barcodes.
-- `joint_bc_mode = "strict"` — for paired barcodes (e.g. Visium HD),
-  require *all* barcode parts to pass. Default is permissive.
-- `global_whitelist =` — a custom global whitelist CSV, as an
-  alternative to a bundled `kit`.
-- `whitelist_mutation` / `generated_mutation` — edit-distance search
-  space (rad default 2 each).
-- `write_dbg = TRUE` — also emit `*_dbg.sig.gz`, `*_dbg.csv.gz`,
-  `*_dbg.fq.gz`, and a `*.metrics.tsv` for inspecting why reads were
-  kept or dropped.
-- `max_reads`, `chunk_size`, `log_file` — throughput and logging
-  controls.
+  - `bc_correction_mode = "offensive"` (default) or `"defensive"` — how
+    aggressively rad reassigns near-miss barcodes.
+  - `joint_bc_mode = "strict"` — for paired barcodes (e.g. Visium HD),
+    require *all* barcode parts to pass. Default is permissive.
+  - `global_whitelist =` — a custom global whitelist CSV, as an
+    alternative to a bundled `kit`.
+  - `whitelist_mutation` / `generated_mutation` — edit-distance search
+    space (rad default 2 each).
+  - `write_dbg = TRUE` — also emit `*_dbg.sig.gz`, `*_dbg.csv.gz`,
+    `*_dbg.fq.gz`, and a `*.metrics.tsv` for inspecting why reads were
+    kept or dropped.
+  - `max_reads`, `chunk_size`, `log_file` — throughput and logging
+    controls.
 
 Every wrapper returns an invisible list with `status`, `stdout`,
 `stderr`, and the `command` it ran. Pass `capture = TRUE` to collect
-rad’s console output into that list instead of streaming it live — handy
-in scripts and reports:
+rad’s console output into that list instead of streaming it live —
+handy in scripts and reports:
 
 ``` r
 res <- radDemux(
@@ -254,9 +257,9 @@ res$status        # 0 on success
 cat(res$stdout)   # rad's full console output
 ```
 
-A non-zero exit aborts with an informative error by default; set
-`check = FALSE` on the low-level path only if you want to inspect
-failures yourself.
+A non-zero exit aborts with an informative error by default; set `check
+= FALSE` on the low-level path only if you want to inspect failures
+yourself.
 
 ## Reformat the Output
 
@@ -322,9 +325,9 @@ couple of HD-specific switches.
 
 The `visium_hd` layout already names `visium_hd_bc1` and `visium_hd_bc2`
 as the whitelists for its two barcode elements and flags them as a joint
-barcode, so you don’t pass a `kit` — just switch on
-`joint_bc_mode = "strict"` so a read is only kept when *both* barcode
-halves correct cleanly:
+barcode, so you don’t pass a `kit` — just switch on `joint_bc_mode =
+"strict"` so a read is only kept when *both* barcode halves correct
+cleanly:
 
 ``` r
 visiumFastq <- "spatial_bcr_tcr_reads.fq.gz"  # your enriched long reads
@@ -361,8 +364,8 @@ the read header. They go through your aligner / IgBLAST step (outside
 rad and SIRAP) to produce AIRR-style rearrangement tables, at which
 point the [Visium HD processing guide](visium-hd-processing.html) takes
 over: `extractSpatialBarcodes()` lifts the barcode back out of the
-`sequence_id`, `filterSpatialAirr()` does length/locus QC, and the 2 µm
-barcode is remapped to the 8 µm/16 µm grid for plotting.
+`sequence_id`, `filterAirr()` does length/locus QC, and the 2 µm barcode
+is remapped to the 8 µm/16 µm grid for plotting.
 
 ## Keeping rad Up to Date
 
@@ -382,20 +385,20 @@ tokens through `...` for flags SIRAP hasn’t surfaced yet.
 
 ## Where to Next
 
-- [Custom read layouts](custom-read-layouts-with-rad.html) — describe a
-  wonky or non-standard read structure of your own and run this same
-  pipeline on it.
-- [Visium HD processing](visium-hd-processing.html) — pick up from RAD
-  output: spatial barcodes through pRESTO/IgBLAST to spatial AIRR
-  tables.
-- [Spatial clones and BCR trees](spatial-clones-and-trees.html) — call
-  clones and build lineage trees over tissue.
-- [Spatial expression and
-  colocalization](spatial-expression-and-colocalization.html) — plot
-  expression and test spatial autocorrelation.
-- rad’s own docs:
-  [installation](https://github.com/indianewok/rad/blob/main/docs/installation.md),
-  [CLI
-  reference](https://github.com/indianewok/rad/blob/main/docs/cli-reference.md),
-  [layouts and
-  whitelists](https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md).
+  - [Custom read layouts](custom-read-layouts-with-rad.html) — describe
+    a wonky or non-standard read structure of your own and run this same
+    pipeline on it.
+  - [Visium HD processing](visium-hd-processing.html) — pick up from RAD
+    output: spatial barcodes through pRESTO/IgBLAST to spatial AIRR
+    tables.
+  - [Spatial clones and BCR trees](spatial-clones-and-trees.html) — call
+    clones and build lineage trees over tissue.
+  - [Spatial expression and
+    colocalization](spatial-expression-and-colocalization.html) — plot
+    expression and test spatial autocorrelation.
+  - rad’s own docs:
+    [installation](https://github.com/indianewok/rad/blob/main/docs/installation.md),
+    [CLI
+    reference](https://github.com/indianewok/rad/blob/main/docs/cli-reference.md),
+    [layouts and
+    whitelists](https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md).

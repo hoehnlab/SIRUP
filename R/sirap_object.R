@@ -11,19 +11,25 @@
 #'
 #' @param spatial A Seurat object containing spatial expression data.
 #' @param receptors A data-frame-like AIRR-style receptor table.
-#' @param barcode_col Column in `receptors` matching spatial cell or spot
+#' @param barcode Column in `receptors` matching spatial cell or spot
 #'   barcodes. When `NULL`, a barcode-like column is guessed once and recorded
 #'   in the object metadata.
-#' @param image_col Optional receptor column identifying the Seurat image.
-#' @param sample_col Optional sample column present in both `receptors` and the
+#' @param image Optional receptor column identifying the Seurat image.
+#' @param sample Optional sample column present in both `receptors` and the
 #'   Seurat metadata. It is recorded for sample-aware analyses and validation;
 #'   Seurat cell or spot names must still be unique within `spatial`.
-#' @param clone_col Optional clone-assignment column. The default is recorded
+#' @param clone Optional clone-assignment column. The default is recorded
 #'   when present and otherwise stored as `NULL`.
-#' @param locus_col Optional receptor-locus column. The default is recorded
+#' @param locus Optional receptor-locus column. The default is recorded
 #'   when present and otherwise stored as `NULL`.
-#' @param count_col Optional column containing receptor observation weights or
+#' @param count Optional column containing receptor observation weights or
 #'   counts. Default is `NULL`.
+#' @param image_scale Optional default Seurat image scale used by spatial
+#'   plotting and spatial-statistic functions when they receive this SIRAP
+#'   object and their own `image_scale` argument is `NULL`.
+#' @param swap_coords Optional default coordinate-orientation flag used by
+#'   spatial plotting and spatial-statistic functions when they receive this
+#'   SIRAP object and their own `swap_coords` argument is `NULL`.
 #' @param metadata Optional named list of dataset-level metadata.
 #' @param analyses Optional named list of derived analysis results.
 #' @param validate Whether to validate the completed object.
@@ -32,35 +38,39 @@
 #' @export
 createSIRAP <- function(spatial,
                         receptors,
-                        barcode_col = NULL,
-                        image_col = NULL,
-                        sample_col = NULL,
-                        clone_col = NULL,
-                        locus_col = "locus",
-                        count_col = NULL,
+                        barcode = NULL,
+                        image = NULL,
+                        sample = NULL,
+                        clone = NULL,
+                        locus = "locus",
+                        count = NULL,
+                        image_scale = NULL,
+                        swap_coords = NULL,
                         metadata = list(),
                         analyses = list(),
                         validate = TRUE) {
-  clone_missing <- missing(clone_col)
-  locus_missing <- missing(locus_col)
+  clone_missing <- missing(clone)
+  locus_missing <- missing(locus)
   receptors <- tibble::as_tibble(receptors)
-  barcode_col <- .guess_barcode_col(receptors, barcode_col)
+  barcode <- .guess_barcode_col(receptors, barcode)
 
-  clone_col <- .sirap_resolve_optional_col(
+  clone <- .sirap_resolve_optional_col(
     receptors,
-    clone_col,
-    "clone_col",
+    clone,
+    "clone",
     allow_missing = clone_missing
   )
-  locus_col <- .sirap_resolve_optional_col(
+  locus <- .sirap_resolve_optional_col(
     receptors,
-    locus_col,
-    "locus_col",
+    locus,
+    "locus",
     allow_missing = locus_missing
   )
-  image_col <- .sirap_resolve_optional_col(receptors, image_col, "image_col")
-  sample_col <- .sirap_resolve_optional_col(receptors, sample_col, "sample_col")
-  count_col <- .sirap_resolve_optional_col(receptors, count_col, "count_col")
+  image <- .sirap_resolve_optional_col(receptors, image, "image")
+  sample <- .sirap_resolve_optional_col(receptors, sample, "sample")
+  count <- .sirap_resolve_optional_col(receptors, count, "count")
+  image_scale <- .sirap_resolve_image_scale(image_scale)
+  swap_coords <- .sirap_resolve_swap_coords(swap_coords)
 
   if (!is.list(metadata)) {
     rlang::abort("`metadata` must be a named list.")
@@ -71,15 +81,23 @@ createSIRAP <- function(spatial,
   if ("receptor_fields" %in% names(metadata)) {
     rlang::abort("`metadata$receptor_fields` is reserved; use the field-column arguments to `createSIRAP()`.")
   }
+  if ("image_scale" %in% names(metadata)) {
+    rlang::abort("`metadata$image_scale` is reserved; use the `image_scale` argument to `createSIRAP()`.")
+  }
+  if ("swap_coords" %in% names(metadata)) {
+    rlang::abort("`metadata$swap_coords` is reserved; use the `swap_coords` argument to `createSIRAP()`.")
+  }
   .sirap_validate_analyses(analyses)
   metadata$receptor_fields <- list(
-    barcode = barcode_col,
-    image = image_col,
-    sample = sample_col,
-    clone = clone_col,
-    locus = locus_col,
-    count = count_col
+    barcode = barcode,
+    image = image,
+    sample = sample,
+    clone = clone,
+    locus = locus,
+    count = count
   )
+  metadata$image_scale <- image_scale
+  metadata$swap_coords <- swap_coords
 
   out <- structure(
     list(
@@ -131,6 +149,7 @@ validateSIRAP <- function(x, verbose = FALSE) {
     rlang::abort("`x$metadata` must be a named list.")
   }
   .sirap_validate_analyses(.sirap_analyses(x))
+  .sirap_validate_spatial_metadata(x$metadata)
   receptor_fields <- .sirap_receptor_fields(x)
   field_names <- c("barcode", "image", "sample", "clone", "locus", "count")
   if (!identical(names(receptor_fields), field_names)) {
@@ -282,13 +301,10 @@ removeAnalysis <- function(x, name, validate = TRUE) {
   x
 }
 
-#' Apply functions to data stored in a SIRAP object
+#' Update data stored in a SIRAP object
 #'
-#' These functions make it possible to use package or user functions directly
-#' on one component of a SIRAP object. The `with*()` functions return the
-#' function result without changing the SIRAP object. The `update*()` functions
-#' replace that component with the function result and return the updated
-#' SIRAP object.
+#' These functions make it possible to use package or user functions to replace
+#' one component of a SIRAP object.
 #'
 #' `updateReceptors()` requires a data-frame result and stores it as a tibble.
 #' Existing receptor field mappings are retained. If an object was created
@@ -297,8 +313,8 @@ removeAnalysis <- function(x, name, validate = TRUE) {
 #' clear mappings explicitly after a transformation.
 #'
 #' `updateSpatial()` requires the function to return a Seurat object.
-#' `withAnalysis()` and `updateAnalysis()` operate on one result selected by
-#' `name`; use `setAnalysis()` to store a new result.
+#' `updateAnalysis()` operates on one result selected by `name`; use
+#' `setAnalysis()` to store a new result.
 #'
 #' @param x A SIRAP object.
 #' @param fun A function, or a character string naming a function. The selected
@@ -310,17 +326,9 @@ removeAnalysis <- function(x, name, validate = TRUE) {
 #' @param name A single non-empty stored analysis name.
 #' @param validate Whether to validate the updated SIRAP object.
 #'
-#' @return A `with*()` function returns the result of `fun`. An `update*()`
-#'   function returns an updated SIRAP object.
+#' @return An updated SIRAP object.
 #' @name sirap-transform
 NULL
-
-#' @rdname sirap-transform
-#' @export
-withReceptors <- function(x, fun, ...) {
-  validateSIRAP(x)
-  .sirap_apply(fun, x$receptors, ...)
-}
 
 #' @rdname sirap-transform
 #' @export
@@ -347,13 +355,6 @@ updateReceptors <- function(x,
 
 #' @rdname sirap-transform
 #' @export
-withSpatial <- function(x, fun, ...) {
-  validateSIRAP(x)
-  .sirap_apply(fun, x$spatial, ...)
-}
-
-#' @rdname sirap-transform
-#' @export
 updateSpatial <- function(x, fun, ..., validate = TRUE) {
   validateSIRAP(x)
   spatial <- .sirap_apply(fun, x$spatial, ...)
@@ -369,14 +370,8 @@ updateSpatial <- function(x, fun, ..., validate = TRUE) {
 
 #' @rdname sirap-transform
 #' @export
-withAnalysis <- function(x, name, fun, ...) {
-  .sirap_apply(fun, getAnalysis(x, name), ...)
-}
-
-#' @rdname sirap-transform
-#' @export
 updateAnalysis <- function(x, name, fun, ..., validate = TRUE) {
-  value <- withAnalysis(x, name, fun, ...)
+  value <- .sirap_apply(fun, getAnalysis(x, name), ...)
   setAnalysis(x, name, value, validate = validate)
 }
 
@@ -428,8 +423,10 @@ summary.sirap <- function(object, ...) {
         n_receptor_records = nrow(object$receptors),
         n_receptor_columns = ncol(object$receptors),
         n_spatial_genes = nrow(object$spatial),
-        barcode_col = receptor_fields$barcode,
-        clone_col = receptor_fields$clone,
+        barcode = receptor_fields$barcode,
+        clone = receptor_fields$clone,
+        image_scale = object$metadata$image_scale,
+        swap_coords = object$metadata$swap_coords,
         loci = .sirap_field_values(object, "locus"),
         n_analyses = length(.sirap_analyses(object)),
         analyses = listAnalyses(object)
@@ -489,6 +486,78 @@ print.summary.sirap <- function(x, ...) {
 .sirap_apply <- function(fun, sirap_data, ...) {
   fun <- match.fun(fun)
   fun(sirap_data, ...)
+}
+
+.sirap_resolve_image_scale <- function(image_scale) {
+  if (is.null(image_scale)) {
+    return(NULL)
+  }
+  if (!is.character(image_scale) || length(image_scale) != 1L || is.na(image_scale) || !nzchar(image_scale)) {
+    rlang::abort("`image_scale` must be `NULL` or one non-empty character string.")
+  }
+  image_scale
+}
+
+.sirap_resolve_swap_coords <- function(swap_coords) {
+  if (is.null(swap_coords)) {
+    return(NULL)
+  }
+  if (!is.logical(swap_coords) || length(swap_coords) != 1L || is.na(swap_coords)) {
+    rlang::abort("`swap_coords` must be `NULL`, `TRUE`, or `FALSE`.")
+  }
+  swap_coords
+}
+
+.sirap_validate_spatial_metadata <- function(metadata) {
+  .sirap_resolve_image_scale(metadata$image_scale %||% NULL)
+  .sirap_resolve_swap_coords(metadata$swap_coords %||% NULL)
+  invisible(metadata)
+}
+
+.sirap_require_spatial_options <- function(image_scale, swap_coords) {
+  image_scale <- .sirap_resolve_image_scale(image_scale)
+  swap_coords <- .sirap_resolve_swap_coords(swap_coords)
+  if (is.null(image_scale)) {
+    rlang::abort("`image_scale` must be supplied explicitly or stored in a SIRAP object.")
+  }
+  if (is.null(swap_coords)) {
+    rlang::abort("`swap_coords` must be supplied explicitly or stored in a SIRAP object.")
+  }
+  list(
+    image_scale = image_scale,
+    swap_coords = swap_coords
+  )
+}
+
+.sirap_spatial_options <- function(object,
+                                   image_scale = NULL,
+                                   swap_coords = NULL) {
+  image_scale <- .sirap_resolve_image_scale(image_scale)
+  swap_coords <- .sirap_resolve_swap_coords(swap_coords)
+  if (isSIRAP(object)) {
+    validateSIRAP(object)
+    metadata <- object$metadata
+    if (is.null(image_scale)) {
+      image_scale <- metadata$image_scale %||% NULL
+    }
+    if (is.null(swap_coords)) {
+      swap_coords <- metadata$swap_coords %||% NULL
+    }
+  }
+  .sirap_require_spatial_options(image_scale, swap_coords)
+}
+
+.sirap_spatial_context <- function(object, image_scale = NULL, swap_coords = NULL) {
+  options <- .sirap_spatial_options(
+    object = object,
+    image_scale = image_scale,
+    swap_coords = swap_coords
+  )
+  list(
+    object = .sirap_spatial_input(object),
+    image_scale = options$image_scale,
+    swap_coords = options$swap_coords
+  )
 }
 
 # Preserve receptor mappings after an update, infer conventional clone/locus

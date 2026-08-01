@@ -364,7 +364,7 @@ From here the demultiplexed reads carry their 2 µm spatial barcode in the read
 header. They go through your aligner / IgBLAST step (outside rad and SIRAP) to
 produce AIRR-style rearrangement tables, at which point the [Visium HD processing
 guide](visium-hd-processing.html) takes over: `extractSpatialBarcodes()` lifts the
-barcode back out of the `sequence_id`, `filterSpatialAirr()` does length/locus
+barcode back out of the `sequence_id`, `filterAirr()` does length/locus
 QC, and the 2 µm barcode is remapped to the 8 µm/16 µm grid for plotting.
 
 ## Keeping rad Up to Date

@@ -1,3 +1,6 @@
+Spatial Expression, Receptors, and Colocalization
+================
+
 This vignette shows how to plot gene expression and receptor locations
 over a spatial tissue image, then test spatial autocorrelation and
 receptor/gene colocalization. The examples use CD3E with TCRs and MS4A1
@@ -67,7 +70,7 @@ cd3ePlot <- spatialExpressionPlot(
   assay = "Spatial.008um",
   layer = "counts",
   feature_colors = c("grey80", "#d95f02"),
-  pt.size.factor = 0.3
+  point_size = 0.3
 )
 
 ms4a1Plot <- spatialExpressionPlot(
@@ -76,53 +79,51 @@ ms4a1Plot <- spatialExpressionPlot(
   assay = "Spatial.008um",
   layer = "counts",
   feature_colors = c("grey80", "#2c7fb8"),
-  pt.size.factor = 0.3
+  point_size = 0.3
 )
 
 cowplot::plot_grid(cd3ePlot, ms4a1Plot, ncol = 2)
 ```
 
-![](/dartfs/rc/lab/H/HoehnK/Hunter/spatial_bcr_tcr_package/SIRAP/docs/readthedocs/markdown/spatial-expression-and-colocalization_files/figure-gfm/expression-plots-1.png)<!-- -->
-
 ## Receptors Over Gene Expression
 
-`plotReceptorExpression()` plots positive gene-expression spots as
+`plotReceptorsExpression()` plots positive gene-expression spots as
 filled points and overlays receptor-positive locations as hollow
 circles.
 
 ``` r
-tcrCd3ePlot <- plotReceptorExpression(
+tcrCd3ePlot <- plotReceptorsExpression(
   object = thymus,
-  receptors = tcrTopBarcode,
+  receptors = dplyr::mutate(tcrTopBarcode, receptor_type = "TCR"),
+  group = "receptor_type",
+  group_val = "TCR",
   gene = "CD3E",
-  barcode_col = "barcode_8um",
-  receptor_color = "#d95f02",
+  barcode = "barcode_8um",
+  colors = "#d95f02",
   receptor_size = 0.55,
   receptor_stroke = 0.25,
   feature_colors = c("grey80", "#7f2704"),
   feature_size = 0.45,
-  title = "CD3E expression with TCR-positive spots",
-  receptor_label = "TCR"
+  title = "CD3E expression with TCR-positive spots"
 )
 
-bcrMs4a1Plot <- plotReceptorExpression(
+bcrMs4a1Plot <- plotReceptorsExpression(
   object = thymus,
-  receptors = bcrTopBarcode,
+  receptors = dplyr::mutate(bcrTopBarcode, receptor_type = "BCR"),
+  group = "receptor_type",
+  group_val = "BCR",
   gene = "MS4A1",
-  barcode_col = "barcode_8um",
-  receptor_color = "#2c7fb8",
+  barcode = "barcode_8um",
+  colors = "#2c7fb8",
   receptor_size = 0.55,
   receptor_stroke = 0.25,
   feature_colors = c("grey80", "#08306b"),
   feature_size = 0.45,
-  title = "MS4A1 expression with BCR-positive spots",
-  receptor_label = "BCR"
+  title = "MS4A1 expression with BCR-positive spots"
 )
 
 cowplot::plot_grid(tcrCd3ePlot, bcrMs4a1Plot, ncol = 2)
 ```
-
-![](/dartfs/rc/lab/H/HoehnK/Hunter/spatial_bcr_tcr_package/SIRAP/docs/readthedocs/markdown/spatial-expression-and-colocalization_files/figure-gfm/receptor-expression-1.png)<!-- -->
 
 ## Moran’s I
 
@@ -138,21 +139,10 @@ tcrMoran <- spatialMoran(
   variable = "TCR presence",
   variable_type = "receptor",
   receptors = tcrTopBarcode,
-  barcode_col = "barcode_8um",
+  barcode = "barcode_8um",
   k = spatialStatsK
 )
 tcrMoran$test
-#> 
-#>  Moran I test under randomisation
-#> 
-#> data:  dat$value  
-#> weights: listw    
-#> 
-#> Moran I statistic standard deviate = 119.27, p-value < 2.2e-16
-#> alternative hypothesis: greater
-#> sample estimates:
-#> Moran I statistic       Expectation          Variance 
-#>      5.269612e-02     -2.357479e-06      1.952190e-07
 
 cd3eExpressionMoran <- spatialMoran(
   thymus,
@@ -162,38 +152,16 @@ cd3eExpressionMoran <- spatialMoran(
   k = spatialStatsK
 )
 cd3eExpressionMoran$test
-#> 
-#>  Moran I test under randomisation
-#> 
-#> data:  dat$value  
-#> weights: listw    
-#> 
-#> Moran I statistic standard deviate = 18.028, p-value < 2.2e-16
-#> alternative hypothesis: greater
-#> sample estimates:
-#> Moran I statistic       Expectation          Variance 
-#>      7.962221e-03     -2.357479e-06      1.951858e-07
 
 bcrMoran <- spatialMoran(
   thymus,
   variable = "BCR presence",
   variable_type = "receptor",
   receptors = bcrTopBarcode,
-  barcode_col = "barcode_8um",
+  barcode = "barcode_8um",
   k = spatialStatsK
 )
 bcrMoran$test
-#> 
-#>  Moran I test under randomisation
-#> 
-#> data:  dat$value  
-#> weights: listw    
-#> 
-#> Moran I statistic standard deviate = 395.89, p-value < 2.2e-16
-#> alternative hypothesis: greater
-#> sample estimates:
-#> Moran I statistic       Expectation          Variance 
-#>      1.749105e-01     -2.357479e-06      1.952091e-07
 
 ms4a1ExpressionMoran <- spatialMoran(
   thymus,
@@ -203,17 +171,6 @@ ms4a1ExpressionMoran <- spatialMoran(
   k = spatialStatsK
 )
 ms4a1ExpressionMoran$test
-#> 
-#>  Moran I test under randomisation
-#> 
-#> data:  dat$value  
-#> weights: listw    
-#> 
-#> Moran I statistic standard deviate = 398.31, p-value < 2.2e-16
-#> alternative hypothesis: greater
-#> sample estimates:
-#> Moran I statistic       Expectation          Variance 
-#>      1.759822e-01     -2.357479e-06      1.952141e-07
 ```
 
 ## Local Moran’s I
@@ -256,8 +213,6 @@ ms4a1LocalMoranPlot <- plotSpatialLocalMoran(
 cowplot::plot_grid(cd3eLocalMoranPlot, ms4a1LocalMoranPlot, ncol = 2)
 ```
 
-![](/dartfs/rc/lab/H/HoehnK/Hunter/spatial_bcr_tcr_package/SIRAP/docs/readthedocs/markdown/spatial-expression-and-colocalization_files/figure-gfm/local-moran-1.png)<!-- -->
-
 ## Ripley’s Cross K
 
 Ripley’s cross K compares the observed spatial relationship between two
@@ -293,11 +248,6 @@ cd3eTcrK <- spatialRipleyCrossK(
   nsim = ripleyNsim,
   max_r = 1000
 )
-#> Generating 10 simulations by evaluating expression  ...
-#> 1, 2, 3, 4, 5, 6, 7, 8, 9, 
-#> 10.
-#> 
-#> Done.
 
 cd3eTcrKPlot <- plotRipleyCrossK(
   cd3eTcrK,
@@ -313,11 +263,6 @@ ms4a1BcrK <- spatialRipleyCrossK(
   nsim = ripleyNsim,
   max_r = 1000
 )
-#> Generating 10 simulations by evaluating expression  ...
-#> 1, 2, 3, 4, 5, 6, 7, 8, 9, 
-#> 10.
-#> 
-#> Done.
 
 ms4a1BcrKPlot <- plotRipleyCrossK(
   ms4a1BcrK,
@@ -327,8 +272,6 @@ ms4a1BcrKPlot <- plotRipleyCrossK(
 
 cowplot::plot_grid(cd3eTcrKPlot, ms4a1BcrKPlot, ncol = 2)
 ```
-
-![](/dartfs/rc/lab/H/HoehnK/Hunter/spatial_bcr_tcr_package/SIRAP/docs/readthedocs/markdown/spatial-expression-and-colocalization_files/figure-gfm/ripley-cross-k-1.png)<!-- -->
 
 ## Other Spatial Plotting Patterns
 
@@ -341,7 +284,7 @@ spatialExpressionBlendPlot(
   features = c("CXCR4", "CXCR5"),
   assay = "Spatial.008um",
   layer = "counts",
-  pt.size.factor = 0.2,
+  point_size = 0.2,
   only_blended = TRUE,
   top_left = "blue",
   bottom_left = "grey50",
@@ -349,5 +292,3 @@ spatialExpressionBlendPlot(
   top_right = "green"
 )
 ```
-
-![](/dartfs/rc/lab/H/HoehnK/Hunter/spatial_bcr_tcr_package/SIRAP/docs/readthedocs/markdown/spatial-expression-and-colocalization_files/figure-gfm/blend-1.png)<!-- -->

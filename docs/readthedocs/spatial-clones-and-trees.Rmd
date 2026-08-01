@@ -74,14 +74,12 @@ resulting data frames to SIRAP plotting functions.
 bcrClones <- scoper::hierarchicalClones(
   filter(bcrTopBarcode, productive),
   threshold = 0.1,
-  cell_id = "sequence_id",
   summarize_clones = FALSE,
   nproc = nproc
 )
 
 tcrClones <- scoper::identicalClones(
   filter(tcrTopBarcode, productive),
-  cell_id = "sequence_id",
   summarize_clones = FALSE,
   nproc = nproc
 )
@@ -135,10 +133,10 @@ bcrClonePlots <- lapply(
   function(cloneId) {
     plotReceptors(
       object = thymus,
-      receptors = filter(bcrClones, .data$clone_id == .env$cloneId),
-      group_col = "clone_id",
-      values = cloneId,
-      barcode_col = "barcode_8um",
+      receptors = filter(bcrClones, .data$clone_val == .env$cloneId),
+      group = "clone_id",
+      group_val = cloneId,
+      barcode = "barcode_8um",
       colors = "#2c7fb8",
       receptor_size = 1.7,
       title = paste("BCR clone", cloneId)
@@ -151,10 +149,10 @@ tcrClonePlots <- lapply(
   function(cloneId) {
     plotReceptors(
       object = thymus,
-      receptors = filter(tcrClones, .data$clone_id == .env$cloneId),
-      group_col = "clone_id",
-      values = cloneId,
-      barcode_col = "barcode_8um",
+      receptors = filter(tcrClones, .data$clone_val == .env$cloneId),
+      group = "clone_id",
+      group_val = cloneId,
+      barcode = "barcode_8um",
       colors = "#d95f02",
       receptor_size = 1.7,
       title = paste("TCR clone", cloneId)
@@ -216,9 +214,11 @@ each tip gets its own color.
 pairedTreeSpatialPlots <- plotSpatialCloneTreePairs(
   bcrTrees,
   object = thymus,
-  barcode_col = "barcode_8um",
-  clone_ids = bcrCloneIds,
-  id_col = "sequence_id",
+  barcode = "barcode_8um",
+  clone_val = bcrCloneIds,
+  id = "sequence_id",
+  image_scale = "hires",
+  swap_coords = FALSE,
   treescale = 0.01,
   zoom = FALSE
 )
@@ -241,16 +241,18 @@ tree and spatial plot by genetically similar tip groups.
 bcrTreesClustered <- clusterTreesTips(
   bcrTrees,
   k = 6,
-  id_col = "sequence_id",
-  cluster_col = "tree_cluster"
+  id = "sequence_id",
+  cluster = "tree_cluster"
 )
 
 pairedTreeSpatialClusterPlots <- plotSpatialCloneTreePairs(
   bcrTreesClustered,
   object = thymus,
-  barcode_col = "barcode_8um",
-  clone_ids = bcrCloneIds,
-  id_col = "sequence_id",
+  barcode = "barcode_8um",
+  clone_val = bcrCloneIds,
+  id = "sequence_id",
+  image_scale = "hires",
+  swap_coords = FALSE,
   color_by = "tree_cluster",
   treescale = 0.01,
   zoom = FALSE
@@ -272,8 +274,8 @@ If you want SIRAP to choose a separate cluster number for each tree, set
 bcrTreesAutoClustered <- clusterTreesTips(
   bcrTrees,
   k = "auto",
-  id_col = "sequence_id",
-  cluster_col = "tree_cluster",
+  id = "sequence_id",
+  cluster = "tree_cluster",
   k_range = 1:8,
   improvement_threshold = 0.10
 )

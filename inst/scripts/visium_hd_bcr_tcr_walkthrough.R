@@ -123,8 +123,8 @@ dim(tcrRaw)
 
 bcrRaw <- extractSpatialBarcodes(
   bcrRaw,
-  sequence_id_col = "sequence_id",
-  barcode_col = "barcode_2um",
+  id = "sequence_id",
+  barcode = "barcode_2um",
   regex = "[0-9]+_[0-9]+$",
   prefix = "s_002um_",
   suffix = "-1"
@@ -132,31 +132,31 @@ bcrRaw <- extractSpatialBarcodes(
 
 tcrRaw <- extractSpatialBarcodes(
   tcrRaw,
-  sequence_id_col = "sequence_id",
-  barcode_col = "barcode_2um",
+  id = "sequence_id",
+  barcode = "barcode_2um",
   regex = "[0-9]+_[0-9]+$",
   prefix = "s_002um_",
   suffix = "-1"
 )
 
-bcrHeavy <- filterSpatialAirr(
+bcrHeavy <- filterAirr(
   bcrRaw,
-  loci = "IGH",
+  locus_val = "IGH",
   min_v_length = 100,
   min_j_length = 10,
   min_junction_length = 1,
-  barcode_col = "barcode_2um",
+  barcode = "barcode_2um",
   add_full_id = TRUE
 )
 cat("Kept BCR heavy chains: ", nrow(bcrHeavy), "\n")
 
-tcrBeta <- filterSpatialAirr(
+tcrBeta <- filterAirr(
   tcrRaw,
-  loci = "TRB",
+  locus_val = "TRB",
   min_v_length = 100,
   min_j_length = 10,
   min_junction_length = 1,
-  barcode_col = "barcode_2um",
+  barcode = "barcode_2um",
   add_full_id = TRUE
 )
 cat("Kept TCR beta chains: ", nrow(tcrBeta), "\n")
@@ -175,10 +175,10 @@ dowser::dfToFasta(bcrHeavy, file = bcrHeavySpatialFasta, id = "full_id", seq = "
 dowser::dfToFasta(tcrBeta, file = tcrBetaSpatialFasta, id = "full_id", seq = "sequence_alignment")
 
 # Summarize pre and post filtering
-spatialReceptorSummary(bcrRaw, barcode_col = "barcode_2um")
-spatialReceptorSummary(bcrHeavy, barcode_col = "barcode_2um")
-spatialReceptorSummary(tcrRaw, barcode_col = "barcode_2um")
-spatialReceptorSummary(bcrHeavy, barcode_col = "barcode_2um")
+spatialReceptorSummary(bcrRaw, barcode = "barcode_2um")
+spatialReceptorSummary(bcrHeavy, barcode = "barcode_2um")
+spatialReceptorSummary(tcrRaw, barcode = "barcode_2um")
+spatialReceptorSummary(bcrHeavy, barcode = "barcode_2um")
 
 # Plot the distribution of v, j, and junction lengths before and after filtering if requested
 if (savePlots) {
@@ -300,43 +300,43 @@ if (requireNamespace("airr", quietly = TRUE)) {
 # Get the spatial barcode back out of the sequence_id
 bcrConsensus <- extractSpatialBarcodes(
   bcrConsensus,
-  sequence_id_col = "sequence_id",
-  barcode_col = "barcode_2um",
+  id = "sequence_id",
+  barcode = "barcode_2um",
   regex = ",([^,]+)"
 )
 
 tcrConsensus <- extractSpatialBarcodes(
   tcrConsensus,
-  sequence_id_col = "sequence_id",
-  barcode_col = "barcode_2um",
+  id = "sequence_id",
+  barcode = "barcode_2um",
   regex = ",([^,]+)"
 )
 
 # Filter the consensus output further based on sequence v_length, j_length, junction length, productivity, and consensus cluster count
 # Also don't accept any sequences with an opening gap of more than 2
-bcrConsensusFiltered <- filterSpatialAirr(
+bcrConsensusFiltered <- filterAirr(
   bcrConsensus,
-  loci = "IGH",
+  locus_val = "IGH",
   min_v_length = 250,
   min_j_length = 30,
   min_junction_length = 10,
   productive_only = TRUE,
   min_consensus_count = 2,
   max_opening_gap = 2,
-  barcode_col = "barcode_2um"
+  barcode = "barcode_2um"
 )
 cat("Kept BCR consensus sequences after filtering: ", nrow(bcrConsensusFiltered), "\n")
 
-tcrConsensusFiltered <- filterSpatialAirr(
+tcrConsensusFiltered <- filterAirr(
   tcrConsensus,
-  loci = "TRB",
+  locus_val = "TRB",
   min_v_length = 250,
   min_j_length = 30,
   min_junction_length = 10,
   productive_only = TRUE,
   min_consensus_count = 2,
   max_opening_gap = 2,
-  barcode_col = "barcode_2um"
+  barcode = "barcode_2um"
 )
 cat("Kept TCR consensus sequences after filtering: ", nrow(tcrConsensusFiltered), "\n")
 
@@ -362,19 +362,19 @@ tcrConsensusFiltered <- tcrConsensusFiltered %>%
 bcrConsensusFilteredPos <- addTissuePositions(
   bcrConsensusFiltered,
   positions8um,
-  barcode_col = "barcode_8um",
-  position_barcode_col = "barcode_8um",
-  x_col = "x",
-  y_col = "y"
+  barcode = "barcode_8um",
+  position_barcode = "barcode_8um",
+  x = "x",
+  y = "y"
 ) %>% filter(!is.na(x), !is.na(y))
 
 tcrConsensusFilteredPos <- addTissuePositions(
   tcrConsensusFiltered,
   positions8um,
-  barcode_col = "barcode_8um",
-  position_barcode_col = "barcode_8um",
-  x_col = "x",
-  y_col = "y"
+  barcode = "barcode_8um",
+  position_barcode = "barcode_8um",
+  x = "x",
+  y = "y"
 ) %>% filter(!is.na(x), !is.na(y))
 
 # We want to collapse identical sequences in contiguous clusters together so as to remove bleedover from sequencing
@@ -400,11 +400,13 @@ if (remove_bleed_example) {
       seqPlot <- plotReceptors(
         object = thymus,
         receptors = seqMatches,
-        group_col = "sequence_alignment",
-        values = seq,
-        barcode_col = "barcode_8um",
+        group = "sequence_alignment",
+        group_val = seq,
+        barcode = "barcode_8um",
         colors = "#2c7fb8",
         receptor_size = 1.2,
+        image_scale = "hires",
+        swap_coords = FALSE,
         title = paste("Identical sequence:", seq)
       )
       plots[[seqName]] <- seqPlot
@@ -417,13 +419,13 @@ if (remove_bleed_example) {
   # Get the adjacency matrix 
 
   bcrConsensusFilteredPosSpatialCollapse <- collapseIdenticalNeighbors(
-    data = bcrConsensusFilteredPos,
-    tissue_positions = positions8um,
+    bcrConsensusFilteredPos,
+    seurat_object = thymus,
     barcode = "barcode_8um",
-    x = "x",
-    y = "y",
     sequence = "sequence_alignment",
     consensus_count = "consensus_count",
+    image_scale = "hires",
+    swap_coords = FALSE,
     num_neighbors_non_boundary = 8L
   )
 
@@ -438,11 +440,13 @@ if (remove_bleed_example) {
       seqPlot <- plotReceptors(
         object = thymus,
         receptors = seqMatches,
-        group_col = "sequence_alignment",
-        values = seq,
-        barcode_col = "barcode_8um",
+        group = "sequence_alignment",
+        group_val = seq,
+        barcode = "barcode_8um",
         colors = "#2c7fb8",
         receptor_size = 1.2,
+        image_scale = "hires",
+        swap_coords = FALSE,
         title = paste("Identical sequence:", seq)
       )
       plots[[seqName]] <- seqPlot
@@ -453,31 +457,31 @@ if (remove_bleed_example) {
 }
 
 bcrConsensusFilteredPosSpatialCollapse <- collapseIdenticalNeighbors(
-  data = bcrConsensusFilteredPos,
-  tissue_positions = positions8um,
+  bcrConsensusFilteredPos,
+  seurat_object = thymus,
   barcode = "barcode_8um",
-  x = "x",
-  y = "y",
   sequence = "sequence_alignment",
   consensus_count = "consensus_count",
+  image_scale = "hires",
+  swap_coords = FALSE,
   num_neighbors_non_boundary = 8L
 )
 
 tcrConsensusFilteredPosSpatialCollapse <- collapseIdenticalNeighbors(
-  data = tcrConsensusFilteredPos,
-  tissue_positions = positions8um,
+  tcrConsensusFilteredPos,
+  seurat_object = thymus,
   barcode = "barcode_8um",
-  x = "x",
-  y = "y",
   sequence = "sequence_alignment",
   consensus_count = "consensus_count",
+  image_scale = "hires",
+  swap_coords = FALSE,
   num_neighbors_non_boundary = 8L
 )
 
 
 # Get one consensus sequence per barcode (most present in barcode) at 2um level
-bcrTopBarcode <- collapseTopConsensusPerBarcode(bcrConsensusFilteredPosSpatialCollapse, barcode_col = "barcode_2um", locus_col = "locus", ties = "all")
-tcrTopBarcode <- collapseTopConsensusPerBarcode(tcrConsensusFilteredPosSpatialCollapse, barcode_col = "barcode_2um", locus_col = "locus", ties = "all")
+bcrTopBarcode <- collapseTopConsensusPerBarcode(bcrConsensusFilteredPosSpatialCollapse, barcode = "barcode_2um", locus = "locus", ties = "all")
+tcrTopBarcode <- collapseTopConsensusPerBarcode(tcrConsensusFilteredPosSpatialCollapse, barcode = "barcode_2um", locus = "locus", ties = "all")
 
 
 if (requireNamespace("airr", quietly = TRUE)) {
@@ -489,8 +493,8 @@ if (requireNamespace("airr", quietly = TRUE)) {
 }
 
 list(
-  bcr = spatialReceptorSummary(bcrTopBarcode, barcode_col = "barcode_2um"),
-  tcr = spatialReceptorSummary(tcrTopBarcode, barcode_col = "barcode_2um")
+  bcr = spatialReceptorSummary(bcrTopBarcode, barcode = "barcode_2um"),
+  tcr = spatialReceptorSummary(tcrTopBarcode, barcode = "barcode_2um")
 )
 
 postPrestoQcPlot <- cowplot::plot_grid(
@@ -529,11 +533,13 @@ if (!is.null(thymus)) {
   allBCRPlot <- plotReceptors(
     object = thymus,
     receptors = dplyr::mutate(bcrTopBarcode, receptor_type = "BCR"),
-    group_col = "receptor_type",
-    values = "BCR",
-    barcode_col = "barcode_8um",
+    group = "receptor_type",
+    group_val = "BCR",
+    barcode = "barcode_8um",
     colors = "white",
     receptor_size = 0.5,
+    image_scale = "hires",
+    swap_coords = FALSE,
     title = paste(sampleId, "all BCR-positive spots")
   )
   if (savePlots) {
@@ -543,11 +549,13 @@ if (!is.null(thymus)) {
   allTCRPlot <- plotReceptors(
     object = thymus,
     receptors = dplyr::mutate(tcrTopBarcode, receptor_type = "TCR"),
-    group_col = "receptor_type",
-    values = "TCR",
-    barcode_col = "barcode_8um",
+    group = "receptor_type",
+    group_val = "TCR",
+    barcode = "barcode_8um",
     colors = "#d95f02",
     receptor_size = 0.5,
+    image_scale = "hires",
+    swap_coords = FALSE,
     title = paste(sampleId, "all TCR-positive spots")
   )
   if (savePlots) {
@@ -568,6 +576,7 @@ if (!is.null(thymus)) {
     meta_col = "sirap_receptor_type",
     zero_value = "0",
     image_scale = "hires",
+    swap_coords = FALSE,
     point_size = 0.5,
     cols = c("BCR" = "#2c7fb8", "TCR" = "#d95f02", "BCR + TCR" = "white")
   ) +
@@ -595,32 +604,36 @@ if (!is.null(thymus)) {
     bcrGenePlot <- plotReceptorsExpression(
       object = thymus,
       receptors = dplyr::mutate(bcrTopBarcode, receptor_type = "BCR"),
-      group_col = "receptor_type",
-      values = "BCR",
+      group = "receptor_type",
+      group_val = "BCR",
       gene = gene,
-      barcode_col = "barcode_8um",
+      barcode = "barcode_8um",
       colors = "#2c7fb8",
       receptor_size = 0.5,
       receptor_stroke = 0.25,
       receptor_alpha = 0.8,
       feature_size = 0.5,
       feature_alpha = 0.8,
+      image_scale = "hires",
+      swap_coords = FALSE,
       title = paste(gene, "expression with BCR spots")
     ) 
 
     tcrGenePlot <- plotReceptorsExpression(
       object = thymus,
       receptors = dplyr::mutate(tcrTopBarcode, receptor_type = "TCR"),
-      group_col = "receptor_type",
-      values = "TCR",
+      group = "receptor_type",
+      group_val = "TCR",
       gene = gene,
-      barcode_col = "barcode_8um",
+      barcode = "barcode_8um",
       colors = "#d95f02",
       receptor_size = 0.5,
       receptor_stroke = 0.25,
       receptor_alpha = 0.8,
       feature_size = 0.5,
       feature_alpha = 0.8,
+      image_scale = "hires",
+      swap_coords = FALSE,
       title = paste(gene, "expression with TCR spots")
     )
 
@@ -646,6 +659,7 @@ if (!is.null(thymus)) {
     assay = "Spatial.008um",
     layer = "counts",
     image_scale = "hires",
+    swap_coords = FALSE,
     point_size = 0.2,
     only_blended = TRUE,
     top_left = "blue",
@@ -672,7 +686,9 @@ if (!is.null(thymus)) {
     variable = "BCR presence",
     variable_type = "receptor",
     receptors = bcrTopBarcode,
-    barcode_col = "barcode_8um",
+    barcode = "barcode_8um",
+    image_scale = "hires",
+    swap_coords = FALSE,
     # radius = spatialStatsRadius # Unadvisable to use the radius for visium HD data since nSpots is so high
     k = spatialStatsK # Instead use k-nearest neighbors
   )
@@ -684,6 +700,8 @@ if (!is.null(thymus)) {
       variable = "CD79A",
       variable_type = "feature",
       layer = "counts",
+      image_scale = "hires",
+      swap_coords = FALSE,
       k = spatialStatsK
     )
     cd79aExpressionMoran$test
@@ -698,6 +716,8 @@ if (!is.null(thymus)) {
       thymus,
       variable = "CD79A_positive",
       variable_type = "metadata",
+      image_scale = "hires",
+      swap_coords = FALSE,
       k = spatialStatsK
     )
     cd79aPositiveMoran$test
@@ -707,11 +727,15 @@ if (!is.null(thymus)) {
       variable = "AICDA",
       variable_type = "feature",
       layer = "counts",
+      image_scale = "hires",
+      swap_coords = FALSE,
       k = spatialStatsK
     )
     aicdaLocalMoranPlot <- plotSpatialLocalMoran(
       thymus,
       aicdaLocalMoran,
+      image_scale = "hires",
+      swap_coords = FALSE,
       point_size = 0.55,
       title = paste(sampleId, "AICDA local Moran's I z-score")
     )
@@ -728,6 +752,8 @@ if (!is.null(thymus)) {
       variable = "seurat_clusters",
       variable_type = "metadata",
       value = clusterToTest,
+      image_scale = "hires",
+      swap_coords = FALSE,
       radius = spatialStatsRadius
     )
     clusterMoran$test
@@ -738,6 +764,8 @@ if (!is.null(thymus)) {
     meta_col = "sirap_receptor_type",
     zero_value = "0",
     cols = c("BCR" = "#2c7fb8", "TCR" = "#d95f02", "BCR + TCR" = "white"),
+    image_scale = "hires",
+    swap_coords = FALSE,
     point_size = 0.5
   ) +
     ggtitle(paste(sampleId, "BCR, TCR, and dual-positive spots"))
@@ -751,7 +779,9 @@ if (!is.null(thymus)) {
     i = "BCR",
     j = "TCR",
     nsim = ripleyNsim,
-    max_r = 1000
+    max_r = 1000,
+    image_scale = "hires",
+    swap_coords = FALSE
   )
   bcrTcrKPlot <- plotRipleyCrossK(bcrTcrK, title = paste(sampleId, "Ripley's cross K: BCR to TCR"))
   if (savePlots) {
@@ -768,7 +798,9 @@ thy2K <- spatialRipleyCrossK(
   i = "GC B",
   j = "CHRNA1+ mTEC",
   nsim = 99,
-  max_r = 2500
+  max_r = 2500,
+  image_scale = "hires",
+  swap_coords = FALSE
 )
 thy2KPlot <- plotRipleyCrossK(thy2K, title = paste(sampleId, "Ripley's cross K: GC B to CHRNA1+ mTEC"))
 ggsave(file.path(plotDir, sprintf("%s_thy2_gc_b_chrna1_mtec_ripley_cross_k.png", sampleLower)), thy2KPlot, width = 6, height = 4, dpi = 300)
@@ -803,7 +835,9 @@ dev.off()
       mark_col = "sirap_receptor_type",
       i = "BCR",
       j = "BCR + TCR",
-      nsim = ripleyNsim
+      nsim = ripleyNsim,
+      image_scale = "hires",
+      swap_coords = FALSE
     )
     bcrDualPositiveKPlot <- plotRipleyCrossK(bcrDualPositiveK, title = paste(sampleId, "Ripley's cross K: BCR to BCR + TCR"))
     if (savePlots) {
@@ -877,11 +911,13 @@ if (!is.null(thymus)) {
       plotReceptors(
         object = thymus,
         receptors = filter(bcrClones, .data$clone_id == .env$cloneId),
-        group_col = "clone_id",
-        values = cloneId,
-        barcode_col = "barcode_8um",
+        group = "clone_id",
+        group_val = cloneId,
+        barcode = "barcode_8um",
         colors = "#2c7fb8",
         receptor_size = 1.7,
+        image_scale = "hires",
+        swap_coords = FALSE,
         title = paste("BCR clone", cloneId)
       )
     }
@@ -902,11 +938,13 @@ if (!is.null(thymus)) {
       plotReceptors(
         object = thymus,
         receptors = filter(tcrClones, .data$clone_id == .env$cloneId),
-        group_col = "clone_id",
-        values = cloneId,
-        barcode_col = "barcode_8um",
+        group = "clone_id",
+        group_val = cloneId,
+        barcode = "barcode_8um",
         colors = "#d95f02",
         receptor_size = 1.7,
+        image_scale = "hires",
+        swap_coords = FALSE,
         title = paste("TCR clone", cloneId)
       )
     }
@@ -967,8 +1005,8 @@ treeTipClusterK <- 6
 bcrTreesClustered <- clusterTreesTips(
   bcrTrees,
   k = treeTipClusterK,
-  id_col = "sequence_id",
-  cluster_col = "tree_cluster"
+  id = "sequence_id",
+  cluster = "tree_cluster"
 )
 bcrTreesClustered$tree_cluster_k
 
@@ -978,9 +1016,11 @@ if (is.null(thymus)) {
   pairedTreeSpatialPlots <- plotSpatialCloneTreePairs(
     bcrTrees,
     object = thymus,
-    barcode_col = "barcode_8um",
-    clone_ids = bcrCloneIds,
-    id_col = "sequence_id",
+    barcode = "barcode_8um",
+    clone_val = bcrCloneIds,
+    id = "sequence_id",
+    image_scale = "hires",
+    swap_coords = FALSE,
     treescale = 0.01,
     zoom = FALSE
   )
@@ -988,10 +1028,12 @@ if (is.null(thymus)) {
   pairedTreeSpatialClusterPlots <- plotSpatialCloneTreePairs(
     bcrTreesClustered,
     object = thymus,
-    barcode_col = "barcode_8um",
-    clone_ids = bcrCloneIds,
-    id_col = "sequence_id",
+    barcode = "barcode_8um",
+    clone_val = bcrCloneIds,
+    id = "sequence_id",
     color_by = "tree_cluster",
+    image_scale = "hires",
+    swap_coords = FALSE,
     treescale = 0.01,
     zoom = FALSE
   )
@@ -1169,6 +1211,7 @@ if (runClonalDominance) {
       object = thymus,
       feature = dominanceFeature,
       image_scale = "hires",
+      swap_coords = FALSE,
       save_path = gcMantlePolygonPath,
       downsample_n = dominanceDownsampleN,
       host = dominanceShinyHost,
@@ -1191,6 +1234,7 @@ if (runClonalDominance) {
       object = thymus,
       feature = dominanceFeature,
       image_scale = "hires",
+      swap_coords = FALSE,
       save_path = gcPolygonPath,
       downsample_n = dominanceDownsampleN,
       host = dominanceShinyHost,
@@ -1213,6 +1257,7 @@ if (runClonalDominance) {
       object = thymus,
       feature = dominanceFeature,
       image_scale = "hires",
+      swap_coords = FALSE,
       save_path = allGcsPolygonsPath,
       downsample_n = dominanceDownsampleN,
       host = dominanceShinyHost,
@@ -1226,6 +1271,7 @@ if (runClonalDominance) {
     object = thymus,
     polygon = allGcsPolygons,
     image_scale = "hires",
+    swap_coords = FALSE,
     polygon_alpha = 0.2
   )
   ggsave(
@@ -1242,23 +1288,27 @@ if (runClonalDominance) {
     )
 
   clonalDominance <- spatialCloneDominance(
-    bcrs = dominanceBcrs,
+    receptors = dominanceBcrs,
     object = thymus,
     polygon = allGcsPolygons,
-    barcode_col = "barcode_8um",
-    clone_col = "spaced_clone_id",
-    locus_col = "chain_for_pairing",
-    locus = "heavy"
+    barcode = "barcode_8um",
+    clone = "spaced_clone_id",
+    locus = "chain_for_pairing",
+    locus_val = "heavy",
+    image_scale = "hires",
+    swap_coords = FALSE
   )
 
   clonalDominanceNoSingletons <- spatialCloneDominance(
-    bcrs = dominanceBcrs,
+    receptors = dominanceBcrs,
     object = thymus,
     polygon = allGcsPolygons,
-    barcode_col = "barcode_8um",
-    clone_col = "spaced_clone_id",
-    locus_col = "chain_for_pairing",
-    locus = "heavy",
+    barcode = "barcode_8um",
+    clone = "spaced_clone_id",
+    locus = "chain_for_pairing",
+    locus_val = "heavy",
+    image_scale = "hires",
+    swap_coords = FALSE,
     exclude_singletons = TRUE
   )
 
@@ -1276,7 +1326,9 @@ if (runClonalDominance) {
   bcrClonePlot <- plotSpatialRegionReceptors(
     clonalDominance,
     object = thymus,
-    color_by = "clone_id",
+    color = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE,
     top_n = 20,
     point_size = 0.5,
     point_alpha = 0.5,
@@ -1292,7 +1344,9 @@ if (runClonalDominance) {
   bcrVGenePlot <- plotSpatialRegionReceptors(
     clonalDominance,
     object = thymus,
-    color_by = "v_gene",
+    color = "v_gene",
+    image_scale = "hires",
+    swap_coords = FALSE,
     top_n = 20,
     point_size = 0.8,
     point_alpha = 0.75,
@@ -1308,7 +1362,9 @@ if (runClonalDominance) {
   bcrVFamilyPlot <- plotSpatialRegionReceptors(
     clonalDominance,
     object = thymus,
-    color_by = "v_gene_family",
+    color = "v_gene_family",
+    image_scale = "hires",
+    swap_coords = FALSE,
     top_n = 20,
     point_size = 0.8,
     point_alpha = 0.75,
@@ -1324,7 +1380,9 @@ if (runClonalDominance) {
   bcrVSuperfamilyPlot <- plotSpatialRegionReceptors(
     clonalDominance,
     object = thymus,
-    color_by = "v_gene_superfamily",
+    color = "v_gene_superfamily",
+    image_scale = "hires",
+    swap_coords = FALSE,
     point_size = 0.8,
     point_alpha = 0.75,
     polygon_alpha = 0.08
@@ -1339,8 +1397,10 @@ if (runClonalDominance) {
   clonePies <- plotSpatialPolygonPies(
     clonalDominance,
     object = thymus,
-    fill_by = "clone_id",
+    fill = "clone_id",
     mode = "side_by_side",
+    image_scale = "hires",
+    swap_coords = FALSE,
     top_n = 10,
     label_top_n = 5,
     polygon_alpha = 0.2
@@ -1355,8 +1415,10 @@ if (runClonalDominance) {
   vFamilyPies <- plotSpatialPolygonPies(
     clonalDominance,
     object = thymus,
-    fill_by = "v_gene_family",
+    fill = "v_gene_family",
     mode = "side_by_side",
+    image_scale = "hires",
+    swap_coords = FALSE,
     top_n = 10,
     label_top_n = 10,
     polygon_alpha = 0.2
@@ -1371,8 +1433,10 @@ if (runClonalDominance) {
   vSuperfamilyPies <- plotSpatialPolygonPies(
     clonalDominance,
     object = thymus,
-    fill_by = "v_gene_superfamily",
+    fill = "v_gene_superfamily",
     mode = "side_by_side",
+    image_scale = "hires",
+    swap_coords = FALSE,
     top_n = 10,
     label_top_n = 10,
     polygon_alpha = 0.2
@@ -1388,8 +1452,10 @@ if (runClonalDominance) {
     cloneSpatialPies <- plotSpatialPolygonPies(
       clonalDominance,
       object = thymus,
-      fill_by = "clone_id",
+      fill = "clone_id",
       mode = "spatial_clipped",
+      image_scale = "hires",
+      swap_coords = FALSE,
       top_n = 10,
       label_top_n = 0,
       pie_alpha = 0.9
@@ -1404,8 +1470,10 @@ if (runClonalDominance) {
     vFamilySpatialPies <- plotSpatialPolygonPies(
       clonalDominance,
       object = thymus,
-      fill_by = "v_gene_family",
+      fill = "v_gene_family",
       mode = "spatial_clipped",
+      image_scale = "hires",
+      swap_coords = FALSE,
       top_n = 10,
       label_top_n = 0,
       pie_alpha = 0.9
@@ -1420,8 +1488,10 @@ if (runClonalDominance) {
     vSuperfamilySpatialPies <- plotSpatialPolygonPies(
       clonalDominance,
       object = thymus,
-      fill_by = "v_gene_superfamily",
+      fill = "v_gene_superfamily",
       mode = "spatial_clipped",
+      image_scale = "hires",
+      swap_coords = FALSE,
       top_n = 10,
       label_top_n = 0,
       pie_alpha = 0.9,

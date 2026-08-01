@@ -7,8 +7,8 @@
 clusterTreeTips(
   tree,
   k,
-  id_col = "sequence_id",
-  cluster_col = "tree_cluster",
+  id = "sequence_id",
+  cluster = "tree_cluster",
   ignore_tips = "Germline",
   prefix = "tree_cluster_",
   method = c("split_largest_subtrees", "cut_largest_branches"),
@@ -23,9 +23,9 @@ clusterTreeTips(
 removed. If larger than the number of tips in the tree, a warning is
 raised and \code{k} is set to the number of tips for that tree.}
 
-\item{id_col}{Name of the returned tip identifier column.}
+\item{id}{Name of the returned tip identifier column.}
 
-\item{cluster_col}{Name of the returned cluster column.}
+\item{cluster}{Name of the returned cluster column.}
 
 \item{ignore_tips}{Optional tip labels to drop from the returned data frame,
 for example \code{"Germline"}.}

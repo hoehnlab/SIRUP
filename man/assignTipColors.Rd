@@ -6,21 +6,21 @@
 \usage{
 assignTipColors(
   clones,
-  clone_ids = NULL,
-  clone_col = "clone_id",
-  id_col = "sequence_id",
-  shared_color_col = NULL,
+  clone_val = NULL,
+  clone = "clone_id",
+  id = "sequence_id",
+  shared_color = NULL,
   palette = NULL
 )
 }
 \arguments{
 \item{clones}{Clone-assigned AIRR data frame.}
 
-\item{clone_ids}{Optional clone IDs to retain before assigning colors.}
+\item{clone_val}{Optional clone IDs to retain before assigning colors.}
 
-\item{clone_col, id_col}{Column names for clone and sequence/tip identifiers.}
+\item{clone, id}{Column names for clone and sequence/tip identifiers.}
 
-\item{shared_color_col}{Optional column whose shared values should receive
+\item{shared_color}{Optional column whose shared values should receive
 the same tip color within each clone, for example a spatial barcode column.}
 
 \item{palette}{Optional color vector. Defaults to \code{pals::glasbey()} when

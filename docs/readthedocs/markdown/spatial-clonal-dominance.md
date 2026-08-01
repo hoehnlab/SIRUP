@@ -55,7 +55,6 @@ if (file.exists(bcrClonesPath)) {
   bcrClones <- scoper::hierarchicalClones(
     filter(bcrTopBarcode, productive),
     threshold = 0.1,
-    cell_id = "sequence_id",
     summarize_clones = FALSE,
     nproc = nproc
   )
@@ -78,9 +77,9 @@ the port from your laptop. For example:
 ssh -N -L 8788:t01.hpcc.dartmouth.edu:8788 f007p0j@discovery.dartmouth.edu
 ```
 
-Then open <http://127.0.0.1:8788> in your laptop browser. Use
-`host = "0.0.0.0"` when Shiny is running on the compute node and the
-browser connection arrives through the login node tunnel.
+Then open <http://127.0.0.1:8788> in your laptop browser. Use `host =
+"0.0.0.0"` when Shiny is running on the compute node and the browser
+connection arrives through the login node tunnel.
 
 ``` r
 gcMantlePolygonPath <- file.path(
@@ -118,6 +117,7 @@ if (file.exists(gcMantlePolygonPath)) {
     object = thymus,
     feature = dominanceFeature,
     image_scale = "hires",
+    swap_coords = FALSE,
     save_path = gcMantlePolygonPath,
     downsample_n = dominanceDownsampleN,
     host = dominanceShinyHost,
@@ -143,6 +143,7 @@ if (file.exists(gcPolygonPath)) {
     object = thymus,
     feature = dominanceFeature,
     image_scale = "hires",
+    swap_coords = FALSE,
     save_path = gcPolygonPath,
     downsample_n = dominanceDownsampleN,
     host = dominanceShinyHost,
@@ -170,6 +171,7 @@ if (file.exists(allGcsPolygonsPath)) {
     object = thymus,
     feature = dominanceFeature,
     image_scale = "hires",
+    swap_coords = FALSE,
     save_path = allGcsPolygonsPath,
     downsample_n = dominanceDownsampleN,
     host = dominanceShinyHost,
@@ -188,6 +190,7 @@ allGcsPolygonOverlay <- plotSpatialPolygons(
   object = thymus,
   polygon = allGcsPolygons,
   image_scale = "hires",
+  swap_coords = FALSE,
   polygon_alpha = 0.2
 )
 
@@ -213,23 +216,27 @@ dominanceBcrs <- bcrClones %>%
   )
 
 clonalDominance <- spatialCloneDominance(
-  bcrs = dominanceBcrs,
+  receptors = dominanceBcrs,
   object = thymus,
   polygon = allGcsPolygons,
-  barcode_col = "barcode_8um",
-  clone_col = "spaced_clone_id",
-  locus_col = "chain_for_pairing",
-  locus = "heavy"
+  barcode = "barcode_8um",
+  clone = "spaced_clone_id",
+  locus = "chain_for_pairing",
+  locus_val = "heavy",
+  image_scale = "hires",
+  swap_coords = FALSE
 )
 
 clonalDominanceNoSingletons <- spatialCloneDominance(
-  bcrs = dominanceBcrs,
+  receptors = dominanceBcrs,
   object = thymus,
   polygon = allGcsPolygons,
-  barcode_col = "barcode_8um",
-  clone_col = "spaced_clone_id",
-  locus_col = "chain_for_pairing",
-  locus = "heavy",
+  barcode = "barcode_8um",
+  clone = "spaced_clone_id",
+  locus = "chain_for_pairing",
+  locus_val = "heavy",
+  image_scale = "hires",
+  swap_coords = FALSE,
   exclude_singletons = TRUE
 )
 
@@ -238,12 +245,12 @@ head(clonalDominance$dominance)
 
 The returned object contains:
 
-- `dominance`: clone counts and proportions for each polygon.
-- `region_barcodes`: spatial barcodes inside each polygon.
-- `region_coordinates`: spatial coordinate rows inside each polygon.
-- `region_bcrs`: BCR rows inside each polygon, with plotting coordinates
-  and V-gene summaries.
-- `polygons`: polygon vertices prepared for plotting.
+  - `dominance`: clone counts and proportions for each polygon.
+  - `region_barcodes`: spatial barcodes inside each polygon.
+  - `region_coordinates`: spatial coordinate rows inside each polygon.
+  - `region_receptors`: BCR rows inside each polygon, with plotting
+    coordinates and V-gene summaries.
+  - `polygons`: polygon vertices prepared for plotting.
 
 `dominance` includes allele-level `v_gene`, allele-stripped
 `v_gene_family`, and broad `v_gene_superfamily` values for each clone.
@@ -261,7 +268,9 @@ levels and groups lower-frequency levels as `Other`.
 bcrClonePlot <- plotSpatialRegionReceptors(
   clonalDominance,
   object = thymus,
-  color_by = "clone_id",
+  color = "clone_id",
+  image_scale = "hires",
+  swap_coords = FALSE,
   top_n = 20,
   point_size = 0.5,
   point_alpha = 0.5,
@@ -277,7 +286,9 @@ ggsave(
 bcrVGenePlot <- plotSpatialRegionReceptors(
   clonalDominance,
   object = thymus,
-  color_by = "v_gene",
+  color = "v_gene",
+  image_scale = "hires",
+  swap_coords = FALSE,
   top_n = 20,
   point_size = 0.8,
   point_alpha = 0.75,
@@ -293,7 +304,9 @@ ggsave(
 bcrVFamilyPlot <- plotSpatialRegionReceptors(
   clonalDominance,
   object = thymus,
-  color_by = "v_gene_family",
+  color = "v_gene_family",
+  image_scale = "hires",
+  swap_coords = FALSE,
   top_n = 20,
   point_size = 0.8,
   point_alpha = 0.75,
@@ -309,7 +322,9 @@ ggsave(
 bcrVSuperfamilyPlot <- plotSpatialRegionReceptors(
   clonalDominance,
   object = thymus,
-  color_by = "v_gene_superfamily",
+  color = "v_gene_superfamily",
+  image_scale = "hires",
+  swap_coords = FALSE,
   point_size = 0.8,
   point_alpha = 0.75,
   polygon_alpha = 0.08
@@ -337,8 +352,10 @@ Other levels are grouped as `Other`.
 clonePies <- plotSpatialPolygonPies(
   clonalDominance,
   object = thymus,
-  fill_by = "clone_id",
+  fill = "clone_id",
   mode = "side_by_side",
+  image_scale = "hires",
+  swap_coords = FALSE,
   top_n = 10,
   label_top_n = 5,
   polygon_alpha = 0.2
@@ -353,8 +370,10 @@ ggsave(
 vFamilyPies <- plotSpatialPolygonPies(
   clonalDominance,
   object = thymus,
-  fill_by = "v_gene_family",
+  fill = "v_gene_family",
   mode = "side_by_side",
+  image_scale = "hires",
+  swap_coords = FALSE,
   top_n = 10,
   label_top_n = 10,
   polygon_alpha = 0.2
@@ -369,8 +388,10 @@ ggsave(
 vSuperfamilyPies <- plotSpatialPolygonPies(
   clonalDominance,
   object = thymus,
-  fill_by = "v_gene_superfamily",
+  fill = "v_gene_superfamily",
   mode = "side_by_side",
+  image_scale = "hires",
+  swap_coords = FALSE,
   top_n = 10,
   label_top_n = 10,
   polygon_alpha = 0.2
@@ -393,7 +414,7 @@ if (requireNamespace("sf", quietly = TRUE)) {
   cloneSpatialPies <- plotSpatialPolygonPies(
     clonalDominance,
     object = thymus,
-    fill_by = "clone_id",
+    fill = "clone_id",
     mode = "spatial_clipped",
     top_n = 10,
     label_top_n = 0,
@@ -409,7 +430,7 @@ if (requireNamespace("sf", quietly = TRUE)) {
   vFamilySpatialPies <- plotSpatialPolygonPies(
     clonalDominance,
     object = thymus,
-    fill_by = "v_gene_family",
+    fill = "v_gene_family",
     mode = "spatial_clipped",
     top_n = 10,
     label_top_n = 0,
@@ -425,7 +446,7 @@ if (requireNamespace("sf", quietly = TRUE)) {
   vSuperfamilySpatialPies <- plotSpatialPolygonPies(
     clonalDominance,
     object = thymus,
-    fill_by = "v_gene_superfamily",
+    fill = "v_gene_superfamily",
     mode = "spatial_clipped",
     top_n = 10,
     label_top_n = 0,

@@ -7,17 +7,17 @@
 spatialCloneJoinCount(
   object,
   receptors = NULL,
-  clone_col = NULL,
-  barcode_col = NULL,
-  clone_ids = NULL,
+  clone = NULL,
+  barcode = NULL,
+  clone_val = NULL,
   polygon = NULL,
-  polygon_id = NULL,
+  polygon_val = NULL,
   images = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
-  x_col = "x",
-  y_col = "y",
-  polygon_col = "polygon",
+  image_scale = NULL,
+  swap_coords = NULL,
+  x = "x",
+  y = "y",
+  polygon_id = "polygon",
   include_boundary = TRUE,
   require_closed = TRUE,
   min_barcodes = 2,
@@ -34,22 +34,22 @@ spatialCloneJoinCount(
 \item{receptors}{AIRR-style receptor data frame containing spatial barcodes
 and clone calls. May be omitted when \code{object} is a SIRAP object.}
 
-\item{clone_col}{Column in \code{receptors} containing clone IDs. Defaults to
+\item{clone}{Column in \code{receptors} containing clone IDs. Defaults to
 \code{NULL}; when \code{object} is a SIRAP object, the stored receptor clone field
 is used when available.}
 
-\item{barcode_col}{Column in \code{receptors} matching Seurat spot/cell barcodes.
+\item{barcode}{Column in \code{receptors} matching Seurat spot/cell barcodes.
 Defaults to \code{NULL}; when \code{object} is a SIRAP object, the stored receptor
 barcode field is used. Pass this explicitly when using separate Seurat and
 receptor objects.}
 
-\item{clone_ids}{Optional clone ID values to test. Defaults to all clones
+\item{clone_val}{Optional clone ID values to test. Defaults to all clones
 observed in at least \code{min_barcodes} spatial barcodes.}
 
 \item{polygon}{Optional polygon vertex data frame used to restrict the test
 to one or more regions.}
 
-\item{polygon_id}{Optional polygon ID value(s) to select when \code{polygon_col}
+\item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon}
 exists.}
 
 \item{images}{Optional Seurat image names.}
@@ -58,12 +58,12 @@ exists.}
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. Defaults to \code{FALSE},
-which uses Seurat image coordinates natively.}
+axes before plotting or polygon membership checks. If \code{NULL}, the
+value must be supplied explicitly or by SIRAP object metadata.}
 
-\item{x_col, y_col}{Coordinate columns in \code{polygon}.}
+\item{x, y}{Coordinate columns in \code{polygon}.}
 
-\item{polygon_col}{Optional polygon grouping column in \code{polygon}.}
+\item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
 
 \item{include_boundary}{Include Seurat spots on polygon edges.}
 

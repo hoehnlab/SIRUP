@@ -4,7 +4,17 @@
 \alias{spatialRipleyCrossK}
 \title{Calculate Ripley's cross K for marked spatial points}
 \usage{
-spatialRipleyCrossK(object, mark_col, i, j, nsim = 0, max_r = NULL, r = NULL)
+spatialRipleyCrossK(
+  object,
+  mark_col,
+  i,
+  j,
+  nsim = 0,
+  max_r = NULL,
+  r = NULL,
+  image_scale = NULL,
+  swap_coords = NULL
+)
 }
 \arguments{
 \item{object}{SIRAP object, or a spatial Seurat object.}
@@ -19,6 +29,12 @@ observed K only.}
 \item{max_r}{Optional maximum radius to evaluate. Ignored if \code{r} is supplied.}
 
 \item{r}{Optional distance vector passed to \code{spatstat.explore::Kcross()}.}
+
+\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+
+\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
+axes before plotting or polygon membership checks. If \code{NULL}, the
+value must be supplied explicitly or by SIRAP object metadata.}
 }
 \value{
 List with observed K, optional envelope, plotting data, and point data.

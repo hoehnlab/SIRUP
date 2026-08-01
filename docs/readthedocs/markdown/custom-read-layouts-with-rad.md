@@ -1,3 +1,6 @@
+Defining Custom Read Layouts for RAD
+================
+
 The whole point of [`rad`](https://github.com/indianewok/rad) is that it
 is *read-structure agnostic*: instead of hard-coding one chemistry, you
 hand it a small CSV that describes how your reads are laid out —
@@ -25,12 +28,13 @@ chunks into a live R session against your own reads.
 Reach for a custom layout when none of the bundled keys describe your
 reads:
 
-- a non-10x chemistry, or a 10x variant with an extra/odd element;
-- targeted or amplicon libraries with custom primers flanking the
-  insert;
-- multi-round combinatorial barcodes (SPLiT-seq-like) beyond the bundled
-  `splitseq` template;
-- anything you would describe to a colleague as “it’s mostly 5’, but…”.
+  - a non-10x chemistry, or a 10x variant with an extra/odd element;
+  - targeted or amplicon libraries with custom primers flanking the
+    insert;
+  - multi-round combinatorial barcodes (SPLiT-seq-like) beyond the
+    bundled `splitseq` template;
+  - anything you would describe to a colleague as “it’s mostly 5’,
+    but…”.
 
 If your reads are *close* to a bundled layout, don’t start from a blank
 file — copy the closest bundled CSV and edit it (see [Start From a
@@ -62,11 +66,11 @@ full resolution rules and `updateRad()` for building rad from source.
 
 rad models a read as an **ordered list of elements**. Two kinds matter:
 
-- **static** elements are fixed sequences rad *aligns* — adapters,
-  primers, the TSO, a poly-T stretch. They are the anchors.
-- **variable** elements are the slots rad *extracts* — the cell barcode,
-  the UMI, and the cDNA `read` itself. rad reads them out of the windows
-  between the static anchors.
+  - **static** elements are fixed sequences rad *aligns* — adapters,
+    primers, the TSO, a poly-T stretch. They are the anchors.
+  - **variable** elements are the slots rad *extracts* — the cell
+    barcode, the UMI, and the cDNA `read` itself. rad reads them out of
+    the windows between the static anchors.
 
 At `demux` time rad aligns the static anchors, then pulls each variable
 element from its position relative to those anchors, and (for barcode
@@ -78,15 +82,15 @@ thing comes between.”
 
 A layout is a CSV with one row per element. The columns rad expects:
 
-| Column | Meaning |
-|----|----|
-| `id` | A unique name for the element (`forw_primer`, `barcode`, `umi`, `read`, …). |
-| `seq` | The literal sequence — required for **static** elements, left blank for variable ones. |
-| `expected_length` | Length in bases — required for **variable** elements (barcode 16, UMI 10/12), blank for static (length comes from `seq`). |
-| `type` | `static` or `variable`. |
-| `class` | What the element *is*: `barcode`, `umi`, `read`, and adapter/primer-style anchors. The `barcode`/`umi`/`read` classes drive extraction. |
-| `whitelist` | For a `barcode` element, the kit key (or path) whose whitelist corrects it — e.g. `10x_5v1`. Blank for non-barcode rows. |
-| `direction` | *Optional.* `forward_only` / `reverse_only`; omit it to get forward + an auto-generated reverse complement (see [Orientation](#orientation-and-the-direction-column)). |
+| Column            | Meaning                                                                                                                                                                |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`              | A unique name for the element (`forw_primer`, `barcode`, `umi`, `read`, …).                                                                                            |
+| `seq`             | The literal sequence — required for **static** elements, left blank for variable ones.                                                                                 |
+| `expected_length` | Length in bases — required for **variable** elements (barcode 16, UMI 10/12), blank for static (length comes from `seq`).                                              |
+| `type`            | `static` or `variable`.                                                                                                                                                |
+| `class`           | What the element *is*: `barcode`, `umi`, `read`, and adapter/primer-style anchors. The `barcode`/`umi`/`read` classes drive extraction.                                |
+| `whitelist`       | For a `barcode` element, the kit key (or path) whose whitelist corrects it — e.g. `10x_5v1`. Blank for non-barcode rows.                                               |
+| `direction`       | *Optional.* `forward_only` / `reverse_only`; omit it to get forward + an auto-generated reverse complement (see [Orientation](#orientation-and-the-direction-column)). |
 
 A minimal 5’-style layout, written as a data frame and saved to disk:
 
@@ -227,7 +231,7 @@ correct against. You have two options:
     `splitseq_bc1/2`, `visium_hd_bc1/2`, …). Put the key in the
     `whitelist` column. Note the underscores — rad expects `10x_3v3`,
     not `10xv3`.
-
+    
     ``` r
     radList(whitelists = TRUE)$stdout
     ```
@@ -317,14 +321,14 @@ current state of seqspec support.
 
 ## Where to Next
 
-- [Demultiplexing Long Reads with RAD](demultiplexing-with-rad.html) —
-  the full `prep → scan-wl → demux → reformat` pipeline on bundled
-  layouts, including the Visium HD paired-barcode case.
-- [Visium HD processing](visium-hd-processing.html) — pick up from RAD
-  output: spatial barcodes through pRESTO/IgBLAST to spatial AIRR
-  tables.
-- rad’s own docs: [layouts and
-  whitelists](https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md),
-  [CLI
-  reference](https://github.com/indianewok/rad/blob/main/docs/cli-reference.md),
-  [installation](https://github.com/indianewok/rad/blob/main/docs/installation.md).
+  - [Demultiplexing Long Reads with RAD](demultiplexing-with-rad.html) —
+    the full `prep → scan-wl → demux → reformat` pipeline on bundled
+    layouts, including the Visium HD paired-barcode case.
+  - [Visium HD processing](visium-hd-processing.html) — pick up from RAD
+    output: spatial barcodes through pRESTO/IgBLAST to spatial AIRR
+    tables.
+  - rad’s own docs: [layouts and
+    whitelists](https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md),
+    [CLI
+    reference](https://github.com/indianewok/rad/blob/main/docs/cli-reference.md),
+    [installation](https://github.com/indianewok/rad/blob/main/docs/installation.md).

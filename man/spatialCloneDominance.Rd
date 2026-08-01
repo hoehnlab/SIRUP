@@ -8,21 +8,20 @@ spatialCloneDominance(
   receptors = NULL,
   object = NULL,
   polygon,
-  bcrs = NULL,
-  barcode_col = NULL,
-  clone_col = "clone_id",
-  locus = NULL,
-  locus_col = "locus",
-  count_col = NULL,
-  v_call_col = "v_call",
+  barcode = NULL,
+  clone = "clone_id",
+  locus_val = NULL,
+  locus = "locus",
+  count = NULL,
+  v_call = "v_call",
   exclude_singletons = FALSE,
   images = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
-  polygon_id = NULL,
-  x_col = "x",
-  y_col = "y",
-  polygon_col = "polygon",
+  image_scale = NULL,
+  swap_coords = NULL,
+  polygon_val = NULL,
+  x = "x",
+  y = "y",
+  polygon_id = "polygon",
   include_boundary = TRUE,
   require_closed = TRUE
 )
@@ -38,24 +37,22 @@ be omitted.}
 
 \item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
 \code{y} columns by default. If a \code{polygon} column is present, each polygon is
-summarized independently unless \code{polygon_id} selects one or more polygons.}
+summarized independently unless \code{polygon_val} selects one or more polygons.}
 
-\item{bcrs}{Deprecated alias for \code{receptors}.}
-
-\item{barcode_col}{Column in \code{receptors} matching Seurat spot/cell barcodes.
+\item{barcode}{Column in \code{receptors} matching Seurat spot/cell barcodes.
 If \code{NULL}, a barcode-like column is guessed.}
 
-\item{clone_col}{Column in \code{receptors} containing clone IDs.}
+\item{clone}{Column in \code{receptors} containing clone IDs.}
 
-\item{locus}{Optional locus value(s) used to filter \code{receptors}, for example
+\item{locus_val}{Optional locus value(s) used to filter \code{receptors}, for example
 \code{"IGH"}. Use \code{NULL} to keep all loci.}
 
-\item{locus_col}{Column in \code{receptors} containing locus calls.}
+\item{locus}{Column in \code{receptors} containing locus calls.}
 
-\item{count_col}{Optional numeric count column. When \code{NULL}, each receptor
+\item{count}{Optional numeric count column. When \code{NULL}, each receptor
 row counts once.}
 
-\item{v_call_col}{Column in \code{receptors} containing V-gene calls. When
+\item{v_call}{Column in \code{receptors} containing V-gene calls. When
 present, distinct allele-level V genes, V genes without alleles, and V-gene
 superfamilies are returned for each clone.}
 
@@ -68,15 +65,15 @@ after locus filtering.}
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. Defaults to \code{FALSE},
-which uses Seurat image coordinates natively.}
+axes before plotting or polygon membership checks. If \code{NULL}, the
+value must be supplied explicitly or by SIRAP object metadata.}
 
-\item{polygon_id}{Optional polygon ID value(s) to select when \code{polygon_col}
-exists. When \code{NULL}, all polygons in \code{polygon_col} are analyzed.}
+\item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
+exists. When \code{NULL}, all polygons in \code{polygon_id} are analyzed.}
 
-\item{x_col, y_col}{Coordinate columns in \code{polygon}.}
+\item{x, y}{Coordinate columns in \code{polygon}.}
 
-\item{polygon_col}{Optional polygon grouping column in \code{polygon}.}
+\item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
 
 \item{include_boundary}{Include Seurat spots on polygon edges.}
 

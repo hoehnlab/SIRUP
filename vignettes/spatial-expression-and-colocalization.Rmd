@@ -53,14 +53,18 @@ tcrTopBarcode <- airr::read_rearrangement(finalTCRPath)
 bcrSirap <- createSIRAP(
   spatial = thymus,
   receptors = bcrTopBarcode,
-  barcode_col = "barcode_8um",
+  barcode = "barcode_8um",
+  image_scale = "hires",
+  swap_coords = FALSE,
   metadata = list(sample_id = sampleId, receptor_type = "BCR")
 )
 
 tcrSirap <- createSIRAP(
   spatial = thymus,
   receptors = tcrTopBarcode,
-  barcode_col = "barcode_8um",
+  barcode = "barcode_8um",
+  image_scale = "hires",
+  swap_coords = FALSE,
   metadata = list(sample_id = sampleId, receptor_type = "TCR")
 )
 ```
@@ -68,10 +72,10 @@ tcrSirap <- createSIRAP(
 The SIRAP objects retain ordinary Seurat and AIRR-style data internally, while
 recording which receptor column joins to spatial barcodes. Their receptor
 components are tibbles and remain available through `getReceptors()`.
-`withSpatial()` can pass the stored Seurat object to any compatible function,
-and `updateSpatial()` returns a SIRAP object containing the updated Seurat
-result. Spatial statistics or other derived objects can be saved with
-`setAnalysis()` and retrieved later with `getAnalysis()`.
+`getSpatial()` returns the stored Seurat object for read-only external use, and
+`updateSpatial()` returns a SIRAP object containing an updated Seurat result.
+Spatial statistics or other derived objects can be saved with `setAnalysis()`
+and retrieved later with `getAnalysis()`.
 
 Add a receptor-type metadata column to the Seurat object. This lets us use the
 same object for plotting and spatial statistics.
@@ -127,10 +131,10 @@ bcrReceptors <- dplyr::mutate(bcrTopBarcode, receptor_type = "BCR")
 tcrCd3ePlot <- plotReceptorsExpression(
   object = thymus,
   receptors = tcrReceptors,
-  group_col = "receptor_type",
-  values = "TCR",
+  group = "receptor_type",
+  group_val = "TCR",
   gene = "CD3E",
-  barcode_col = "barcode_8um",
+  barcode = "barcode_8um",
   colors = "#d95f02",
   receptor_size = 0.55,
   receptor_stroke = 0.25,
@@ -142,10 +146,10 @@ tcrCd3ePlot <- plotReceptorsExpression(
 bcrMs4a1Plot <- plotReceptorsExpression(
   object = thymus,
   receptors = bcrReceptors,
-  group_col = "receptor_type",
-  values = "BCR",
+  group = "receptor_type",
+  group_val = "BCR",
   gene = "MS4A1",
-  barcode_col = "barcode_8um",
+  barcode = "barcode_8um",
   colors = "#2c7fb8",
   receptor_size = 0.55,
   receptor_stroke = 0.25,

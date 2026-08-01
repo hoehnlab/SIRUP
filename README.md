@@ -76,17 +76,17 @@ library(SIRAP)
 m1_bcr_heavy <- data.table::fread("igblast_bcr.tsv")
 m1_bcr_heavy <- extractSpatialBarcodes(
   m1_bcr_heavy,
-  sequence_id_col = "sequence_id",
-  barcode_col = "barcode_2um",
+  id = "sequence_id",
+  barcode = "barcode_2um",
   regex = "[0-9]+_[0-9]+$",
   prefix = "s_002um_",
   suffix = "-1"
 )
-m1_bcr_heavy <- filterSpatialAirr(
+m1_bcr_heavy <- filterAirr(
   m1_bcr_heavy,
-  loci = "IGH",
-  barcode_col = "barcode_2um",
-  add_full_id = TRUE
+  locus_val = "IGH",
+  barcode = "barcode_2um",
+  add_spatial_sequence_id = TRUE
 )
 ```
 
@@ -107,19 +107,19 @@ processSpatialSample(
 processed <- airr::read_rearrangement("processed_db-pass.tsv")
 processed <- extractSpatialBarcodes(
   processed,
-  sequence_id_col = "sequence_id",
-  barcode_col = "barcode_2um",
+  id = "sequence_id",
+  barcode = "barcode_2um",
   regex = ",([^,]+)"
 )
-processed <- filterSpatialAirr(
+processed <- filterAirr(
   processed,
-  loci = "IGH",
+  locus_val = "IGH",
   min_v_length = 250,
   min_j_length = 30,
   min_junction_length = 10,
   productive_only = TRUE,
   min_consensus_count = 2,
-  barcode_col = "barcode_2um"
+  barcode = "barcode_2um"
 )
 bc_map <- readBarcodeMapping("barcode_mappings.parquet")
 processed <- processed |>
@@ -142,18 +142,19 @@ unmatched bulk or other nonspatial receptor rows are retained.
 sirap <- createSIRAP(
   spatial = seurat_object,
   receptors = cloned_receptors,
-  barcode_col = "barcode_8um",
-  clone_col = "clone_id"
+  barcode = "barcode_8um",
+  clone = "clone_id",
+  image_scale = "hires",
+  swap_coords = FALSE
 )
 
 sirap
 getReceptors(sirap)
 listAnalyses(sirap)
 
-# Pass the receptor table to any compatible function without unpacking it.
-clone_counts <- withReceptors(
-  sirap,
-  dplyr::count,
+# Work with the receptor table directly when an external function needs it.
+clone_counts <- dplyr::count(
+  getReceptors(sirap),
   clone_id,
   sort = TRUE
 )
@@ -164,7 +165,7 @@ getAnalysis(sirap, "clone_counts")
 
 plotReceptors(
   object = sirap,
-  group_col = "clone_id"
+  group = "clone_id"
 )
 
 spatialExpressionPlot(
@@ -182,10 +183,10 @@ receptor objects, so existing workflows remain supported.
 The component helpers work with functions from SIRAP, other packages, or your
 own code:
 
-- `withReceptors()`, `withSpatial()`, and `withAnalysis()` return a function's
-  result without changing the SIRAP object.
 - `updateReceptors()`, `updateSpatial()`, and `updateAnalysis()` put the result
   back into a returned SIRAP object.
+- `getReceptors()`, `getSpatial()`, and `getAnalysis()` return stored data
+  when a function should inspect it without modifying the SIRAP object.
 - `setAnalysis()`, `getAnalysis()`, `listAnalyses()`, and `removeAnalysis()`
   manage arbitrary derived results, including Dowser clones or trees and
   spatial statistics.

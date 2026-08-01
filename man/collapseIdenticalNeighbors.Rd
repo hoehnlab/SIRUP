@@ -7,12 +7,12 @@
 collapseIdenticalNeighbors(
   object,
   seurat_object = NULL,
-  barcode_col = NULL,
-  sequence_col = "sequence",
-  consensus_count_col = "consensus_count",
+  barcode = NULL,
+  sequence = "sequence",
+  consensus_count = "consensus_count",
   images = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
+  image_scale = NULL,
+  swap_coords = NULL,
   num_neighbors_non_boundary = 6L,
   validate = TRUE
 )
@@ -23,14 +23,14 @@ collapseIdenticalNeighbors(
 \item{seurat_object}{Optional Seurat object used only when \code{object} is a
 receptor data frame.}
 
-\item{barcode_col}{Column in the receptor table matching Seurat spot/cell
+\item{barcode}{Column in the receptor table matching Seurat spot/cell
 barcodes. When omitted for a SIRAP object, the recorded SIRAP barcode field
 is used. When omitted for a receptor table, a barcode-like column is
 guessed.}
 
-\item{sequence_col}{Column containing receptor sequence strings.}
+\item{sequence}{Column containing receptor sequence strings.}
 
-\item{consensus_count_col}{Column containing consensus counts used to choose
+\item{consensus_count}{Column containing consensus counts used to choose
 the representative spot within a connected component.}
 
 \item{images}{Optional Seurat image names to use for spatial coordinates.}

@@ -8,19 +8,19 @@ plotSpatialPolygons(
   object,
   polygon,
   images = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
-  polygon_id = NULL,
-  x_col = "x",
-  y_col = "y",
-  polygon_col = "polygon",
+  image_scale = NULL,
+  swap_coords = NULL,
+  polygon_val = NULL,
+  x = "x",
+  y = "y",
+  polygon_id = "polygon",
   polygon_alpha = 0.2,
   fill = "#0072B2",
   color = "#0072B2",
   linewidth = 0.6,
   image_alpha = 1,
   label = TRUE,
-  label_col = "polygon",
+  label_by = "polygon",
   label_size = 3,
   label_color = "black",
   zoom = FALSE,
@@ -41,15 +41,15 @@ drawn independently.}
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. Defaults to \code{FALSE},
-which uses Seurat image coordinates natively.}
+axes before plotting or polygon membership checks. If \code{NULL}, the
+value must be supplied explicitly or by SIRAP object metadata.}
 
-\item{polygon_id}{Optional polygon ID value(s) to select when \code{polygon_col}
+\item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
 exists.}
 
-\item{x_col, y_col}{Coordinate columns in \code{polygon}.}
+\item{x, y}{Coordinate columns in \code{polygon}.}
 
-\item{polygon_col}{Optional polygon grouping column in \code{polygon}.}
+\item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
 
 \item{polygon_alpha}{Fill opacity for polygons.}
 
@@ -63,7 +63,7 @@ exists.}
 
 \item{label}{Plot labels at polygon centers.}
 
-\item{label_col}{Column in the polygon data to use for labels.}
+\item{label_by}{Column in the polygon data to use for labels.}
 
 \item{label_size}{Text size for polygon labels.}
 

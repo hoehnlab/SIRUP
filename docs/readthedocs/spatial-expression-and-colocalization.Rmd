@@ -108,10 +108,10 @@ points and overlays receptor-positive locations as hollow circles.
 tcrCd3ePlot <- plotReceptorsExpression(
   object = thymus,
   receptors = dplyr::mutate(tcrTopBarcode, receptor_type = "TCR"),
-  group_col = "receptor_type",
-  values = "TCR",
+  group = "receptor_type",
+  group_val = "TCR",
   gene = "CD3E",
-  barcode_col = "barcode_8um",
+  barcode = "barcode_8um",
   colors = "#d95f02",
   receptor_size = 0.55,
   receptor_stroke = 0.25,
@@ -123,10 +123,10 @@ tcrCd3ePlot <- plotReceptorsExpression(
 bcrMs4a1Plot <- plotReceptorsExpression(
   object = thymus,
   receptors = dplyr::mutate(bcrTopBarcode, receptor_type = "BCR"),
-  group_col = "receptor_type",
-  values = "BCR",
+  group = "receptor_type",
+  group_val = "BCR",
   gene = "MS4A1",
-  barcode_col = "barcode_8um",
+  barcode = "barcode_8um",
   colors = "#2c7fb8",
   receptor_size = 0.55,
   receptor_stroke = 0.25,
@@ -152,7 +152,7 @@ tcrMoran <- spatialMoran(
   variable = "TCR presence",
   variable_type = "receptor",
   receptors = tcrTopBarcode,
-  barcode_col = "barcode_8um",
+  barcode = "barcode_8um",
   k = spatialStatsK
 )
 tcrMoran$test
@@ -171,7 +171,7 @@ bcrMoran <- spatialMoran(
   variable = "BCR presence",
   variable_type = "receptor",
   receptors = bcrTopBarcode,
-  barcode_col = "barcode_8um",
+  barcode = "barcode_8um",
   k = spatialStatsK
 )
 bcrMoran$test

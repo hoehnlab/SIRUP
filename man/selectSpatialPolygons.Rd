@@ -10,8 +10,8 @@ selectSpatialPolygons(
   assay = "Spatial",
   layer = "counts",
   images = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
+  image_scale = NULL,
+  swap_coords = NULL,
   save_path = NULL,
   plot_image = FALSE,
   downsample_n = NULL,
@@ -40,8 +40,8 @@ vertices. The app also lets you change this interactively.}
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. Defaults to \code{FALSE},
-which uses Seurat image coordinates natively.}
+axes before plotting or polygon membership checks. If \code{NULL}, the
+value must be supplied explicitly or by SIRAP object metadata.}
 
 \item{save_path}{Optional CSV path for saved vertices.}
 

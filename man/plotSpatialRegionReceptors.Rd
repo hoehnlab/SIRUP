@@ -7,11 +7,11 @@
 plotSpatialRegionReceptors(
   dominance,
   object,
-  color_by = "clone_id",
+  color = "clone_id",
   images = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
-  polygon_id = NULL,
+  image_scale = NULL,
+  swap_coords = NULL,
+  polygon_val = NULL,
   point_size = 1,
   point_alpha = 0.5,
   polygon_alpha = 0.12,
@@ -31,7 +31,7 @@ plotSpatialRegionReceptors(
 
 \item{object}{Seurat object with spatial images, or a SIRAP object.}
 
-\item{color_by}{Column in \code{dominance$region_bcrs} used to color receptor
+\item{color}{Column in \code{dominance$region_receptors} used to color receptor
 points. When omitted, the clone column recorded by
 \code{spatialCloneDominance()} is used.}
 
@@ -41,10 +41,10 @@ points. When omitted, the clone column recorded by
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. Defaults to \code{FALSE},
-which uses Seurat image coordinates natively.}
+axes before plotting or polygon membership checks. If \code{NULL}, the
+value must be supplied explicitly or by SIRAP object metadata.}
 
-\item{polygon_id}{Optional polygon ID value(s) to select from the dominance
+\item{polygon_val}{Optional polygon ID value(s) to select from the dominance
 result.}
 
 \item{point_size}{Size of receptor points.}
@@ -59,7 +59,7 @@ result.}
 
 \item{image_alpha}{Tissue image opacity.}
 
-\item{top_n}{Optional number of most frequent \code{color_by} levels to keep
+\item{top_n}{Optional number of most frequent \code{color} levels to keep
 before grouping remaining levels as \code{other_label}.}
 
 \item{other_label}{Label for grouped lower-frequency levels.}

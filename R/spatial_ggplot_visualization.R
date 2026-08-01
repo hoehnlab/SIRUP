@@ -9,15 +9,15 @@ plotLengthQc <- function(airr_df, bin_width = 5, title = NULL) {
   airr_df <- .sirap_receptor_input(airr_df)$receptors
   .check_required_cols(airr_df, c("v_sequence_end", "v_sequence_start", "j_sequence_end", "j_sequence_start", "junction_length"), "airr_df")
   out <- .as_data_frame(airr_df)
-  out$vlength <- out$v_sequence_end - out$v_sequence_start
-  out$jlength <- out$j_sequence_end - out$j_sequence_start
+  out$v_sequence_length <- out$v_sequence_end - out$v_sequence_start + 1L
+  out$j_sequence_length <- out$j_sequence_end - out$j_sequence_start + 1L
   long <- tidyr::pivot_longer(
     out,
-    cols = dplyr::all_of(c("vlength", "jlength", "junction_length")),
+    cols = dplyr::all_of(c("v_sequence_length", "j_sequence_length", "junction_length")),
     names_to = "metric",
     values_to = "length"
   ) %>%
-    dplyr::mutate(metric = factor(.data$metric, levels = c("vlength", "jlength", "junction_length"), labels = c("V Length", "J Length", "Junction Length")))
+    dplyr::mutate(metric = factor(.data$metric, levels = c("v_sequence_length", "j_sequence_length", "junction_length"), labels = c("V Length", "J Length", "Junction Length")))
   ggplot2::ggplot(long, ggplot2::aes(x = .data$length)) +
     ggplot2::geom_histogram(binwidth = bin_width, na.rm = TRUE) +
     ggplot2::facet_wrap(ggplot2::vars(.data$metric), scales = "free_x") +
@@ -34,8 +34,8 @@ plotLengthQc <- function(airr_df, bin_width = 5, title = NULL) {
 #' @param images Optional Seurat image names.
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
-#'   which uses Seurat image coordinates natively.
+#'   axes before plotting or polygon membership checks. If `NULL`, the
+#'   value must be supplied explicitly or by SIRAP object metadata.
 #' @param feature_colors Colors used, in order, for the continuous expression
 #'   scale. The first color is the low value and the last color is the high
 #'   value.
@@ -57,8 +57,8 @@ spatialExpressionPlot <- function(object,
                                       assay = NULL,
                                       layer = "counts",
                                       images = NULL,
-                                      image_scale = "hires",
-                                      swap_coords = FALSE,
+                                      image_scale = NULL,
+                                      swap_coords = NULL,
                                       feature_colors = c("#D3D3D3", "#FFFF00"),
                                       zero_tol = 0,
                                       point_size = 0.6,
@@ -68,7 +68,10 @@ spatialExpressionPlot <- function(object,
                                       image_alpha = 1,
                                       zoom = FALSE,
                                       combine = TRUE) {
-  object <- .sirap_spatial_input(object)
+  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  object <- context$object
+  image_scale <- context$image_scale
+  swap_coords <- context$swap_coords
   .require_namespace("SeuratObject")
   .require_namespace("patchwork")
   if (!is.null(assay)) {
@@ -127,8 +130,8 @@ spatialExpressionPlot <- function(object,
 #' @param images Optional Seurat image names.
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
-#'   which uses Seurat image coordinates natively.
+#'   axes before plotting or polygon membership checks. If `NULL`, the
+#'   value must be supplied explicitly or by SIRAP object metadata.
 #' @param cols Optional named color vector.
 #' @param point_size Size of plotted spots.
 #' @param point_alpha Opacity for plotted spots.
@@ -144,8 +147,8 @@ spatialDiscretePlot <- function(object,
                                   meta_col,
                                   zero_value = 0,
                                   images = NULL,
-                                  image_scale = "hires",
-                                  swap_coords = FALSE,
+                                  image_scale = NULL,
+                                  swap_coords = NULL,
                                   cols = NULL,
                                   point_size = 1.6,
                                   point_alpha = 1,
@@ -153,7 +156,10 @@ spatialDiscretePlot <- function(object,
                                   image_alpha = 1,
                                   zoom = FALSE,
                                   combine = TRUE) {
-  object <- .sirap_spatial_input(object)
+  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  object <- context$object
+  image_scale <- context$image_scale
+  swap_coords <- context$swap_coords
   .check_required_cols(object@meta.data, meta_col, "object@meta.data")
 
   values <- object@meta.data[[meta_col]]
@@ -221,8 +227,8 @@ spatialDiscretePlot <- function(object,
 #' @param images Optional Seurat image names.
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
-#'   which uses Seurat image coordinates natively.
+#'   axes before plotting or polygon membership checks. If `NULL`, the
+#'   value must be supplied explicitly or by SIRAP object metadata.
 #' @param point_size Size of plotted spots.
 #' @param point_alpha Opacity for plotted spots.
 #' @param order_points Plot lower blended expression intensity first so higher
@@ -246,14 +252,17 @@ spatialExpressionBlendPlot <- function(object,
                                                 top_right = "#FFFF00",
                                                 zero_tol = 0,
                                                 images = NULL,
-                                                image_scale = "hires",
-                                                swap_coords = FALSE,
+                                                image_scale = NULL,
+                                                swap_coords = NULL,
                                                 point_size = 0.6,
                                                 point_alpha = 1,
                                                 order_points = TRUE,
                                                 image_alpha = 1,
                                                 zoom = FALSE) {
-  object <- .sirap_spatial_input(object)
+  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  object <- context$object
+  image_scale <- context$image_scale
+  swap_coords <- context$swap_coords
   .require_namespace("SeuratObject")
   .require_namespace("patchwork")
   if (length(features) != 2L) {
@@ -363,8 +372,8 @@ spatialExpressionBlendPlot <- function(object,
 #' @param images Optional Seurat image names.
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
-#'   which uses Seurat image coordinates natively.
+#'   axes before plotting or polygon membership checks. If `NULL`, the
+#'   value must be supplied explicitly or by SIRAP object metadata.
 #' @param point_size Size of plotted spots.
 #' @param point_alpha Opacity for plotted spots.
 #' @param order_points Plot lower-priority feature assignments first so later
@@ -384,15 +393,18 @@ spatialExpressionMultiPlot <- function(object,
                                     colors = NULL,
                                     breadth_metric = c("n_expressing"),
                                     images = NULL,
-                                    image_scale = "hires",
-                                    swap_coords = FALSE,
+                                    image_scale = NULL,
+                                    swap_coords = NULL,
                                     point_size = 0.6,
                                     point_alpha = 1,
                                     order_points = TRUE,
                                     zero_tol = 0,
                                     image_alpha = 1,
                                     zoom = FALSE) {
-  object <- .sirap_spatial_input(object)
+  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  object <- context$object
+  image_scale <- context$image_scale
+  swap_coords <- context$swap_coords
   .require_namespace("SeuratObject")
   breadth_metric <- match.arg(breadth_metric)
   if (length(features) < 2L) {
@@ -467,11 +479,11 @@ spatialExpressionMultiPlot <- function(object,
 #'   receptor data.
 #' @param receptors AIRR-style receptor table containing a spatial barcode and
 #'   grouping column. May be omitted when `object` is a SIRAP object.
-#' @param group_col Column in `receptors` defining receptor groups, for example
+#' @param group Column in `receptors` defining receptor groups, for example
 #'   `"receptor_type"` with values `"BCR"` and `"TCR"`.
-#' @param values Optional group values to plot and their display order. Defaults
-#'   to all non-missing values in `group_col`.
-#' @param barcode_col Column in `receptors` matching Seurat spot names. If
+#' @param group_val Optional group values to plot and their display order.
+#'   Defaults to all non-missing values in `group`.
+#' @param barcode Column in `receptors` matching Seurat spot names. If
 #'   `NULL`, the SIRAP barcode field is used or a barcode-like column is guessed.
 #' @param feature Gene or feature plotted beneath receptor-positive spots.
 #' @param gene Alias for `feature`.
@@ -493,16 +505,16 @@ spatialExpressionMultiPlot <- function(object,
 #' @param image_alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`.
 #' @param receptor_legend_title Title for the receptor-group legend. Defaults
-#'   to `group_col`.
+#'   to `group`.
 #' @param show_receptor_legend Show the receptor-group legend.
 #' @param combine Combine image panels with patchwork.
 #' @return A ggplot/patchwork object, or a list when `combine = FALSE`.
 #' @export
 plotReceptorsExpression <- function(object,
                                     receptors = NULL,
-                                    group_col,
-                                    values = NULL,
-                                    barcode_col = NULL,
+                                    group,
+                                    group_val = NULL,
+                                    barcode = NULL,
                                     feature = NULL,
                                     gene = NULL,
                                     colors = NULL,
@@ -517,18 +529,21 @@ plotReceptorsExpression <- function(object,
                                     order_points = TRUE,
                                     assay = NULL,
                                     layer = "counts",
-                                    image_scale = "hires",
-                                    swap_coords = FALSE,
+                                    image_scale = NULL,
+                                    swap_coords = NULL,
                                     images = NULL,
                                     image_alpha = 1,
                                     zoom = FALSE,
                                     receptor_legend_title = NULL,
                                     show_receptor_legend = TRUE,
                                     combine = TRUE) {
-  inputs <- .sirap_resolve_inputs(object, receptors, barcode_col)
+  options <- .sirap_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
+  image_scale <- options$image_scale
+  swap_coords <- options$swap_coords
+  inputs <- .sirap_resolve_inputs(object, receptors, barcode)
   object <- inputs$object
   receptors <- inputs$receptors
-  barcode_col <- inputs$barcode_col
+  barcode <- inputs$barcode_col
   if (is.null(receptors)) {
     rlang::abort("`receptors` is required when `object` is not a SIRAP object.")
   }
@@ -543,38 +558,38 @@ plotReceptorsExpression <- function(object,
 
   .require_namespace("SeuratObject")
   receptors <- .as_data_frame(receptors)
-  barcode_col <- .guess_barcode_col(receptors, barcode_col)
-  .check_required_cols(receptors, c(barcode_col, group_col), "receptors")
+  barcode <- .guess_barcode_col(receptors, barcode)
+  .check_required_cols(receptors, c(barcode, group), "receptors")
 
-  receptors$.sirap_receptor_group <- as.character(receptors[[group_col]])
-  if (is.null(values)) {
-    values <- unique(stats::na.omit(receptors$.sirap_receptor_group))
+  receptors$.sirap_receptor_group <- as.character(receptors[[group]])
+  if (is.null(group_val)) {
+    group_val <- unique(stats::na.omit(receptors$.sirap_receptor_group))
   }
-  values <- as.character(values)
-  values <- values[!is.na(values) & nzchar(values)]
-  if (length(values) == 0L) {
-    rlang::abort("`values` must contain at least one non-missing receptor group.")
+  group_val <- as.character(group_val)
+  group_val <- group_val[!is.na(group_val) & nzchar(group_val)]
+  if (length(group_val) == 0L) {
+    rlang::abort("`group_val` must contain at least one non-missing receptor group.")
   }
 
   receptors <- receptors[
     !is.na(receptors$.sirap_receptor_group) &
-      receptors$.sirap_receptor_group %in% values &
-      !is.na(receptors[[barcode_col]]),
+      receptors$.sirap_receptor_group %in% group_val &
+      !is.na(receptors[[barcode]]),
     ,
     drop = FALSE
   ]
   if (nrow(receptors) == 0L) {
-    rlang::abort("No receptor rows matched `values` in `group_col`.")
+    rlang::abort("No receptor rows matched `group_val` in `group`.")
   }
-  receptors[[barcode_col]] <- as.character(receptors[[barcode_col]])
+  receptors[[barcode]] <- as.character(receptors[[barcode]])
   receptors$.sirap_receptor_group <- factor(
     receptors$.sirap_receptor_group,
-    levels = values
+    levels = group_val
   )
-  colors <- .sirap_receptor_group_colors(values, colors)
-  receptor_legend_title <- receptor_legend_title %||% group_col
+  colors <- .sirap_receptor_group_colors(group_val, colors)
+  receptor_legend_title <- receptor_legend_title %||% group
 
-  receptor_lookup <- receptors[, c(barcode_col, ".sirap_receptor_group"), drop = FALSE]
+  receptor_lookup <- receptors[, c(barcode, ".sirap_receptor_group"), drop = FALSE]
   receptor_lookup <- receptor_lookup[!duplicated(receptor_lookup), , drop = FALSE]
 
   if (!is.null(assay)) {
@@ -614,12 +629,12 @@ plotReceptorsExpression <- function(object,
       spatial$coords,
       receptor_lookup,
       by.x = "cell",
-      by.y = barcode_col,
+      by.y = barcode,
       all = FALSE
     )
     receptor_data$.sirap_receptor_group <- factor(
       receptor_data$.sirap_receptor_group,
-      levels = values
+      levels = group_val
     )
 
     if (nrow(expression_data) == 0L && nrow(receptor_data) == 0L) {
@@ -647,7 +662,7 @@ plotReceptorsExpression <- function(object,
         ggplot2::scale_color_gradientn(colors = feature_colors, name = feature)
     }
 
-    for (value in values) {
+    for (value in group_val) {
       group_data <- receptor_data[
         receptor_data$.sirap_receptor_group == value,
         ,
@@ -656,7 +671,7 @@ plotReceptorsExpression <- function(object,
       if (nrow(group_data) == 0L) {
         next
       }
-      group_data$.sirap_receptor_label <- factor(value, levels = values)
+      group_data$.sirap_receptor_label <- factor(value, levels = group_val)
       p <- p + ggplot2::geom_point(
         data = group_data,
         ggplot2::aes(
@@ -678,7 +693,7 @@ plotReceptorsExpression <- function(object,
     if (nrow(receptor_data) > 0L && isTRUE(show_receptor_legend)) {
       p <- p +
         ggplot2::scale_shape_manual(
-          values = stats::setNames(rep(21, length(values)), values),
+          values = stats::setNames(rep(21, length(group_val)), group_val),
           name = receptor_legend_title,
           drop = FALSE
         ) +
@@ -706,11 +721,11 @@ plotReceptorsExpression <- function(object,
 #'   receptor data.
 #' @param receptors AIRR-style receptor table containing a spatial barcode and
 #'   grouping column. May be omitted when `object` is a SIRAP object.
-#' @param group_col Column in `receptors` used to select and color receptor
+#' @param group Column in `receptors` used to select and color receptor
 #'   groups, for example `"clone_id"`.
-#' @param values Optional values from `group_col` to plot. Defaults to all
-#'   non-missing values in `group_col`.
-#' @param barcode_col Column in `receptors` matching Seurat spot names. If
+#' @param group_val Optional values from `group` to plot. Defaults to all
+#'   non-missing values in `group`.
+#' @param barcode Column in `receptors` matching Seurat spot names. If
 #'   `NULL`, the first available barcode-like column is used.
 #' @param colors Optional colors for receptor groups. Named colors are matched
 #'   to `values`; otherwise colors are used in value order.
@@ -722,74 +737,77 @@ plotReceptorsExpression <- function(object,
 #' @param image_scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
-#'   which uses Seurat image coordinates natively.
+#'   axes before plotting or polygon membership checks. If `NULL`, the
+#'   value must be supplied explicitly or by SIRAP object metadata.
 #' @param images Optional Seurat image names.
 #' @param image_alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
 #' @param receptor_legend_title Legend title for receptor groups. Defaults to
-#'   `group_col`.
+#'   `group`.
 #' @param show_receptor_legend Show the receptor group legend.
 #' @param combine Combine image panels with patchwork.
 #' @return A ggplot/patchwork object or a list when `combine = FALSE`.
 #' @export
 plotReceptors <- function(object,
                           receptors = NULL,
-                          group_col,
-                          values = NULL,
-                          barcode_col = NULL,
+                          group,
+                          group_val = NULL,
+                          barcode = NULL,
                           colors = NULL,
                           receptor_size = 1,
                           receptor_alpha = 1,
                           title = NULL,
                           order_points = TRUE,
-                          image_scale = "hires",
-                          swap_coords = FALSE,
+                          image_scale = NULL,
+                          swap_coords = NULL,
                           images = NULL,
                           image_alpha = 1,
                           zoom = FALSE,
                           receptor_legend_title = NULL,
                           show_receptor_legend = TRUE,
                           combine = TRUE) {
-  inputs <- .sirap_resolve_inputs(object, receptors, barcode_col)
+  options <- .sirap_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
+  image_scale <- options$image_scale
+  swap_coords <- options$swap_coords
+  inputs <- .sirap_resolve_inputs(object, receptors, barcode)
   object <- inputs$object
   receptors <- inputs$receptors
-  barcode_col <- inputs$barcode_col
+  barcode <- inputs$barcode_col
   if (is.null(receptors)) {
     rlang::abort("`receptors` is required when `object` is not a SIRAP object.")
   }
   .require_namespace("SeuratObject")
   receptors <- .as_data_frame(receptors)
-  barcode_col <- .guess_barcode_col(receptors, barcode_col)
-  .check_required_cols(receptors, c(barcode_col, group_col), "receptors")
+  barcode <- .guess_barcode_col(receptors, barcode)
+  .check_required_cols(receptors, c(barcode, group), "receptors")
 
-  receptors$.sirap_receptor_group <- as.character(receptors[[group_col]])
-  if (is.null(values)) {
-    values <- unique(stats::na.omit(receptors$.sirap_receptor_group))
+  receptors$.sirap_receptor_group <- as.character(receptors[[group]])
+  if (is.null(group_val)) {
+    group_val <- unique(stats::na.omit(receptors$.sirap_receptor_group))
   }
-  values <- as.character(values)
-  values <- values[!is.na(values)]
-  if (length(values) == 0L) {
-    rlang::abort("`values` must contain at least one non-missing receptor group.")
+  group_val <- as.character(group_val)
+  group_val <- group_val[!is.na(group_val)]
+  if (length(group_val) == 0L) {
+    rlang::abort("`group_val` must contain at least one non-missing receptor group.")
   }
 
   receptors <- receptors[
     !is.na(receptors$.sirap_receptor_group) &
-      receptors$.sirap_receptor_group %in% values &
-      !is.na(receptors[[barcode_col]]),
+      receptors$.sirap_receptor_group %in% group_val &
+      !is.na(receptors[[barcode]]),
     ,
     drop = FALSE
   ]
   if (nrow(receptors) == 0L) {
-    rlang::abort("No receptor rows matched `values` in `group_col`.")
+    rlang::abort("No receptor rows matched `group_val` in `group`.")
   }
-  receptors[[barcode_col]] <- as.character(receptors[[barcode_col]])
-  receptors$.sirap_receptor_group <- factor(receptors$.sirap_receptor_group, levels = values)
-  colors <- .sirap_receptor_group_colors(values, colors)
-  receptor_legend_title <- receptor_legend_title %||% group_col
+  receptors[[barcode]] <- as.character(receptors[[barcode]])
+  receptors$.sirap_receptor_group <- factor(receptors$.sirap_receptor_group, levels = group_val)
+  colors <- .sirap_receptor_group_colors(group_val, colors)
+  receptor_legend_title <- receptor_legend_title %||% group
 
-  receptor_lookup <- receptors[, c(barcode_col, ".sirap_receptor_group"), drop = FALSE]
+  receptor_lookup <- receptors[, c(barcode, ".sirap_receptor_group"), drop = FALSE]
   receptor_lookup <- receptor_lookup[!duplicated(receptor_lookup), , drop = FALSE]
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
@@ -798,12 +816,12 @@ plotReceptors <- function(object,
       spatial$coords,
       receptor_lookup,
       by.x = "cell",
-      by.y = barcode_col,
+      by.y = barcode,
       all = FALSE
     )
     receptor_data$.sirap_receptor_group <- factor(
       receptor_data$.sirap_receptor_group,
-      levels = values
+      levels = group_val
     )
     if (isTRUE(order_points)) {
       receptor_data <- receptor_data[
@@ -851,16 +869,16 @@ plotReceptors <- function(object,
 #'
 #' @param object Seurat object, or a SIRAP object.
 #' @param tip_data Data frame with spatial barcode and color columns.
-#' @param barcode_col Column in `tip_data` matching Seurat spot names.
-#' @param color_col Column containing colors.
-#' @param label_col Optional column containing legend labels for colors.
+#' @param barcode Column in `tip_data` matching Seurat spot names.
+#' @param color Column containing colors.
+#' @param label Optional column containing legend labels for colors.
 #' @param legend_title Title for the color legend.
 #' @param legend_colors Optional named color vector used for the legend.
 #' @param title Optional title.
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
-#'   which uses Seurat image coordinates natively.
+#'   axes before plotting or polygon membership checks. If `NULL`, the
+#'   value must be supplied explicitly or by SIRAP object metadata.
 #' @param point_size Size of plotted tips.
 #' @param point_alpha Opacity for plotted tips.
 #' @param order_points Plot earlier tip-color groups first so later groups
@@ -873,46 +891,49 @@ plotReceptors <- function(object,
 #' @return A ggplot/patchwork object.
 #' @export
 plotSpatialColorTips <- function(object,
-                                tip_data,
-                                barcode_col = "barcode_8um",
-                                color_col = "tip_color",
-                                label_col = NULL,
+                                 tip_data,
+                                barcode = "spatial_barcode_8um",
+                                color = "tip_color",
+                                label = NULL,
                                 legend_title = "Tip color",
                                 legend_colors = NULL,
                                 title = NULL,
-                                image_scale = "hires",
-                                swap_coords = FALSE,
+                                image_scale = NULL,
+                                swap_coords = NULL,
                                 point_size = 1.6,
                                 point_alpha = 1,
                                 order_points = TRUE,
                                 images = NULL,
                                 image_alpha = 1,
-                                zoom = FALSE,
-                                show_legend = FALSE) {
-  barcode_missing <- missing(barcode_col)
+                                 zoom = FALSE,
+                                 show_legend = FALSE) {
+  barcode_missing <- missing(barcode)
   if (isSIRAP(object) && barcode_missing) {
-    barcode_col <- .sirap_receptor_fields(object)$barcode
+    barcode <- .sirap_receptor_fields(object)$barcode
   }
-  object <- .sirap_spatial_input(object)
+  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  object <- context$object
+  image_scale <- context$image_scale
+  swap_coords <- context$swap_coords
   .require_namespace("SeuratObject")
   tip_data <- .as_data_frame(tip_data)
-  .check_required_cols(tip_data, c(barcode_col, color_col), "tip_data")
-  if (!is.null(label_col)) {
-    .check_required_cols(tip_data, label_col, "tip_data")
+  .check_required_cols(tip_data, c(barcode, color), "tip_data")
+  if (!is.null(label)) {
+    .check_required_cols(tip_data, label, "tip_data")
   }
-  tip_data <- tip_data[!is.na(tip_data[[barcode_col]]) & !is.na(tip_data[[color_col]]), , drop = FALSE]
-  spot_color <- stats::setNames(as.character(tip_data[[color_col]]), as.character(tip_data[[barcode_col]]))
+  tip_data <- tip_data[!is.na(tip_data[[barcode]]) & !is.na(tip_data[[color]]), , drop = FALSE]
+  spot_color <- stats::setNames(as.character(tip_data[[color]]), as.character(tip_data[[barcode]]))
   spot_color <- spot_color[!duplicated(names(spot_color))]
-  if (is.null(label_col)) {
+  if (is.null(label)) {
     colors <- unique(stats::na.omit(as.character(spot_color)))
     names(colors) <- colors
   } else {
-    tip_data <- tip_data[!is.na(tip_data[[label_col]]), , drop = FALSE]
-    spot_label <- stats::setNames(as.character(tip_data[[label_col]]), as.character(tip_data[[barcode_col]]))
+    tip_data <- tip_data[!is.na(tip_data[[label]]), , drop = FALSE]
+    spot_label <- stats::setNames(as.character(tip_data[[label]]), as.character(tip_data[[barcode]]))
     spot_label <- spot_label[!duplicated(names(spot_label))]
     if (is.null(legend_colors)) {
-      legend_df <- tip_data[!duplicated(tip_data[[label_col]]), c(label_col, color_col), drop = FALSE]
-      legend_colors <- stats::setNames(as.character(legend_df[[color_col]]), as.character(legend_df[[label_col]]))
+      legend_df <- tip_data[!duplicated(tip_data[[label]]), c(label, color), drop = FALSE]
+      legend_colors <- stats::setNames(as.character(legend_df[[color]]), as.character(legend_df[[label]]))
     }
     colors <- legend_colors
   }
@@ -925,7 +946,7 @@ plotSpatialColorTips <- function(object,
       next
     }
     dat$.sirap_tip_color <- spot_color[dat$cell]
-    if (!is.null(label_col)) {
+    if (!is.null(label)) {
       dat$.sirap_tip_label <- factor(spot_label[dat$cell], levels = names(colors))
       dat$.sirap_tip_legend <- dat$.sirap_tip_label
     } else {
@@ -968,41 +989,53 @@ plotSpatialColorTips <- function(object,
 #'
 #' @param colored_clones Output from `assignTipColors()`, or a SIRAP object
 #'   whose receptor table contains tip colors.
-#' @param clone_id Clone ID to plot.
+#' @param clone_val Clone ID to plot.
 #' @param tissue_positions Seurat object with spatial images, or a SIRAP
 #'   object. May be omitted when `colored_clones` is a SIRAP object.
-#' @param clone_col Clone ID column.
-#' @param barcode_col Spatial barcode column in `colored_clones`.
+#' @param clone Clone ID column.
+#' @param barcode Spatial barcode column in `colored_clones`.
 #' @param ... Additional arguments passed to `plotSpatialColorTips()`.
 #' @return A ggplot object.
 #' @export
 plotSpatialCloneColorTips <- function(colored_clones,
-                                    clone_id,
+                                    clone_val,
                                     tissue_positions = NULL,
-                                    clone_col = "clone_id",
-                                    barcode_col = "barcode_8um",
+                                    clone = "clone_id",
+                                    barcode = "spatial_barcode_8um",
+                                    image_scale = NULL,
+                                    swap_coords = NULL,
                                     ...) {
-  clone_missing <- missing(clone_col)
-  barcode_missing <- missing(barcode_col)
+  clone_missing <- missing(clone)
+  barcode_missing <- missing(barcode)
+  spatial_options_object <- tissue_positions
   if (isSIRAP(colored_clones)) {
     container <- colored_clones
     receptor_fields <- .sirap_receptor_fields(container)
+    spatial_options_object <- container
     tissue_positions <- tissue_positions %||% container$spatial
     colored_clones <- container$receptors
     if (clone_missing && !is.null(receptor_fields$clone)) {
-      clone_col <- receptor_fields$clone
+      clone <- receptor_fields$clone
     }
     if (barcode_missing) {
-      barcode_col <- receptor_fields$barcode
+      barcode <- receptor_fields$barcode
     }
   }
   if (isSIRAP(tissue_positions) && barcode_missing) {
-    barcode_col <- .sirap_receptor_fields(tissue_positions)$barcode
+    barcode <- .sirap_receptor_fields(tissue_positions)$barcode
   }
+  spatial_options_object <- spatial_options_object %||% tissue_positions
+  options <- .sirap_spatial_options(
+    spatial_options_object,
+    image_scale = image_scale,
+    swap_coords = swap_coords
+  )
+  image_scale <- options$image_scale
+  swap_coords <- options$swap_coords
   tissue_positions <- .sirap_spatial_input(tissue_positions)
   clone_df <- .as_data_frame(colored_clones)
-  .check_required_cols(clone_df, c(clone_col, barcode_col, "tip_color"), "colored_clones")
-  clone_df <- clone_df[clone_df[[clone_col]] == clone_id, , drop = FALSE]
+  .check_required_cols(clone_df, c(clone, barcode, "tip_color"), "colored_clones")
+  clone_df <- clone_df[clone_df[[clone]] == clone_val, , drop = FALSE]
 
   if (!inherits(tissue_positions, "Seurat")) {
     rlang::abort("plotSpatialCloneColorTips() expects a Seurat object. Use ggplot directly for coordinate data frames.")
@@ -1010,9 +1043,11 @@ plotSpatialCloneColorTips <- function(colored_clones,
   plotSpatialColorTips(
     tissue_positions,
     tip_data = clone_df,
-    barcode_col = barcode_col,
-    color_col = "tip_color",
-    title = paste("Clone", clone_id),
+    barcode = barcode,
+    color = "tip_color",
+    title = paste("Clone", clone_val),
+    image_scale = image_scale,
+    swap_coords = swap_coords,
     ...
   )
 }
@@ -1020,17 +1055,17 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #' Plot paired BCR lineage trees and matching spatial clone colors
 #'
 #' Tips without spatial coordinates or spatial barcodes can still appear in the
-#' tree panel. The spatial panel only plots tips whose `barcode_col` matches a
+#' tree panel. The spatial panel only plots tips whose `barcode` matches a
 #' spot in `object`.
 #'
 #' @param trees Dowser `getTrees()` output, or a list containing a `trees`
 #'   element with that output.
 #' @param object Seurat object with spatial images, or a SIRAP object.
-#' @param barcode_col Column in the dowser clone data matching Seurat spot
+#' @param barcode Column in the dowser clone data matching Seurat spot
 #'   names. May be omitted when `object` is a SIRAP object.
-#' @param clone_ids Optional clone IDs to plot.
-#' @param id_col Column in the dowser clone data matching tree tip labels.
-#' @param clone_col Clone ID column.
+#' @param clone_val Optional clone IDs to plot.
+#' @param id Column in the dowser clone data matching tree tip labels.
+#' @param clone Clone ID column.
 #' @param color_by Column used to assign matching tree and spatial colors.
 #'   Use `"identity"` to give each tip its own color. Use another column name,
 #'   such as `"tree_cluster"` or a spatial barcode column, to color tips by
@@ -1039,8 +1074,8 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #'   additional colors are generated by averaging supplied colors.
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. Defaults to `FALSE`,
-#'   which uses Seurat image coordinates natively.
+#'   axes before plotting or polygon membership checks. If `NULL`, the
+#'   value must be supplied explicitly or by SIRAP object metadata.
 #' @param images Optional Seurat image names.
 #' @param zoom Zoom spatial plots to the clone. Defaults to `FALSE`, which
 #'   shows the full tissue area covered by spatial coordinates.
@@ -1059,14 +1094,14 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #' @export
 plotSpatialCloneTreePairs <- function(trees,
                                       object,
-                                      barcode_col = NULL,
-                                      clone_ids = NULL,
-                                      id_col = "sequence_id",
-                                      clone_col = "clone_id",
+                                      barcode = NULL,
+                                      clone_val = NULL,
+                                      id = "sequence_id",
+                                      clone = "clone_id",
                                       color_by = "identity",
                                       palette = NULL,
-                                      image_scale = "hires",
-                                      swap_coords = FALSE,
+                                      image_scale = NULL,
+                                      swap_coords = NULL,
                                       images = NULL,
                                       zoom = FALSE,
                                       tree_layout = "rectangular",
@@ -1078,18 +1113,21 @@ plotSpatialCloneTreePairs <- function(trees,
                                       show_spatial_legend = FALSE,
                                       nproc = 1L,
                                       ...) {
-  if (isSIRAP(object) && is.null(barcode_col)) {
-    barcode_col <- .sirap_receptor_fields(object)$barcode
+  if (isSIRAP(object) && is.null(barcode)) {
+    barcode <- .sirap_receptor_fields(object)$barcode
   }
-  object <- .sirap_spatial_input(object)
-  if (is.null(barcode_col)) {
-    rlang::abort("`barcode_col` is required when `object` is not a SIRAP object.")
+  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  object <- context$object
+  image_scale <- context$image_scale
+  swap_coords <- context$swap_coords
+  if (is.null(barcode)) {
+    rlang::abort("`barcode` is required when `object` is not a SIRAP object.")
   }
   .require_namespace("ggtree")
   nproc <- .sirap_plot_check_nproc(nproc)
   records <- .sirap_dowser_tree_records(trees)
-  if (!is.null(clone_ids)) {
-    records <- records[names(records) %in% as.character(clone_ids)]
+  if (!is.null(clone_val)) {
+    records <- records[names(records) %in% as.character(clone_val)]
   }
   if (length(records) == 0L) {
     rlang::abort("No dowser trees matched the requested clone IDs.")
@@ -1098,11 +1136,11 @@ plotSpatialCloneTreePairs <- function(trees,
   plot_one_clone <- function(clone_id) {
     record <- records[[clone_id]]
     tree <- record$tree
-    clone_data <- .sirap_airr_clone_data(record$data, clone_id = clone_id, clone_col = clone_col)
-    .check_required_cols(clone_data, c(id_col, barcode_col, clone_col), "dowser clone data")
+    clone_data <- .sirap_airr_clone_data(record$data, clone_id = clone_id, clone_col = clone)
+    .check_required_cols(clone_data, c(id, barcode, clone), "dowser clone data")
 
     tip_ids <- setdiff(tree$tip.label, "Germline")
-    tip_data <- clone_data[clone_data[[id_col]] %in% tip_ids, , drop = FALSE]
+    tip_data <- clone_data[clone_data[[id]] %in% tip_ids, , drop = FALSE]
     if (nrow(tip_data) == 0L) {
       return(NULL)
     }
@@ -1113,10 +1151,10 @@ plotSpatialCloneTreePairs <- function(trees,
     }
     colored_tips <- assignTipColors(
       tip_data,
-      clone_ids = clone_id,
-      clone_col = clone_col,
-      id_col = id_col,
-      shared_color_col = shared_color_col,
+      clone_val = clone_id,
+      clone = clone,
+      id = id,
+      shared_color = shared_color_col,
       palette = palette
     )
     legend_info <- .sirap_spatial_tip_legend_info(colored_tips, color_by = color_by)
@@ -1125,7 +1163,7 @@ plotSpatialCloneTreePairs <- function(trees,
     tree_plot <- .sirap_plot_colored_tree(
       tree,
       colored_tips,
-      id_col = id_col,
+      id_col = id,
       color_col = "tip_color",
       title = paste("Clone", clone_id),
       layout = tree_layout,
@@ -1148,8 +1186,8 @@ plotSpatialCloneTreePairs <- function(trees,
     spatial_plot <- plotSpatialColorTips(
       object,
       tip_data = colored_tips,
-      barcode_col = barcode_col,
-      color_col = "tip_color",
+      barcode = barcode,
+      color = "tip_color",
       title = NULL,
       image_scale = image_scale,
       swap_coords = swap_coords,
@@ -1278,17 +1316,19 @@ spatialCloneTreePairsToPDF <- function(pairs,
   }
 
   candidates <- c(
+    "spatial_barcode",
+    "spatial_barcode_8um",
+    "spatial_barcode_2um",
+    "spatial_barcode_16um",
     "barcode",
     "barcode_8um",
     "barcode_2um",
-    "spatial_barcode",
     "cell",
-    "cell_barcode",
-    "sequence_id"
+    "cell_barcode"
   )
   barcode_col <- candidates[candidates %in% colnames(data)][1]
   if (is.na(barcode_col)) {
-    rlang::abort("Could not guess `barcode_col`; pass the receptor barcode column explicitly.")
+    rlang::abort("Could not guess `barcode`; pass the receptor spatial barcode column explicitly.")
   }
   barcode_col
 }
@@ -1528,7 +1568,10 @@ spatialCloneTreePairsToPDF <- function(pairs,
   as.data.frame(out, stringsAsFactors = FALSE)
 }
 
-.sirap_spatial_data <- function(object, image, image_scale = "hires", swap_coords = FALSE) {
+.sirap_spatial_data <- function(object, image, image_scale = NULL, swap_coords = NULL) {
+  options <- .sirap_require_spatial_options(image_scale, swap_coords)
+  image_scale <- options$image_scale
+  swap_coords <- options$swap_coords
   .require_namespace("SeuratObject")
   image_obj <- object[[image]]
   if (isTRUE(swap_coords)) {
@@ -1546,7 +1589,11 @@ spatialCloneTreePairsToPDF <- function(pairs,
   list(coords = coords, image = image_obj)
 }
 
-.sirap_tissue_spatial_coordinates <- function(image, image_scale = "hires") {
+.sirap_tissue_spatial_coordinates <- function(image, image_scale = NULL) {
+  image_scale <- .sirap_resolve_image_scale(image_scale)
+  if (is.null(image_scale)) {
+    rlang::abort("`image_scale` must be supplied explicitly or stored in a SIRAP object.")
+  }
   coords <- SeuratObject::GetTissueCoordinates(image, scale = image_scale)
   coords <- as.data.frame(coords, stringsAsFactors = FALSE)
   if ("cell" %in% colnames(coords)) {
@@ -1568,7 +1615,11 @@ spatialCloneTreePairsToPDF <- function(pairs,
   )
 }
 
-.sirap_swapped_spatial_coordinates <- function(image, image_scale = "hires") {
+.sirap_swapped_spatial_coordinates <- function(image, image_scale = NULL) {
+  image_scale <- .sirap_resolve_image_scale(image_scale)
+  if (is.null(image_scale)) {
+    rlang::abort("`image_scale` must be supplied explicitly or stored in a SIRAP object.")
+  }
   coords <- SeuratObject::GetTissueCoordinates(image, scale = image_scale)
   coords <- as.data.frame(coords, stringsAsFactors = FALSE)
   if ("cell" %in% colnames(coords)) {
@@ -1597,8 +1648,12 @@ spatialCloneTreePairsToPDF <- function(pairs,
 
 .sirap_spatial_coordinate_candidates <- function(coords,
                                                 image,
-                                                image_scale = "hires",
+                                                image_scale = NULL,
                                                 include_all_scales = FALSE) {
+  image_scale <- .sirap_resolve_image_scale(image_scale)
+  if (is.null(image_scale)) {
+    rlang::abort("`image_scale` must be supplied explicitly or stored in a SIRAP object.")
+  }
   raster <- .sirap_image_raster(image, alpha = 1)
   image_dim <- dim(raster)
   height <- image_dim[[1L]]
@@ -1676,7 +1731,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
   )
 }
 
-.sirap_image_scale_factor <- function(image, image_scale = "hires") {
+.sirap_image_scale_factor <- function(image, image_scale = NULL) {
   if (is.null(image_scale) || length(image_scale) == 0L || is.na(image_scale[[1L]])) {
     return(NA_real_)
   }

@@ -4,7 +4,7 @@ test_that("gap length helpers work", {
   expect_equal(.sirap_opening_gap_length("A.."), 0L)
 })
 
-test_that("filterSpatialAirr filters by locus and lengths", {
+test_that("filterAirr filters by locus and lengths", {
   airr <- data.frame(
     locus = c("IGH", "IGK", "IGH"),
     v_sequence_start = c(1, 1, 1),
@@ -14,7 +14,7 @@ test_that("filterSpatialAirr filters by locus and lengths", {
     junction_length = c(12, 12, 12),
     productive = c(TRUE, TRUE, TRUE)
   )
-  out <- filterSpatialAirr(airr, loci = "IGH", productive_only = TRUE)
+  out <- filterAirr(airr, locus_val = "IGH", productive_only = TRUE)
   expect_equal(nrow(out), 1L)
   expect_equal(out$locus, "IGH")
 })
