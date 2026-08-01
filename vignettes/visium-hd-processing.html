@@ -232,7 +232,7 @@ pre, code {
 background-color: #f7f7f7;
 border-radius: 3px;
 color: #333;
-white-space: pre-wrap;
+white-space: pre-wrap; 
 }
 pre {
 border-radius: 3px;
@@ -300,18 +300,18 @@ text-decoration: underline; }
 a[href^="https:"] {
 text-decoration: underline; }
 
-code > span.kw { color: #555; font-weight: bold; }
-code > span.dt { color: #902000; }
-code > span.dv { color: #40a070; }
-code > span.bn { color: #d14; }
-code > span.fl { color: #d14; }
-code > span.ch { color: #d14; }
-code > span.st { color: #d14; }
-code > span.co { color: #888888; font-style: italic; }
-code > span.ot { color: #007020; }
-code > span.al { color: #ff0000; font-weight: bold; }
-code > span.fu { color: #900; font-weight: bold; }
-code > span.er { color: #a61717; background-color: #e3d2d2; }
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
 </style>
 
 
@@ -429,14 +429,14 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="start-from-raw-igblast-output" class="section level2">
 <h2>Start from Raw IgBLAST Output</h2>
-<p>Extract the 2 um spatial barcode before pRESTO and do a first length/locus filter. <code>filterSpatialAirr()</code> keeps preprocessing in memory; we explicitly write AIRR tables and FASTA files only when we need pRESTO inputs.</p>
+<p>Extract the 2 um spatial barcode before pRESTO and do a first length/locus filter. <code>filterAirr()</code> keeps preprocessing in memory; we explicitly write AIRR tables and FASTA files only when we need pRESTO inputs.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">bcrRaw &lt;-<span class="st"> </span>data.table<span class="op">::</span><span class="kw">fread</span>(rawBCRIgblastPath)</a>
 <a class="sourceLine" id="cb5-2" data-line-number="2">tcrRaw &lt;-<span class="st"> </span>data.table<span class="op">::</span><span class="kw">fread</span>(rawTCRIgblastPath)</a>
 <a class="sourceLine" id="cb5-3" data-line-number="3"></a>
 <a class="sourceLine" id="cb5-4" data-line-number="4">bcrRaw &lt;-<span class="st"> </span><span class="kw">extractSpatialBarcodes</span>(</a>
 <a class="sourceLine" id="cb5-5" data-line-number="5">  bcrRaw,</a>
-<a class="sourceLine" id="cb5-6" data-line-number="6">  <span class="dt">sequence_id_col =</span> <span class="st">&quot;sequence_id&quot;</span>,</a>
-<a class="sourceLine" id="cb5-7" data-line-number="7">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>
+<a class="sourceLine" id="cb5-6" data-line-number="6">  <span class="dt">id =</span> <span class="st">&quot;sequence_id&quot;</span>,</a>
+<a class="sourceLine" id="cb5-7" data-line-number="7">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>
 <a class="sourceLine" id="cb5-8" data-line-number="8">  <span class="dt">regex =</span> <span class="st">&quot;[0-9]+_[0-9]+$&quot;</span>,</a>
 <a class="sourceLine" id="cb5-9" data-line-number="9">  <span class="dt">prefix =</span> <span class="st">&quot;s_002um_&quot;</span>,</a>
 <a class="sourceLine" id="cb5-10" data-line-number="10">  <span class="dt">suffix =</span> <span class="st">&quot;-1&quot;</span></a>
@@ -444,35 +444,35 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb5-12" data-line-number="12"></a>
 <a class="sourceLine" id="cb5-13" data-line-number="13">tcrRaw &lt;-<span class="st"> </span><span class="kw">extractSpatialBarcodes</span>(</a>
 <a class="sourceLine" id="cb5-14" data-line-number="14">  tcrRaw,</a>
-<a class="sourceLine" id="cb5-15" data-line-number="15">  <span class="dt">sequence_id_col =</span> <span class="st">&quot;sequence_id&quot;</span>,</a>
-<a class="sourceLine" id="cb5-16" data-line-number="16">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>
+<a class="sourceLine" id="cb5-15" data-line-number="15">  <span class="dt">id =</span> <span class="st">&quot;sequence_id&quot;</span>,</a>
+<a class="sourceLine" id="cb5-16" data-line-number="16">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>
 <a class="sourceLine" id="cb5-17" data-line-number="17">  <span class="dt">regex =</span> <span class="st">&quot;[0-9]+_[0-9]+$&quot;</span>,</a>
 <a class="sourceLine" id="cb5-18" data-line-number="18">  <span class="dt">prefix =</span> <span class="st">&quot;s_002um_&quot;</span>,</a>
 <a class="sourceLine" id="cb5-19" data-line-number="19">  <span class="dt">suffix =</span> <span class="st">&quot;-1&quot;</span></a>
 <a class="sourceLine" id="cb5-20" data-line-number="20">)</a>
 <a class="sourceLine" id="cb5-21" data-line-number="21"></a>
-<a class="sourceLine" id="cb5-22" data-line-number="22">bcrHeavy &lt;-<span class="st"> </span><span class="kw">filterSpatialAirr</span>(</a>
+<a class="sourceLine" id="cb5-22" data-line-number="22">bcrHeavy &lt;-<span class="st"> </span><span class="kw">filterAirr</span>(</a>
 <a class="sourceLine" id="cb5-23" data-line-number="23">  bcrRaw,</a>
-<a class="sourceLine" id="cb5-24" data-line-number="24">  <span class="dt">loci =</span> <span class="st">&quot;IGH&quot;</span>,</a>
+<a class="sourceLine" id="cb5-24" data-line-number="24">  <span class="dt">locus_val =</span> <span class="st">&quot;IGH&quot;</span>,</a>
 <a class="sourceLine" id="cb5-25" data-line-number="25">  <span class="dt">min_v_length =</span> <span class="dv">100</span>,</a>
 <a class="sourceLine" id="cb5-26" data-line-number="26">  <span class="dt">min_j_length =</span> <span class="dv">10</span>,</a>
 <a class="sourceLine" id="cb5-27" data-line-number="27">  <span class="dt">min_junction_length =</span> <span class="dv">1</span>,</a>
-<a class="sourceLine" id="cb5-28" data-line-number="28">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>
-<a class="sourceLine" id="cb5-29" data-line-number="29">  <span class="dt">add_full_id =</span> <span class="ot">TRUE</span></a>
+<a class="sourceLine" id="cb5-28" data-line-number="28">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>
+<a class="sourceLine" id="cb5-29" data-line-number="29">  <span class="dt">add_spatial_sequence_id =</span> <span class="ot">TRUE</span></a>
 <a class="sourceLine" id="cb5-30" data-line-number="30">)</a>
 <a class="sourceLine" id="cb5-31" data-line-number="31"></a>
-<a class="sourceLine" id="cb5-32" data-line-number="32">tcrBeta &lt;-<span class="st"> </span><span class="kw">filterSpatialAirr</span>(</a>
+<a class="sourceLine" id="cb5-32" data-line-number="32">tcrBeta &lt;-<span class="st"> </span><span class="kw">filterAirr</span>(</a>
 <a class="sourceLine" id="cb5-33" data-line-number="33">  tcrRaw,</a>
-<a class="sourceLine" id="cb5-34" data-line-number="34">  <span class="dt">loci =</span> <span class="st">&quot;TRB&quot;</span>,</a>
+<a class="sourceLine" id="cb5-34" data-line-number="34">  <span class="dt">locus_val =</span> <span class="st">&quot;TRB&quot;</span>,</a>
 <a class="sourceLine" id="cb5-35" data-line-number="35">  <span class="dt">min_v_length =</span> <span class="dv">100</span>,</a>
 <a class="sourceLine" id="cb5-36" data-line-number="36">  <span class="dt">min_j_length =</span> <span class="dv">10</span>,</a>
 <a class="sourceLine" id="cb5-37" data-line-number="37">  <span class="dt">min_junction_length =</span> <span class="dv">1</span>,</a>
-<a class="sourceLine" id="cb5-38" data-line-number="38">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>
-<a class="sourceLine" id="cb5-39" data-line-number="39">  <span class="dt">add_full_id =</span> <span class="ot">TRUE</span></a>
+<a class="sourceLine" id="cb5-38" data-line-number="38">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>
+<a class="sourceLine" id="cb5-39" data-line-number="39">  <span class="dt">add_spatial_sequence_id =</span> <span class="ot">TRUE</span></a>
 <a class="sourceLine" id="cb5-40" data-line-number="40">)</a>
 <a class="sourceLine" id="cb5-41" data-line-number="41"></a>
-<a class="sourceLine" id="cb5-42" data-line-number="42"><span class="kw">spatialReceptorSummary</span>(bcrHeavy, <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span>)</a>
-<a class="sourceLine" id="cb5-43" data-line-number="43"><span class="kw">spatialReceptorSummary</span>(tcrBeta, <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span>)</a></code></pre></div>
+<a class="sourceLine" id="cb5-42" data-line-number="42"><span class="kw">spatialReceptorSummary</span>(bcrHeavy, <span class="dt">barcode =</span> <span class="st">&quot;barcode_2um&quot;</span>)</a>
+<a class="sourceLine" id="cb5-43" data-line-number="43"><span class="kw">spatialReceptorSummary</span>(tcrBeta, <span class="dt">barcode =</span> <span class="st">&quot;barcode_2um&quot;</span>)</a></code></pre></div>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">bcrHeavySpatialTsv &lt;-<span class="st"> </span><span class="kw">file.path</span>(prestoInputDir, <span class="kw">sprintf</span>(<span class="st">&quot;%s_igblast_bcr_pass_length_spatial_barcode.tsv&quot;</span>, sampleLower))</a>
 <a class="sourceLine" id="cb6-2" data-line-number="2">bcrHeavySpatialFasta &lt;-<span class="st"> </span><span class="kw">file.path</span>(prestoInputDir, <span class="kw">sprintf</span>(<span class="st">&quot;%s_igblast_bcr_pass_length_spatial_barcode.fasta&quot;</span>, sampleLower))</a>
 <a class="sourceLine" id="cb6-3" data-line-number="3">tcrBetaSpatialTsv &lt;-<span class="st"> </span><span class="kw">file.path</span>(prestoInputDir, <span class="kw">sprintf</span>(<span class="st">&quot;%s_igblast_tcr_pass_length_spatial_barcode.tsv&quot;</span>, sampleLower))</a>
@@ -481,8 +481,8 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb6-6" data-line-number="6">airr<span class="op">::</span><span class="kw">write_rearrangement</span>(bcrHeavy, bcrHeavySpatialTsv)</a>
 <a class="sourceLine" id="cb6-7" data-line-number="7">airr<span class="op">::</span><span class="kw">write_rearrangement</span>(tcrBeta, tcrBetaSpatialTsv)</a>
 <a class="sourceLine" id="cb6-8" data-line-number="8"></a>
-<a class="sourceLine" id="cb6-9" data-line-number="9">dowser<span class="op">::</span><span class="kw">dfToFasta</span>(bcrHeavy, <span class="dt">file =</span> bcrHeavySpatialFasta, <span class="dt">id =</span> <span class="st">&quot;full_id&quot;</span>, <span class="dt">seq =</span> <span class="st">&quot;sequence_alignment&quot;</span>)</a>
-<a class="sourceLine" id="cb6-10" data-line-number="10">dowser<span class="op">::</span><span class="kw">dfToFasta</span>(tcrBeta, <span class="dt">file =</span> tcrBetaSpatialFasta, <span class="dt">id =</span> <span class="st">&quot;full_id&quot;</span>, <span class="dt">seq =</span> <span class="st">&quot;sequence_alignment&quot;</span>)</a></code></pre></div>
+<a class="sourceLine" id="cb6-9" data-line-number="9">dowser<span class="op">::</span><span class="kw">dfToFasta</span>(bcrHeavy, <span class="dt">file =</span> bcrHeavySpatialFasta, <span class="dt">id =</span> <span class="st">&quot;spatial_sequence_id&quot;</span>, <span class="dt">seq =</span> <span class="st">&quot;sequence_alignment&quot;</span>)</a>
+<a class="sourceLine" id="cb6-10" data-line-number="10">dowser<span class="op">::</span><span class="kw">dfToFasta</span>(tcrBeta, <span class="dt">file =</span> tcrBetaSpatialFasta, <span class="dt">id =</span> <span class="st">&quot;spatial_sequence_id&quot;</span>, <span class="dt">seq =</span> <span class="st">&quot;sequence_alignment&quot;</span>)</a></code></pre></div>
 </div>
 <div id="run-presto-and-igblast-from-r" class="section level2">
 <h2>Run pRESTO and IgBLAST from R</h2>
@@ -525,40 +525,40 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb8-3" data-line-number="3"></a>
 <a class="sourceLine" id="cb8-4" data-line-number="4">bcrConsensus &lt;-<span class="st"> </span><span class="kw">extractSpatialBarcodes</span>(</a>
 <a class="sourceLine" id="cb8-5" data-line-number="5">  bcrConsensus,</a>
-<a class="sourceLine" id="cb8-6" data-line-number="6">  <span class="dt">sequence_id_col =</span> <span class="st">&quot;sequence_id&quot;</span>,</a>
-<a class="sourceLine" id="cb8-7" data-line-number="7">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>
+<a class="sourceLine" id="cb8-6" data-line-number="6">  <span class="dt">id =</span> <span class="st">&quot;sequence_id&quot;</span>,</a>
+<a class="sourceLine" id="cb8-7" data-line-number="7">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>
 <a class="sourceLine" id="cb8-8" data-line-number="8">  <span class="dt">regex =</span> <span class="st">&quot;,([^,]+)&quot;</span></a>
 <a class="sourceLine" id="cb8-9" data-line-number="9">)</a>
 <a class="sourceLine" id="cb8-10" data-line-number="10"></a>
 <a class="sourceLine" id="cb8-11" data-line-number="11">tcrConsensus &lt;-<span class="st"> </span><span class="kw">extractSpatialBarcodes</span>(</a>
 <a class="sourceLine" id="cb8-12" data-line-number="12">  tcrConsensus,</a>
-<a class="sourceLine" id="cb8-13" data-line-number="13">  <span class="dt">sequence_id_col =</span> <span class="st">&quot;sequence_id&quot;</span>,</a>
-<a class="sourceLine" id="cb8-14" data-line-number="14">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>
+<a class="sourceLine" id="cb8-13" data-line-number="13">  <span class="dt">id =</span> <span class="st">&quot;sequence_id&quot;</span>,</a>
+<a class="sourceLine" id="cb8-14" data-line-number="14">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_2um&quot;</span>,</a>
 <a class="sourceLine" id="cb8-15" data-line-number="15">  <span class="dt">regex =</span> <span class="st">&quot;,([^,]+)&quot;</span></a>
 <a class="sourceLine" id="cb8-16" data-line-number="16">)</a>
 <a class="sourceLine" id="cb8-17" data-line-number="17"></a>
-<a class="sourceLine" id="cb8-18" data-line-number="18">bcrConsensusFiltered &lt;-<span class="st"> </span><span class="kw">filterSpatialAirr</span>(</a>
+<a class="sourceLine" id="cb8-18" data-line-number="18">bcrConsensusFiltered &lt;-<span class="st"> </span><span class="kw">filterAirr</span>(</a>
 <a class="sourceLine" id="cb8-19" data-line-number="19">  bcrConsensus,</a>
-<a class="sourceLine" id="cb8-20" data-line-number="20">  <span class="dt">loci =</span> <span class="st">&quot;IGH&quot;</span>,</a>
+<a class="sourceLine" id="cb8-20" data-line-number="20">  <span class="dt">locus_val =</span> <span class="st">&quot;IGH&quot;</span>,</a>
 <a class="sourceLine" id="cb8-21" data-line-number="21">  <span class="dt">min_v_length =</span> <span class="dv">250</span>,</a>
 <a class="sourceLine" id="cb8-22" data-line-number="22">  <span class="dt">min_j_length =</span> <span class="dv">30</span>,</a>
 <a class="sourceLine" id="cb8-23" data-line-number="23">  <span class="dt">min_junction_length =</span> <span class="dv">10</span>,</a>
 <a class="sourceLine" id="cb8-24" data-line-number="24">  <span class="dt">productive_only =</span> <span class="ot">TRUE</span>,</a>
 <a class="sourceLine" id="cb8-25" data-line-number="25">  <span class="dt">min_consensus_count =</span> <span class="dv">2</span>,</a>
 <a class="sourceLine" id="cb8-26" data-line-number="26">  <span class="dt">max_opening_gap =</span> <span class="dv">2</span>,</a>
-<a class="sourceLine" id="cb8-27" data-line-number="27">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span></a>
+<a class="sourceLine" id="cb8-27" data-line-number="27">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_2um&quot;</span></a>
 <a class="sourceLine" id="cb8-28" data-line-number="28">)</a>
 <a class="sourceLine" id="cb8-29" data-line-number="29"></a>
-<a class="sourceLine" id="cb8-30" data-line-number="30">tcrConsensusFiltered &lt;-<span class="st"> </span><span class="kw">filterSpatialAirr</span>(</a>
+<a class="sourceLine" id="cb8-30" data-line-number="30">tcrConsensusFiltered &lt;-<span class="st"> </span><span class="kw">filterAirr</span>(</a>
 <a class="sourceLine" id="cb8-31" data-line-number="31">  tcrConsensus,</a>
-<a class="sourceLine" id="cb8-32" data-line-number="32">  <span class="dt">loci =</span> <span class="st">&quot;TRB&quot;</span>,</a>
+<a class="sourceLine" id="cb8-32" data-line-number="32">  <span class="dt">locus_val =</span> <span class="st">&quot;TRB&quot;</span>,</a>
 <a class="sourceLine" id="cb8-33" data-line-number="33">  <span class="dt">min_v_length =</span> <span class="dv">250</span>,</a>
 <a class="sourceLine" id="cb8-34" data-line-number="34">  <span class="dt">min_j_length =</span> <span class="dv">30</span>,</a>
 <a class="sourceLine" id="cb8-35" data-line-number="35">  <span class="dt">min_junction_length =</span> <span class="dv">10</span>,</a>
 <a class="sourceLine" id="cb8-36" data-line-number="36">  <span class="dt">productive_only =</span> <span class="ot">TRUE</span>,</a>
 <a class="sourceLine" id="cb8-37" data-line-number="37">  <span class="dt">min_consensus_count =</span> <span class="dv">2</span>,</a>
 <a class="sourceLine" id="cb8-38" data-line-number="38">  <span class="dt">max_opening_gap =</span> <span class="dv">2</span>,</a>
-<a class="sourceLine" id="cb8-39" data-line-number="39">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span></a>
+<a class="sourceLine" id="cb8-39" data-line-number="39">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_2um&quot;</span></a>
 <a class="sourceLine" id="cb8-40" data-line-number="40">)</a>
 <a class="sourceLine" id="cb8-41" data-line-number="41"></a>
 <a class="sourceLine" id="cb8-42" data-line-number="42">bcrConsensusFiltered &lt;-<span class="st"> </span>bcrConsensusFiltered <span class="op">%&gt;%</span></a>
@@ -577,51 +577,29 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb8-55" data-line-number="55">  ) <span class="op">%&gt;%</span></a>
 <a class="sourceLine" id="cb8-56" data-line-number="56"><span class="st">  </span><span class="kw">rename</span>(<span class="dt">barcode_8um =</span> square_008um, <span class="dt">barcode_16um =</span> square_016um)</a>
 <a class="sourceLine" id="cb8-57" data-line-number="57"></a>
-<a class="sourceLine" id="cb8-58" data-line-number="58">bcrConsensusFilteredPos &lt;-<span class="st"> </span><span class="kw">addTissuePositions</span>(</a>
+<a class="sourceLine" id="cb8-58" data-line-number="58">bcrCollapsed &lt;-<span class="st"> </span><span class="kw">collapseIdenticalNeighbors</span>(</a>
 <a class="sourceLine" id="cb8-59" data-line-number="59">  bcrConsensusFiltered,</a>
-<a class="sourceLine" id="cb8-60" data-line-number="60">  positions8um,</a>
-<a class="sourceLine" id="cb8-61" data-line-number="61">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
-<a class="sourceLine" id="cb8-62" data-line-number="62">  <span class="dt">position_barcode_col =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
-<a class="sourceLine" id="cb8-63" data-line-number="63">  <span class="dt">x_col =</span> <span class="st">&quot;x&quot;</span>,</a>
-<a class="sourceLine" id="cb8-64" data-line-number="64">  <span class="dt">y_col =</span> <span class="st">&quot;y&quot;</span></a>
-<a class="sourceLine" id="cb8-65" data-line-number="65">) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(x), <span class="op">!</span><span class="kw">is.na</span>(y))</a>
+<a class="sourceLine" id="cb8-60" data-line-number="60">  <span class="dt">seurat_object =</span> thymus,</a>
+<a class="sourceLine" id="cb8-61" data-line-number="61">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
+<a class="sourceLine" id="cb8-62" data-line-number="62">  <span class="dt">sequence =</span> <span class="st">&quot;sequence_alignment&quot;</span>,</a>
+<a class="sourceLine" id="cb8-63" data-line-number="63">  <span class="dt">consensus_count =</span> <span class="st">&quot;consensus_count&quot;</span>,</a>
+<a class="sourceLine" id="cb8-64" data-line-number="64">  <span class="dt">num_neighbors_non_boundary =</span> 8L</a>
+<a class="sourceLine" id="cb8-65" data-line-number="65">)</a>
 <a class="sourceLine" id="cb8-66" data-line-number="66"></a>
-<a class="sourceLine" id="cb8-67" data-line-number="67">tcrConsensusFilteredPos &lt;-<span class="st"> </span><span class="kw">addTissuePositions</span>(</a>
+<a class="sourceLine" id="cb8-67" data-line-number="67">tcrCollapsed &lt;-<span class="st"> </span><span class="kw">collapseIdenticalNeighbors</span>(</a>
 <a class="sourceLine" id="cb8-68" data-line-number="68">  tcrConsensusFiltered,</a>
-<a class="sourceLine" id="cb8-69" data-line-number="69">  positions8um,</a>
-<a class="sourceLine" id="cb8-70" data-line-number="70">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
-<a class="sourceLine" id="cb8-71" data-line-number="71">  <span class="dt">position_barcode_col =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
-<a class="sourceLine" id="cb8-72" data-line-number="72">  <span class="dt">x_col =</span> <span class="st">&quot;x&quot;</span>,</a>
-<a class="sourceLine" id="cb8-73" data-line-number="73">  <span class="dt">y_col =</span> <span class="st">&quot;y&quot;</span></a>
-<a class="sourceLine" id="cb8-74" data-line-number="74">) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(x), <span class="op">!</span><span class="kw">is.na</span>(y))</a>
+<a class="sourceLine" id="cb8-69" data-line-number="69">  <span class="dt">seurat_object =</span> thymus,</a>
+<a class="sourceLine" id="cb8-70" data-line-number="70">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
+<a class="sourceLine" id="cb8-71" data-line-number="71">  <span class="dt">sequence =</span> <span class="st">&quot;sequence_alignment&quot;</span>,</a>
+<a class="sourceLine" id="cb8-72" data-line-number="72">  <span class="dt">consensus_count =</span> <span class="st">&quot;consensus_count&quot;</span>,</a>
+<a class="sourceLine" id="cb8-73" data-line-number="73">  <span class="dt">num_neighbors_non_boundary =</span> 8L</a>
+<a class="sourceLine" id="cb8-74" data-line-number="74">)</a>
 <a class="sourceLine" id="cb8-75" data-line-number="75"></a>
-<a class="sourceLine" id="cb8-76" data-line-number="76">bcrCollapsed &lt;-<span class="st"> </span><span class="kw">collapseIdenticalNeighbors</span>(</a>
-<a class="sourceLine" id="cb8-77" data-line-number="77">  <span class="dt">data =</span> bcrConsensusFilteredPos,</a>
-<a class="sourceLine" id="cb8-78" data-line-number="78">  <span class="dt">tissue_positions =</span> positions8um,</a>
-<a class="sourceLine" id="cb8-79" data-line-number="79">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
-<a class="sourceLine" id="cb8-80" data-line-number="80">  <span class="dt">x =</span> <span class="st">&quot;x&quot;</span>,</a>
-<a class="sourceLine" id="cb8-81" data-line-number="81">  <span class="dt">y =</span> <span class="st">&quot;y&quot;</span>,</a>
-<a class="sourceLine" id="cb8-82" data-line-number="82">  <span class="dt">sequence =</span> <span class="st">&quot;sequence_alignment&quot;</span>,</a>
-<a class="sourceLine" id="cb8-83" data-line-number="83">  <span class="dt">consensus_count =</span> <span class="st">&quot;consensus_count&quot;</span>,</a>
-<a class="sourceLine" id="cb8-84" data-line-number="84">  <span class="dt">num_neighbors_non_boundary =</span> 8L</a>
-<a class="sourceLine" id="cb8-85" data-line-number="85">)</a>
-<a class="sourceLine" id="cb8-86" data-line-number="86"></a>
-<a class="sourceLine" id="cb8-87" data-line-number="87">tcrCollapsed &lt;-<span class="st"> </span><span class="kw">collapseIdenticalNeighbors</span>(</a>
-<a class="sourceLine" id="cb8-88" data-line-number="88">  <span class="dt">data =</span> tcrConsensusFilteredPos,</a>
-<a class="sourceLine" id="cb8-89" data-line-number="89">  <span class="dt">tissue_positions =</span> positions8um,</a>
-<a class="sourceLine" id="cb8-90" data-line-number="90">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
-<a class="sourceLine" id="cb8-91" data-line-number="91">  <span class="dt">x =</span> <span class="st">&quot;x&quot;</span>,</a>
-<a class="sourceLine" id="cb8-92" data-line-number="92">  <span class="dt">y =</span> <span class="st">&quot;y&quot;</span>,</a>
-<a class="sourceLine" id="cb8-93" data-line-number="93">  <span class="dt">sequence =</span> <span class="st">&quot;sequence_alignment&quot;</span>,</a>
-<a class="sourceLine" id="cb8-94" data-line-number="94">  <span class="dt">consensus_count =</span> <span class="st">&quot;consensus_count&quot;</span>,</a>
-<a class="sourceLine" id="cb8-95" data-line-number="95">  <span class="dt">num_neighbors_non_boundary =</span> 8L</a>
-<a class="sourceLine" id="cb8-96" data-line-number="96">)</a>
-<a class="sourceLine" id="cb8-97" data-line-number="97"></a>
-<a class="sourceLine" id="cb8-98" data-line-number="98">bcrTopBarcode &lt;-<span class="st"> </span><span class="kw">collapseTopConsensusPerBarcode</span>(bcrCollapsed, <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span>, <span class="dt">locus_col =</span> <span class="st">&quot;locus&quot;</span>, <span class="dt">ties =</span> <span class="st">&quot;all&quot;</span>)</a>
-<a class="sourceLine" id="cb8-99" data-line-number="99">tcrTopBarcode &lt;-<span class="st"> </span><span class="kw">collapseTopConsensusPerBarcode</span>(tcrCollapsed, <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_2um&quot;</span>, <span class="dt">locus_col =</span> <span class="st">&quot;locus&quot;</span>, <span class="dt">ties =</span> <span class="st">&quot;all&quot;</span>)</a>
-<a class="sourceLine" id="cb8-100" data-line-number="100"></a>
-<a class="sourceLine" id="cb8-101" data-line-number="101">airr<span class="op">::</span><span class="kw">write_rearrangement</span>(bcrTopBarcode, finalBCRPath)</a>
-<a class="sourceLine" id="cb8-102" data-line-number="102">airr<span class="op">::</span><span class="kw">write_rearrangement</span>(tcrTopBarcode, finalTCRPath)</a></code></pre></div>
+<a class="sourceLine" id="cb8-76" data-line-number="76">bcrTopBarcode &lt;-<span class="st"> </span><span class="kw">collapseTopConsensusPerBarcode</span>(bcrCollapsed, <span class="dt">barcode =</span> <span class="st">&quot;barcode_2um&quot;</span>, <span class="dt">locus =</span> <span class="st">&quot;locus&quot;</span>, <span class="dt">ties =</span> <span class="st">&quot;all&quot;</span>)</a>
+<a class="sourceLine" id="cb8-77" data-line-number="77">tcrTopBarcode &lt;-<span class="st"> </span><span class="kw">collapseTopConsensusPerBarcode</span>(tcrCollapsed, <span class="dt">barcode =</span> <span class="st">&quot;barcode_2um&quot;</span>, <span class="dt">locus =</span> <span class="st">&quot;locus&quot;</span>, <span class="dt">ties =</span> <span class="st">&quot;all&quot;</span>)</a>
+<a class="sourceLine" id="cb8-78" data-line-number="78"></a>
+<a class="sourceLine" id="cb8-79" data-line-number="79">airr<span class="op">::</span><span class="kw">write_rearrangement</span>(bcrTopBarcode, finalBCRPath)</a>
+<a class="sourceLine" id="cb8-80" data-line-number="80">airr<span class="op">::</span><span class="kw">write_rearrangement</span>(tcrTopBarcode, finalTCRPath)</a></code></pre></div>
 </div>
 <div id="create-sirap-objects" class="section level2">
 <h2>Create SIRAP Objects</h2>
@@ -629,58 +607,80 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1">bcrSirap &lt;-<span class="st"> </span><span class="kw">createSIRAP</span>(</a>
 <a class="sourceLine" id="cb9-2" data-line-number="2">  <span class="dt">spatial =</span> thymus,</a>
 <a class="sourceLine" id="cb9-3" data-line-number="3">  <span class="dt">receptors =</span> bcrTopBarcode,</a>
-<a class="sourceLine" id="cb9-4" data-line-number="4">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
-<a class="sourceLine" id="cb9-5" data-line-number="5">  <span class="dt">metadata =</span> <span class="kw">list</span>(<span class="dt">sample_id =</span> sampleId, <span class="dt">receptor_type =</span> <span class="st">&quot;BCR&quot;</span>)</a>
-<a class="sourceLine" id="cb9-6" data-line-number="6">)</a>
-<a class="sourceLine" id="cb9-7" data-line-number="7"></a>
-<a class="sourceLine" id="cb9-8" data-line-number="8">tcrSirap &lt;-<span class="st"> </span><span class="kw">createSIRAP</span>(</a>
-<a class="sourceLine" id="cb9-9" data-line-number="9">  <span class="dt">spatial =</span> thymus,</a>
-<a class="sourceLine" id="cb9-10" data-line-number="10">  <span class="dt">receptors =</span> tcrTopBarcode,</a>
-<a class="sourceLine" id="cb9-11" data-line-number="11">  <span class="dt">barcode_col =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
-<a class="sourceLine" id="cb9-12" data-line-number="12">  <span class="dt">metadata =</span> <span class="kw">list</span>(<span class="dt">sample_id =</span> sampleId, <span class="dt">receptor_type =</span> <span class="st">&quot;TCR&quot;</span>)</a>
-<a class="sourceLine" id="cb9-13" data-line-number="13">)</a>
-<a class="sourceLine" id="cb9-14" data-line-number="14"></a>
-<a class="sourceLine" id="cb9-15" data-line-number="15">bcrSirap</a>
-<a class="sourceLine" id="cb9-16" data-line-number="16"><span class="kw">summary</span>(tcrSirap)</a>
-<a class="sourceLine" id="cb9-17" data-line-number="17"><span class="kw">spatialReceptorSummary</span>(bcrSirap)</a></code></pre></div>
+<a class="sourceLine" id="cb9-4" data-line-number="4">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
+<a class="sourceLine" id="cb9-5" data-line-number="5">  <span class="dt">image_scale =</span> <span class="st">&quot;hires&quot;</span>,</a>
+<a class="sourceLine" id="cb9-6" data-line-number="6">  <span class="dt">swap_coords =</span> <span class="ot">FALSE</span>,</a>
+<a class="sourceLine" id="cb9-7" data-line-number="7">  <span class="dt">metadata =</span> <span class="kw">list</span>(<span class="dt">sample_id =</span> sampleId, <span class="dt">receptor_type =</span> <span class="st">&quot;BCR&quot;</span>)</a>
+<a class="sourceLine" id="cb9-8" data-line-number="8">)</a>
+<a class="sourceLine" id="cb9-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb9-10" data-line-number="10">tcrSirap &lt;-<span class="st"> </span><span class="kw">createSIRAP</span>(</a>
+<a class="sourceLine" id="cb9-11" data-line-number="11">  <span class="dt">spatial =</span> thymus,</a>
+<a class="sourceLine" id="cb9-12" data-line-number="12">  <span class="dt">receptors =</span> tcrTopBarcode,</a>
+<a class="sourceLine" id="cb9-13" data-line-number="13">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
+<a class="sourceLine" id="cb9-14" data-line-number="14">  <span class="dt">image_scale =</span> <span class="st">&quot;hires&quot;</span>,</a>
+<a class="sourceLine" id="cb9-15" data-line-number="15">  <span class="dt">swap_coords =</span> <span class="ot">FALSE</span>,</a>
+<a class="sourceLine" id="cb9-16" data-line-number="16">  <span class="dt">metadata =</span> <span class="kw">list</span>(<span class="dt">sample_id =</span> sampleId, <span class="dt">receptor_type =</span> <span class="st">&quot;TCR&quot;</span>)</a>
+<a class="sourceLine" id="cb9-17" data-line-number="17">)</a>
+<a class="sourceLine" id="cb9-18" data-line-number="18"></a>
+<a class="sourceLine" id="cb9-19" data-line-number="19">bcrSirap</a>
+<a class="sourceLine" id="cb9-20" data-line-number="20"><span class="kw">summary</span>(tcrSirap)</a>
+<a class="sourceLine" id="cb9-21" data-line-number="21"><span class="kw">spatialReceptorSummary</span>(bcrSirap)</a></code></pre></div>
+<p>The paired components can be inspected with <code>getReceptors()</code> and <code>getSpatial()</code>. Use <code>updateReceptors()</code> or <code>updateSpatial()</code> when the result should be stored back in the appropriate component of a returned SIRAP object. Derived results can be kept alongside the input data with <code>setAnalysis()</code> and retrieved with <code>getAnalysis()</code>.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1">bcrCounts &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">count</span>(</a>
+<a class="sourceLine" id="cb10-2" data-line-number="2">  <span class="kw">getReceptors</span>(bcrSirap),</a>
+<a class="sourceLine" id="cb10-3" data-line-number="3">  locus,</a>
+<a class="sourceLine" id="cb10-4" data-line-number="4">  <span class="dt">sort =</span> <span class="ot">TRUE</span></a>
+<a class="sourceLine" id="cb10-5" data-line-number="5">)</a>
+<a class="sourceLine" id="cb10-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb10-7" data-line-number="7">bcrSirap &lt;-<span class="st"> </span><span class="kw">setAnalysis</span>(bcrSirap, <span class="st">&quot;receptor_counts&quot;</span>, bcrCounts)</a>
+<a class="sourceLine" id="cb10-8" data-line-number="8"><span class="kw">listAnalyses</span>(bcrSirap)</a></code></pre></div>
 </div>
 <div id="plot-bcrs-and-tcrs-over-tissue" class="section level2">
 <h2>Plot BCRs and TCRs Over Tissue</h2>
-<p><code>plotReceptorExpression()</code> and <code>spatialDiscretePlot()</code> draw points over the tissue image rather than over a blank coordinate plane. When passed a SIRAP object, <code>plotReceptorExpression()</code> obtains the Seurat object, receptor tibble, and barcode field from the container.</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1">allBCRPlot &lt;-<span class="st"> </span><span class="kw">plotReceptorExpression</span>(</a>
-<a class="sourceLine" id="cb10-2" data-line-number="2">  <span class="dt">object =</span> bcrSirap,</a>
-<a class="sourceLine" id="cb10-3" data-line-number="3">  <span class="dt">receptor_color =</span> <span class="st">&quot;white&quot;</span>,</a>
-<a class="sourceLine" id="cb10-4" data-line-number="4">  <span class="dt">receptor_size =</span> <span class="fl">0.5</span>,</a>
-<a class="sourceLine" id="cb10-5" data-line-number="5">  <span class="dt">title =</span> <span class="kw">paste</span>(sampleId, <span class="st">&quot;all BCR-positive spots&quot;</span>)</a>
-<a class="sourceLine" id="cb10-6" data-line-number="6">)</a>
-<a class="sourceLine" id="cb10-7" data-line-number="7"></a>
-<a class="sourceLine" id="cb10-8" data-line-number="8">allTCRPlot &lt;-<span class="st"> </span><span class="kw">plotReceptorExpression</span>(</a>
-<a class="sourceLine" id="cb10-9" data-line-number="9">  <span class="dt">object =</span> tcrSirap,</a>
-<a class="sourceLine" id="cb10-10" data-line-number="10">  <span class="dt">receptor_color =</span> <span class="st">&quot;#d95f02&quot;</span>,</a>
-<a class="sourceLine" id="cb10-11" data-line-number="11">  <span class="dt">receptor_size =</span> <span class="fl">0.5</span>,</a>
-<a class="sourceLine" id="cb10-12" data-line-number="12">  <span class="dt">title =</span> <span class="kw">paste</span>(sampleId, <span class="st">&quot;all TCR-positive spots&quot;</span>)</a>
-<a class="sourceLine" id="cb10-13" data-line-number="13">)</a>
-<a class="sourceLine" id="cb10-14" data-line-number="14"></a>
-<a class="sourceLine" id="cb10-15" data-line-number="15">bcr_spots &lt;-<span class="st"> </span><span class="kw">unique</span>(bcrTopBarcode<span class="op">$</span>barcode_8um)</a>
-<a class="sourceLine" id="cb10-16" data-line-number="16">tcr_spots &lt;-<span class="st"> </span><span class="kw">unique</span>(tcrTopBarcode<span class="op">$</span>barcode_8um)</a>
-<a class="sourceLine" id="cb10-17" data-line-number="17">thymus[[<span class="st">&quot;sirap_receptor_type&quot;</span>]] &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">case_when</span>(</a>
-<a class="sourceLine" id="cb10-18" data-line-number="18">  <span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>bcr_spots <span class="op">&amp;</span><span class="st"> </span><span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>tcr_spots <span class="op">~</span><span class="st"> &quot;BCR + TCR&quot;</span>,</a>
-<a class="sourceLine" id="cb10-19" data-line-number="19">  <span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>bcr_spots <span class="op">~</span><span class="st"> &quot;BCR&quot;</span>,</a>
-<a class="sourceLine" id="cb10-20" data-line-number="20">  <span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>tcr_spots <span class="op">~</span><span class="st"> &quot;TCR&quot;</span>,</a>
-<a class="sourceLine" id="cb10-21" data-line-number="21">  <span class="ot">TRUE</span> <span class="op">~</span><span class="st"> &quot;0&quot;</span></a>
-<a class="sourceLine" id="cb10-22" data-line-number="22">)</a>
-<a class="sourceLine" id="cb10-23" data-line-number="23"></a>
-<a class="sourceLine" id="cb10-24" data-line-number="24">bcrTCROverlay &lt;-<span class="st"> </span><span class="kw">spatialDiscretePlot</span>(</a>
-<a class="sourceLine" id="cb10-25" data-line-number="25">  thymus,</a>
-<a class="sourceLine" id="cb10-26" data-line-number="26">  <span class="dt">meta_col =</span> <span class="st">&quot;sirap_receptor_type&quot;</span>,</a>
-<a class="sourceLine" id="cb10-27" data-line-number="27">  <span class="dt">zero_value =</span> <span class="st">&quot;0&quot;</span>,</a>
-<a class="sourceLine" id="cb10-28" data-line-number="28">  <span class="dt">image_scale =</span> <span class="st">&quot;hires&quot;</span>,</a>
-<a class="sourceLine" id="cb10-29" data-line-number="29">  <span class="dt">point_size =</span> <span class="fl">0.5</span>,</a>
-<a class="sourceLine" id="cb10-30" data-line-number="30">  <span class="dt">cols =</span> <span class="kw">c</span>(<span class="st">&quot;BCR&quot;</span> =<span class="st"> &quot;#2c7fb8&quot;</span>, <span class="st">&quot;TCR&quot;</span> =<span class="st"> &quot;#d95f02&quot;</span>, <span class="st">&quot;BCR + TCR&quot;</span> =<span class="st"> &quot;white&quot;</span>)</a>
-<a class="sourceLine" id="cb10-31" data-line-number="31">) <span class="op">+</span></a>
-<a class="sourceLine" id="cb10-32" data-line-number="32"><span class="st">  </span><span class="kw">ggtitle</span>(<span class="kw">paste</span>(sampleId, <span class="st">&quot;BCR and TCR locations&quot;</span>))</a>
-<a class="sourceLine" id="cb10-33" data-line-number="33"></a>
-<a class="sourceLine" id="cb10-34" data-line-number="34">cowplot<span class="op">::</span><span class="kw">plot_grid</span>(allBCRPlot, allTCRPlot, bcrTCROverlay, <span class="dt">ncol =</span> <span class="dv">3</span>)</a></code></pre></div>
+<p><code>plotReceptors()</code> and <code>spatialDiscretePlot()</code> draw points over the tissue image rather than over a blank coordinate plane.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">allBCRPlot &lt;-<span class="st"> </span><span class="kw">plotReceptors</span>(</a>
+<a class="sourceLine" id="cb11-2" data-line-number="2">  <span class="dt">object =</span> thymus,</a>
+<a class="sourceLine" id="cb11-3" data-line-number="3">  <span class="dt">receptors =</span> dplyr<span class="op">::</span><span class="kw">mutate</span>(bcrTopBarcode, <span class="dt">receptor_type =</span> <span class="st">&quot;BCR&quot;</span>),</a>
+<a class="sourceLine" id="cb11-4" data-line-number="4">  <span class="dt">group =</span> <span class="st">&quot;receptor_type&quot;</span>,</a>
+<a class="sourceLine" id="cb11-5" data-line-number="5">  <span class="dt">group_val =</span> <span class="st">&quot;BCR&quot;</span>,</a>
+<a class="sourceLine" id="cb11-6" data-line-number="6">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
+<a class="sourceLine" id="cb11-7" data-line-number="7">  <span class="dt">colors =</span> <span class="st">&quot;white&quot;</span>,</a>
+<a class="sourceLine" id="cb11-8" data-line-number="8">  <span class="dt">receptor_size =</span> <span class="fl">0.5</span>,</a>
+<a class="sourceLine" id="cb11-9" data-line-number="9">  <span class="dt">title =</span> <span class="kw">paste</span>(sampleId, <span class="st">&quot;all BCR-positive spots&quot;</span>)</a>
+<a class="sourceLine" id="cb11-10" data-line-number="10">)</a>
+<a class="sourceLine" id="cb11-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb11-12" data-line-number="12">allTCRPlot &lt;-<span class="st"> </span><span class="kw">plotReceptors</span>(</a>
+<a class="sourceLine" id="cb11-13" data-line-number="13">  <span class="dt">object =</span> thymus,</a>
+<a class="sourceLine" id="cb11-14" data-line-number="14">  <span class="dt">receptors =</span> dplyr<span class="op">::</span><span class="kw">mutate</span>(tcrTopBarcode, <span class="dt">receptor_type =</span> <span class="st">&quot;TCR&quot;</span>),</a>
+<a class="sourceLine" id="cb11-15" data-line-number="15">  <span class="dt">group =</span> <span class="st">&quot;receptor_type&quot;</span>,</a>
+<a class="sourceLine" id="cb11-16" data-line-number="16">  <span class="dt">group_val =</span> <span class="st">&quot;TCR&quot;</span>,</a>
+<a class="sourceLine" id="cb11-17" data-line-number="17">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
+<a class="sourceLine" id="cb11-18" data-line-number="18">  <span class="dt">colors =</span> <span class="st">&quot;#d95f02&quot;</span>,</a>
+<a class="sourceLine" id="cb11-19" data-line-number="19">  <span class="dt">receptor_size =</span> <span class="fl">0.5</span>,</a>
+<a class="sourceLine" id="cb11-20" data-line-number="20">  <span class="dt">title =</span> <span class="kw">paste</span>(sampleId, <span class="st">&quot;all TCR-positive spots&quot;</span>)</a>
+<a class="sourceLine" id="cb11-21" data-line-number="21">)</a>
+<a class="sourceLine" id="cb11-22" data-line-number="22"></a>
+<a class="sourceLine" id="cb11-23" data-line-number="23">bcr_spots &lt;-<span class="st"> </span><span class="kw">unique</span>(bcrTopBarcode<span class="op">$</span>barcode_8um)</a>
+<a class="sourceLine" id="cb11-24" data-line-number="24">tcr_spots &lt;-<span class="st"> </span><span class="kw">unique</span>(tcrTopBarcode<span class="op">$</span>barcode_8um)</a>
+<a class="sourceLine" id="cb11-25" data-line-number="25">thymus[[<span class="st">&quot;sirap_receptor_type&quot;</span>]] &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">case_when</span>(</a>
+<a class="sourceLine" id="cb11-26" data-line-number="26">  <span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>bcr_spots <span class="op">&amp;</span><span class="st"> </span><span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>tcr_spots <span class="op">~</span><span class="st"> &quot;BCR + TCR&quot;</span>,</a>
+<a class="sourceLine" id="cb11-27" data-line-number="27">  <span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>bcr_spots <span class="op">~</span><span class="st"> &quot;BCR&quot;</span>,</a>
+<a class="sourceLine" id="cb11-28" data-line-number="28">  <span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>tcr_spots <span class="op">~</span><span class="st"> &quot;TCR&quot;</span>,</a>
+<a class="sourceLine" id="cb11-29" data-line-number="29">  <span class="ot">TRUE</span> <span class="op">~</span><span class="st"> &quot;0&quot;</span></a>
+<a class="sourceLine" id="cb11-30" data-line-number="30">)</a>
+<a class="sourceLine" id="cb11-31" data-line-number="31"></a>
+<a class="sourceLine" id="cb11-32" data-line-number="32">bcrTCROverlay &lt;-<span class="st"> </span><span class="kw">spatialDiscretePlot</span>(</a>
+<a class="sourceLine" id="cb11-33" data-line-number="33">  thymus,</a>
+<a class="sourceLine" id="cb11-34" data-line-number="34">  <span class="dt">meta_col =</span> <span class="st">&quot;sirap_receptor_type&quot;</span>,</a>
+<a class="sourceLine" id="cb11-35" data-line-number="35">  <span class="dt">zero_value =</span> <span class="st">&quot;0&quot;</span>,</a>
+<a class="sourceLine" id="cb11-36" data-line-number="36">  <span class="dt">image_scale =</span> <span class="st">&quot;hires&quot;</span>,</a>
+<a class="sourceLine" id="cb11-37" data-line-number="37">  <span class="dt">swap_coords =</span> <span class="ot">FALSE</span>,</a>
+<a class="sourceLine" id="cb11-38" data-line-number="38">  <span class="dt">point_size =</span> <span class="fl">0.5</span>,</a>
+<a class="sourceLine" id="cb11-39" data-line-number="39">  <span class="dt">cols =</span> <span class="kw">c</span>(<span class="st">&quot;BCR&quot;</span> =<span class="st"> &quot;#2c7fb8&quot;</span>, <span class="st">&quot;TCR&quot;</span> =<span class="st"> &quot;#d95f02&quot;</span>, <span class="st">&quot;BCR + TCR&quot;</span> =<span class="st"> &quot;white&quot;</span>)</a>
+<a class="sourceLine" id="cb11-40" data-line-number="40">) <span class="op">+</span></a>
+<a class="sourceLine" id="cb11-41" data-line-number="41"><span class="st">  </span><span class="kw">ggtitle</span>(<span class="kw">paste</span>(sampleId, <span class="st">&quot;BCR and TCR locations&quot;</span>))</a>
+<a class="sourceLine" id="cb11-42" data-line-number="42"></a>
+<a class="sourceLine" id="cb11-43" data-line-number="43">cowplot<span class="op">::</span><span class="kw">plot_grid</span>(allBCRPlot, allTCRPlot, bcrTCROverlay, <span class="dt">ncol =</span> <span class="dv">3</span>)</a></code></pre></div>
 </div>
 
 

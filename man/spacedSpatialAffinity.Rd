@@ -8,12 +8,12 @@ spacedSpatialAffinity(
   heavy_points,
   light_points,
   method = c("weighted_cosim", "ot"),
-  feature_col = "barcode",
+  feature = "barcode",
   kernel_sigma = NULL,
   kernel_radius = NULL,
   kernel_max_neighbors = 500L,
-  x_col = "x",
-  y_col = "y",
+  x = "x",
+  y = "y",
   ot_cutoff = 1e+06,
   ot_scale = 1,
   nproc = 1L,
@@ -32,10 +32,10 @@ data frame with \code{clone_id}, \code{barcode}, and \code{n}.}
 SIRAP default, and \code{"ot"} is the original SPaCeD optimal-transport
 point-pattern distance.}
 
-\item{feature_col}{Column containing the native spatial feature/bin ID.}
+\item{feature}{Column containing the native spatial feature/bin ID.}
 
 \item{kernel_sigma}{Gaussian kernel scale for \code{method = "weighted_cosim"},
-in the same units as \code{x_col} and \code{y_col}. When \code{NULL}, SIRAP estimates the
+in the same units as \code{x} and \code{y}. When \code{NULL}, SIRAP estimates the
 median nearest-neighbor feature spacing and uses twice that value.}
 
 \item{kernel_radius}{Maximum feature-feature distance retained in the sparse
@@ -44,7 +44,7 @@ spatial kernel. Defaults to \code{3 * kernel_sigma}.}
 \item{kernel_max_neighbors}{Maximum nearby features retained per feature when
 building the sparse kernel.}
 
-\item{x_col, y_col}{Spatial coordinate columns.}
+\item{x, y}{Spatial coordinate columns.}
 
 \item{ot_cutoff}{Maximum transport distance passed to \code{pppdist()} when
 \code{method = "ot"}.}

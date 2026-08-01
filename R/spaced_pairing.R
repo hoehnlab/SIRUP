@@ -17,12 +17,12 @@
 #' @param data Clone-assigned data frame.
 #' @param positions Optional spatial positions data frame. If supplied, it is
 #'   joined to `data` by barcode.
-#' @param barcode_col,position_barcode_col Barcode columns in `data` and
+#' @param barcode,position_barcode Barcode columns in `data` and
 #'   `positions`.
-#' @param clone_col Clone identifier column in `data`.
-#' @param x_col,y_col Spatial coordinate columns. If `positions` is supplied,
+#' @param clone Clone identifier column in `data`.
+#' @param x,y Spatial coordinate columns. If `positions` is supplied,
 #'   these are read after the join.
-#' @param count_col Optional count column. When `NULL`, each row contributes 1.
+#' @param count Optional count column. When `NULL`, each row contributes 1.
 #' @param clone_prefix Optional prefix added to clone IDs, for example
 #'   `"heavy_"` or `"light_kappa_"`.
 #' @param drop_missing_coords Drop rows missing spatial coordinates.
@@ -30,47 +30,47 @@
 #' @export
 buildSpacedCloneTable <- function(data,
                                   positions = NULL,
-                                  barcode_col = "barcode",
-                                  clone_col = "clone_id",
-                                  x_col = "x",
-                                  y_col = "y",
-                                  count_col = NULL,
-                                  position_barcode_col = "barcode",
+                                  barcode = "barcode",
+                                  clone = "clone_id",
+                                  x = "x",
+                                  y = "y",
+                                  count = NULL,
+                                  position_barcode = "barcode",
                                   clone_prefix = NULL,
                                   drop_missing_coords = TRUE) {
-  .check_required_cols(data, c(barcode_col, clone_col), "data")
+  .check_required_cols(data, c(barcode, clone), "data")
   data <- .as_data_frame(data)
 
   if (!is.null(positions)) {
-    .check_required_cols(positions, c(position_barcode_col, x_col, y_col), "positions")
-    data <- data[, setdiff(colnames(data), c(x_col, y_col)), drop = FALSE]
+    .check_required_cols(positions, c(position_barcode, x, y), "positions")
+    data <- data[, setdiff(colnames(data), c(x, y)), drop = FALSE]
     pos <- .as_data_frame(positions)
-    join_cols <- stats::setNames(position_barcode_col, barcode_col)
+    join_cols <- stats::setNames(position_barcode, barcode)
     data <- dplyr::left_join(data, pos, by = join_cols)
   }
 
-  .check_required_cols(data, c(barcode_col, clone_col, x_col, y_col), "data")
-  if (!is.null(count_col)) {
-    .check_required_cols(data, count_col, "data")
+  .check_required_cols(data, c(barcode, clone, x, y), "data")
+  if (!is.null(count)) {
+    .check_required_cols(data, count, "data")
   }
 
-  clone_id <- as.character(data[[clone_col]])
+  clone_id <- as.character(data[[clone]])
   if (!is.null(clone_prefix)) {
     clone_id <- paste0(clone_prefix, clone_id)
   }
 
-  counts <- if (is.null(count_col)) {
+  counts <- if (is.null(count)) {
     rep(1, nrow(data))
   } else {
-    as.numeric(data[[count_col]])
+    as.numeric(data[[count]])
   }
   counts[is.na(counts)] <- 0
 
   out <- data.frame(
     clone_id = clone_id,
-    barcode = as.character(data[[barcode_col]]),
-    x = as.numeric(data[[x_col]]),
-    y = as.numeric(data[[y_col]]),
+    barcode = as.character(data[[barcode]]),
+    x = as.numeric(data[[x]]),
+    y = as.numeric(data[[y]]),
     n = counts,
     stringsAsFactors = FALSE
   )
@@ -91,37 +91,37 @@ buildSpacedCloneTable <- function(data,
 #' Convert a wide SPaCeD expression table to clone spatial points
 #'
 #' @param df Wide table with barcode, coordinate, and clone count columns.
-#' @param barcode_col,x_col,y_col Column names.
-#' @param clone_cols Optional clone columns. Defaults to all non-barcode and
+#' @param barcode,x,y Column names.
+#' @param clone Optional clone columns. Defaults to all non-barcode and
 #'   non-coordinate columns.
 #' @param clone_prefix Optional prefix added to clone IDs.
 #' @return Data frame with `clone_id`, `barcode`, `x`, `y`, and `n`.
 #' @export
 spacedCloneTableFromWide <- function(df,
-                                     barcode_col = colnames(df)[[1]],
-                                     x_col = "x",
-                                     y_col = "y",
-                                     clone_cols = NULL,
+                                     barcode = colnames(df)[[1]],
+                                     x = "x",
+                                     y = "y",
+                                     clone = NULL,
                                      clone_prefix = NULL) {
   df <- .as_data_frame(df)
-  .check_required_cols(df, c(barcode_col, x_col, y_col), "df")
-  if (is.null(clone_cols)) {
-    clone_cols <- setdiff(colnames(df), c(barcode_col, x_col, y_col))
+  .check_required_cols(df, c(barcode, x, y), "df")
+  if (is.null(clone)) {
+    clone <- setdiff(colnames(df), c(barcode, x, y))
   }
-  .check_required_cols(df, clone_cols, "df")
+  .check_required_cols(df, clone, "df")
 
-  pieces <- lapply(clone_cols, function(clone_col) {
-    counts <- as.numeric(df[[clone_col]])
+  pieces <- lapply(clone, function(clone_id_col) {
+    counts <- as.numeric(df[[clone_id_col]])
     keep <- !is.na(counts) & counts > 0
     if (!any(keep)) {
       return(NULL)
     }
-    clone_id <- if (is.null(clone_prefix)) clone_col else paste0(clone_prefix, clone_col)
+    clone_id <- if (is.null(clone_prefix)) clone_id_col else paste0(clone_prefix, clone_id_col)
     data.frame(
       clone_id = clone_id,
-      barcode = as.character(df[[barcode_col]][keep]),
-      x = as.numeric(df[[x_col]][keep]),
-      y = as.numeric(df[[y_col]][keep]),
+      barcode = as.character(df[[barcode]][keep]),
+      x = as.numeric(df[[x]][keep]),
+      y = as.numeric(df[[y]][keep]),
       n = counts[keep],
       stringsAsFactors = FALSE
     )
@@ -148,15 +148,15 @@ spacedCloneTableFromWide <- function(df,
 #' @param method Spatial scoring method. `"weighted_cosim"` is the scalable
 #'   SIRAP default, and `"ot"` is the original SPaCeD optimal-transport
 #'   point-pattern distance.
-#' @param feature_col Column containing the native spatial feature/bin ID.
+#' @param feature Column containing the native spatial feature/bin ID.
 #' @param kernel_sigma Gaussian kernel scale for `method = "weighted_cosim"`,
-#'   in the same units as `x_col` and `y_col`. When `NULL`, SIRAP estimates the
+#'   in the same units as `x` and `y`. When `NULL`, SIRAP estimates the
 #'   median nearest-neighbor feature spacing and uses twice that value.
 #' @param kernel_radius Maximum feature-feature distance retained in the sparse
 #'   spatial kernel. Defaults to `3 * kernel_sigma`.
 #' @param kernel_max_neighbors Maximum nearby features retained per feature when
 #'   building the sparse kernel.
-#' @param x_col,y_col Spatial coordinate columns.
+#' @param x,y Spatial coordinate columns.
 #' @param ot_cutoff Maximum transport distance passed to `pppdist()` when
 #'   `method = "ot"`.
 #' @param ot_scale Distance scale used by `transformSpacedDistances()` for
@@ -178,12 +178,12 @@ spacedCloneTableFromWide <- function(df,
 spacedSpatialAffinity <- function(heavy_points,
                                   light_points,
                                   method = c("weighted_cosim", "ot"),
-                                  feature_col = "barcode",
+                                  feature = "barcode",
                                   kernel_sigma = NULL,
                                   kernel_radius = NULL,
                                   kernel_max_neighbors = 500L,
-                                  x_col = "x",
-                                  y_col = "y",
+                                  x = "x",
+                                  y = "y",
                                   ot_cutoff = 1e6,
                                   ot_scale = 1,
                                   nproc = 1L,
@@ -196,13 +196,13 @@ spacedSpatialAffinity <- function(heavy_points,
     rlang::abort("Package 'Matrix' is required for `spacedSpatialAffinity()`.")
   }
   method <- match.arg(method)
-  if (!is.character(feature_col) || length(feature_col) != 1L || is.na(feature_col) || feature_col == "") {
-    rlang::abort("`feature_col` must be a single non-empty column name.")
+  if (!is.character(feature) || length(feature) != 1L || is.na(feature) || feature == "") {
+    rlang::abort("`feature` must be a single non-empty column name.")
   }
   heavy_points <- .sirap_spaced_filter_clone_points(
     heavy_points,
     name = "heavy_points",
-    feature_col = feature_col,
+    feature_col = feature,
     min_counts = min_counts,
     min_x_obs = min_x_obs,
     filter_x = filter_x
@@ -210,7 +210,7 @@ spacedSpatialAffinity <- function(heavy_points,
   light_points <- .sirap_spaced_filter_clone_points(
     light_points,
     name = "light_points",
-    feature_col = feature_col,
+    feature_col = feature,
     min_counts = min_counts,
     min_x_obs = min_x_obs,
     filter_x = filter_x
@@ -221,18 +221,18 @@ spacedSpatialAffinity <- function(heavy_points,
     weighted_cosim = .sirap_spaced_weighted_cosim_affinity(
       heavy_points = heavy_points,
       light_points = light_points,
-      feature_col = feature_col,
+      feature_col = feature,
       kernel_sigma = kernel_sigma,
       kernel_radius = kernel_radius,
       kernel_max_neighbors = kernel_max_neighbors,
-      x_col = x_col,
-      y_col = y_col
+      x_col = x,
+      y_col = y
     ),
     ot = .sirap_spaced_ot_affinity(
       heavy_points = heavy_points,
       light_points = light_points,
-      x_col = x_col,
-      y_col = y_col,
+      x_col = x,
+      y_col = y,
       cutoff = ot_cutoff,
       scale = ot_scale,
       nproc = nproc

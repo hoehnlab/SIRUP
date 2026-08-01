@@ -14,103 +14,91 @@
 
 <title>SPaCeD Heavy-Light Chain Pairing</title>
 
-<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
-// be compatible with the behavior of Pandoc < 2.8).
-document.addEventListener('DOMContentLoaded', function(e) {
-  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
-  var i, h, a;
-  for (i = 0; i < hs.length; i++) {
-    h = hs[i];
-    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
-    a = h.attributes;
-    while (a.length > 0) h.removeAttribute(a[0].name);
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+
+<style type="text/css">
+  code {
+    white-space: pre;
   }
-});
-</script>
-
-<style type="text/css">
-code{white-space: pre-wrap;}
-span.smallcaps{font-variant: small-caps;}
-span.underline{text-decoration: underline;}
-div.column{display: inline-block; vertical-align: top; width: 50%;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-ul.task-list{list-style: none;}
-</style>
-
-
-
-<style type="text/css">
-code {
-white-space: pre;
-}
-.sourceCode {
-overflow: visible;
-}
+  .sourceCode {
+    overflow: visible;
+  }
 </style>
 <style type="text/css" data-origin="pandoc">
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; position: absolute; }
 .sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
+code.sourceCode { white-space: pre; position: relative; }
 div.sourceCode { margin: 1em 0; }
 pre.sourceCode { margin: 0; }
 @media screen {
 div.sourceCode { overflow: auto; }
 }
 @media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
 }
-pre.numberSource code
-{ counter-reset: source-line 0; }
-pre.numberSource code > span
-{ position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-{ content: counter(source-line);
-position: relative; left: -1em; text-align: right; vertical-align: baseline;
-border: none; display: inline-block;
--webkit-touch-callout: none; -webkit-user-select: none;
--khtml-user-select: none; -moz-user-select: none;
--ms-user-select: none; user-select: none;
-padding: 0 4px; width: 4em;
-color: #aaaaaa;
-}
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+pre.numberSource a.sourceLine
+  { position: relative; }
+pre.numberSource a.sourceLine:empty
+  { position: absolute; }
+pre.numberSource a.sourceLine::before
+  { content: attr(data-line-number);
+    position: absolute; left: -5em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
 div.sourceCode
-{ }
+  {  }
 @media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+a.sourceLine::before { text-decoration: underline; }
 }
-code span.al { color: #ff0000; font-weight: bold; } 
-code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
-code span.at { color: #7d9029; } 
-code span.bn { color: #40a070; } 
-code span.bu { color: #008000; } 
-code span.cf { color: #007020; font-weight: bold; } 
-code span.ch { color: #4070a0; } 
-code span.cn { color: #880000; } 
-code span.co { color: #60a0b0; font-style: italic; } 
-code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
-code span.do { color: #ba2121; font-style: italic; } 
-code span.dt { color: #902000; } 
-code span.dv { color: #40a070; } 
-code span.er { color: #ff0000; font-weight: bold; } 
-code span.ex { } 
-code span.fl { color: #40a070; } 
-code span.fu { color: #06287e; } 
-code span.im { color: #008000; font-weight: bold; } 
-code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
-code span.kw { color: #007020; font-weight: bold; } 
-code span.op { color: #666666; } 
-code span.ot { color: #007020; } 
-code span.pp { color: #bc7a00; } 
-code span.sc { color: #4070a0; } 
-code span.ss { color: #bb6688; } 
-code span.st { color: #4070a0; } 
-code span.va { color: #19177c; } 
-code span.vs { color: #4070a0; } 
-code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
 </style>
 <script>
 // apply pandoc div.sourceCode style to pre.sourceCode instead
@@ -340,200 +328,150 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 
-<p>SIRAP includes SPaCeD-style heavy-light chain pairing helpers for
-spatial BCR data. The implementation follows the SPaCeD idea of
-combining spatial evidence with a REPAIR model matrix, then reporting
-the top light-chain candidates for each heavy clone across omega
-weights.</p>
-<p>The original SPaCeD repository is <a href="https://github.com/hjm2217/spaced" class="uri">https://github.com/hjm2217/spaced</a>. SPaCeD uses REPAIR
-(<a href="https://github.com/almaan/star-repair" class="uri">https://github.com/almaan/star-repair</a>) and notes a
-modified REPAIR fork (<a href="https://github.com/Floraliu7/star-repair" class="uri">https://github.com/Floraliu7/star-repair</a>) that exports
-the fitted model matrix needed for downstream pairing.</p>
-<p>By default, this page shows runnable code but does not execute it. To
-run the toy REPAIR command while rendering, set
-<code>SIRAP_RUN_SPACED_EXAMPLES=true</code> in an environment with the
-modified REPAIR conda environment available.</p>
+<p>SIRAP includes SPaCeD-style heavy-light chain pairing helpers for spatial BCR data. The implementation follows the SPaCeD idea of combining spatial evidence with a REPAIR model matrix, then reporting the top light-chain candidates for each heavy clone across omega weights.</p>
+<p>The original SPaCeD repository is <a href="https://github.com/hjm2217/spaced" class="uri">https://github.com/hjm2217/spaced</a>. SPaCeD uses REPAIR (<a href="https://github.com/almaan/star-repair" class="uri">https://github.com/almaan/star-repair</a>) and notes a modified REPAIR fork (<a href="https://github.com/Floraliu7/star-repair" class="uri">https://github.com/Floraliu7/star-repair</a>) that exports the fitted model matrix needed for downstream pairing.</p>
+<p>By default, this page shows runnable code but does not execute it. To run the toy REPAIR command while rendering, set <code>SIRAP_RUN_SPACED_EXAMPLES=true</code> in an environment with the modified REPAIR conda environment available.</p>
 <div id="method-overview" class="section level2">
 <h2>Method Overview</h2>
-<p>Let <code>H</code> be a heavy-clone by spatial-bin count matrix and
-<code>L</code> be a light-clone by spatial-bin count matrix. For Visium
-HD, use Space Ranger 8um barcodes as the native spatial bins.</p>
-<p>SIRAP’s scalable default builds a sparse Gaussian spatial kernel
-<code>K</code> over the 8um barcode coordinates:</p>
+<p>Let <code>H</code> be a heavy-clone by spatial-bin count matrix and <code>L</code> be a light-clone by spatial-bin count matrix. For Visium HD, use Space Ranger 8um barcodes as the native spatial bins.</p>
+<p>SIRAP’s scalable default builds a sparse Gaussian spatial kernel <code>K</code> over the 8um barcode coordinates:</p>
 <pre class="text"><code>K_ab = exp(-d_ab^2 / (2 sigma^2))</code></pre>
-<p>with entries outside <code>kernel_radius</code> dropped to zero. The
-spatial score between heavy clone <code>i</code> and light clone
-<code>j</code> is a kernel-normalized weighted overlap:</p>
+<p>with entries outside <code>kernel_radius</code> dropped to zero. The spatial score between heavy clone <code>i</code> and light clone <code>j</code> is a kernel-normalized weighted overlap:</p>
 <pre class="text"><code>S_ij = (h_i^T K l_j) / sqrt((h_i^T K h_i) * (l_j^T K l_j))</code></pre>
-<p>Rows are normalized before combining with REPAIR. For each omega
-weight <code>w</code>, SIRAP forms:</p>
+<p>Rows are normalized before combining with REPAIR. For each omega weight <code>w</code>, SIRAP forms:</p>
 <pre class="text"><code>O_ij(w) = w * S_ij + (1 - w) * R_ij</code></pre>
-<p>where <code>R</code> is the row-normalized REPAIR model matrix. SIRAP
-then reports the top light-chain candidates for each heavy clone. A
-light clone can be reported for multiple heavy clones, which is useful
-when public light chains are plausible. For each candidate pair, SIRAP
-also reports:</p>
-<pre class="text"><code>light_specificity_score_ij = O_ij / sum_i&#39; O_i&#39;j</code></pre>
-<p>This is a column-normalized specificity score. Values near one
-indicate that a light clone’s evidence is concentrated on that heavy
-clone. Lower values indicate that the light clone also scores well for
-other heavy clones.</p>
-<p>By default, both REPAIR and <code>spacedSpatialAffinity()</code> keep
-clones observed in at least two spatial features with count at least one
-(<code>mxo = 2</code>, <code>x = 1</code> in REPAIR;
-<code>min_x_obs = 2</code>, <code>filter_x = 1</code> in SIRAP). Use
-matching thresholds in both steps so the REPAIR model matrix and spatial
-affinity matrix describe the same clone universe.</p>
-<p>SIRAP also keeps a faithful <code>method = &quot;ot&quot;</code> option that
-computes SPaCeD-style point-pattern distances with
-<code>spatstat::pppdist()</code>. This is much slower but can be
-parallelized with <code>nproc</code>.</p>
+<p>where <code>R</code> is the row-normalized REPAIR model matrix. SIRAP then reports the top light-chain candidates for each heavy clone. A light clone can be reported for multiple heavy clones, which is useful when public light chains are plausible. For each candidate pair, SIRAP also reports:</p>
+<pre class="text"><code>light_specificity_score_ij = O_ij / sum_i' O_i'j</code></pre>
+<p>This is a column-normalized specificity score. Values near one indicate that a light clone’s evidence is concentrated on that heavy clone. Lower values indicate that the light clone also scores well for other heavy clones.</p>
+<p>By default, both REPAIR and <code>spacedSpatialAffinity()</code> keep clones observed in at least two spatial features with count at least one (<code>mxo = 2</code>, <code>x = 1</code> in REPAIR; <code>min_x_obs = 2</code>, <code>filter_x = 1</code> in SIRAP). Use matching thresholds in both steps so the REPAIR model matrix and spatial affinity matrix describe the same clone universe.</p>
+<p>SIRAP also keeps a faithful <code>method = &quot;ot&quot;</code> option that computes SPaCeD-style point-pattern distances with <code>spatstat::pppdist()</code>. This is much slower but can be parallelized with <code>nproc</code>.</p>
 </div>
 <div id="setup" class="section level2">
 <h2>Setup</h2>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">library</span>(SIRAP)</span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>repair_conda_env <span class="ot">&lt;-</span> <span class="fu">Sys.getenv</span>(<span class="st">&quot;REPAIR_CONDA_ENV&quot;</span>, <span class="st">&quot;repair&quot;</span>)</span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>repair_conda_bin <span class="ot">&lt;-</span> <span class="fu">Sys.getenv</span>(<span class="st">&quot;CONDA_EXE&quot;</span>, <span class="st">&quot;conda&quot;</span>)</span></code></pre></div>
-<p>The <code>repair</code> conda environment should point to the
-modified REPAIR version that exports a <code>*_model_matrix.tsv</code>
-file. A typical installation looks like:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/Floraliu7/star-repair.git</span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="bu">cd</span> star-repair</span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="ex">conda</span> env create <span class="at">-f</span> conda/repair.yml</span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="ex">conda</span> activate repair</span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">--no-deps</span> <span class="at">-e</span> .</span></code></pre></div>
-<p>Check the environment before running pairing. This should print the
-<code>repair/analyze.py</code> path from the modified fork; if it
-fails, reinstall REPAIR from the fork above.</p>
-<div class="sourceCode" id="cb-check-repair"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb-check-repair-1"><a href="#cb-check-repair-1" tabindex="-1"></a><span class="fu">checkSpacedRepair</span>(<span class="at">conda_env =</span> repair_conda_env, <span class="at">conda_exe =</span> repair_conda_bin)</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">library</span>(SIRAP)</a>
+<a class="sourceLine" id="cb5-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">repair_conda_env &lt;-<span class="st"> </span><span class="kw">Sys.getenv</span>(<span class="st">&quot;REPAIR_CONDA_ENV&quot;</span>, <span class="st">&quot;repair&quot;</span>)</a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">repair_conda_bin &lt;-<span class="st"> </span><span class="kw">Sys.getenv</span>(<span class="st">&quot;CONDA_EXE&quot;</span>, <span class="st">&quot;conda&quot;</span>)</a></code></pre></div>
+<p>The <code>repair</code> conda environment should point to the modified REPAIR version that exports a <code>*_model_matrix.tsv</code> file. A typical installation looks like:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="fu">git</span> clone https://github.com/Floraliu7/star-repair.git</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2"><span class="bu">cd</span> star-repair</a>
+<a class="sourceLine" id="cb6-3" data-line-number="3"><span class="ex">conda</span> env create -f conda/repair.yml</a>
+<a class="sourceLine" id="cb6-4" data-line-number="4"><span class="ex">conda</span> activate repair</a>
+<a class="sourceLine" id="cb6-5" data-line-number="5"><span class="ex">pip</span> install --no-deps -e .</a></code></pre></div>
+<p>Check the environment before running pairing. This should print the <code>repair/analyze.py</code> path from the modified fork; if it fails, reinstall REPAIR from the fork above.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="kw">checkSpacedRepair</span>(<span class="dt">conda_env =</span> repair_conda_env, <span class="dt">conda_exe =</span> repair_conda_bin)</a></code></pre></div>
 </div>
 <div id="toy-clone-tables" class="section level2">
 <h2>Toy Clone Tables</h2>
-<p>This toy dataset has two heavy clones and two light clones. The
-intended pairs are spatially close, but not necessarily exactly
-barcode-overlapping.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>toyPositions <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="at">barcode =</span> <span class="fu">paste0</span>(<span class="st">&quot;toy_&quot;</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>),</span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="at">x =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">2</span>, <span class="dv">4</span>, <span class="dv">100</span>, <span class="dv">102</span>, <span class="dv">104</span>),</span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="at">y =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">100</span>, <span class="dv">101</span>, <span class="dv">100</span>)</span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>)</span>
-<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a></span>
-<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>toyHeavyClones <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>  <span class="at">barcode =</span> <span class="fu">c</span>(<span class="st">&quot;toy_1&quot;</span>, <span class="st">&quot;toy_2&quot;</span>, <span class="st">&quot;toy_3&quot;</span>, <span class="st">&quot;toy_4&quot;</span>, <span class="st">&quot;toy_5&quot;</span>),</span>
-<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>  <span class="at">clone_id =</span> <span class="fu">c</span>(<span class="st">&quot;1&quot;</span>, <span class="st">&quot;1&quot;</span>, <span class="st">&quot;1&quot;</span>, <span class="st">&quot;2&quot;</span>, <span class="st">&quot;2&quot;</span>)</span>
-<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>)</span>
-<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a></span>
-<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>toyLightClones <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a>  <span class="at">barcode =</span> <span class="fu">c</span>(<span class="st">&quot;toy_2&quot;</span>, <span class="st">&quot;toy_3&quot;</span>, <span class="st">&quot;toy_5&quot;</span>, <span class="st">&quot;toy_6&quot;</span>),</span>
-<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a>  <span class="at">clone_id =</span> <span class="fu">c</span>(<span class="st">&quot;1&quot;</span>, <span class="st">&quot;1&quot;</span>, <span class="st">&quot;2&quot;</span>, <span class="st">&quot;2&quot;</span>)</span>
-<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a>)</span>
-<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a></span>
-<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a>toyHeavyPoints <span class="ot">&lt;-</span> <span class="fu">buildSpacedCloneTable</span>(</span>
-<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a>  toyHeavyClones,</span>
-<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a>  <span class="at">positions =</span> toyPositions,</span>
-<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a>  <span class="at">clone_prefix =</span> <span class="st">&quot;heavy_&quot;</span></span>
-<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a>)</span>
-<span id="cb7-22"><a href="#cb7-22" tabindex="-1"></a></span>
-<span id="cb7-23"><a href="#cb7-23" tabindex="-1"></a>toyLightPoints <span class="ot">&lt;-</span> <span class="fu">buildSpacedCloneTable</span>(</span>
-<span id="cb7-24"><a href="#cb7-24" tabindex="-1"></a>  toyLightClones,</span>
-<span id="cb7-25"><a href="#cb7-25" tabindex="-1"></a>  <span class="at">positions =</span> toyPositions,</span>
-<span id="cb7-26"><a href="#cb7-26" tabindex="-1"></a>  <span class="at">clone_prefix =</span> <span class="st">&quot;light_&quot;</span></span>
-<span id="cb7-27"><a href="#cb7-27" tabindex="-1"></a>)</span></code></pre></div>
+<p>This toy dataset has two heavy clones and two light clones. The intended pairs are spatially close, but not necessarily exactly barcode-overlapping.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1">toyPositions &lt;-<span class="st"> </span><span class="kw">data.frame</span>(</a>
+<a class="sourceLine" id="cb8-2" data-line-number="2">  <span class="dt">barcode =</span> <span class="kw">paste0</span>(<span class="st">&quot;toy_&quot;</span>, <span class="dv">1</span><span class="op">:</span><span class="dv">6</span>),</a>
+<a class="sourceLine" id="cb8-3" data-line-number="3">  <span class="dt">x =</span> <span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">2</span>, <span class="dv">4</span>, <span class="dv">100</span>, <span class="dv">102</span>, <span class="dv">104</span>),</a>
+<a class="sourceLine" id="cb8-4" data-line-number="4">  <span class="dt">y =</span> <span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">100</span>, <span class="dv">101</span>, <span class="dv">100</span>)</a>
+<a class="sourceLine" id="cb8-5" data-line-number="5">)</a>
+<a class="sourceLine" id="cb8-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb8-7" data-line-number="7">toyHeavyClones &lt;-<span class="st"> </span><span class="kw">data.frame</span>(</a>
+<a class="sourceLine" id="cb8-8" data-line-number="8">  <span class="dt">barcode =</span> <span class="kw">c</span>(<span class="st">&quot;toy_1&quot;</span>, <span class="st">&quot;toy_2&quot;</span>, <span class="st">&quot;toy_3&quot;</span>, <span class="st">&quot;toy_4&quot;</span>, <span class="st">&quot;toy_5&quot;</span>),</a>
+<a class="sourceLine" id="cb8-9" data-line-number="9">  <span class="dt">clone_id =</span> <span class="kw">c</span>(<span class="st">&quot;1&quot;</span>, <span class="st">&quot;1&quot;</span>, <span class="st">&quot;1&quot;</span>, <span class="st">&quot;2&quot;</span>, <span class="st">&quot;2&quot;</span>)</a>
+<a class="sourceLine" id="cb8-10" data-line-number="10">)</a>
+<a class="sourceLine" id="cb8-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb8-12" data-line-number="12">toyLightClones &lt;-<span class="st"> </span><span class="kw">data.frame</span>(</a>
+<a class="sourceLine" id="cb8-13" data-line-number="13">  <span class="dt">barcode =</span> <span class="kw">c</span>(<span class="st">&quot;toy_2&quot;</span>, <span class="st">&quot;toy_3&quot;</span>, <span class="st">&quot;toy_5&quot;</span>, <span class="st">&quot;toy_6&quot;</span>),</a>
+<a class="sourceLine" id="cb8-14" data-line-number="14">  <span class="dt">clone_id =</span> <span class="kw">c</span>(<span class="st">&quot;1&quot;</span>, <span class="st">&quot;1&quot;</span>, <span class="st">&quot;2&quot;</span>, <span class="st">&quot;2&quot;</span>)</a>
+<a class="sourceLine" id="cb8-15" data-line-number="15">)</a>
+<a class="sourceLine" id="cb8-16" data-line-number="16"></a>
+<a class="sourceLine" id="cb8-17" data-line-number="17">toyHeavyPoints &lt;-<span class="st"> </span><span class="kw">buildSpacedCloneTable</span>(</a>
+<a class="sourceLine" id="cb8-18" data-line-number="18">  toyHeavyClones,</a>
+<a class="sourceLine" id="cb8-19" data-line-number="19">  <span class="dt">positions =</span> toyPositions,</a>
+<a class="sourceLine" id="cb8-20" data-line-number="20">  <span class="dt">clone_prefix =</span> <span class="st">&quot;heavy_&quot;</span></a>
+<a class="sourceLine" id="cb8-21" data-line-number="21">)</a>
+<a class="sourceLine" id="cb8-22" data-line-number="22"></a>
+<a class="sourceLine" id="cb8-23" data-line-number="23">toyLightPoints &lt;-<span class="st"> </span><span class="kw">buildSpacedCloneTable</span>(</a>
+<a class="sourceLine" id="cb8-24" data-line-number="24">  toyLightClones,</a>
+<a class="sourceLine" id="cb8-25" data-line-number="25">  <span class="dt">positions =</span> toyPositions,</a>
+<a class="sourceLine" id="cb8-26" data-line-number="26">  <span class="dt">clone_prefix =</span> <span class="st">&quot;light_&quot;</span></a>
+<a class="sourceLine" id="cb8-27" data-line-number="27">)</a></code></pre></div>
 </div>
 <div id="spatial-affinity" class="section level2">
 <h2>Spatial Affinity</h2>
-<p>The scalable default is <code>method = &quot;weighted_cosim&quot;</code>. It
-uses sparse matrix multiplication over local barcode neighborhoods.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>toySpatialAffinity <span class="ot">&lt;-</span> <span class="fu">spacedSpatialAffinity</span>(</span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="at">heavy_points =</span> toyHeavyPoints,</span>
-<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="at">light_points =</span> toyLightPoints,</span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;weighted_cosim&quot;</span>,</span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  <span class="at">min_x_obs =</span> <span class="dv">1</span></span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>)</span>
-<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a></span>
-<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>toySpatialAffinity</span></code></pre></div>
+<p>The scalable default is <code>method = &quot;weighted_cosim&quot;</code>. It uses sparse matrix multiplication over local barcode neighborhoods.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1">toySpatialAffinity &lt;-<span class="st"> </span><span class="kw">spacedSpatialAffinity</span>(</a>
+<a class="sourceLine" id="cb9-2" data-line-number="2">  <span class="dt">heavy_points =</span> toyHeavyPoints,</a>
+<a class="sourceLine" id="cb9-3" data-line-number="3">  <span class="dt">light_points =</span> toyLightPoints,</a>
+<a class="sourceLine" id="cb9-4" data-line-number="4">  <span class="dt">method =</span> <span class="st">&quot;weighted_cosim&quot;</span>,</a>
+<a class="sourceLine" id="cb9-5" data-line-number="5">  <span class="dt">min_x_obs =</span> <span class="dv">1</span></a>
+<a class="sourceLine" id="cb9-6" data-line-number="6">)</a>
+<a class="sourceLine" id="cb9-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb9-8" data-line-number="8">toySpatialAffinity</a></code></pre></div>
 <p>For small subsets, use original SPaCeD-style optimal transport:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>toySpatialAffinityOt <span class="ot">&lt;-</span> <span class="fu">spacedSpatialAffinity</span>(</span>
-<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="at">heavy_points =</span> toyHeavyPoints,</span>
-<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="at">light_points =</span> toyLightPoints,</span>
-<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;ot&quot;</span>,</span>
-<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  <span class="at">min_x_obs =</span> <span class="dv">1</span>,</span>
-<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>  <span class="at">ot_scale =</span> <span class="dv">1</span>,</span>
-<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>  <span class="at">nproc =</span> <span class="dv">2</span></span>
-<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1">toySpatialAffinityOt &lt;-<span class="st"> </span><span class="kw">spacedSpatialAffinity</span>(</a>
+<a class="sourceLine" id="cb10-2" data-line-number="2">  <span class="dt">heavy_points =</span> toyHeavyPoints,</a>
+<a class="sourceLine" id="cb10-3" data-line-number="3">  <span class="dt">light_points =</span> toyLightPoints,</a>
+<a class="sourceLine" id="cb10-4" data-line-number="4">  <span class="dt">method =</span> <span class="st">&quot;ot&quot;</span>,</a>
+<a class="sourceLine" id="cb10-5" data-line-number="5">  <span class="dt">min_x_obs =</span> <span class="dv">1</span>,</a>
+<a class="sourceLine" id="cb10-6" data-line-number="6">  <span class="dt">ot_scale =</span> <span class="dv">1</span>,</a>
+<a class="sourceLine" id="cb10-7" data-line-number="7">  <span class="dt">nproc =</span> <span class="dv">2</span></a>
+<a class="sourceLine" id="cb10-8" data-line-number="8">)</a></code></pre></div>
 </div>
 <div id="repair-input" class="section level2">
 <h2>REPAIR Input</h2>
-<p>REPAIR expects a barcode-by-clone expression matrix with heavy and
-light clone columns separated by regex patterns.</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>toyRepairInput <span class="ot">&lt;-</span> <span class="fu">buildRepairInputMatrix</span>(toyHeavyPoints, toyLightPoints)</span>
-<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>toyRepairInput</span>
-<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a></span>
-<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>toyRepairDir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(<span class="fu">tempdir</span>(), <span class="st">&quot;toy_spaced_repair&quot;</span>)</span>
-<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>toyRepairInputPath <span class="ot">&lt;-</span> <span class="fu">file.path</span>(toyRepairDir, <span class="st">&quot;toy_spaced_repair_input.tsv&quot;</span>)</span>
-<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>toyRepairOutputDir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(toyRepairDir, <span class="st">&quot;repair_out&quot;</span>)</span>
-<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="fu">dir.create</span>(toyRepairOutputDir, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a></span>
-<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="fu">writeRepairInputMatrix</span>(toyRepairInput, toyRepairInputPath)</span></code></pre></div>
-<p>Build the REPAIR command. Running through <code>conda run</code>
-keeps the Python dependencies isolated from the R session.</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>toyRepairCommand <span class="ot">&lt;-</span> <span class="fu">repairAnalyzeCommand</span>(</span>
-<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  <span class="at">input_path =</span> toyRepairInputPath,</span>
-<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="at">output_dir =</span> toyRepairOutputDir,</span>
-<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>  <span class="at">a_pattern =</span> <span class="st">&quot;^heavy&quot;</span>,</span>
-<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>  <span class="at">b_pattern =</span> <span class="st">&quot;^light&quot;</span>,</span>
-<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>  <span class="at">mxo =</span> <span class="dv">1</span></span>
-<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>)</span>
-<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a></span>
-<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>toyRepairCondaCommand <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
-<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>  <span class="fu">shQuote</span>(repair_conda_bin),</span>
-<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>  <span class="st">&quot;run&quot;</span>,</span>
-<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a>  <span class="st">&quot;-n&quot;</span>,</span>
-<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a>  <span class="fu">shQuote</span>(repair_conda_env),</span>
-<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a>  toyRepairCommand</span>
-<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a>)</span>
-<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a></span>
-<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a>toyRepairCondaCommand</span></code></pre></div>
+<p>REPAIR expects a barcode-by-clone expression matrix with heavy and light clone columns separated by regex patterns.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">toyRepairInput &lt;-<span class="st"> </span><span class="kw">buildRepairInputMatrix</span>(toyHeavyPoints, toyLightPoints)</a>
+<a class="sourceLine" id="cb11-2" data-line-number="2">toyRepairInput</a>
+<a class="sourceLine" id="cb11-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb11-4" data-line-number="4">toyRepairDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;toy_spaced_repair&quot;</span>)</a>
+<a class="sourceLine" id="cb11-5" data-line-number="5">toyRepairInputPath &lt;-<span class="st"> </span><span class="kw">file.path</span>(toyRepairDir, <span class="st">&quot;toy_spaced_repair_input.tsv&quot;</span>)</a>
+<a class="sourceLine" id="cb11-6" data-line-number="6">toyRepairOutputDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(toyRepairDir, <span class="st">&quot;repair_out&quot;</span>)</a>
+<a class="sourceLine" id="cb11-7" data-line-number="7"><span class="kw">dir.create</span>(toyRepairOutputDir, <span class="dt">recursive =</span> <span class="ot">TRUE</span>, <span class="dt">showWarnings =</span> <span class="ot">FALSE</span>)</a>
+<a class="sourceLine" id="cb11-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb11-9" data-line-number="9"><span class="kw">writeRepairInputMatrix</span>(toyRepairInput, toyRepairInputPath)</a></code></pre></div>
+<p>Build the REPAIR command. Running through <code>conda run</code> keeps the Python dependencies isolated from the R session.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1">toyRepairCommand &lt;-<span class="st"> </span><span class="kw">repairAnalyzeCommand</span>(</a>
+<a class="sourceLine" id="cb12-2" data-line-number="2">  <span class="dt">input_path =</span> toyRepairInputPath,</a>
+<a class="sourceLine" id="cb12-3" data-line-number="3">  <span class="dt">output_dir =</span> toyRepairOutputDir,</a>
+<a class="sourceLine" id="cb12-4" data-line-number="4">  <span class="dt">a_pattern =</span> <span class="st">&quot;^heavy&quot;</span>,</a>
+<a class="sourceLine" id="cb12-5" data-line-number="5">  <span class="dt">b_pattern =</span> <span class="st">&quot;^light&quot;</span>,</a>
+<a class="sourceLine" id="cb12-6" data-line-number="6">  <span class="dt">mxo =</span> <span class="dv">1</span></a>
+<a class="sourceLine" id="cb12-7" data-line-number="7">)</a>
+<a class="sourceLine" id="cb12-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb12-9" data-line-number="9">toyRepairCondaCommand &lt;-<span class="st"> </span><span class="kw">paste</span>(</a>
+<a class="sourceLine" id="cb12-10" data-line-number="10">  <span class="kw">shQuote</span>(repair_conda_bin),</a>
+<a class="sourceLine" id="cb12-11" data-line-number="11">  <span class="st">&quot;run&quot;</span>,</a>
+<a class="sourceLine" id="cb12-12" data-line-number="12">  <span class="st">&quot;-n&quot;</span>,</a>
+<a class="sourceLine" id="cb12-13" data-line-number="13">  <span class="kw">shQuote</span>(repair_conda_env),</a>
+<a class="sourceLine" id="cb12-14" data-line-number="14">  toyRepairCommand</a>
+<a class="sourceLine" id="cb12-15" data-line-number="15">)</a>
+<a class="sourceLine" id="cb12-16" data-line-number="16"></a>
+<a class="sourceLine" id="cb12-17" data-line-number="17">toyRepairCondaCommand</a></code></pre></div>
 <p>Run REPAIR and find the model matrix:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>toyRepairStatus <span class="ot">&lt;-</span> <span class="fu">system</span>(toyRepairCondaCommand)</span>
-<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="cf">if</span> (toyRepairStatus <span class="sc">!=</span> <span class="dv">0</span>) {</span>
-<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Toy REPAIR command failed with exit status &quot;</span>, toyRepairStatus)</span>
-<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>}</span>
-<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a></span>
-<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>toyRepairModelFiles <span class="ot">&lt;-</span> <span class="fu">list.files</span>(</span>
-<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>  toyRepairOutputDir,</span>
-<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>  <span class="at">pattern =</span> <span class="st">&quot;_model_matrix</span><span class="sc">\\</span><span class="st">.tsv$&quot;</span>,</span>
-<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>  <span class="at">full.names =</span> <span class="cn">TRUE</span></span>
-<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>)</span>
-<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a></span>
-<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">length</span>(toyRepairModelFiles) <span class="sc">!=</span> <span class="dv">1</span><span class="dt">L</span>) {</span>
-<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Expected exactly one REPAIR model matrix in &quot;</span>, toyRepairOutputDir)</span>
-<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a>}</span></code></pre></div>
-<p>If the model matrix is unnamed, SIRAP follows the current SPaCeD
-convention and aligns it positionally to the spatial affinity matrix.
-This assumes REPAIR rows follow the heavy-clone order in the input
-matrix and columns follow the light-clone order. Prefer named model
-matrices when the REPAIR export supports them consistently.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1">toyRepairStatus &lt;-<span class="st"> </span><span class="kw">system</span>(toyRepairCondaCommand)</a>
+<a class="sourceLine" id="cb13-2" data-line-number="2"><span class="cf">if</span> (toyRepairStatus <span class="op">!=</span><span class="st"> </span><span class="dv">0</span>) {</a>
+<a class="sourceLine" id="cb13-3" data-line-number="3">  <span class="kw">stop</span>(<span class="st">&quot;Toy REPAIR command failed with exit status &quot;</span>, toyRepairStatus)</a>
+<a class="sourceLine" id="cb13-4" data-line-number="4">}</a>
+<a class="sourceLine" id="cb13-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb13-6" data-line-number="6">toyRepairModelFiles &lt;-<span class="st"> </span><span class="kw">list.files</span>(</a>
+<a class="sourceLine" id="cb13-7" data-line-number="7">  toyRepairOutputDir,</a>
+<a class="sourceLine" id="cb13-8" data-line-number="8">  <span class="dt">pattern =</span> <span class="st">&quot;_model_matrix</span><span class="ch">\\</span><span class="st">.tsv$&quot;</span>,</a>
+<a class="sourceLine" id="cb13-9" data-line-number="9">  <span class="dt">full.names =</span> <span class="ot">TRUE</span></a>
+<a class="sourceLine" id="cb13-10" data-line-number="10">)</a>
+<a class="sourceLine" id="cb13-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb13-12" data-line-number="12"><span class="cf">if</span> (<span class="kw">length</span>(toyRepairModelFiles) <span class="op">!=</span><span class="st"> </span>1L) {</a>
+<a class="sourceLine" id="cb13-13" data-line-number="13">  <span class="kw">stop</span>(<span class="st">&quot;Expected exactly one REPAIR model matrix in &quot;</span>, toyRepairOutputDir)</a>
+<a class="sourceLine" id="cb13-14" data-line-number="14">}</a></code></pre></div>
+<p>If the model matrix is unnamed, SIRAP follows the current SPaCeD convention and aligns it positionally to the spatial affinity matrix. This assumes REPAIR rows follow the heavy-clone order in the input matrix and columns follow the light-clone order. Prefer named model matrices when the REPAIR export supports them consistently.</p>
 </div>
 <div id="pair-heavy-and-light-clones" class="section level2">
 <h2>Pair Heavy and Light Clones</h2>
-<p><code>pairHeavyLightSpaced()</code> accepts a matrix, data frame, or
-path for both <code>spatial_affinity</code> and
-<code>mapping_matrix</code>.</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>toySpacedPairs <span class="ot">&lt;-</span> <span class="fu">pairHeavyLightSpaced</span>(</span>
-<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  <span class="at">spatial_affinity =</span> toySpatialAffinity,</span>
-<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="at">mapping_matrix =</span> toyRepairModelFiles[[<span class="dv">1</span>]],</span>
-<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>  <span class="at">weights =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.5</span>, <span class="dv">1</span>),</span>
-<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>  <span class="at">top_n_light_chains =</span> <span class="dv">5</span></span>
-<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>)</span>
-<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a></span>
-<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>toySpacedPairs</span></code></pre></div>
-<p>When one weight is supplied, the function returns a data frame. When
-multiple weights are supplied, it returns a named list with one data
-frame per weight. Each result includes up to
-<code>top_n_light_chains</code> candidate light clones per heavy
-clone:</p>
+<p><code>pairHeavyLightSpaced()</code> accepts a matrix, data frame, or path for both <code>spatial_affinity</code> and <code>mapping_matrix</code>.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1">toySpacedPairs &lt;-<span class="st"> </span><span class="kw">pairHeavyLightSpaced</span>(</a>
+<a class="sourceLine" id="cb14-2" data-line-number="2">  <span class="dt">spatial_affinity =</span> toySpatialAffinity,</a>
+<a class="sourceLine" id="cb14-3" data-line-number="3">  <span class="dt">mapping_matrix =</span> toyRepairModelFiles[[<span class="dv">1</span>]],</a>
+<a class="sourceLine" id="cb14-4" data-line-number="4">  <span class="dt">weights =</span> <span class="kw">c</span>(<span class="dv">0</span>, <span class="fl">0.5</span>, <span class="dv">1</span>),</a>
+<a class="sourceLine" id="cb14-5" data-line-number="5">  <span class="dt">top_n_light_chains =</span> <span class="dv">5</span></a>
+<a class="sourceLine" id="cb14-6" data-line-number="6">)</a>
+<a class="sourceLine" id="cb14-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb14-8" data-line-number="8">toySpacedPairs</a></code></pre></div>
+<p>When one weight is supplied, the function returns a data frame. When multiple weights are supplied, it returns a named list with one data frame per weight. Each result includes up to <code>top_n_light_chains</code> candidate light clones per heavy clone:</p>
 <ul>
 <li><code>heavy_id</code></li>
 <li><code>light_id</code></li>
@@ -543,34 +481,24 @@ clone:</p>
 <li><code>normalized_pairing_score</code></li>
 <li><code>light_specificity_score</code></li>
 </ul>
-<p><code>normalized_pairing_score</code> is not a calibrated biological
-probability. It is the candidate pair’s row-normalized combined score
-for that heavy clone.</p>
-<p><code>light_specificity_score</code> is not a calibrated biological
-probability either. It is the candidate pair’s column-normalized
-combined score for that light clone, so it is lower when the same light
-chain also scores well with many other heavy chains.</p>
+<p><code>normalized_pairing_score</code> is not a calibrated biological probability. It is the candidate pair’s row-normalized combined score for that heavy clone.</p>
+<p><code>light_specificity_score</code> is not a calibrated biological probability either. It is the candidate pair’s column-normalized combined score for that light clone, so it is lower when the same light chain also scores well with many other heavy chains.</p>
 </div>
 <div id="visium-hd-notes" class="section level2">
 <h2>Visium HD Notes</h2>
-<p>For Visium HD, we recommend using the 8um Space Ranger barcodes as
-the spatial features. Do not add another coordinate-binning step before
-pairing.</p>
+<p>For Visium HD, we recommend using the 8um Space Ranger barcodes as the spatial features. Do not add another coordinate-binning step before pairing.</p>
 <p>Useful defaults:</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>spatial_affinity <span class="ot">&lt;-</span> <span class="fu">spacedSpatialAffinity</span>(</span>
-<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>  <span class="at">heavy_points =</span> toyHeavyPoints,</span>
-<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  <span class="at">light_points =</span> toyLightPoints,</span>
-<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;weighted_cosim&quot;</span>,</span>
-<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>  <span class="at">kernel_sigma =</span> <span class="cn">NULL</span>,</span>
-<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>  <span class="at">kernel_radius =</span> <span class="cn">NULL</span>,</span>
-<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>  <span class="at">top_n =</span> <span class="dv">250</span>,</span>
-<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a>  <span class="at">min_x_obs =</span> <span class="dv">2</span>,</span>
-<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a>  <span class="at">filter_x =</span> <span class="dv">1</span></span>
-<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a>)</span></code></pre></div>
-<p>With <code>kernel_sigma = NULL</code>, SIRAP estimates the median
-nearest-neighbor spacing among spatial features and uses twice that
-value. <code>kernel_radius</code> defaults to
-<code>3 * kernel_sigma</code>.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1">spatial_affinity &lt;-<span class="st"> </span><span class="kw">spacedSpatialAffinity</span>(</a>
+<a class="sourceLine" id="cb15-2" data-line-number="2">  <span class="dt">heavy_points =</span> toyHeavyPoints,</a>
+<a class="sourceLine" id="cb15-3" data-line-number="3">  <span class="dt">light_points =</span> toyLightPoints,</a>
+<a class="sourceLine" id="cb15-4" data-line-number="4">  <span class="dt">method =</span> <span class="st">&quot;weighted_cosim&quot;</span>,</a>
+<a class="sourceLine" id="cb15-5" data-line-number="5">  <span class="dt">kernel_sigma =</span> <span class="ot">NULL</span>,</a>
+<a class="sourceLine" id="cb15-6" data-line-number="6">  <span class="dt">kernel_radius =</span> <span class="ot">NULL</span>,</a>
+<a class="sourceLine" id="cb15-7" data-line-number="7">  <span class="dt">top_n =</span> <span class="dv">250</span>,</a>
+<a class="sourceLine" id="cb15-8" data-line-number="8">  <span class="dt">min_x_obs =</span> <span class="dv">2</span>,</a>
+<a class="sourceLine" id="cb15-9" data-line-number="9">  <span class="dt">filter_x =</span> <span class="dv">1</span></a>
+<a class="sourceLine" id="cb15-10" data-line-number="10">)</a></code></pre></div>
+<p>With <code>kernel_sigma = NULL</code>, SIRAP estimates the median nearest-neighbor spacing among spatial features and uses twice that value. <code>kernel_radius</code> defaults to <code>3 * kernel_sigma</code>.</p>
 </div>
 
 

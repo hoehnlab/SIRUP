@@ -8,13 +8,13 @@ seuratSubsetPolygon(
   object,
   polygon,
   images = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
-  polygon_id = NULL,
-  x_col = "x",
-  y_col = "y",
-  polygon_col = "polygon",
-  metadata_col = "polygon",
+  image_scale = NULL,
+  swap_coords = NULL,
+  polygon_val = NULL,
+  x = "x",
+  y = "y",
+  polygon_id = "polygon",
+  metadata = "polygon",
   include_boundary = TRUE,
   require_closed = TRUE
 )
@@ -32,17 +32,17 @@ evaluated independently.}
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. Defaults to \code{FALSE},
-which uses Seurat image coordinates natively.}
+axes before plotting or polygon membership checks. If \code{NULL}, the
+value must be supplied explicitly or by SIRAP object metadata.}
 
-\item{polygon_id}{Optional polygon ID value(s) to select when \code{polygon_col}
+\item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
 exists.}
 
-\item{x_col, y_col}{Coordinate columns in \code{polygon}.}
+\item{x, y}{Coordinate columns in \code{polygon}.}
 
-\item{polygon_col}{Optional polygon grouping column in \code{polygon}.}
+\item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
 
-\item{metadata_col}{Metadata column added to the returned Seurat object with
+\item{metadata}{Metadata column added to the returned Seurat object with
 polygon membership. Barcodes in overlapping polygons receive comma-separated
 polygon IDs.}
 
@@ -53,7 +53,7 @@ Set to \code{FALSE} to close open polygons automatically.}
 }
 \value{
 A Seurat object subset to barcodes inside the selected polygon(s),
-with \code{metadata_col} appended to \verb{@meta.data}.
+with \code{metadata} appended to \verb{@meta.data}.
 }
 \description{
 Keeps only Seurat barcodes whose spatial coordinates fall inside one or more

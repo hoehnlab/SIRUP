@@ -7,16 +7,16 @@
 plotReceptors(
   object,
   receptors = NULL,
-  group_col,
-  values = NULL,
-  barcode_col = NULL,
+  group,
+  group_val = NULL,
+  barcode = NULL,
   colors = NULL,
   receptor_size = 1,
   receptor_alpha = 1,
   title = NULL,
   order_points = TRUE,
-  image_scale = "hires",
-  swap_coords = FALSE,
+  image_scale = NULL,
+  swap_coords = NULL,
   images = NULL,
   image_alpha = 1,
   zoom = FALSE,
@@ -32,13 +32,13 @@ receptor data.}
 \item{receptors}{AIRR-style receptor table containing a spatial barcode and
 grouping column. May be omitted when \code{object} is a SIRAP object.}
 
-\item{group_col}{Column in \code{receptors} used to select and color receptor
+\item{group}{Column in \code{receptors} used to select and color receptor
 groups, for example \code{"clone_id"}.}
 
-\item{values}{Optional values from \code{group_col} to plot. Defaults to all
-non-missing values in \code{group_col}.}
+\item{group_val}{Optional values from \code{group} to plot. Defaults to all
+non-missing values in \code{group}.}
 
-\item{barcode_col}{Column in \code{receptors} matching Seurat spot names. If
+\item{barcode}{Column in \code{receptors} matching Seurat spot names. If
 \code{NULL}, the first available barcode-like column is used.}
 
 \item{colors}{Optional colors for receptor groups. Named colors are matched
@@ -57,8 +57,8 @@ on top.}
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. Defaults to \code{FALSE},
-which uses Seurat image coordinates natively.}
+axes before plotting or polygon membership checks. If \code{NULL}, the
+value must be supplied explicitly or by SIRAP object metadata.}
 
 \item{images}{Optional Seurat image names.}
 
@@ -68,7 +68,7 @@ which uses Seurat image coordinates natively.}
 full tissue area covered by the spatial coordinates.}
 
 \item{receptor_legend_title}{Legend title for receptor groups. Defaults to
-\code{group_col}.}
+\code{group}.}
 
 \item{show_receptor_legend}{Show the receptor group legend.}
 

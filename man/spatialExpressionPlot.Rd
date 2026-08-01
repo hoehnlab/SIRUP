@@ -10,8 +10,8 @@ spatialExpressionPlot(
   assay = NULL,
   layer = "counts",
   images = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
+  image_scale = NULL,
+  swap_coords = NULL,
   feature_colors = c("#D3D3D3", "#FFFF00"),
   zero_tol = 0,
   point_size = 0.6,
@@ -37,8 +37,8 @@ spatialExpressionPlot(
 \item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. Defaults to \code{FALSE},
-which uses Seurat image coordinates natively.}
+axes before plotting or polygon membership checks. If \code{NULL}, the
+value must be supplied explicitly or by SIRAP object metadata.}
 
 \item{feature_colors}{Colors used, in order, for the continuous expression
 scale. The first color is the low value and the last color is the high

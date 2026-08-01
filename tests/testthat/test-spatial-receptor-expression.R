@@ -1,11 +1,11 @@
 test_that("plotReceptorsExpression layers grouped receptors over expression", {
   testthat::local_mocked_bindings(
-    .sirap_resolve_inputs = function(object, receptors = NULL, barcode_col = NULL) {
-      list(object = object, receptors = receptors, barcode_col = barcode_col)
+    .sirap_resolve_inputs = function(object, receptors = NULL, barcode = NULL) {
+      list(object = object, receptors = receptors, barcode_col = barcode)
     },
     .require_namespace = function(package) invisible(TRUE),
     .as_data_frame = as.data.frame,
-    .guess_barcode_col = function(receptors, barcode_col = NULL) barcode_col,
+    .guess_barcode_col = function(receptors, barcode = NULL) barcode,
     .check_required_cols = function(x, cols, label) {
       stopifnot(all(cols %in% colnames(x)))
     },
@@ -40,11 +40,13 @@ test_that("plotReceptorsExpression layers grouped receptors over expression", {
   plot <- plotReceptorsExpression(
     object = list(),
     receptors = receptors,
-    group_col = "receptor_type",
-    values = c("BCR", "TCR"),
-    barcode_col = "barcode",
+    group = "receptor_type",
+    group_val = c("BCR", "TCR"),
+    barcode = "barcode",
     feature = "GENE",
-    colors = c(BCR = "blue", TCR = "orange")
+    colors = c(BCR = "blue", TCR = "orange"),
+    image_scale = "hires",
+    swap_coords = FALSE
   )
 
   expect_s3_class(plot, "ggplot")
@@ -57,4 +59,3 @@ test_that("plotReceptorsExpression layers grouped receptors over expression", {
     logical(1)
   )))
 })
-

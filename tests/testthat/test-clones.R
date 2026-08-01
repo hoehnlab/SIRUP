@@ -16,7 +16,7 @@ test_that("clusterTreeTips cuts the longest branches into connected tip clusters
     tip.label = c("A", "B", "C", "D")
   )
 
-  clusters <- clusterTreeTips(tree, k = 2, id_col = "tip", cluster_col = "cluster")
+  clusters <- clusterTreeTips(tree, k = 2, id = "tip", cluster = "cluster")
   cluster_lookup <- stats::setNames(clusters$cluster, clusters$tip)
 
   expect_equal(cluster_lookup[["A"]], cluster_lookup[["B"]])
@@ -42,7 +42,7 @@ test_that("clusterTreeTips can ignore germline tips", {
     tip.label = c("A", "B", "C", "Germline")
   )
 
-  clusters <- clusterTreeTips(tree, k = 2, id_col = "tip", cluster_col = "cluster")
+  clusters <- clusterTreeTips(tree, k = 2, id = "tip", cluster = "cluster")
 
   expect_false("Germline" %in% clusters$tip)
   expect_equal(nrow(clusters), 3)

@@ -1,3 +1,6 @@
+Spatial Clones and BCR Trees
+================
+
 This vignette shows how to call clones, visualize BCR/TCR clone
 locations over tissue, build BCR lineage trees with `dowser`, and pair
 each tree with the spatial locations of its colored tips.
@@ -21,29 +24,15 @@ pass the resulting data frames to SIRAP plotting functions.
 bcrClones <- scoper::hierarchicalClones(
   filter(bcrTopBarcode, productive),
   threshold = 0.1,
-  cell_id = "sequence_id",
   summarize_clones = FALSE,
   nproc = nproc
 )
-#> Warning in prepare_db(db = db, junction = junction, v_call = v_call, j_call =
-#> j_call, : Removed 189 sequences with non ATCG charachters.
-#> Running defineClonesScoper in single cell mode
-#> Warning in defineClonesScoper(db = db, threshold = threshold, model =
-#> "hierarchical", : Single cell mode requested, but `db` doesn't contain light
-#> chain data. Skipping.
 
 tcrClones <- scoper::identicalClones(
   filter(tcrTopBarcode, productive),
-  cell_id = "sequence_id",
   summarize_clones = FALSE,
   nproc = nproc
 )
-#> Warning in prepare_db(db = db, junction = junction, v_call = v_call, j_call =
-#> j_call, : Removed 136 sequences with non ATCG charachters.
-#> Running defineClonesScoper in single cell mode
-#> Warning in defineClonesScoper(db = db, method = match.arg(method), model =
-#> "identical", : Single cell mode requested, but `db` doesn't contain light chain
-#> data. Skipping.
 
 saveRDS(bcrClones, bcrClonesPath)
 saveRDS(tcrClones, tcrClonesPath)
@@ -81,33 +70,25 @@ tcrCloneIds <- tcrCloneCounts %>%
   pull(clone_id)
 
 bcrCloneCounts %>% filter(clone_id %in% bcrCloneIds)
-#> # A tibble: 2 × 2
-#>   clone_id     n
-#>   <chr>    <int>
-#> 1 1764        50
-#> 2 364         50
 tcrCloneCounts %>% filter(clone_id %in% tcrCloneIds)
-#> # A tibble: 2 × 2
-#>   clone_id     n
-#>   <chr>    <int>
-#> 1 3373        45
-#> 2 5528        35
 ```
 
 ## Plot Clone Locations Over Tissue
 
-`plotReceptorExpression()` can plot any receptor table, including a
-subset of one clone.
+`plotReceptors()` can plot any receptor table, including a subset of one
+clone.
 
 ``` r
 bcrClonePlots <- lapply(
   bcrCloneIds,
   function(cloneId) {
-    plotReceptorExpression(
+    plotReceptors(
       object = thymus,
-      receptors = filter(bcrClones, .data$clone_id == .env$cloneId),
-      barcode_col = "barcode_8um",
-      receptor_color = "#2c7fb8",
+      receptors = filter(bcrClones, .data$clone_val == .env$cloneId),
+      group = "clone_id",
+      group_val = cloneId,
+      barcode = "barcode_8um",
+      colors = "#2c7fb8",
       receptor_size = 1.7,
       title = paste("BCR clone", cloneId)
     )
@@ -117,11 +98,13 @@ bcrClonePlots <- lapply(
 tcrClonePlots <- lapply(
   tcrCloneIds,
   function(cloneId) {
-    plotReceptorExpression(
+    plotReceptors(
       object = thymus,
-      receptors = filter(tcrClones, .data$clone_id == .env$cloneId),
-      barcode_col = "barcode_8um",
-      receptor_color = "#d95f02",
+      receptors = filter(tcrClones, .data$clone_val == .env$cloneId),
+      group = "clone_id",
+      group_val = cloneId,
+      barcode = "barcode_8um",
+      colors = "#d95f02",
       receptor_size = 1.7,
       title = paste("TCR clone", cloneId)
     )
@@ -129,15 +112,8 @@ tcrClonePlots <- lapply(
 )
 
 cowplot::plot_grid(plotlist = bcrClonePlots, ncol = 2)
-```
-
-![](/dartfs/rc/lab/H/HoehnK/Hunter/spatial_bcr_tcr_package/SIRAP/docs/readthedocs/markdown/spatial-clones-and-trees_files/figure-gfm/clone-location-plots-1.png)<!-- -->
-
-``` r
 cowplot::plot_grid(plotlist = tcrClonePlots, ncol = 2)
 ```
-
-![](/dartfs/rc/lab/H/HoehnK/Hunter/spatial_bcr_tcr_package/SIRAP/docs/readthedocs/markdown/spatial-clones-and-trees_files/figure-gfm/clone-location-plots-2.png)<!-- -->
 
 ## Build BCR Trees with Dowser
 
@@ -147,7 +123,6 @@ pairing trees with spatial plots.
 ``` r
 germlineDir <- path.expand("~/software/germlines/imgt/human/vdj")
 refs <- dowser::readIMGT(germlineDir)
-#> [1] "Read in 1198 from 17 fasta files"
 
 bcrTreeInput <- bcrClones %>%
   filter(clone_id %in% bcrCloneIds, !is.na(clone_id))
@@ -165,9 +140,6 @@ bcrFormattedClones <- dowser::formatClones(
   add_count = "consensus_count" %in% colnames(bcrTreeInput),
   num_fields = if ("consensus_count" %in% colnames(bcrTreeInput)) "consensus_count" else NULL
 )
-#> Warning in dowser::formatClones(bcrTreeInput, id = "sequence_id", germ =
-#> "germline_alignment", : columns x y barcode_8um contain multiple values per
-#> clone, setting to character, flattening with comma
 
 bcrTrees <- dowser::getTrees(
   bcrFormattedClones,
@@ -186,16 +158,19 @@ bcrTrees <- readRDS(bcrTreesPath)
 ## Pair BCR Trees with Spatial Tip Locations
 
 `plotSpatialCloneTreePairs()` assigns tip colors, draws the BCR tree
-with `ggtree`, and creates a matching spatial plot over the tissue. Tips
-in the same spatial location share a color.
+with `ggtree`, and creates a matching spatial plot over the tissue. By
+default, each tip gets its own color.
 
 ``` r
 pairedTreeSpatialPlots <- plotSpatialCloneTreePairs(
   bcrTrees,
   object = thymus,
-  barcode_col = "barcode_8um",
-  clone_ids = bcrCloneIds,
-  id_col = "sequence_id",
+  barcode = "barcode_8um",
+  clone_val = bcrCloneIds,
+  id = "sequence_id",
+  image_scale = "hires",
+  swap_coords = FALSE,
+  treescale = 0.01,
   zoom = FALSE
 )
 
@@ -208,7 +183,58 @@ cowplot::plot_grid(
 )
 ```
 
-![](/dartfs/rc/lab/H/HoehnK/Hunter/spatial_bcr_tcr_package/SIRAP/docs/readthedocs/markdown/spatial-clones-and-trees_files/figure-gfm/tree-spatial-pairs-1.png)<!-- -->
+For larger clones, coloring every tip can be hard to read.
+`clusterTreesTips()` cuts the `k - 1` longest branches in each tree,
+creating `k` connected subtrees. Passing that new column to
+`plotSpatialCloneTreePairs()` colors the tree and spatial plot by
+genetically similar tip groups.
+
+``` r
+bcrTreesClustered <- clusterTreesTips(
+  bcrTrees,
+  k = 6,
+  id = "sequence_id",
+  cluster = "tree_cluster"
+)
+
+pairedTreeSpatialClusterPlots <- plotSpatialCloneTreePairs(
+  bcrTreesClustered,
+  object = thymus,
+  barcode = "barcode_8um",
+  clone_val = bcrCloneIds,
+  id = "sequence_id",
+  image_scale = "hires",
+  swap_coords = FALSE,
+  color_by = "tree_cluster",
+  treescale = 0.01,
+  zoom = FALSE
+)
+
+firstCloneId <- names(pairedTreeSpatialClusterPlots)[1]
+cowplot::plot_grid(
+  pairedTreeSpatialClusterPlots[[firstCloneId]]$tree,
+  pairedTreeSpatialClusterPlots[[firstCloneId]]$spatial_clone,
+  ncol = 2,
+  rel_widths = c(1.2, 1)
+)
+```
+
+If you want SIRAP to choose a separate cluster number for each tree, set
+`k = "auto"` and adjust `k_range` or `improvement_threshold` as needed.
+
+``` r
+bcrTreesAutoClustered <- clusterTreesTips(
+  bcrTrees,
+  k = "auto",
+  id = "sequence_id",
+  cluster = "tree_cluster",
+  k_range = 1:8,
+  improvement_threshold = 0.10
+)
+
+bcrTreesAutoClustered$tree_cluster_k
+attr(bcrTreesAutoClustered, "tree_cluster_scores")
+```
 
 Export all paired tree/spatial plots to a single PDF.
 

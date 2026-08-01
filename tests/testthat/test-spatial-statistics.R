@@ -25,7 +25,11 @@ test_that("spatial coordinate table falls back to metadata coordinates", {
   object$x <- c(0, 10, 20)
   object$y <- c(0, 5, 10)
 
-  coords <- SIRAP:::.sirap_spatial_coordinate_table(object)
+  coords <- SIRAP:::.sirap_spatial_coordinate_table(
+    object,
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
 
   expect_equal(coords$cell, paste0("cell", 1:3))
   expect_equal(coords$x, c(0, 10, 20))
@@ -56,7 +60,9 @@ test_that("spatialRipleyCrossK keeps all non-missing marks in the point pattern"
     i = "A",
     j = "B",
     nsim = 0,
-    max_r = 20
+    max_r = 20,
+    image_scale = "hires",
+    swap_coords = FALSE
   )
 
   expect_equal(nrow(out$points), 6)
@@ -66,7 +72,9 @@ test_that("spatialRipleyCrossK keeps all non-missing marks in the point pattern"
   sirap <- createSIRAP(
     object,
     data.frame(barcode = "cell1"),
-    barcode_col = "barcode"
+    barcode = "barcode",
+    image_scale = "hires",
+    swap_coords = FALSE
   )
   sirap_out <- spatialRipleyCrossK(
     sirap,
@@ -101,8 +109,10 @@ test_that("spatialMoran can test a particular clone from a SIRAP object", {
   sirap <- createSIRAP(
     object,
     receptors,
-    barcode_col = "spot",
-    clone_col = "clonal_group"
+    barcode = "spot",
+    clone = "clonal_group",
+    image_scale = "hires",
+    swap_coords = FALSE
   )
 
   out <- spatialMoran(
@@ -148,12 +158,14 @@ test_that("spatialCloneJoinCount tests clone marks from receptor barcodes", {
   out <- spatialCloneJoinCount(
     object = object,
     receptors = receptors,
-    clone_col = "clone_id",
-    barcode_col = "barcode_8um",
-    clone_ids = "A",
+    clone = "clone_id",
+    barcode = "barcode_8um",
+    clone_val = "A",
     k = 1,
     min_barcodes = 2,
-    return_data = TRUE
+    return_data = TRUE,
+    image_scale = "hires",
+    swap_coords = FALSE
   )
 
   expect_true("A" %in% out$summary$clone_id)
@@ -184,23 +196,27 @@ test_that("plotSpatialCloneJoinCount returns one combined plot", {
   join_count <- spatialCloneJoinCount(
     object = object,
     receptors = receptors,
-    clone_col = "clone_id",
-    barcode_col = "barcode_8um",
-    clone_ids = "A",
+    clone = "clone_id",
+    barcode = "barcode_8um",
+    clone_val = "A",
     k = 1,
     min_barcodes = 2,
-    return_data = TRUE
+    return_data = TRUE,
+    image_scale = "hires",
+    swap_coords = FALSE
   )
 
   plot <- plotSpatialCloneJoinCount(
     join_count = join_count,
     object = object,
-    clone_id = "A",
+    clone_val = "A",
     polygon = data.frame(
       x = c(-1, 4, 4, -1, -1),
       y = c(-1, -1, 4, 4, -1),
       polygon = "test"
-    )
+    ),
+    image_scale = "hires",
+    swap_coords = FALSE
   )
 
   expect_s3_class(plot, "ggplot")
@@ -219,7 +235,13 @@ test_that("plotSpatialCloneJoinCount requires stored mark data", {
   join_count <- list(summary = data.frame(clone_id = "A"), data = NULL)
 
   expect_error(
-    plotSpatialCloneJoinCount(join_count, object, clone_id = "A"),
+    plotSpatialCloneJoinCount(
+      join_count,
+      object,
+      clone_val = "A",
+      image_scale = "hires",
+      swap_coords = FALSE
+    ),
     "return_data = TRUE",
     fixed = TRUE
   )

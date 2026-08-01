@@ -7,17 +7,17 @@
 formatSpatialPolygons(
   object,
   polygon_points,
-  barcode_col = "barcode",
-  polygon_col = "polygon",
-  x_col = "x",
-  y_col = "y",
-  image_col = "image",
+  barcode = "barcode",
+  polygon = "polygon",
+  x = "x",
+  y = "y",
+  image = "image",
   point_type = c("interior", "boundary"),
   buffer_radius = NULL,
-  order_col = NULL,
+  order = NULL,
   images = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
+  image_scale = NULL,
+  swap_coords = NULL,
   close_polygons = TRUE
 )
 }
@@ -27,15 +27,15 @@ formatSpatialPolygons(
 \item{polygon_points}{Data frame containing all points inside each polygon,
 or boundary points when \code{point_type = "boundary"}.}
 
-\item{barcode_col}{Column in \code{polygon_points} containing Seurat barcodes.
-Required when \code{x_col} and \code{y_col} are not present.}
+\item{barcode}{Column in \code{polygon_points} containing Seurat barcodes.
+Required when \code{x} and \code{y} are not present.}
 
-\item{polygon_col}{Column in \code{polygon_points} identifying each polygon.}
+\item{polygon}{Column in \code{polygon_points} identifying each polygon.}
 
-\item{x_col, y_col}{Coordinate columns in \code{polygon_points}, if already
+\item{x, y}{Coordinate columns in \code{polygon_points}, if already
 present.}
 
-\item{image_col}{Image column in \code{polygon_points}, if already present.}
+\item{image}{Image column in \code{polygon_points}, if already present.}
 
 \item{point_type}{Are \code{polygon_points} all interior points or already
 boundary points?}
@@ -45,7 +45,7 @@ converting interior points to a polygon outline. When \code{NULL}, the radius is
 estimated from the nearest-neighbor spacing in the full spatial coordinate
 grid.}
 
-\item{order_col}{Optional column used to order points within each polygon
+\item{order}{Optional column used to order points within each polygon
 before formatting. This is mainly useful with \code{point_type = "boundary"}.}
 
 \item{images}{Optional Seurat image names to use for spatial coordinates.}

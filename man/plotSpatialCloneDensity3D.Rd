@@ -7,12 +7,12 @@
 plotSpatialCloneDensity3D(
   dominance,
   object,
-  clone_col = "clone_id",
-  weight_col = NULL,
+  clone = "clone_id",
+  weight = NULL,
   images = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
-  polygon_id = NULL,
+  image_scale = NULL,
+  swap_coords = NULL,
+  polygon_val = NULL,
   top_n = 10,
   other_label = "Other",
   other_color = "#D3D3D3",
@@ -47,11 +47,11 @@ plotSpatialCloneDensity3D(
 
 \item{object}{Seurat object with spatial images, or a SIRAP object.}
 
-\item{clone_col}{Column in \code{dominance$region_bcrs} used to define clone
+\item{clone}{Column in \code{dominance$region_receptors} used to define clone
 groups. When omitted, the clone column recorded by
 \code{spatialCloneDominance()} is used.}
 
-\item{weight_col}{Optional numeric column used as receptor weights. When
+\item{weight}{Optional numeric column used as receptor weights. When
 \code{NULL}, each receptor row contributes one count.}
 
 \item{images}{Optional Seurat image names to show.}
@@ -60,10 +60,10 @@ groups. When omitted, the clone column recorded by
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. Defaults to \code{FALSE},
-which uses Seurat image coordinates natively.}
+axes before plotting or polygon membership checks. If \code{NULL}, the
+value must be supplied explicitly or by SIRAP object metadata.}
 
-\item{polygon_id}{Optional polygon ID value(s) to select from the dominance
+\item{polygon_val}{Optional polygon ID value(s) to select from the dominance
 object.}
 
 \item{top_n}{Optional number of most abundant clone groups to show

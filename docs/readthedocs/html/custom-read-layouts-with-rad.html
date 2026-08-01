@@ -14,104 +14,91 @@
 
 <title>Defining Custom Read Layouts for RAD</title>
 
-<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
-// be compatible with the behavior of Pandoc < 2.8).
-document.addEventListener('DOMContentLoaded', function(e) {
-  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
-  var i, h, a;
-  for (i = 0; i < hs.length; i++) {
-    h = hs[i];
-    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
-    a = h.attributes;
-    while (a.length > 0) h.removeAttribute(a[0].name);
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+
+<style type="text/css">
+  code {
+    white-space: pre;
   }
-});
-</script>
-
-<style type="text/css">
-code{white-space: pre-wrap;}
-span.smallcaps{font-variant: small-caps;}
-span.underline{text-decoration: underline;}
-div.column{display: inline-block; vertical-align: top; width: 50%;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-ul.task-list{list-style: none;}
-</style>
-
-
-
-<style type="text/css">
-code {
-white-space: pre;
-}
-.sourceCode {
-overflow: visible;
-}
+  .sourceCode {
+    overflow: visible;
+  }
 </style>
 <style type="text/css" data-origin="pandoc">
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; position: absolute; }
 .sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
+code.sourceCode { white-space: pre; position: relative; }
 div.sourceCode { margin: 1em 0; }
 pre.sourceCode { margin: 0; }
 @media screen {
 div.sourceCode { overflow: auto; }
 }
 @media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
 }
-pre.numberSource code
-{ counter-reset: source-line 0; }
-pre.numberSource code > span
-{ position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-{ content: counter(source-line);
-position: relative; left: -1em; text-align: right; vertical-align: baseline;
-border: none; display: inline-block;
--webkit-touch-callout: none; -webkit-user-select: none;
--khtml-user-select: none; -moz-user-select: none;
--ms-user-select: none; user-select: none;
-padding: 0 4px; width: 4em;
-color: #aaaaaa;
-}
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+pre.numberSource a.sourceLine
+  { position: relative; }
+pre.numberSource a.sourceLine:empty
+  { position: absolute; }
+pre.numberSource a.sourceLine::before
+  { content: attr(data-line-number);
+    position: absolute; left: -5em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
 div.sourceCode
-{ }
+  {  }
 @media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+a.sourceLine::before { text-decoration: underline; }
 }
-code span.al { color: #ff0000; font-weight: bold; } 
-code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
-code span.at { color: #7d9029; } 
-code span.bn { color: #40a070; } 
-code span.bu { color: #008000; } 
-code span.cf { color: #007020; font-weight: bold; } 
-code span.ch { color: #4070a0; } 
-code span.cn { color: #880000; } 
-code span.co { color: #60a0b0; font-style: italic; } 
-code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
-code span.do { color: #ba2121; font-style: italic; } 
-code span.dt { color: #902000; } 
-code span.dv { color: #40a070; } 
-code span.er { color: #ff0000; font-weight: bold; } 
-code span.ex { } 
-code span.fl { color: #40a070; } 
-code span.fu { color: #06287e; } 
-code span.im { color: #008000; font-weight: bold; } 
-code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
-code span.kw { color: #007020; font-weight: bold; } 
-code span.op { color: #666666; } 
-code span.ot { color: #007020; } 
-code span.pp { color: #bc7a00; } 
-code span.sc { color: #4070a0; } 
-code span.ss { color: #bb6688; } 
-code span.st { color: #4070a0; } 
-code span.va { color: #19177c; } 
-code span.vs { color: #4070a0; } 
-code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
 </style>
 <script>
 // apply pandoc div.sourceCode style to pre.sourceCode instead
@@ -341,92 +328,52 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 
-<p>The whole point of <a href="https://github.com/indianewok/rad"><code>rad</code></a> is that it
-is <em>read-structure agnostic</em>: instead of hard-coding one
-chemistry, you hand it a small CSV that describes how your reads are
-laid out — primers, barcodes, UMIs, the cDNA — and it figures out the
-alignment and extraction from there. The <a href="demultiplexing-with-rad.html">demultiplexing guide</a> drove rad
-on its <strong>bundled</strong> layouts (<code>five_prime</code>,
-<code>three_prime</code>, <code>sctagger</code>, <code>visium_hd</code>,
-…). This guide is the other half: how to write your <em>own</em> layout
-for a wonky or custom format and run the same pipeline on it, all from R
-through SIRAP’s <code>rad*()</code> wrappers.</p>
-<p>As with the other rad guide, SIRAP does not reimplement rad — every
-wrapper here shells out to the same <code>rad</code> binary you would
-call from a terminal. The wrappers used below are
-<code>radList()</code>, <code>radPrep()</code>,
-<code>radModify()</code>, and <code>radDemux()</code>, with pointers to
-<code>radScanWl()</code> for building the whitelists your layout
-references.</p>
-<p>This guide does not evaluate code during rendering: the
-layout-validation steps shell out to the external <code>rad</code>
-binary, and the demux steps need a FASTQ that matches your custom
-structure. Copy the chunks into a live R session against your own
-reads.</p>
+<p>The whole point of <a href="https://github.com/indianewok/rad"><code>rad</code></a> is that it is <em>read-structure agnostic</em>: instead of hard-coding one chemistry, you hand it a small CSV that describes how your reads are laid out — primers, barcodes, UMIs, the cDNA — and it figures out the alignment and extraction from there. The <a href="demultiplexing-with-rad.html">demultiplexing guide</a> drove rad on its <strong>bundled</strong> layouts (<code>five_prime</code>, <code>three_prime</code>, <code>sctagger</code>, <code>visium_hd</code>, …). This guide is the other half: how to write your <em>own</em> layout for a wonky or custom format and run the same pipeline on it, all from R through SIRAP’s <code>rad*()</code> wrappers.</p>
+<p>As with the other rad guide, SIRAP does not reimplement rad — every wrapper here shells out to the same <code>rad</code> binary you would call from a terminal. The wrappers used below are <code>radList()</code>, <code>radPrep()</code>, <code>radModify()</code>, and <code>radDemux()</code>, with pointers to <code>radScanWl()</code> for building the whitelists your layout references.</p>
+<p>This guide does not evaluate code during rendering: the layout-validation steps shell out to the external <code>rad</code> binary, and the demux steps need a FASTQ that matches your custom structure. Copy the chunks into a live R session against your own reads.</p>
 <div id="when-you-need-a-custom-layout" class="section level2">
 <h2>When You Need a Custom Layout</h2>
-<p>Reach for a custom layout when none of the bundled keys describe your
-reads:</p>
+<p>Reach for a custom layout when none of the bundled keys describe your reads:</p>
 <ul>
-<li>a non-10x chemistry, or a 10x variant with an extra/odd
-element;</li>
-<li>targeted or amplicon libraries with custom primers flanking the
-insert;</li>
-<li>multi-round combinatorial barcodes (SPLiT-seq-like) beyond the
-bundled <code>splitseq</code> template;</li>
-<li>anything you would describe to a colleague as “it’s mostly 5’,
-but…”.</li>
+<li>a non-10x chemistry, or a 10x variant with an extra/odd element;</li>
+<li>targeted or amplicon libraries with custom primers flanking the insert;</li>
+<li>multi-round combinatorial barcodes (SPLiT-seq-like) beyond the bundled <code>splitseq</code> template;</li>
+<li>anything you would describe to a colleague as “it’s mostly 5’, but…”.</li>
 </ul>
-<p>If your reads are <em>close</em> to a bundled layout, don’t start
-from a blank file — copy the closest bundled CSV and edit it (see <a href="#start-from-a-bundled-template">Start From a Bundled
-Template</a>).</p>
+<p>If your reads are <em>close</em> to a bundled layout, don’t start from a blank file — copy the closest bundled CSV and edit it (see <a href="#start-from-a-bundled-template">Start From a Bundled Template</a>).</p>
 </div>
 <div id="setup" class="section level2">
 <h2>Setup</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(SIRAP)</span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co"># Everything in this guide writes under one scratch directory.</span></span>
-<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>runDir <span class="ot">&lt;-</span> <span class="fu">file.path</span>(<span class="fu">tempdir</span>(), <span class="st">&quot;rad_layout&quot;</span>)</span>
-<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="fu">dir.create</span>(runDir, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a></span>
-<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>nproc <span class="ot">&lt;-</span> <span class="dv">4</span></span>
-<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a></span>
-<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co"># Confirm R can see the rad binary (resolution order: explicit `rad =`,</span></span>
-<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="co"># options(SIRAP.rad_path=), $SIRAP_RAD_PATH, then `rad` on your PATH).</span></span>
-<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="fu">radPath</span>()</span>
-<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a><span class="co">#&gt; &quot;/Users/you/code/rad/build/rad&quot;</span></span></code></pre></div>
-<p>If rad is not on your <code>PATH</code>, point SIRAP at it once per
-session — see the <a href="demultiplexing-with-rad.html#point-r-at-the-rad-binary">demultiplexing
-guide</a> for the full resolution rules and <code>updateRad()</code> for
-building rad from source.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SIRAP)</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="co"># Everything in this guide writes under one scratch directory.</span></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">runDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;rad_layout&quot;</span>)</a>
+<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="kw">dir.create</span>(runDir, <span class="dt">recursive =</span> <span class="ot">TRUE</span>, <span class="dt">showWarnings =</span> <span class="ot">FALSE</span>)</a>
+<a class="sourceLine" id="cb1-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb1-7" data-line-number="7">nproc &lt;-<span class="st"> </span><span class="dv">4</span></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb1-9" data-line-number="9"><span class="co"># Confirm R can see the rad binary (resolution order: explicit `rad =`,</span></a>
+<a class="sourceLine" id="cb1-10" data-line-number="10"><span class="co"># options(SIRAP.rad_path=), $SIRAP_RAD_PATH, then `rad` on your PATH).</span></a>
+<a class="sourceLine" id="cb1-11" data-line-number="11"><span class="kw">radPath</span>()</a>
+<a class="sourceLine" id="cb1-12" data-line-number="12"><span class="co">#&gt; &quot;/Users/you/code/rad/build/rad&quot;</span></a></code></pre></div>
+<p>If rad is not on your <code>PATH</code>, point SIRAP at it once per session — see the <a href="demultiplexing-with-rad.html#point-r-at-the-rad-binary">demultiplexing guide</a> for the full resolution rules and <code>updateRad()</code> for building rad from source.</p>
 </div>
 <div id="the-anatomy-of-a-read-layout" class="section level2">
 <h2>The Anatomy of a Read Layout</h2>
-<p>rad models a read as an <strong>ordered list of elements</strong>.
-Two kinds matter:</p>
+<p>rad models a read as an <strong>ordered list of elements</strong>. Two kinds matter:</p>
 <ul>
-<li><strong>static</strong> elements are fixed sequences rad
-<em>aligns</em> — adapters, primers, the TSO, a poly-T stretch. They are
-the anchors.</li>
-<li><strong>variable</strong> elements are the slots rad
-<em>extracts</em> — the cell barcode, the UMI, and the cDNA
-<code>read</code> itself. rad reads them out of the windows between the
-static anchors.</li>
+<li><strong>static</strong> elements are fixed sequences rad <em>aligns</em> — adapters, primers, the TSO, a poly-T stretch. They are the anchors.</li>
+<li><strong>variable</strong> elements are the slots rad <em>extracts</em> — the cell barcode, the UMI, and the cDNA <code>read</code> itself. rad reads them out of the windows between the static anchors.</li>
 </ul>
-<p>At <code>demux</code> time rad aligns the static anchors, then pulls
-each variable element from its position relative to those anchors, and
-(for barcode elements) corrects it against a whitelist. So a good layout
-is really a good description of “what fixed sequence sits where, and
-what variable thing comes between.”</p>
+<p>At <code>demux</code> time rad aligns the static anchors, then pulls each variable element from its position relative to those anchors, and (for barcode elements) corrects it against a whitelist. So a good layout is really a good description of “what fixed sequence sits where, and what variable thing comes between.”</p>
 </div>
 <div id="the-layout-csv-schema" class="section level2">
 <h2>The Layout CSV Schema</h2>
-<p>A layout is a CSV with one row per element. The columns rad
-expects:</p>
+<p>A layout is a CSV with one row per element. The columns rad expects:</p>
 <table>
 <colgroup>
-<col width="50%" />
-<col width="50%" />
+<col width="50%"></col>
+<col width="50%"></col>
 </colgroup>
 <thead>
 <tr class="header">
@@ -437,19 +384,15 @@ expects:</p>
 <tbody>
 <tr class="odd">
 <td><code>id</code></td>
-<td>A unique name for the element (<code>forw_primer</code>,
-<code>barcode</code>, <code>umi</code>, <code>read</code>, …).</td>
+<td>A unique name for the element (<code>forw_primer</code>, <code>barcode</code>, <code>umi</code>, <code>read</code>, …).</td>
 </tr>
 <tr class="even">
 <td><code>seq</code></td>
-<td>The literal sequence — required for <strong>static</strong>
-elements, left blank for variable ones.</td>
+<td>The literal sequence — required for <strong>static</strong> elements, left blank for variable ones.</td>
 </tr>
 <tr class="odd">
 <td><code>expected_length</code></td>
-<td>Length in bases — required for <strong>variable</strong> elements
-(barcode 16, UMI 10/12), blank for static (length comes from
-<code>seq</code>).</td>
+<td>Length in bases — required for <strong>variable</strong> elements (barcode 16, UMI 10/12), blank for static (length comes from <code>seq</code>).</td>
 </tr>
 <tr class="even">
 <td><code>type</code></td>
@@ -457,231 +400,140 @@ elements, left blank for variable ones.</td>
 </tr>
 <tr class="odd">
 <td><code>class</code></td>
-<td>What the element <em>is</em>: <code>barcode</code>,
-<code>umi</code>, <code>read</code>, and adapter/primer-style anchors.
-The <code>barcode</code>/<code>umi</code>/<code>read</code> classes
-drive extraction.</td>
+<td>What the element <em>is</em>: <code>barcode</code>, <code>umi</code>, <code>read</code>, and adapter/primer-style anchors. The <code>barcode</code>/<code>umi</code>/<code>read</code> classes drive extraction.</td>
 </tr>
 <tr class="even">
 <td><code>whitelist</code></td>
-<td>For a <code>barcode</code> element, the kit key (or path) whose
-whitelist corrects it — e.g. <code>10x_5v1</code>. Blank for non-barcode
-rows.</td>
+<td>For a <code>barcode</code> element, the kit key (or path) whose whitelist corrects it — e.g. <code>10x_5v1</code>. Blank for non-barcode rows.</td>
 </tr>
 <tr class="odd">
 <td><code>direction</code></td>
-<td><em>Optional.</em> <code>forward_only</code> /
-<code>reverse_only</code>; omit it to get forward + an auto-generated
-reverse complement (see <a href="#orientation-and-the-direction-column">Orientation</a>).</td>
+<td><em>Optional.</em> <code>forward_only</code> / <code>reverse_only</code>; omit it to get forward + an auto-generated reverse complement (see <a href="#orientation-and-the-direction-column">Orientation</a>).</td>
 </tr>
 </tbody>
 </table>
-<p>A minimal 5’-style layout, written as a data frame and saved to
-disk:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>layout <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  <span class="at">id              =</span> <span class="fu">c</span>(<span class="st">&quot;forw_primer&quot;</span>,            <span class="st">&quot;barcode&quot;</span>,  <span class="st">&quot;umi&quot;</span>,      <span class="st">&quot;read&quot;</span>, <span class="st">&quot;rev_primer&quot;</span>),</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  <span class="at">seq             =</span> <span class="fu">c</span>(<span class="st">&quot;CTACACGACGCTCTTCCGATCT&quot;</span>, <span class="st">&quot;&quot;</span>,         <span class="st">&quot;&quot;</span>,         <span class="st">&quot;&quot;</span>,     <span class="st">&quot;GTACTCTGCGTTGATACCACTGCTT&quot;</span>),</span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="at">expected_length =</span> <span class="fu">c</span>(<span class="st">&quot;&quot;</span>,                       <span class="st">&quot;16&quot;</span>,       <span class="st">&quot;10&quot;</span>,       <span class="st">&quot;&quot;</span>,     <span class="st">&quot;&quot;</span>),</span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="at">type            =</span> <span class="fu">c</span>(<span class="st">&quot;static&quot;</span>,                 <span class="st">&quot;variable&quot;</span>, <span class="st">&quot;variable&quot;</span>, <span class="st">&quot;variable&quot;</span>, <span class="st">&quot;static&quot;</span>),</span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  <span class="at">class           =</span> <span class="fu">c</span>(<span class="st">&quot;&quot;</span>,                       <span class="st">&quot;barcode&quot;</span>,  <span class="st">&quot;umi&quot;</span>,      <span class="st">&quot;read&quot;</span>, <span class="st">&quot;&quot;</span>),</span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  <span class="at">whitelist       =</span> <span class="fu">c</span>(<span class="st">&quot;&quot;</span>,                       <span class="st">&quot;10x_5v1&quot;</span>,  <span class="st">&quot;&quot;</span>,         <span class="st">&quot;&quot;</span>,     <span class="st">&quot;&quot;</span>),</span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>)</span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a></span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>layoutPath <span class="ot">&lt;-</span> <span class="fu">file.path</span>(runDir, <span class="st">&quot;my_layout.csv&quot;</span>)</span>
-<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="fu">write.csv</span>(layout, layoutPath, <span class="at">row.names =</span> <span class="cn">FALSE</span>, <span class="at">quote =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
-<p>That describes: forward primer → 16 bp barcode (corrected against the
-<code>10x_5v1</code> whitelist) → 10 bp UMI → the cDNA read → reverse
-primer. rad’s own <a href="https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md">layouts-and-whitelists
-guide</a> documents the schema and has more worked examples.</p>
+<p>A minimal 5’-style layout, written as a data frame and saved to disk:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">layout &lt;-<span class="st"> </span><span class="kw">data.frame</span>(</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">  <span class="dt">id              =</span> <span class="kw">c</span>(<span class="st">&quot;forw_primer&quot;</span>,            <span class="st">&quot;barcode&quot;</span>,  <span class="st">&quot;umi&quot;</span>,      <span class="st">&quot;read&quot;</span>, <span class="st">&quot;rev_primer&quot;</span>),</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">  <span class="dt">seq             =</span> <span class="kw">c</span>(<span class="st">&quot;CTACACGACGCTCTTCCGATCT&quot;</span>, <span class="st">&quot;&quot;</span>,         <span class="st">&quot;&quot;</span>,         <span class="st">&quot;&quot;</span>,     <span class="st">&quot;GTACTCTGCGTTGATACCACTGCTT&quot;</span>),</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">  <span class="dt">expected_length =</span> <span class="kw">c</span>(<span class="st">&quot;&quot;</span>,                       <span class="st">&quot;16&quot;</span>,       <span class="st">&quot;10&quot;</span>,       <span class="st">&quot;&quot;</span>,     <span class="st">&quot;&quot;</span>),</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">  <span class="dt">type            =</span> <span class="kw">c</span>(<span class="st">&quot;static&quot;</span>,                 <span class="st">&quot;variable&quot;</span>, <span class="st">&quot;variable&quot;</span>, <span class="st">&quot;variable&quot;</span>, <span class="st">&quot;static&quot;</span>),</a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">  <span class="dt">class           =</span> <span class="kw">c</span>(<span class="st">&quot;&quot;</span>,                       <span class="st">&quot;barcode&quot;</span>,  <span class="st">&quot;umi&quot;</span>,      <span class="st">&quot;read&quot;</span>, <span class="st">&quot;&quot;</span>),</a>
+<a class="sourceLine" id="cb2-7" data-line-number="7">  <span class="dt">whitelist       =</span> <span class="kw">c</span>(<span class="st">&quot;&quot;</span>,                       <span class="st">&quot;10x_5v1&quot;</span>,  <span class="st">&quot;&quot;</span>,         <span class="st">&quot;&quot;</span>,     <span class="st">&quot;&quot;</span>),</a>
+<a class="sourceLine" id="cb2-8" data-line-number="8">  <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span></a>
+<a class="sourceLine" id="cb2-9" data-line-number="9">)</a>
+<a class="sourceLine" id="cb2-10" data-line-number="10"></a>
+<a class="sourceLine" id="cb2-11" data-line-number="11">layoutPath &lt;-<span class="st"> </span><span class="kw">file.path</span>(runDir, <span class="st">&quot;my_layout.csv&quot;</span>)</a>
+<a class="sourceLine" id="cb2-12" data-line-number="12"><span class="kw">write.csv</span>(layout, layoutPath, <span class="dt">row.names =</span> <span class="ot">FALSE</span>, <span class="dt">quote =</span> <span class="ot">FALSE</span>)</a></code></pre></div>
+<p>That describes: forward primer → 16 bp barcode (corrected against the <code>10x_5v1</code> whitelist) → 10 bp UMI → the cDNA read → reverse primer. rad’s own <a href="https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md">layouts-and-whitelists guide</a> documents the schema and has more worked examples.</p>
 </div>
 <div id="start-from-a-bundled-template" class="section level2">
 <h2>Start From a Bundled Template</h2>
-<p>Hand-writing a layout from scratch is error-prone. The faster path is
-to copy a bundled layout that is close to yours and edit it.
-<code>radList()</code> prints each registered layout key <em>and the CSV
-it resolves to</em> — start there:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">radList</span>(<span class="at">layouts =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>stdout</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; [layouts]</span></span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; five_prime          .../resources/read_layout/five_prime_read_layout.csv</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; three_prime         .../resources/read_layout/three_prime_read_layout.csv</span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; sctagger            .../resources/read_layout/sctagger_sim_read_layout.csv</span></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; splitseq            .../resources/read_layout/splitseq_read_layout.csv</span></span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; visium              .../resources/read_layout/visium_three_prime_read_layout.csv</span></span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; visium_hd           .../resources/read_layout/visium_hd_read_layout.csv</span></span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; nanopore_rapid_bc   .../resources/read_layout/nanopore_bulk_rapid_bc_read_layout.csv</span></span></code></pre></div>
-<p>Grab the path for the closest key, copy it into your scratch dir, and
-edit the copy — change a barcode length, swap a primer, add an
-element:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Pull the resolved path for `five_prime` out of the listing and copy it.</span></span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>listing  <span class="ot">&lt;-</span> <span class="fu">radList</span>(<span class="at">layouts =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>stdout</span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>tmplPath <span class="ot">&lt;-</span> <span class="fu">sub</span>(<span class="st">&quot;.*</span><span class="sc">\\</span><span class="st">s&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="fu">grep</span>(<span class="st">&quot;five_prime&quot;</span>, <span class="fu">strsplit</span>(listing, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)[[<span class="dv">1</span>]],</span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>                                  <span class="at">value =</span> <span class="cn">TRUE</span>)[<span class="dv">1</span>])</span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a></span>
-<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>myLayout <span class="ot">&lt;-</span> <span class="fu">file.path</span>(runDir, <span class="st">&quot;five_prime_custom.csv&quot;</span>)</span>
-<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="fu">file.copy</span>(tmplPath, myLayout, <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a></span>
-<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co"># ...edit myLayout in your editor or with data.table::fread()/fwrite()...</span></span></code></pre></div>
+<p>Hand-writing a layout from scratch is error-prone. The faster path is to copy a bundled layout that is close to yours and edit it. <code>radList()</code> prints each registered layout key <em>and the CSV it resolves to</em> — start there:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">radList</span>(<span class="dt">layouts =</span> <span class="ot">TRUE</span>)<span class="op">$</span>stdout</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="co">#&gt; [layouts]</span></a>
+<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="co">#&gt; five_prime          .../resources/read_layout/five_prime_read_layout.csv</span></a>
+<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="co">#&gt; three_prime         .../resources/read_layout/three_prime_read_layout.csv</span></a>
+<a class="sourceLine" id="cb3-5" data-line-number="5"><span class="co">#&gt; sctagger            .../resources/read_layout/sctagger_sim_read_layout.csv</span></a>
+<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="co">#&gt; splitseq            .../resources/read_layout/splitseq_read_layout.csv</span></a>
+<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="co">#&gt; visium              .../resources/read_layout/visium_three_prime_read_layout.csv</span></a>
+<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="co">#&gt; visium_hd           .../resources/read_layout/visium_hd_read_layout.csv</span></a>
+<a class="sourceLine" id="cb3-9" data-line-number="9"><span class="co">#&gt; nanopore_rapid_bc   .../resources/read_layout/nanopore_bulk_rapid_bc_read_layout.csv</span></a></code></pre></div>
+<p>Grab the path for the closest key, copy it into your scratch dir, and edit the copy — change a barcode length, swap a primer, add an element:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="co"># Pull the resolved path for `five_prime` out of the listing and copy it.</span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">listing  &lt;-<span class="st"> </span><span class="kw">radList</span>(<span class="dt">layouts =</span> <span class="ot">TRUE</span>)<span class="op">$</span>stdout</a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">tmplPath &lt;-<span class="st"> </span><span class="kw">sub</span>(<span class="st">&quot;.*</span><span class="ch">\\</span><span class="st">s&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="kw">grep</span>(<span class="st">&quot;five_prime&quot;</span>, <span class="kw">strsplit</span>(listing, <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>)[[<span class="dv">1</span>]],</a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">                                  <span class="dt">value =</span> <span class="ot">TRUE</span>)[<span class="dv">1</span>])</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb4-6" data-line-number="6">myLayout &lt;-<span class="st"> </span><span class="kw">file.path</span>(runDir, <span class="st">&quot;five_prime_custom.csv&quot;</span>)</a>
+<a class="sourceLine" id="cb4-7" data-line-number="7"><span class="kw">file.copy</span>(tmplPath, myLayout, <span class="dt">overwrite =</span> <span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb4-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb4-9" data-line-number="9"><span class="co"># ...edit myLayout in your editor or with data.table::fread()/fwrite()...</span></a></code></pre></div>
 </div>
 <div id="validate-the-layout" class="section level2">
 <h2>Validate the Layout</h2>
-<p>Before touching any reads, have rad parse the CSV and show you how it
-interpreted each element. <code>radPrep(read_layout = TRUE)</code> does
-exactly this — it normalizes the layout, injects its internal start/stop
-sentinels, auto-generates reverse- complement elements, and prints the
-ordered structure. Nothing is written and no FASTQ is needed, so it is a
-fast syntax check:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">radPrep</span>(<span class="at">layout =</span> layoutPath, <span class="at">read_layout =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
-<p>Read the output back against your intent: are the elements in the
-right order, are the static sequences correct, and did the variable
-elements land with the lengths you expected? A malformed CSV (a missing
-column, a <code>variable</code> row with no
-<code>expected_length</code>) surfaces here, not three steps later
-inside demux.</p>
+<p>Before touching any reads, have rad parse the CSV and show you how it interpreted each element. <code>radPrep(read_layout = TRUE)</code> does exactly this — it normalizes the layout, injects its internal start/stop sentinels, auto-generates reverse- complement elements, and prints the ordered structure. Nothing is written and no FASTQ is needed, so it is a fast syntax check:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">radPrep</span>(<span class="dt">layout =</span> layoutPath, <span class="dt">read_layout =</span> <span class="ot">TRUE</span>)</a></code></pre></div>
+<p>Read the output back against your intent: are the elements in the right order, are the static sequences correct, and did the variable elements land with the lengths you expected? A malformed CSV (a missing column, a <code>variable</code> row with no <code>expected_length</code>) surfaces here, not three steps later inside demux.</p>
 </div>
 <div id="check-the-layout-against-real-reads" class="section level2">
 <h2>Check the Layout Against Real Reads</h2>
-<p><code>read_layout</code> only checks the <em>description</em>. To see
-how the layout actually lands on your data, add
-<code>position_map = TRUE</code>. rad samples reads, estimates where
-each element falls, and reports misalignment statistics. This mode needs
-a FASTQ and an output base path; rad writes
-<code>&lt;output&gt;_layout.csv</code> and
-<code>&lt;output&gt;_position_map.csv</code>, which <code>demux</code>
-reuses on later runs to the same prefix.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>myFastq <span class="ot">&lt;-</span> <span class="st">&quot;my_reads.fq.gz&quot;</span>  <span class="co"># reads with the structure your layout describes</span></span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a></span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="fu">radPrep</span>(</span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="at">layout       =</span> layoutPath,</span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  <span class="at">position_map =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>  <span class="at">fastq        =</span> myFastq,</span>
-<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>  <span class="at">output       =</span> <span class="fu">file.path</span>(runDir, <span class="st">&quot;my_prep&quot;</span>),</span>
-<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>  <span class="at">threads      =</span> nproc</span>
-<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>)</span></code></pre></div>
-<p>If the position map shows your barcode or UMI consistently landing a
-few bases off, that is the signal to adjust an
-<code>expected_length</code> or a primer <code>seq</code> and re-run —
-cheaper to fix here than after a full demux.</p>
+<p><code>read_layout</code> only checks the <em>description</em>. To see how the layout actually lands on your data, add <code>position_map = TRUE</code>. rad samples reads, estimates where each element falls, and reports misalignment statistics. This mode needs a FASTQ and an output base path; rad writes <code>&lt;output&gt;_layout.csv</code> and <code>&lt;output&gt;_position_map.csv</code>, which <code>demux</code> reuses on later runs to the same prefix.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">myFastq &lt;-<span class="st"> &quot;my_reads.fq.gz&quot;</span>  <span class="co"># reads with the structure your layout describes</span></a>
+<a class="sourceLine" id="cb6-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb6-3" data-line-number="3"><span class="kw">radPrep</span>(</a>
+<a class="sourceLine" id="cb6-4" data-line-number="4">  <span class="dt">layout       =</span> layoutPath,</a>
+<a class="sourceLine" id="cb6-5" data-line-number="5">  <span class="dt">position_map =</span> <span class="ot">TRUE</span>,</a>
+<a class="sourceLine" id="cb6-6" data-line-number="6">  <span class="dt">fastq        =</span> myFastq,</a>
+<a class="sourceLine" id="cb6-7" data-line-number="7">  <span class="dt">output       =</span> <span class="kw">file.path</span>(runDir, <span class="st">&quot;my_prep&quot;</span>),</a>
+<a class="sourceLine" id="cb6-8" data-line-number="8">  <span class="dt">threads      =</span> nproc</a>
+<a class="sourceLine" id="cb6-9" data-line-number="9">)</a></code></pre></div>
+<p>If the position map shows your barcode or UMI consistently landing a few bases off, that is the signal to adjust an <code>expected_length</code> or a primer <code>seq</code> and re-run — cheaper to fix here than after a full demux.</p>
 </div>
 <div id="orientation-and-the-direction-column" class="section level2">
 <h2>Orientation and the <code>direction</code> Column</h2>
-<p>Long reads arrive in both orientations. By default — when you omit
-the <code>direction</code> column entirely — rad treats every row as
-forward and <strong>auto- generates the reverse-complement</strong>
-counterpart for you, so a single forward description covers reads
-sequenced either way. That is what the example above relies on.</p>
-<p>Add a <code>direction</code> column only when an element is
-one-sided. Mark specific rows <code>forward_only</code> or
-<code>reverse_only</code>:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>oneSided <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="at">id              =</span> <span class="fu">c</span>(<span class="st">&quot;adapter_rc&quot;</span>,            <span class="st">&quot;barcode&quot;</span>),</span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="at">seq             =</span> <span class="fu">c</span>(<span class="st">&quot;AGATCGGAAGAGCGTCGTGTAG&quot;</span>, <span class="st">&quot;&quot;</span>),</span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="at">expected_length =</span> <span class="fu">c</span>(<span class="st">&quot;&quot;</span>,                       <span class="st">&quot;16&quot;</span>),</span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>  <span class="at">type            =</span> <span class="fu">c</span>(<span class="st">&quot;static&quot;</span>,                 <span class="st">&quot;variable&quot;</span>),</span>
-<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>  <span class="at">class           =</span> <span class="fu">c</span>(<span class="st">&quot;adapter&quot;</span>,                <span class="st">&quot;barcode&quot;</span>),</span>
-<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>  <span class="at">whitelist       =</span> <span class="fu">c</span>(<span class="st">&quot;&quot;</span>,                       <span class="st">&quot;10x_5v1&quot;</span>),</span>
-<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>  <span class="at">direction       =</span> <span class="fu">c</span>(<span class="st">&quot;reverse_only&quot;</span>,           <span class="st">&quot;forward_only&quot;</span>),</span>
-<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>  <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span></span>
-<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>)</span></code></pre></div>
-<p>Use this when a primer or adapter genuinely only appears on one
-strand; otherwise leave <code>direction</code> out and let rad build the
-reverse complements.</p>
+<p>Long reads arrive in both orientations. By default — when you omit the <code>direction</code> column entirely — rad treats every row as forward and <strong>auto- generates the reverse-complement</strong> counterpart for you, so a single forward description covers reads sequenced either way. That is what the example above relies on.</p>
+<p>Add a <code>direction</code> column only when an element is one-sided. Mark specific rows <code>forward_only</code> or <code>reverse_only</code>:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">oneSided &lt;-<span class="st"> </span><span class="kw">data.frame</span>(</a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">  <span class="dt">id              =</span> <span class="kw">c</span>(<span class="st">&quot;adapter_rc&quot;</span>,            <span class="st">&quot;barcode&quot;</span>),</a>
+<a class="sourceLine" id="cb7-3" data-line-number="3">  <span class="dt">seq             =</span> <span class="kw">c</span>(<span class="st">&quot;AGATCGGAAGAGCGTCGTGTAG&quot;</span>, <span class="st">&quot;&quot;</span>),</a>
+<a class="sourceLine" id="cb7-4" data-line-number="4">  <span class="dt">expected_length =</span> <span class="kw">c</span>(<span class="st">&quot;&quot;</span>,                       <span class="st">&quot;16&quot;</span>),</a>
+<a class="sourceLine" id="cb7-5" data-line-number="5">  <span class="dt">type            =</span> <span class="kw">c</span>(<span class="st">&quot;static&quot;</span>,                 <span class="st">&quot;variable&quot;</span>),</a>
+<a class="sourceLine" id="cb7-6" data-line-number="6">  <span class="dt">class           =</span> <span class="kw">c</span>(<span class="st">&quot;adapter&quot;</span>,                <span class="st">&quot;barcode&quot;</span>),</a>
+<a class="sourceLine" id="cb7-7" data-line-number="7">  <span class="dt">whitelist       =</span> <span class="kw">c</span>(<span class="st">&quot;&quot;</span>,                       <span class="st">&quot;10x_5v1&quot;</span>),</a>
+<a class="sourceLine" id="cb7-8" data-line-number="8">  <span class="dt">direction       =</span> <span class="kw">c</span>(<span class="st">&quot;reverse_only&quot;</span>,           <span class="st">&quot;forward_only&quot;</span>),</a>
+<a class="sourceLine" id="cb7-9" data-line-number="9">  <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span></a>
+<a class="sourceLine" id="cb7-10" data-line-number="10">)</a></code></pre></div>
+<p>Use this when a primer or adapter genuinely only appears on one strand; otherwise leave <code>direction</code> out and let rad build the reverse complements.</p>
 </div>
 <div id="whitelists-for-barcode-elements" class="section level2">
 <h2>Whitelists for Barcode Elements</h2>
-<p>The <code>whitelist</code> column on a <code>barcode</code> row tells
-rad which barcode set to correct against. You have two options:</p>
+<p>The <code>whitelist</code> column on a <code>barcode</code> row tells rad which barcode set to correct against. You have two options:</p>
 <ol style="list-style-type: decimal">
-<li><p><strong>A bundled kit key.</strong>
-<code>radList(whitelists = TRUE)</code> prints the registered kits
-(<code>10x_3v3</code>, <code>10x_5v1</code>,
-<code>10x_Vis_V1</code>..<code>V5</code>, <code>splitseq_bc1/2</code>,
-<code>visium_hd_bc1/2</code>, …). Put the key in the
-<code>whitelist</code> column. Note the underscores — rad expects
-<code>10x_3v3</code>, not <code>10xv3</code>.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">radList</span>(<span class="at">whitelists =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>stdout</span></code></pre></div></li>
-<li><p><strong>Your own whitelist.</strong> If your barcodes aren’t a
-known kit, build one from the reads with <code>radScanWl()</code> — it
-scans for the barcodes sitting downstream of an adapter/primer and
-writes a <code>.csv</code>/<code>.txt</code> whitelist, with a split
-BC1+BC2 mode for paired barcodes. See the <a href="demultiplexing-with-rad.html#discover-barcodes-de-novo-optional">demultiplexing
-guide</a> for a worked <code>radScanWl()</code> run. Then point the
-layout’s <code>whitelist</code> column (or
-<code>radDemux(custom_whitelist = ...)</code>) at the file you
-generated.</p></li>
+<li><p><strong>A bundled kit key.</strong> <code>radList(whitelists = TRUE)</code> prints the registered kits (<code>10x_3v3</code>, <code>10x_5v1</code>, <code>10x_Vis_V1</code>..<code>V5</code>, <code>splitseq_bc1/2</code>, <code>visium_hd_bc1/2</code>, …). Put the key in the <code>whitelist</code> column. Note the underscores — rad expects <code>10x_3v3</code>, not <code>10xv3</code>.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="kw">radList</span>(<span class="dt">whitelists =</span> <span class="ot">TRUE</span>)<span class="op">$</span>stdout</a></code></pre></div></li>
+<li><p><strong>Your own whitelist.</strong> If your barcodes aren’t a known kit, build one from the reads with <code>radScanWl()</code> — it scans for the barcodes sitting downstream of an adapter/primer and writes a <code>.csv</code>/<code>.txt</code> whitelist, with a split BC1+BC2 mode for paired barcodes. See the <a href="demultiplexing-with-rad.html#discover-barcodes-de-novo-optional">demultiplexing guide</a> for a worked <code>radScanWl()</code> run. Then point the layout’s <code>whitelist</code> column (or <code>radDemux(custom_whitelist = ...)</code>) at the file you generated.</p></li>
 </ol>
 </div>
 <div id="register-the-layout-as-a-reusable-key-optional" class="section level2">
 <h2>Register the Layout as a Reusable Key (Optional)</h2>
-<p>Passing the CSV path around works everywhere, but if you reuse a
-layout a lot you can register it under a short key with
-<code>radModify()</code>, so <code>radList()</code> and the
-<code>layout =</code> argument accept the name:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">radModify</span>(<span class="at">layout_key =</span> <span class="st">&quot;my_kit&quot;</span>, <span class="at">add =</span> layoutPath)</span>
-<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">radList</span>(<span class="at">layouts =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>stdout   <span class="co"># `my_kit` now appears in the listing</span></span></code></pre></div>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">radModify</span>(<span class="at">layout_key =</span> <span class="st">&quot;my_kit&quot;</span>, <span class="at">remove =</span> <span class="cn">TRUE</span>)  <span class="co"># unregister</span></span></code></pre></div>
-<p><strong>Caveat (current build):</strong> rad’s registry edits are
-<em>process-local</em> — a key added in one <code>rad</code> invocation
-does not persist to the next, separate one. For scripts and reproducible
-pipelines, prefer passing the layout <strong>CSV path</strong> directly
-to <code>layout =</code> (as every chunk below does); treat
-<code>radModify()</code> as an interactive convenience.</p>
+<p>Passing the CSV path around works everywhere, but if you reuse a layout a lot you can register it under a short key with <code>radModify()</code>, so <code>radList()</code> and the <code>layout =</code> argument accept the name:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="kw">radModify</span>(<span class="dt">layout_key =</span> <span class="st">&quot;my_kit&quot;</span>, <span class="dt">add =</span> layoutPath)</a>
+<a class="sourceLine" id="cb9-2" data-line-number="2"><span class="kw">radList</span>(<span class="dt">layouts =</span> <span class="ot">TRUE</span>)<span class="op">$</span>stdout   <span class="co"># `my_kit` now appears in the listing</span></a></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="kw">radModify</span>(<span class="dt">layout_key =</span> <span class="st">&quot;my_kit&quot;</span>, <span class="dt">remove =</span> <span class="ot">TRUE</span>)  <span class="co"># unregister</span></a></code></pre></div>
+<p><strong>Caveat (current build):</strong> rad’s registry edits are <em>process-local</em> — a key added in one <code>rad</code> invocation does not persist to the next, separate one. For scripts and reproducible pipelines, prefer passing the layout <strong>CSV path</strong> directly to <code>layout =</code> (as every chunk below does); treat <code>radModify()</code> as an interactive convenience.</p>
 </div>
 <div id="demultiplex-with-your-layout" class="section level2">
 <h2>Demultiplex With Your Layout</h2>
-<p>Once the layout validates, it is a drop-in for the
-<code>layout =</code> argument of every rad wrapper — pass your CSV path
-exactly where the demux guide passed a bundled key. The barcode element
-already names its whitelist, so a minimal run needs only the layout, a
-FASTQ, an output directory, and a prefix:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">radDemux</span>(</span>
-<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  <span class="at">layout  =</span> layoutPath,</span>
-<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="at">fastq   =</span> myFastq,</span>
-<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>  <span class="at">out_dir =</span> runDir,</span>
-<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>  <span class="at">output  =</span> <span class="st">&quot;custom&quot;</span>,</span>
-<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>  <span class="at">threads =</span> nproc</span>
-<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>)</span></code></pre></div>
-<p>This writes <code>custom.fq.gz</code> (corrected,
-<code>CB:Z</code>/<code>UB:Z</code>-tagged reads) plus the whitelist
-summaries under <code>runDir</code>. From here everything in the <a href="demultiplexing-with-rad.html#demultiplex">demultiplexing guide</a>
-applies unchanged — <code>bc_correction_mode</code>,
-<code>joint_bc_mode = &quot;strict&quot;</code> for paired barcodes,
-<code>custom_whitelist =</code>, <code>write_dbg = TRUE</code>, and the
-<code>radReformat()</code> / <code>radRun()</code> steps all take your
-layout the same way. To chain prep → demux → reformat in one call:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">radRun</span>(</span>
-<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="at">layout  =</span> layoutPath,</span>
-<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="at">fastq   =</span> myFastq,</span>
-<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>  <span class="at">out_dir =</span> runDir,</span>
-<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>  <span class="at">output  =</span> <span class="st">&quot;custom&quot;</span>,</span>
-<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>  <span class="at">threads =</span> nproc</span>
-<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>)</span></code></pre></div>
+<p>Once the layout validates, it is a drop-in for the <code>layout =</code> argument of every rad wrapper — pass your CSV path exactly where the demux guide passed a bundled key. The barcode element already names its whitelist, so a minimal run needs only the layout, a FASTQ, an output directory, and a prefix:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="kw">radDemux</span>(</a>
+<a class="sourceLine" id="cb11-2" data-line-number="2">  <span class="dt">layout  =</span> layoutPath,</a>
+<a class="sourceLine" id="cb11-3" data-line-number="3">  <span class="dt">fastq   =</span> myFastq,</a>
+<a class="sourceLine" id="cb11-4" data-line-number="4">  <span class="dt">out_dir =</span> runDir,</a>
+<a class="sourceLine" id="cb11-5" data-line-number="5">  <span class="dt">output  =</span> <span class="st">&quot;custom&quot;</span>,</a>
+<a class="sourceLine" id="cb11-6" data-line-number="6">  <span class="dt">threads =</span> nproc</a>
+<a class="sourceLine" id="cb11-7" data-line-number="7">)</a></code></pre></div>
+<p>This writes <code>custom.fq.gz</code> (corrected, <code>CB:Z</code>/<code>UB:Z</code>-tagged reads) plus the whitelist summaries under <code>runDir</code>. From here everything in the <a href="demultiplexing-with-rad.html#demultiplex">demultiplexing guide</a> applies unchanged — <code>bc_correction_mode</code>, <code>joint_bc_mode = &quot;strict&quot;</code> for paired barcodes, <code>custom_whitelist =</code>, <code>write_dbg = TRUE</code>, and the <code>radReformat()</code> / <code>radRun()</code> steps all take your layout the same way. To chain prep → demux → reformat in one call:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="kw">radRun</span>(</a>
+<a class="sourceLine" id="cb12-2" data-line-number="2">  <span class="dt">layout  =</span> layoutPath,</a>
+<a class="sourceLine" id="cb12-3" data-line-number="3">  <span class="dt">fastq   =</span> myFastq,</a>
+<a class="sourceLine" id="cb12-4" data-line-number="4">  <span class="dt">out_dir =</span> runDir,</a>
+<a class="sourceLine" id="cb12-5" data-line-number="5">  <span class="dt">output  =</span> <span class="st">&quot;custom&quot;</span>,</a>
+<a class="sourceLine" id="cb12-6" data-line-number="6">  <span class="dt">threads =</span> nproc</a>
+<a class="sourceLine" id="cb12-7" data-line-number="7">)</a></code></pre></div>
 </div>
 <div id="seqspec-yaml-newer-rad-builds" class="section level2">
 <h2>seqspec YAML (Newer rad Builds)</h2>
-<p>Recent rad builds also accept a <a href="https://github.com/pachterlab/seqspec">Pachter-lab seqspec</a>
-YAML in <code>prep</code>/<code>demux</code> in place of the layout CSV
-— hand the <code>.yaml</code> path to <code>layout =</code> and the
-wrappers pass it straight through:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">radPrep</span>(<span class="at">layout =</span> <span class="st">&quot;my_assay.seqspec.yaml&quot;</span>, <span class="at">read_layout =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
-<p>This path is newer than the CSV schema; if you already maintain a
-seqspec for an assay it saves re-describing the structure. Confirm your
-<code>rad</code> is recent enough (<code>updateRad()</code>), and check
-rad’s docs for the current state of seqspec support.</p>
+<p>Recent rad builds also accept a <a href="https://github.com/pachterlab/seqspec">Pachter-lab seqspec</a> YAML in <code>prep</code>/<code>demux</code> in place of the layout CSV — hand the <code>.yaml</code> path to <code>layout =</code> and the wrappers pass it straight through:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="kw">radPrep</span>(<span class="dt">layout =</span> <span class="st">&quot;my_assay.seqspec.yaml&quot;</span>, <span class="dt">read_layout =</span> <span class="ot">TRUE</span>)</a></code></pre></div>
+<p>This path is newer than the CSV schema; if you already maintain a seqspec for an assay it saves re-describing the structure. Confirm your <code>rad</code> is recent enough (<code>updateRad()</code>), and check rad’s docs for the current state of seqspec support.</p>
 </div>
 <div id="where-to-next" class="section level2">
 <h2>Where to Next</h2>
 <ul>
-<li><a href="demultiplexing-with-rad.html">Demultiplexing Long Reads
-with RAD</a> — the full <code>prep → scan-wl → demux → reformat</code>
-pipeline on bundled layouts, including the Visium HD paired-barcode
-case.</li>
-<li><a href="visium-hd-processing.html">Visium HD processing</a> — pick
-up from RAD output: spatial barcodes through pRESTO/IgBLAST to spatial
-AIRR tables.</li>
-<li>rad’s own docs: <a href="https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md">layouts
-and whitelists</a>, <a href="https://github.com/indianewok/rad/blob/main/docs/cli-reference.md">CLI
-reference</a>, <a href="https://github.com/indianewok/rad/blob/main/docs/installation.md">installation</a>.</li>
+<li><a href="demultiplexing-with-rad.html">Demultiplexing Long Reads with RAD</a> — the full <code>prep → scan-wl → demux → reformat</code> pipeline on bundled layouts, including the Visium HD paired-barcode case.</li>
+<li><a href="visium-hd-processing.html">Visium HD processing</a> — pick up from RAD output: spatial barcodes through pRESTO/IgBLAST to spatial AIRR tables.</li>
+<li>rad’s own docs: <a href="https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md">layouts and whitelists</a>, <a href="https://github.com/indianewok/rad/blob/main/docs/cli-reference.md">CLI reference</a>, <a href="https://github.com/indianewok/rad/blob/main/docs/installation.md">installation</a>.</li>
 </ul>
 </div>
 

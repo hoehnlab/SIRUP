@@ -6,19 +6,19 @@
 \usage{
 spacedCloneTableFromWide(
   df,
-  barcode_col = colnames(df)[[1]],
-  x_col = "x",
-  y_col = "y",
-  clone_cols = NULL,
+  barcode = colnames(df)[[1]],
+  x = "x",
+  y = "y",
+  clone = NULL,
   clone_prefix = NULL
 )
 }
 \arguments{
 \item{df}{Wide table with barcode, coordinate, and clone count columns.}
 
-\item{barcode_col, x_col, y_col}{Column names.}
+\item{barcode, x, y}{Column names.}
 
-\item{clone_cols}{Optional clone columns. Defaults to all non-barcode and
+\item{clone}{Optional clone columns. Defaults to all non-barcode and
 non-coordinate columns.}
 
 \item{clone_prefix}{Optional prefix added to clone IDs.}

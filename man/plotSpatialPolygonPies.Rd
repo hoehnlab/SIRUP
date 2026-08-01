@@ -7,7 +7,7 @@
 plotSpatialPolygonPies(
   dominance,
   object,
-  fill_by = "clone_id",
+  fill = "clone_id",
   mode = c("side_by_side", "spatial_clipped"),
   top_n = 10,
   label_top_n = 0,
@@ -15,9 +15,9 @@ plotSpatialPolygonPies(
   other_color = "#D3D3D3",
   plot_other = TRUE,
   images = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
-  polygon_id = NULL,
+  image_scale = NULL,
+  swap_coords = NULL,
+  polygon_val = NULL,
   polygon_alpha = 0.2,
   image_alpha = 1,
   pie_alpha = 0.9,
@@ -32,14 +32,14 @@ plotSpatialPolygonPies(
 
 \item{object}{Seurat object with spatial images, or a SIRAP object.}
 
-\item{fill_by}{Column in \code{dominance$region_bcrs} summarized in each pie
+\item{fill}{Column in \code{dominance$region_receptors} summarized in each pie
 chart. When omitted, the clone column recorded by
 \code{spatialCloneDominance()} is used.}
 
 \item{mode}{Plot style. \code{side_by_side} shows ordinary pies beside a polygon
 map. \code{spatial_clipped} clips pies to polygon boundaries on the tissue.}
 
-\item{top_n}{Number of most frequent \code{fill_by} levels to identify within each
+\item{top_n}{Number of most frequent \code{fill} levels to identify within each
 polygon. The union of these polygon-level top levels is shown individually
 everywhere; remaining levels are grouped as \code{other_label}.}
 
@@ -58,10 +58,10 @@ everywhere; remaining levels are grouped as \code{other_label}.}
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. Defaults to \code{FALSE},
-which uses Seurat image coordinates natively.}
+axes before plotting or polygon membership checks. If \code{NULL}, the
+value must be supplied explicitly or by SIRAP object metadata.}
 
-\item{polygon_id}{Optional polygon ID value(s) to select from the dominance
+\item{polygon_val}{Optional polygon ID value(s) to select from the dominance
 result.}
 
 \item{polygon_alpha}{Fill opacity for polygons in the numbered map.}

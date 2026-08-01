@@ -6,8 +6,8 @@
 \usage{
 extractSpatialBarcodes(
   airr_df,
-  sequence_id_col = "sequence_id",
-  barcode_col = "barcode",
+  id = "sequence_id",
+  barcode = "spatial_barcode",
   regex,
   prefix = "",
   suffix = ""
@@ -16,9 +16,9 @@ extractSpatialBarcodes(
 \arguments{
 \item{airr_df}{AIRR-style data frame.}
 
-\item{sequence_id_col}{Column containing read or consensus identifiers.}
+\item{id}{Column containing read or consensus identifiers.}
 
-\item{barcode_col}{Name of the output barcode column.}
+\item{barcode}{Name of the output spatial barcode column.}
 
 \item{regex}{Regular expression used to extract the barcode. If the regex
 contains a capture group, the first capture group is used. Otherwise the

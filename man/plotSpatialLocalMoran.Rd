@@ -9,8 +9,8 @@ plotSpatialLocalMoran(
   local_moran,
   value_col = "z_i",
   images = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
+  image_scale = NULL,
+  swap_coords = NULL,
   colors = c("#2c7bb6", "#f7f7f7", "#d7191c"),
   midpoint = 0,
   point_size = 0.7,
@@ -33,8 +33,8 @@ plotSpatialLocalMoran(
 \item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. Defaults to \code{FALSE},
-which uses Seurat image coordinates natively.}
+axes before plotting or polygon membership checks. If \code{NULL}, the
+value must be supplied explicitly or by SIRAP object metadata.}
 
 \item{colors}{Three colors for low, midpoint, and high values.}
 

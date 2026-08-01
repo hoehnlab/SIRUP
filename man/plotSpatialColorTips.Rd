@@ -7,14 +7,14 @@
 plotSpatialColorTips(
   object,
   tip_data,
-  barcode_col = "barcode_8um",
-  color_col = "tip_color",
-  label_col = NULL,
+  barcode = "spatial_barcode_8um",
+  color = "tip_color",
+  label = NULL,
   legend_title = "Tip color",
   legend_colors = NULL,
   title = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
+  image_scale = NULL,
+  swap_coords = NULL,
   point_size = 1.6,
   point_alpha = 1,
   order_points = TRUE,
@@ -29,11 +29,11 @@ plotSpatialColorTips(
 
 \item{tip_data}{Data frame with spatial barcode and color columns.}
 
-\item{barcode_col}{Column in \code{tip_data} matching Seurat spot names.}
+\item{barcode}{Column in \code{tip_data} matching Seurat spot names.}
 
-\item{color_col}{Column containing colors.}
+\item{color}{Column containing colors.}
 
-\item{label_col}{Optional column containing legend labels for colors.}
+\item{label}{Optional column containing legend labels for colors.}
 
 \item{legend_title}{Title for the color legend.}
 
@@ -44,8 +44,8 @@ plotSpatialColorTips(
 \item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. Defaults to \code{FALSE},
-which uses Seurat image coordinates natively.}
+axes before plotting or polygon membership checks. If \code{NULL}, the
+value must be supplied explicitly or by SIRAP object metadata.}
 
 \item{point_size}{Size of plotted tips.}
 

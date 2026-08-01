@@ -7,12 +7,12 @@
 buildSpacedCloneTable(
   data,
   positions = NULL,
-  barcode_col = "barcode",
-  clone_col = "clone_id",
-  x_col = "x",
-  y_col = "y",
-  count_col = NULL,
-  position_barcode_col = "barcode",
+  barcode = "barcode",
+  clone = "clone_id",
+  x = "x",
+  y = "y",
+  count = NULL,
+  position_barcode = "barcode",
   clone_prefix = NULL,
   drop_missing_coords = TRUE
 )
@@ -23,15 +23,15 @@ buildSpacedCloneTable(
 \item{positions}{Optional spatial positions data frame. If supplied, it is
 joined to \code{data} by barcode.}
 
-\item{barcode_col, position_barcode_col}{Barcode columns in \code{data} and
+\item{barcode, position_barcode}{Barcode columns in \code{data} and
 \code{positions}.}
 
-\item{clone_col}{Clone identifier column in \code{data}.}
+\item{clone}{Clone identifier column in \code{data}.}
 
-\item{x_col, y_col}{Spatial coordinate columns. If \code{positions} is supplied,
+\item{x, y}{Spatial coordinate columns. If \code{positions} is supplied,
 these are read after the join.}
 
-\item{count_col}{Optional count column. When \code{NULL}, each row contributes 1.}
+\item{count}{Optional count column. When \code{NULL}, each row contributes 1.}
 
 \item{clone_prefix}{Optional prefix added to clone IDs, for example
 \code{"heavy_"} or \code{"light_kappa_"}.}

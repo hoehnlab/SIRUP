@@ -7,9 +7,9 @@
 plotReceptorsExpression(
   object,
   receptors = NULL,
-  group_col,
-  values = NULL,
-  barcode_col = NULL,
+  group,
+  group_val = NULL,
+  barcode = NULL,
   feature = NULL,
   gene = NULL,
   colors = NULL,
@@ -24,8 +24,8 @@ plotReceptorsExpression(
   order_points = TRUE,
   assay = NULL,
   layer = "counts",
-  image_scale = "hires",
-  swap_coords = FALSE,
+  image_scale = NULL,
+  swap_coords = NULL,
   images = NULL,
   image_alpha = 1,
   zoom = FALSE,
@@ -41,13 +41,13 @@ receptor data.}
 \item{receptors}{AIRR-style receptor table containing a spatial barcode and
 grouping column. May be omitted when \code{object} is a SIRAP object.}
 
-\item{group_col}{Column in \code{receptors} defining receptor groups, for example
+\item{group}{Column in \code{receptors} defining receptor groups, for example
 \code{"receptor_type"} with values \code{"BCR"} and \code{"TCR"}.}
 
-\item{values}{Optional group values to plot and their display order. Defaults
-to all non-missing values in \code{group_col}.}
+\item{group_val}{Optional group values to plot and their display order.
+Defaults to all non-missing values in \code{group}.}
 
-\item{barcode_col}{Column in \code{receptors} matching Seurat spot names. If
+\item{barcode}{Column in \code{receptors} matching Seurat spot names. If
 \code{NULL}, the SIRAP barcode field is used or a barcode-like column is guessed.}
 
 \item{feature}{Gene or feature plotted beneath receptor-positive spots.}
@@ -87,7 +87,7 @@ appears on top. Receptor groups are drawn in \code{values} order.}
 \item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}.}
 
 \item{receptor_legend_title}{Title for the receptor-group legend. Defaults
-to \code{group_col}.}
+to \code{group}.}
 
 \item{show_receptor_legend}{Show the receptor-group legend.}
 

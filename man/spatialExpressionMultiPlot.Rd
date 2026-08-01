@@ -14,8 +14,8 @@ spatialExpressionMultiPlot(
   colors = NULL,
   breadth_metric = c("n_expressing"),
   images = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
+  image_scale = NULL,
+  swap_coords = NULL,
   point_size = 0.6,
   point_alpha = 1,
   order_points = TRUE,
@@ -47,8 +47,8 @@ rare/high priority last.}
 \item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. Defaults to \code{FALSE},
-which uses Seurat image coordinates natively.}
+axes before plotting or polygon membership checks. If \code{NULL}, the
+value must be supplied explicitly or by SIRAP object metadata.}
 
 \item{point_size}{Size of plotted spots.}
 

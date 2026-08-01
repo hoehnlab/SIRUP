@@ -2,23 +2,14 @@
 % Please edit documentation in R/sirap_object.R
 \name{sirap-transform}
 \alias{sirap-transform}
-\alias{withReceptors}
 \alias{updateReceptors}
-\alias{withSpatial}
 \alias{updateSpatial}
-\alias{withAnalysis}
 \alias{updateAnalysis}
-\title{Apply functions to data stored in a SIRAP object}
+\title{Update data stored in a SIRAP object}
 \usage{
-withReceptors(x, fun, ...)
-
 updateReceptors(x, fun, ..., receptor_fields = NULL, validate = TRUE)
 
-withSpatial(x, fun, ...)
-
 updateSpatial(x, fun, ..., validate = TRUE)
-
-withAnalysis(x, name, fun, ...)
 
 updateAnalysis(x, name, fun, ..., validate = TRUE)
 }
@@ -39,15 +30,11 @@ A \code{NULL} value clears an optional mapping.}
 \item{name}{A single non-empty stored analysis name.}
 }
 \value{
-A \verb{with*()} function returns the result of \code{fun}. An \verb{update*()}
-function returns an updated SIRAP object.
+An updated SIRAP object.
 }
 \description{
-These functions make it possible to use package or user functions directly
-on one component of a SIRAP object. The \verb{with*()} functions return the
-function result without changing the SIRAP object. The \verb{update*()} functions
-replace that component with the function result and return the updated
-SIRAP object.
+These functions make it possible to use package or user functions to replace
+one component of a SIRAP object.
 }
 \details{
 \code{updateReceptors()} requires a data-frame result and stores it as a tibble.
@@ -57,6 +44,6 @@ automatically recorded as the clone field. Use \code{receptor_fields} to set or
 clear mappings explicitly after a transformation.
 
 \code{updateSpatial()} requires the function to return a Seurat object.
-\code{withAnalysis()} and \code{updateAnalysis()} operate on one result selected by
-\code{name}; use \code{setAnalysis()} to store a new result.
+\code{updateAnalysis()} operates on one result selected by \code{name}; use
+\code{setAnalysis()} to store a new result.
 }

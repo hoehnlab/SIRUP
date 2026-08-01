@@ -7,12 +7,12 @@
 clusterTreesTips(
   trees,
   k = "auto",
-  id_col = "sequence_id",
-  cluster_col = "tree_cluster",
+  id = "sequence_id",
+  cluster = "tree_cluster",
   prefix = "tree_cluster_",
   ignore_tips = "Germline",
-  keep_col = NULL,
-  keep_value = NULL,
+  keep = NULL,
+  keep_val = NULL,
   method = c("split_largest_subtrees", "cut_largest_branches"),
   cut_terminal_edges = FALSE,
   k_range = 1:8,
@@ -26,20 +26,20 @@ element with that output.}
 \item{k}{Number of connected tree components to form for each tree, or
 \code{"auto"} to choose k separately for each tree with \code{chooseTreeTipK()}.}
 
-\item{id_col}{Column in each clone data frame matching tree tip labels.}
+\item{id}{Column in each clone data frame matching tree tip labels.}
 
-\item{cluster_col}{Name of the cluster column to add.}
+\item{cluster}{Name of the cluster column to add.}
 
 \item{prefix}{Prefix used for cluster labels.}
 
 \item{ignore_tips}{Optional tip labels to drop before joining clusters.}
 
-\item{keep_col}{Optional column in each clone data frame used to choose
+\item{keep}{Optional column in each clone data frame used to choose
 whether a tree has the expected retained tips. Clustering is run before
-any keep-filtering; tips where \code{keep_col != keep_value} then have their
-computed cluster labels overwritten with their \code{keep_col} value.}
+any keep-filtering; tips where \code{keep != keep_val} then have their
+computed cluster labels overwritten with their \code{keep} value.}
 
-\item{keep_value}{Value in \code{keep_col} that indicates a tip should be kept.}
+\item{keep_val}{Value in \code{keep} that indicates a tip should be kept.}
 
 \item{method}{Tree clustering method passed to \code{clusterTreeTips()}.}
 
@@ -51,7 +51,7 @@ to \code{TRUE} to allow terminal tips to be peeled off by branch cuts.}
 when \code{k = "auto"}.}
 }
 \value{
-\code{trees}, with \code{cluster_col} added to each clone data object.
+\code{trees}, with \code{cluster} added to each clone data object.
 }
 \description{
 Applies \code{clusterTreeTips()} to each tree in a dowser \code{getTrees()} result and

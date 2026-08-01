@@ -7,12 +7,14 @@
 createSIRAP(
   spatial,
   receptors,
-  barcode_col = NULL,
-  image_col = NULL,
-  sample_col = NULL,
-  clone_col = NULL,
-  locus_col = "locus",
-  count_col = NULL,
+  barcode = NULL,
+  image = NULL,
+  sample = NULL,
+  clone = NULL,
+  locus = "locus",
+  count = NULL,
+  image_scale = NULL,
+  swap_coords = NULL,
   metadata = list(),
   analyses = list(),
   validate = TRUE
@@ -23,24 +25,32 @@ createSIRAP(
 
 \item{receptors}{A data-frame-like AIRR-style receptor table.}
 
-\item{barcode_col}{Column in \code{receptors} matching spatial cell or spot
+\item{barcode}{Column in \code{receptors} matching spatial cell or spot
 barcodes. When \code{NULL}, a barcode-like column is guessed once and recorded
 in the object metadata.}
 
-\item{image_col}{Optional receptor column identifying the Seurat image.}
+\item{image}{Optional receptor column identifying the Seurat image.}
 
-\item{sample_col}{Optional sample column present in both \code{receptors} and the
+\item{sample}{Optional sample column present in both \code{receptors} and the
 Seurat metadata. It is recorded for sample-aware analyses and validation;
 Seurat cell or spot names must still be unique within \code{spatial}.}
 
-\item{clone_col}{Optional clone-assignment column. The default is recorded
+\item{clone}{Optional clone-assignment column. The default is recorded
 when present and otherwise stored as \code{NULL}.}
 
-\item{locus_col}{Optional receptor-locus column. The default is recorded
+\item{locus}{Optional receptor-locus column. The default is recorded
 when present and otherwise stored as \code{NULL}.}
 
-\item{count_col}{Optional column containing receptor observation weights or
+\item{count}{Optional column containing receptor observation weights or
 counts. Default is \code{NULL}.}
+
+\item{image_scale}{Optional default Seurat image scale used by spatial
+plotting and spatial-statistic functions when they receive this SIRAP
+object and their own \code{image_scale} argument is \code{NULL}.}
+
+\item{swap_coords}{Optional default coordinate-orientation flag used by
+spatial plotting and spatial-statistic functions when they receive this
+SIRAP object and their own \code{swap_coords} argument is \code{NULL}.}
 
 \item{metadata}{Optional named list of dataset-level metadata.}
 

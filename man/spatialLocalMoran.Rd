@@ -10,12 +10,12 @@ spatialLocalMoran(
   variable_type = c("feature", "metadata", "receptor", "clone"),
   value = NULL,
   receptors = NULL,
-  barcode_col = NULL,
-  clone_col = NULL,
+  barcode = NULL,
+  clone = NULL,
   layer = "counts",
   images = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
+  image_scale = NULL,
+  swap_coords = NULL,
   radius = NULL,
   k = 6
 )
@@ -35,11 +35,11 @@ that contain a particular clone ID.}
 \code{variable_type = "receptor"} or \code{"clone"} unless \code{object} is a SIRAP
 object.}
 
-\item{barcode_col}{Barcode column in \code{receptors}. Defaults to \code{NULL}; when
+\item{barcode}{Barcode column in \code{receptors}. Defaults to \code{NULL}; when
 \code{object} is a SIRAP object, the stored receptor barcode field is used.
 Pass this explicitly when using separate Seurat and receptor objects.}
 
-\item{clone_col}{Clone column in \code{receptors}; used only when
+\item{clone}{Clone column in \code{receptors}; used only when
 \code{variable_type = "clone"}. Defaults to \code{NULL}; when \code{object} is a SIRAP
 object, the stored receptor clone field is used when available.}
 
@@ -50,8 +50,8 @@ object, the stored receptor clone field is used when available.}
 \item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. Defaults to \code{FALSE},
-which uses Seurat image coordinates natively.}
+axes before plotting or polygon membership checks. If \code{NULL}, the
+value must be supplied explicitly or by SIRAP object metadata.}
 
 \item{radius}{Optional distance radius defining local neighborhoods. When
 \code{NULL}, k-nearest neighbors are used.}

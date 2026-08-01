@@ -7,12 +7,12 @@
 plotSpatialCloneJoinCount(
   join_count,
   object,
-  clone_id,
+  clone_val,
   images = NULL,
-  polygon_id = NULL,
+  polygon_val = NULL,
   polygon = NULL,
-  image_scale = "hires",
-  swap_coords = FALSE,
+  image_scale = NULL,
+  swap_coords = NULL,
   show_neighbors = TRUE,
   clone_color = "#D55E00",
   other_color = "grey75",
@@ -33,11 +33,11 @@ plotSpatialCloneJoinCount(
 
 \item{object}{Seurat object with spatial images, or a SIRAP object.}
 
-\item{clone_id}{Clone ID to plot.}
+\item{clone_val}{Clone ID to plot.}
 
 \item{images}{Optional image names to include.}
 
-\item{polygon_id}{Optional polygon IDs to include.}
+\item{polygon_val}{Optional polygon IDs to include.}
 
 \item{polygon}{Optional polygon vertex data frame to draw over the tissue.}
 

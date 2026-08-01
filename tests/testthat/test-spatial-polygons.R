@@ -35,8 +35,8 @@ test_that("polygon vertex selection requires closed polygons by default", {
       polygon = polygon,
       polygon_id = NULL,
       polygon_col = "polygon",
-      x_col = "x",
-      y_col = "y",
+      x = "x",
+      y = "y",
       require_closed = TRUE
     ),
     "must be closed"
@@ -46,8 +46,8 @@ test_that("polygon vertex selection requires closed polygons by default", {
     polygon = polygon,
     polygon_id = NULL,
     polygon_col = "polygon",
-    x_col = "x",
-    y_col = "y",
+    x = "x",
+    y = "y",
     require_closed = FALSE
   )
 
@@ -112,8 +112,8 @@ test_that("polygon plotting data preserves polygon groups and flips plotting y",
     polygon = polygon,
     polygon_id = NULL,
     polygon_col = "polygon",
-    x_col = "x",
-    y_col = "y",
+    x = "x",
+    y = "y",
     require_closed = TRUE
   )
 
@@ -131,15 +131,15 @@ test_that("V gene helpers retain alleles and extract families and superfamilies"
 })
 
 test_that("polygon pie summaries group lower-frequency levels and label top levels", {
-  region_bcrs <- data.frame(
+  region_receptors <- data.frame(
     polygon = c(rep("poly1", 5), rep("poly2", 3), rep("poly3", 3)),
     clone_id = c("A", "A", "B", "C", "D", "E", "F", "F", "C", "C", "G"),
     stringsAsFactors = FALSE
   )
 
   pies <- .sirap_polygon_pie_summary(
-    region_bcrs,
-    fill_by = "clone_id",
+    region_receptors,
+    fill = "clone_id",
     top_n = 2,
     label_top_n = 1,
     other_label = "Other"
@@ -156,8 +156,8 @@ test_that("polygon pie summaries group lower-frequency levels and label top leve
   expect_false(".sirap_order" %in% names(pies))
 
   pies_without_other <- .sirap_polygon_pie_summary(
-    region_bcrs,
-    fill_by = "clone_id",
+    region_receptors,
+    fill = "clone_id",
     top_n = 1,
     label_top_n = 1,
     other_label = "Other",
@@ -224,7 +224,7 @@ test_that("3D clone density data groups clones and builds surfaces", {
     }
   })
 
-  region_bcrs <- data.frame(
+  region_receptors <- data.frame(
     clone_id = c("A", "A", "B", "C"),
     x = c(20, 22, 70, 72),
     y = c(20, 22, 70, 72),
@@ -242,15 +242,15 @@ test_that("3D clone density data groups clones and builds surfaces", {
   )
 
   out <- .sirap_clone_density_3d_data(
-    region_bcrs = region_bcrs,
+    region_receptors = region_receptors,
     polygons = polygons,
     image = list(),
     spatial_coords = data.frame(
       x = c(0, 100),
       .sirap_y = c(-100, 0)
     ),
-    clone_col = "clone_id",
-    weight_col = NULL,
+    clone = "clone_id",
+    weight = NULL,
     top_n = 1,
     other_label = "Other",
     other_color = "#EEEEEE",
@@ -281,7 +281,7 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   }
   assign(
     ".sirap_spatial_coordinate_table",
-    function(object, images = NULL, image_scale = "hires", swap_coords = FALSE) {
+    function(object, images = NULL, image_scale = NULL, swap_coords = NULL) {
       data.frame(
         cell = paste0("cell", 1:5),
         x = c(1, 2, 8, 12, 1),
@@ -325,7 +325,9 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
     receptors = receptors,
     object = list(),
     polygon = polygon,
-    barcode_col = "barcode"
+    barcode = "barcode",
+    image_scale = "hires",
+    swap_coords = FALSE
   )
 
   expect_s3_class(out, "sirap_spatial_clone_dominance")
@@ -333,15 +335,15 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   expect_equal(out$dominance$v_gene[out$dominance$clone_id == "A"], "IGHV3-23*01,IGHV3-23*02,IGKV1-5*01")
   expect_equal(out$dominance$v_gene_family[out$dominance$clone_id == "A"], "IGHV3-23,IGKV1-5")
   expect_equal(out$dominance$v_gene_superfamily[out$dominance$clone_id == "A"], "IGHV3,IGKV1")
-  expect_equal(out$dominance$n_bcrs, c(3, 1))
+  expect_equal(out$dominance$n_receptors, c(3, 1))
   expect_equal(out$dominance$proportion, c(0.75, 0.25))
-  expect_equal(unique(out$dominance$region_bcr_total), 4)
+  expect_equal(unique(out$dominance$region_receptor_total), 4)
   expect_equal(unique(out$dominance$n_region_barcodes), 3)
-  expect_equal(sort(unique(out$region_bcrs$.sirap_barcode)), c("cell1", "cell2", "cell3"))
-  expect_true(all(c("x", "y", ".sirap_y", "polygon") %in% names(out$region_bcrs)))
-  expect_false(any(c("x.x", "x.y", "y.x", "y.y") %in% names(out$region_bcrs)))
-  expect_equal(sort(unique(out$region_bcrs$x)), c(1, 2, 8))
-  expect_equal(sort(unique(out$region_bcrs$y)), c(1, 2, 8))
+  expect_equal(sort(unique(out$region_receptors$.sirap_barcode)), c("cell1", "cell2", "cell3"))
+  expect_true(all(c("x", "y", ".sirap_y", "polygon") %in% names(out$region_receptors)))
+  expect_false(any(c("x.x", "x.y", "y.x", "y.y") %in% names(out$region_receptors)))
+  expect_equal(sort(unique(out$region_receptors$x)), c(1, 2, 8))
+  expect_equal(sort(unique(out$region_receptors$y)), c(1, 2, 8))
   expect_true(all(c("x", "y", ".sirap_y", "polygon") %in% names(out$polygons)))
   expect_false(any(c("polygon_col", "barcode_col", "clone_col", "v_call_col") %in% names(out)))
   expect_equal(out$metadata$receptor_fields$barcode, "barcode")
@@ -351,39 +353,45 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   expect_equal(out$metadata$receptor_fields$v_call, "v_call")
   expect_equal(names(formals(spatialCloneDominance))[1], "receptors")
 
-  legacy_out <- spatialCloneDominance(
-    bcrs = receptors,
+  raw_out <- spatialCloneDominance(
+    receptors = receptors,
     object = list(),
     polygon = polygon,
-    barcode_col = "barcode"
+    barcode = "barcode",
+    image_scale = "hires",
+    swap_coords = FALSE
   )
-  expect_equal(legacy_out$dominance, out$dominance)
+  expect_equal(raw_out$dominance, out$dominance)
 
   igh <- spatialCloneDominance(
     receptors = receptors,
     object = list(),
     polygon = polygon,
-    barcode_col = "barcode",
-    locus = "IGH"
+    barcode = "barcode",
+    locus_val = "IGH",
+    image_scale = "hires",
+    swap_coords = FALSE
   )
 
   expect_equal(igh$dominance$clone_id, c("A", "B"))
-  expect_equal(igh$dominance$n_bcrs, c(2, 1))
+  expect_equal(igh$dominance$n_receptors, c(2, 1))
   expect_equal(igh$dominance$proportion, c(2 / 3, 1 / 3))
 
   no_singletons <- spatialCloneDominance(
     receptors = receptors,
     object = list(),
     polygon = polygon,
-    barcode_col = "barcode",
-    exclude_singletons = TRUE
+    barcode = "barcode",
+    exclude_singletons = TRUE,
+    image_scale = "hires",
+    swap_coords = FALSE
   )
   expect_equal(no_singletons$dominance$clone_id, "A")
-  expect_equal(no_singletons$dominance$n_bcrs, 3)
-  expect_equal(unique(no_singletons$region_bcrs$clone_id), "A")
+  expect_equal(no_singletons$dominance$n_receptors, 3)
+  expect_equal(unique(no_singletons$region_receptors$clone_id), "A")
 
   region <- .sirap_region_from_dominance(out)
-  expect_equal(region$bcrs, out$region_bcrs)
+  expect_equal(region$receptors, out$region_receptors)
   expect_equal(region$polygons, out$polygons)
 })
 
@@ -393,7 +401,7 @@ test_that("regional plotting APIs require dominance and spatial objects", {
   density_args <- names(formals(plotSpatialCloneDensity3D))
   redundant_args <- c(
     "receptors", "bcrs", "polygon", "barcode_col", "x_col", "y_col",
-    "polygon_col", "require_closed"
+    "polygon_col", "require_closed", "color_by", "fill_by"
   )
 
   expect_equal(region_args[1:2], c("dominance", "object"))
@@ -420,7 +428,7 @@ test_that("spatialCloneDominance summarizes multiple polygons independently", {
   }
   assign(
     ".sirap_spatial_coordinate_table",
-    function(object, images = NULL, image_scale = "hires", swap_coords = FALSE) {
+    function(object, images = NULL, image_scale = NULL, swap_coords = NULL) {
       data.frame(
         cell = paste0("cell", 1:5),
         x = c(1, 2, 8, 12, 13),
@@ -468,21 +476,25 @@ test_that("spatialCloneDominance summarizes multiple polygons independently", {
     receptors = receptors,
     object = list(),
     polygon = polygon,
-    barcode_col = "barcode"
+    barcode = "barcode",
+    image_scale = "hires",
+    swap_coords = FALSE
   )
 
   expect_equal(sort(unique(out$dominance$polygon)), c("left", "right"))
-  expect_equal(out$dominance$n_bcrs[out$dominance$polygon == "left" & out$dominance$clone_id == "A"], 1)
-  expect_equal(out$dominance$n_bcrs[out$dominance$polygon == "left" & out$dominance$clone_id == "B"], 1)
-  expect_equal(out$dominance$n_bcrs[out$dominance$polygon == "right" & out$dominance$clone_id == "D"], 2)
+  expect_equal(out$dominance$n_receptors[out$dominance$polygon == "left" & out$dominance$clone_id == "A"], 1)
+  expect_equal(out$dominance$n_receptors[out$dominance$polygon == "left" & out$dominance$clone_id == "B"], 1)
+  expect_equal(out$dominance$n_receptors[out$dominance$polygon == "right" & out$dominance$clone_id == "D"], 2)
   expect_equal(out$dominance$proportion[out$dominance$polygon == "right" & out$dominance$clone_id == "D"], 1)
 
   right <- spatialCloneDominance(
     receptors = receptors,
     object = list(),
     polygon = polygon,
-    barcode_col = "barcode",
-    polygon_id = "right"
+    barcode = "barcode",
+    polygon_val = "right",
+    image_scale = "hires",
+    swap_coords = FALSE
   )
   expect_equal(unique(right$dominance$polygon), "right")
   expect_equal(right$dominance$clone_id, "D")

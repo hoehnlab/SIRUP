@@ -42,8 +42,8 @@
 #' @param k Number of connected tree components to form before ignored tips are
 #'   removed. If larger than the number of tips in the tree, a warning is
 #'   raised and `k` is set to the number of tips for that tree.
-#' @param id_col Name of the returned tip identifier column.
-#' @param cluster_col Name of the returned cluster column.
+#' @param id Name of the returned tip identifier column.
+#' @param cluster Name of the returned cluster column.
 #' @param ignore_tips Optional tip labels to drop from the returned data frame,
 #'   for example `"Germline"`.
 #' @param prefix Prefix used for cluster labels.
@@ -57,8 +57,8 @@
 #' @export
 clusterTreeTips <- function(tree,
                             k,
-                            id_col = "sequence_id",
-                            cluster_col = "tree_cluster",
+                            id = "sequence_id",
+                            cluster = "tree_cluster",
                             ignore_tips = "Germline",
                             prefix = "tree_cluster_",
                             method = c("split_largest_subtrees", "cut_largest_branches"),
@@ -153,9 +153,9 @@ clusterTreeTips <- function(tree,
     paste0(prefix, seq_along(cluster_levels)),
     as.character(cluster_levels)
   )
-  out[[id_col]] <- out$.tip_id
-  out[[cluster_col]] <- cluster_labels[as.character(out$.component)]
-  out[, c(id_col, cluster_col), drop = FALSE]
+  out[[id]] <- out$.tip_id
+  out[[cluster]] <- cluster_labels[as.character(out$.component)]
+  out[, c(id, cluster), drop = FALSE]
 }
 
 #' Choose k for tree tip clustering
@@ -195,8 +195,8 @@ chooseTreeTipK <- function(tree,
     clusters <- clusterTreeTips(
       tree,
       k = k,
-      id_col = "sequence_id",
-      cluster_col = "tree_cluster",
+      id = "sequence_id",
+      cluster = "tree_cluster",
       ignore_tips = ignore_tips,
       method = method,
       cut_terminal_edges = cut_terminal_edges
@@ -244,31 +244,31 @@ chooseTreeTipK <- function(tree,
 #'   element with that output.
 #' @param k Number of connected tree components to form for each tree, or
 #'   `"auto"` to choose k separately for each tree with `chooseTreeTipK()`.
-#' @param id_col Column in each clone data frame matching tree tip labels.
-#' @param cluster_col Name of the cluster column to add.
+#' @param id Column in each clone data frame matching tree tip labels.
+#' @param cluster Name of the cluster column to add.
 #' @param ignore_tips Optional tip labels to drop before joining clusters.
 #' @param prefix Prefix used for cluster labels.
-#' @param keep_col Optional column in each clone data frame used to choose
+#' @param keep Optional column in each clone data frame used to choose
 #'   whether a tree has the expected retained tips. Clustering is run before
-#'   any keep-filtering; tips where `keep_col != keep_value` then have their
-#'   computed cluster labels overwritten with their `keep_col` value.
-#' @param keep_value Value in `keep_col` that indicates a tip should be kept.
+#'   any keep-filtering; tips where `keep != keep_val` then have their
+#'   computed cluster labels overwritten with their `keep` value.
+#' @param keep_val Value in `keep` that indicates a tip should be kept.
 #' @param method Tree clustering method passed to `clusterTreeTips()`.
 #' @param cut_terminal_edges Cut terminal branches when choosing branches to
 #'   remove. Defaults to `FALSE`, which prioritizes internal clade splits; set
 #'   to `TRUE` to allow terminal tips to be peeled off by branch cuts.
 #' @param k_range,improvement_threshold Arguments passed to `chooseTreeTipK()`
 #'   when `k = "auto"`.
-#' @return `trees`, with `cluster_col` added to each clone data object.
+#' @return `trees`, with `cluster` added to each clone data object.
 #' @export
 clusterTreesTips <- function(trees,
                              k = "auto",
-                             id_col = "sequence_id",
-                             cluster_col = "tree_cluster",
+                             id = "sequence_id",
+                             cluster = "tree_cluster",
                              prefix = "tree_cluster_",
                              ignore_tips = "Germline",
-                             keep_col = NULL,
-                             keep_value = NULL,
+                             keep = NULL,
+                             keep_val = NULL,
                              method = c("split_largest_subtrees", "cut_largest_branches"),
                              cut_terminal_edges = FALSE,
                              k_range = 1:8,
@@ -279,12 +279,12 @@ clusterTreesTips <- function(trees,
     trees$trees <- clusterTreesTips(
       trees$trees,
       k = k,
-      id_col = id_col,
-      cluster_col = cluster_col,
+      id = id,
+      cluster = cluster,
       ignore_tips = ignore_tips,
       prefix = prefix,
-      keep_col = keep_col,
-      keep_value = keep_value,
+      keep = keep,
+      keep_val = keep_val,
       method = method,
       cut_terminal_edges = cut_terminal_edges,
       k_range = k_range,
@@ -300,7 +300,7 @@ clusterTreesTips <- function(trees,
   out <- trees
   chosen_k <- integer(nrow(out))
   k_scores <- vector("list", nrow(out))
-  use_keep_filter <- .sirap_check_tree_keep_args(keep_col, keep_value)
+  use_keep_filter <- .sirap_check_tree_keep_args(keep, keep_val)
   for (i in seq_len(nrow(out))) {
     tree_for_clustering <- out$trees[[i]]
     extra_tip_clusters <- NULL
@@ -308,10 +308,10 @@ clusterTreesTips <- function(trees,
       extra_tip_clusters <- .sirap_tree_non_keep_clusters(
         tree = out$trees[[i]],
         clone_data = out$data[[i]],
-        id_col = id_col,
-        keep_col = keep_col,
-        keep_value = keep_value,
-        cluster_col = cluster_col,
+        id_col = id,
+        keep_col = keep,
+        keep_value = keep_val,
+        cluster_col = cluster,
         ignore_tips = ignore_tips
       )
     }
@@ -351,8 +351,8 @@ clusterTreesTips <- function(trees,
     tree_tip_clusters <- clusterTreeTips(
       tree_for_clustering,
       k = tree_k,
-      id_col = id_col,
-      cluster_col = cluster_col,
+      id = id,
+      cluster = cluster,
       ignore_tips = ignore_tips,
       prefix = prefix,
       method = method,
@@ -360,25 +360,25 @@ clusterTreesTips <- function(trees,
     )
     if (!is.null(extra_tip_clusters) && nrow(extra_tip_clusters) > 0L) {
       tree_tip_clusters <- tree_tip_clusters[
-        !tree_tip_clusters[[id_col]] %in% extra_tip_clusters[[id_col]],
+        !tree_tip_clusters[[id]] %in% extra_tip_clusters[[id]],
         ,
         drop = FALSE
       ]
       tree_tip_clusters <- rbind(tree_tip_clusters, extra_tip_clusters)
     }
-    tree_tip_clusters[[cluster_col]] <- .sirap_compact_tree_cluster_labels(
-      tree_tip_clusters[[cluster_col]],
+    tree_tip_clusters[[cluster]] <- .sirap_compact_tree_cluster_labels(
+      tree_tip_clusters[[cluster]],
       prefix = prefix
     )
     out$data[[i]] <- .sirap_add_tree_tip_clusters(
       out$data[[i]],
       tree_tip_clusters,
-      id_col = id_col,
-      cluster_col = cluster_col
+      id_col = id,
+      cluster_col = cluster
     )
   }
-  out[[paste0(cluster_col, "_k")]] <- chosen_k
-  attr(out, paste0(cluster_col, "_scores")) <- k_scores
+  out[[paste0(cluster, "_k")]] <- chosen_k
+  attr(out, paste0(cluster, "_scores")) <- k_scores
   out
 }
 
@@ -388,40 +388,40 @@ clusterTreesTips <- function(trees,
 #' in tree plots and matched spatial plots.
 #'
 #' @param clones Clone-assigned AIRR data frame.
-#' @param clone_ids Optional clone IDs to retain before assigning colors.
-#' @param clone_col,id_col Column names for clone and sequence/tip identifiers.
-#' @param shared_color_col Optional column whose shared values should receive
+#' @param clone_val Optional clone IDs to retain before assigning colors.
+#' @param clone,id Column names for clone and sequence/tip identifiers.
+#' @param shared_color Optional column whose shared values should receive
 #'   the same tip color within each clone, for example a spatial barcode column.
 #' @param palette Optional color vector. Defaults to `pals::glasbey()` when
 #'   available, otherwise base R qualitative colors.
 #' @return Data frame with `tip_color_id` and `tip_color` columns.
 #' @export
 assignTipColors <- function(clones,
-                              clone_ids = NULL,
-                              clone_col = "clone_id",
-                              id_col = "sequence_id",
-                              shared_color_col = NULL,
+                              clone_val = NULL,
+                              clone = "clone_id",
+                              id = "sequence_id",
+                              shared_color = NULL,
                               palette = NULL) {
-  .check_required_cols(clones, c(clone_col, id_col), "clones")
-  if (!is.null(shared_color_col)) {
-    .check_required_cols(clones, shared_color_col, "clones")
+  .check_required_cols(clones, c(clone, id), "clones")
+  if (!is.null(shared_color)) {
+    .check_required_cols(clones, shared_color, "clones")
   }
   out <- .as_data_frame(clones)
-  if (!is.null(clone_ids)) {
-    out <- out[out[[clone_col]] %in% clone_ids, , drop = FALSE]
+  if (!is.null(clone_val)) {
+    out <- out[out[[clone]] %in% clone_val, , drop = FALSE]
   }
-  out <- out[!is.na(out[[clone_col]]) & !is.na(out[[id_col]]), , drop = FALSE]
-  if (is.null(shared_color_col)) {
+  out <- out[!is.na(out[[clone]]) & !is.na(out[[id]]), , drop = FALSE]
+  if (is.null(shared_color)) {
     out <- out %>%
-      dplyr::group_by(dplyr::across(dplyr::all_of(clone_col))) %>%
-      dplyr::arrange(.data[[id_col]], .by_group = TRUE) %>%
+      dplyr::group_by(dplyr::across(dplyr::all_of(clone))) %>%
+      dplyr::arrange(.data[[id]], .by_group = TRUE) %>%
       dplyr::mutate(tip_color_id = as.character(dplyr::row_number())) %>%
       dplyr::ungroup()
   } else {
     out <- out %>%
-      dplyr::group_by(dplyr::across(dplyr::all_of(clone_col))) %>%
-      dplyr::arrange(.data[[shared_color_col]], .data[[id_col]], .by_group = TRUE) %>%
-      dplyr::mutate(tip_color_id = as.character(dplyr::dense_rank(.data[[shared_color_col]]))) %>%
+      dplyr::group_by(dplyr::across(dplyr::all_of(clone))) %>%
+      dplyr::arrange(.data[[shared_color]], .data[[id]], .by_group = TRUE) %>%
+      dplyr::mutate(tip_color_id = as.character(dplyr::dense_rank(.data[[shared_color]]))) %>%
       dplyr::ungroup()
   }
 
