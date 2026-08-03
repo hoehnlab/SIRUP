@@ -7,21 +7,21 @@
 addTissuePositions(
   airr_df,
   positions,
-  barcode = "spatial_barcode_8um",
-  position_barcode = "barcode",
+  spatial_id = "spatial_id_8um",
+  position_spatial_id = "barcode",
   x = "pxl_col_in_fullres",
   y = "pxl_row_in_fullres",
   keep_position_cols = TRUE
 )
 }
 \arguments{
-\item{airr_df}{AIRR-style data frame containing a barcode column.}
+\item{airr_df}{AIRR-style data frame containing a spatial_id column.}
 
 \item{positions}{Tissue positions data frame or CSV/parquet path.}
 
-\item{barcode}{Column in \code{airr_df} to match.}
+\item{spatial_id}{Column in \code{airr_df} to match.}
 
-\item{position_barcode}{Barcode column in \code{positions}.}
+\item{position_spatial_id}{Spatial ID column in \code{positions}.}
 
 \item{x, y}{Coordinate columns to copy or rename to \code{x} and \code{y}.}
 

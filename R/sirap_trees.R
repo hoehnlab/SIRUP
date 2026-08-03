@@ -391,7 +391,7 @@ clusterTreesTips <- function(trees,
 #' @param clone_val Optional clone IDs to retain before assigning colors.
 #' @param clone,id Column names for clone and sequence/tip identifiers.
 #' @param shared_color Optional column whose shared values should receive
-#'   the same tip color within each clone, for example a spatial barcode column.
+#'   the same tip color within each clone, for example a spatial ID column.
 #' @param palette Optional color vector. Defaults to `pals::glasbey()` when
 #'   available, otherwise base R qualitative colors.
 #' @return Data frame with `tip_color_id` and `tip_color` columns.

@@ -9,7 +9,7 @@ plotSpatialCloneColorTips(
   clone_val,
   tissue_positions = NULL,
   clone = "clone_id",
-  barcode = "spatial_barcode_8um",
+  spatial_id = "spatial_id_8um",
   image_scale = NULL,
   swap_coords = NULL,
   ...
@@ -26,7 +26,11 @@ object. May be omitted when \code{colored_clones} is a SIRAP object.}
 
 \item{clone}{Clone ID column.}
 
-\item{barcode}{Spatial barcode column in \code{colored_clones}.}
+\item{spatial_id}{Spatial ID column in \code{colored_clones}.}
+
+\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+
+\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate axes.}
 
 \item{...}{Additional arguments passed to \code{plotSpatialColorTips()}.}
 }

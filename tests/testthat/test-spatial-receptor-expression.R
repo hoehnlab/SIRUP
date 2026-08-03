@@ -1,11 +1,11 @@
 test_that("plotReceptorsExpression layers grouped receptors over expression", {
   testthat::local_mocked_bindings(
-    .sirap_resolve_inputs = function(object, receptors = NULL, barcode = NULL) {
-      list(object = object, receptors = receptors, barcode_col = barcode)
+    .sirap_resolve_inputs = function(object, receptors = NULL, spatial_id = NULL) {
+      list(object = object, receptors = receptors, spatial_id_col = spatial_id)
     },
     .require_namespace = function(package) invisible(TRUE),
     .as_data_frame = as.data.frame,
-    .guess_barcode_col = function(receptors, barcode = NULL) barcode,
+    .guess_spatial_id_col = function(receptors, spatial_id = NULL) spatial_id,
     .check_required_cols = function(x, cols, label) {
       stopifnot(all(cols %in% colnames(x)))
     },
@@ -42,7 +42,7 @@ test_that("plotReceptorsExpression layers grouped receptors over expression", {
     receptors = receptors,
     group = "receptor_type",
     group_val = c("BCR", "TCR"),
-    barcode = "barcode",
+    spatial_id = "barcode",
     feature = "GENE",
     colors = c(BCR = "blue", TCR = "orange"),
     image_scale = "hires",

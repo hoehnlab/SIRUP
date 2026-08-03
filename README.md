@@ -74,10 +74,10 @@ radDemux(
 library(SIRAP)
 
 m1_bcr_heavy <- data.table::fread("igblast_bcr.tsv")
-m1_bcr_heavy <- extractSpatialBarcodes(
+m1_bcr_heavy <- extractSpatialIds(
   m1_bcr_heavy,
   id = "sequence_id",
-  barcode = "barcode_2um",
+  spatial_id = "barcode_2um",
   regex = "[0-9]+_[0-9]+$",
   prefix = "s_002um_",
   suffix = "-1"
@@ -85,7 +85,7 @@ m1_bcr_heavy <- extractSpatialBarcodes(
 m1_bcr_heavy <- filterAirr(
   m1_bcr_heavy,
   locus_val = "IGH",
-  barcode = "barcode_2um",
+  spatial_id = "barcode_2um",
   add_spatial_sequence_id = TRUE
 )
 ```
@@ -94,7 +94,7 @@ m1_bcr_heavy <- filterAirr(
 
 ```r
 processSpatialSample(
-  input_fasta = "m1/igblast_bcr_pass_length_spatial_barcode.fasta",
+  input_fasta = "m1/igblast_bcr_pass_length_spatial_id.fasta",
   output_dir = "m1/processed",
   receptor = "ig",
   germline_glob = "/path/to/germlines/imgt/human/vdj/imgt_human_*.fasta"
@@ -105,10 +105,10 @@ processSpatialSample(
 
 ```r
 processed <- airr::read_rearrangement("processed_db-pass.tsv")
-processed <- extractSpatialBarcodes(
+processed <- extractSpatialIds(
   processed,
   id = "sequence_id",
-  barcode = "barcode_2um",
+  spatial_id = "barcode_2um",
   regex = ",([^,]+)"
 )
 processed <- filterAirr(
@@ -119,9 +119,9 @@ processed <- filterAirr(
   min_junction_length = 10,
   productive_only = TRUE,
   min_consensus_count = 2,
-  barcode = "barcode_2um"
+  spatial_id = "barcode_2um"
 )
-bc_map <- readBarcodeMapping("barcode_mappings.parquet")
+bc_map <- readSpatialIdMapping("barcode_mappings.parquet")
 processed <- processed |>
   dplyr::mutate(barcode_2um_swapped = sub("^(.*_)(\\d+)_(\\d+)(-\\d+)$", "\\1\\3_\\2\\4", barcode_2um)) |>
   dplyr::left_join(
@@ -129,7 +129,7 @@ processed <- processed |>
     by = c("barcode_2um_swapped" = "square_002um")
   ) |>
   dplyr::rename(barcode_8um = square_008um, barcode_16um = square_016um)
-top_per_barcode <- collapseTopConsensusPerBarcode(processed, ties = "all")
+top_per_barcode <- collapseTopConsensusPerSpatialId(processed, ties = "all")
 ```
 
 ## Pair spatial and receptor data
@@ -142,7 +142,7 @@ unmatched bulk or other nonspatial receptor rows are retained.
 sirap <- createSIRAP(
   spatial = seurat_object,
   receptors = cloned_receptors,
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   clone = "clone_id",
   image_scale = "hires",
   swap_coords = FALSE

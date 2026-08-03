@@ -9,7 +9,7 @@ plotReceptorsExpression(
   receptors = NULL,
   group,
   group_val = NULL,
-  barcode = NULL,
+  spatial_id = NULL,
   feature = NULL,
   gene = NULL,
   colors = NULL,
@@ -38,7 +38,7 @@ plotReceptorsExpression(
 \item{object}{Seurat object, or a SIRAP object containing both spatial and
 receptor data.}
 
-\item{receptors}{AIRR-style receptor table containing a spatial barcode and
+\item{receptors}{AIRR-style receptor table containing a spatial ID and
 grouping column. May be omitted when \code{object} is a SIRAP object.}
 
 \item{group}{Column in \code{receptors} defining receptor groups, for example
@@ -47,8 +47,8 @@ grouping column. May be omitted when \code{object} is a SIRAP object.}
 \item{group_val}{Optional group values to plot and their display order.
 Defaults to all non-missing values in \code{group}.}
 
-\item{barcode}{Column in \code{receptors} matching Seurat spot names. If
-\code{NULL}, the SIRAP barcode field is used or a barcode-like column is guessed.}
+\item{spatial_id}{Column in \code{receptors} matching Seurat spot names. If
+\code{NULL}, the SIRAP spatial_id field is used or a spatial ID-like column is guessed.}
 
 \item{feature}{Gene or feature plotted beneath receptor-positive spots.}
 

@@ -7,7 +7,7 @@
 collapseIdenticalNeighbors(
   object,
   seurat_object = NULL,
-  barcode = NULL,
+  spatial_id = NULL,
   sequence = "sequence",
   consensus_count = "consensus_count",
   images = NULL,
@@ -23,9 +23,9 @@ collapseIdenticalNeighbors(
 \item{seurat_object}{Optional Seurat object used only when \code{object} is a
 receptor data frame.}
 
-\item{barcode}{Column in the receptor table matching Seurat spot/cell
-barcodes. When omitted for a SIRAP object, the recorded SIRAP barcode field
-is used. When omitted for a receptor table, a barcode-like column is
+\item{spatial_id}{Column in the receptor table matching Seurat spot/cell
+spatial IDs. When omitted for a SIRAP object, the recorded SIRAP spatial ID field
+is used. When omitted for a receptor table, a spatial ID-like column is
 guessed.}
 
 \item{sequence}{Column containing receptor sequence strings.}
@@ -55,7 +55,7 @@ identical sequences.
 \description{
 For each unique receptor sequence, finds connected components of neighboring
 spots sharing that sequence, then collapses each component to a single
-representative spot. A SIRAP object is the preferred input: receptor barcodes
+representative spot. A SIRAP object is the preferred input: receptor IDs
 are read from the SIRAP field mapping and spatial coordinates are read from
 the stored Seurat object. If you are not using a SIRAP object, pass an
 AIRR-style receptor table as \code{object} and the matching Seurat object as

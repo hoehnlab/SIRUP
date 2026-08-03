@@ -15,10 +15,10 @@ filterAirr(
   max_opening_gap = NULL,
   sequence_alignment = "sequence_alignment",
   id = "sequence_id",
-  barcode = NULL,
+  spatial_id = NULL,
   add_spatial_sequence_id = FALSE,
   spatial_sequence_id = "spatial_sequence_id",
-  spatial_barcode_key = "spatial_barcode"
+  spatial_id_key = "spatial_id"
 )
 }
 \arguments{
@@ -43,15 +43,15 @@ filtering.}
 
 \item{id}{Column containing read or consensus identifiers.}
 
-\item{barcode}{Optional name of a spatial barcode column that is already
+\item{spatial_id}{Optional name of a spatial ID column that is already
 present in \code{airr_df}.}
 
 \item{add_spatial_sequence_id}{Add a combined ID with the original sequence ID
-and spatial barcode. \code{barcode} must be provided if \code{TRUE}.}
+and spatial ID. \code{spatial_id} must be provided if \code{TRUE}.}
 
 \item{spatial_sequence_id}{Name of the combined spatial sequence ID column.}
 
-\item{spatial_barcode_key}{Barcode field name to use in the combined spatial
+\item{spatial_id_key}{Spatial ID field name to use in the combined spatial
 sequence ID.}
 }
 \value{
@@ -61,5 +61,5 @@ Preprocessed data frame with \code{v_sequence_length},
 \description{
 Filters AIRR-seq data for productivity, V/J/junction length, a minimum
 consensus count, optional max opening gap length, and optionally adding a
-spatial sequence ID combining \code{sequence_id} and a spatial barcode.
+spatial sequence ID combining \code{sequence_id} and a spatial ID.
 }

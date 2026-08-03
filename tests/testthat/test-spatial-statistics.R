@@ -71,8 +71,7 @@ test_that("spatialRipleyCrossK keeps all non-missing marks in the point pattern"
 
   sirap <- createSIRAP(
     object,
-    data.frame(barcode = "cell1"),
-    barcode = "barcode",
+    data.frame(spatial_id = "cell1"),
     image_scale = "hires",
     swap_coords = FALSE
   )
@@ -109,7 +108,7 @@ test_that("spatialMoran can test a particular clone from a SIRAP object", {
   sirap <- createSIRAP(
     object,
     receptors,
-    barcode = "spot",
+    spatial_id = "spot",
     clone = "clonal_group",
     image_scale = "hires",
     swap_coords = FALSE
@@ -135,7 +134,7 @@ test_that("spatialMoran can test a particular clone from a SIRAP object", {
   expect_true(all(c("local_i", "p_value") %in% names(local)))
 })
 
-test_that("spatialCloneJoinCount tests clone marks from receptor barcodes", {
+test_that("spatialCloneJoinCount tests clone marks from receptor IDs", {
   skip_if_not_installed("SeuratObject")
   skip_if_not_installed("spdep")
 
@@ -159,18 +158,18 @@ test_that("spatialCloneJoinCount tests clone marks from receptor barcodes", {
     object = object,
     receptors = receptors,
     clone = "clone_id",
-    barcode = "barcode_8um",
+    spatial_id = "barcode_8um",
     clone_val = "A",
     k = 1,
-    min_barcodes = 2,
+    min_spatial_ids = 2,
     return_data = TRUE,
     image_scale = "hires",
     swap_coords = FALSE
   )
 
   expect_true("A" %in% out$summary$clone_id)
-  expect_equal(out$summary$n_clone_barcodes[out$summary$clone_id == "A"], 3)
-  expect_true(all(c("join_count_mark", "clone_id", ".sirap_barcode") %in% names(out$data)))
+  expect_equal(out$summary$n_clone_spatial_ids[out$summary$clone_id == "A"], 3)
+  expect_true(all(c("join_count_mark", "clone_id", ".sirap_spatial_id") %in% names(out$data)))
 })
 
 test_that("plotSpatialCloneJoinCount returns one combined plot", {
@@ -197,10 +196,10 @@ test_that("plotSpatialCloneJoinCount returns one combined plot", {
     object = object,
     receptors = receptors,
     clone = "clone_id",
-    barcode = "barcode_8um",
+    spatial_id = "barcode_8um",
     clone_val = "A",
     k = 1,
-    min_barcodes = 2,
+    min_spatial_ids = 2,
     return_data = TRUE,
     image_scale = "hires",
     swap_coords = FALSE

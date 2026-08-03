@@ -55,7 +55,7 @@ input FASTA directory.}
 \item{nproc}{Number of processors for pRESTO and AssignGenes steps.}
 
 \item{cluster_field}{Required FASTA header field used for within-spot
-clustering. This has no default because barcode fields vary by platform
+clustering. This has no default because spatial_id fields vary by platform
 and preprocessing workflow.}
 
 \item{delimiters}{String of pRESTO delimiter values passed after \code{--delim}.
@@ -88,10 +88,10 @@ inside an R script. It builds and runs the following files in order:
 }
 \details{
 \itemize{
-\item \verb{ClusterSets.py set} groups reads within each spatial barcode using \code{cluster_field},
+\item \verb{ClusterSets.py set} groups reads within each spatial ID using \code{cluster_field},
 the requested identity threshold \code{identity}, and vsearch.
 \item \verb{ParseHeaders.py merge} is used to write a new field into the headers that combines
-the spatial barcode and the cluster id (provided with parse_fields). These are
+the spatial ID and the cluster id (provided with parse_fields). These are
 combined using \code{parse_act} (default cat) and written to a new header field \code{parse_key}.
 Uses \code{delimiters} to specify the FASTA header delimiters.
 \item \verb{AlignSets.py muscle} aligns reads within each \code{parse_key} group created by \code{ParseHeaders}.

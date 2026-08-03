@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{seuratSubsetPolygon}
 \alias{seuratSubsetPolygon}
-\title{Subset a Seurat object to spatial barcodes inside polygons}
+\title{Subset a Seurat object to spatial IDs inside polygons}
 \usage{
 seuratSubsetPolygon(
   object,
@@ -52,11 +52,11 @@ polygon IDs.}
 Set to \code{FALSE} to close open polygons automatically.}
 }
 \value{
-A Seurat object subset to barcodes inside the selected polygon(s),
+A Seurat object subset to spatial IDs inside the selected polygon(s),
 with \code{metadata} appended to \verb{@meta.data}.
 }
 \description{
-Keeps only Seurat barcodes whose spatial coordinates fall inside one or more
+Keeps only Seurat spatial IDs whose spatial coordinates fall inside one or more
 polygon regions and records polygon membership in the returned object's
 metadata.
 }

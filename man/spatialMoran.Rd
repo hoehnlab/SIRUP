@@ -10,7 +10,7 @@ spatialMoran(
   variable_type = c("feature", "metadata", "receptor", "clone"),
   value = NULL,
   receptors = NULL,
-  barcode = NULL,
+  spatial_id = NULL,
   clone = NULL,
   layer = "counts",
   images = NULL,
@@ -36,8 +36,8 @@ that contain a particular clone ID.}
 \code{variable_type = "receptor"} or \code{"clone"} unless \code{object} is a SIRAP
 object.}
 
-\item{barcode}{Barcode column in \code{receptors}. Defaults to \code{NULL}; when
-\code{object} is a SIRAP object, the stored receptor barcode field is used.
+\item{spatial_id}{Spatial ID column in \code{receptors}. Defaults to \code{NULL}; when
+\code{object} is a SIRAP object, the stored receptor ID field is used.
 Pass this explicitly when using separate Seurat and receptor objects.}
 
 \item{clone}{Clone column in \code{receptors}; used only when

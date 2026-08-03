@@ -22,7 +22,7 @@ SIRAP component is supplied as its first argument.}
 \item{...}{Additional arguments passed to \code{fun}.}
 
 \item{receptor_fields}{Optional named list updating one or more receptor
-field mappings: \code{barcode}, \code{image}, \code{sample}, \code{clone}, \code{locus}, or \code{count}.
+field mappings: \code{spatial_id}, \code{image}, \code{sample}, \code{clone}, \code{locus}, or \code{count}.
 A \code{NULL} value clears an optional mapping.}
 
 \item{validate}{Whether to validate the updated SIRAP object.}

@@ -7,7 +7,7 @@
 formatSpatialPolygons(
   object,
   polygon_points,
-  barcode = "barcode",
+  spatial_id = "spatial_id",
   polygon = "polygon",
   x = "x",
   y = "y",
@@ -27,7 +27,7 @@ formatSpatialPolygons(
 \item{polygon_points}{Data frame containing all points inside each polygon,
 or boundary points when \code{point_type = "boundary"}.}
 
-\item{barcode}{Column in \code{polygon_points} containing Seurat barcodes.
+\item{spatial_id}{Column in \code{polygon_points} containing Seurat spatial IDs.
 Required when \code{x} and \code{y} are not present.}
 
 \item{polygon}{Column in \code{polygon_points} identifying each polygon.}
@@ -59,7 +59,7 @@ before formatting. This is mainly useful with \code{point_type = "boundary"}.}
 needed.}
 }
 \value{
-Data frame with \code{barcode}, \code{x}, \code{y}, \code{polygon}, and \code{image} columns.
+Data frame with \code{spatial_id}, \code{x}, \code{y}, \code{polygon}, and \code{image} columns.
 Polygons with fewer than three points are excluded with a warning.
 }
 \description{
@@ -67,7 +67,7 @@ Converts a data frame containing all points inside one or more polygons into
 the same vertex-table structure returned by \code{selectSpatialPolygons()}. By
 default, interior point sets are converted to polygon outlines by buffering
 and unioning spots with \code{sf}, then mapping the exterior ring back to the
-nearest selected barcode coordinates. This preserves a valid boundary order
-for concave polygons while returning Visium barcode coordinates as vertices.
+nearest selected spatial_id coordinates. This preserves a valid boundary order
+for concave polygons while returning Visium spatial_id coordinates as vertices.
 If the input already contains boundary points, use \code{point_type = "boundary"}.
 }

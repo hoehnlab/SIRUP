@@ -10,8 +10,8 @@
 #' @param receptors AIRR-style receptor data frame. Required when
 #'   `variable_type = "receptor"` or `"clone"` unless `object` is a SIRAP
 #'   object.
-#' @param barcode Barcode column in `receptors`. Defaults to `NULL`; when
-#'   `object` is a SIRAP object, the stored receptor barcode field is used.
+#' @param spatial_id Spatial ID column in `receptors`. Defaults to `NULL`; when
+#'   `object` is a SIRAP object, the stored receptor ID field is used.
 #'   Pass this explicitly when using separate Seurat and receptor objects.
 #' @param clone Clone column in `receptors`; used only when
 #'   `variable_type = "clone"`. Defaults to `NULL`; when `object` is a SIRAP
@@ -32,7 +32,7 @@ spatialMoran <- function(object,
                          variable_type = c("feature", "metadata", "receptor", "clone"),
                          value = NULL,
                          receptors = NULL,
-                         barcode = NULL,
+                         spatial_id = NULL,
                          clone = NULL,
                          layer = "counts",
                          images = NULL,
@@ -48,7 +48,7 @@ spatialMoran <- function(object,
     variable_type = variable_type,
     value = value,
     receptors = receptors,
-    barcode_col = barcode,
+    spatial_id_col = spatial_id,
     clone_col = clone,
     layer = layer,
     images = images,
@@ -86,7 +86,7 @@ spatialLocalMoran <- function(object,
                               variable_type = c("feature", "metadata", "receptor", "clone"),
                               value = NULL,
                               receptors = NULL,
-                              barcode = NULL,
+                              spatial_id = NULL,
                               clone = NULL,
                               layer = "counts",
                               images = NULL,
@@ -102,7 +102,7 @@ spatialLocalMoran <- function(object,
     variable_type = variable_type,
     value = value,
     receptors = receptors,
-    barcode_col = barcode,
+    spatial_id_col = spatial_id,
     clone_col = clone,
     layer = layer,
     images = images,
@@ -131,22 +131,22 @@ spatialLocalMoran <- function(object,
 #' Test clone localization with join-count statistics
 #'
 #' Runs `spdep::joincount.test()` for each clone to test whether neighboring
-#' receptor-positive spatial barcodes are more likely to share that clone than
+#' receptor-positive spatial IDs are more likely to share that clone than
 #' expected under random labeling. This is useful for asking whether clones
 #' localize within regions of interest such as germinal centers.
 #'
 #' @param object Seurat object with spatial images, or a SIRAP object.
-#' @param receptors AIRR-style receptor data frame containing spatial barcodes
+#' @param receptors AIRR-style receptor data frame containing spatial IDs
 #'   and clone calls. May be omitted when `object` is a SIRAP object.
 #' @param clone Column in `receptors` containing clone IDs. Defaults to
 #'   `NULL`; when `object` is a SIRAP object, the stored receptor clone field
 #'   is used when available.
-#' @param barcode Column in `receptors` matching Seurat spot/cell barcodes.
+#' @param spatial_id Column in `receptors` matching Seurat spot/cell spatial IDs.
 #'   Defaults to `NULL`; when `object` is a SIRAP object, the stored receptor
-#'   barcode field is used. Pass this explicitly when using separate Seurat and
+#'   spatial_id field is used. Pass this explicitly when using separate Seurat and
 #'   receptor objects.
 #' @param clone_val Optional clone ID values to test. Defaults to all clones
-#'   observed in at least `min_barcodes` spatial barcodes.
+#'   observed in at least `min_spatial_ids` spatial IDs.
 #' @param polygon Optional polygon vertex data frame used to restrict the test
 #'   to one or more regions.
 #' @param polygon_val Optional polygon ID value(s) to select when `polygon`
@@ -161,22 +161,22 @@ spatialLocalMoran <- function(object,
 #' @param polygon_id Optional polygon grouping column in `polygon`.
 #' @param include_boundary Include Seurat spots on polygon edges.
 #' @param require_closed Require the final polygon vertex to equal the first.
-#' @param min_barcodes Minimum number of spatial barcodes containing a clone for
+#' @param min_spatial_ids Minimum number of spatial IDs containing a clone for
 #'   that clone to be tested.
 #' @param radius Optional distance radius defining neighborhoods.
 #' @param k Number of nearest neighbors when `radius` is `NULL`.
 #' @param alternative Alternative hypothesis passed to
 #'   `spdep::joincount.test()`.
-#' @param other_label Label used for non-target clone barcodes in each binary
+#' @param other_label Label used for non-target clone spatial IDs in each binary
 #'   test.
-#' @param return_data Return the barcode-level mark data used for each test.
-#' @return List containing a summary table, raw `spdep` tests, barcode-level
+#' @param return_data Return the spatial_id-level mark data used for each test.
+#' @return List containing a summary table, raw `spdep` tests, spatial_id-level
 #'   data, neighbors, and weights.
 #' @export
 spatialCloneJoinCount <- function(object,
                                   receptors = NULL,
                                   clone = NULL,
-                                  barcode = NULL,
+                                  spatial_id = NULL,
                                   clone_val = NULL,
                                   polygon = NULL,
                                   polygon_val = NULL,
@@ -188,7 +188,7 @@ spatialCloneJoinCount <- function(object,
                                   polygon_id = "polygon",
                                   include_boundary = TRUE,
                                   require_closed = TRUE,
-                                  min_barcodes = 2,
+                                  min_spatial_ids = 2,
                                   radius = NULL,
                                   k = 6,
                                   alternative = "greater",
@@ -200,34 +200,34 @@ spatialCloneJoinCount <- function(object,
   inputs <- .sirap_resolve_inputs(
     object,
     receptors,
-    barcode
+    spatial_id
   )
   object <- inputs$object
   receptors <- inputs$receptors
-  barcode <- inputs$barcode_col
+  spatial_id <- inputs$spatial_id_col
   if (is.null(receptors)) {
     rlang::abort("`receptors` is required when `object` is not a SIRAP object.")
   }
   if (is.null(clone) && !is.null(inputs$receptor_fields$clone)) {
     clone <- inputs$receptor_fields$clone
   }
-  if (is.null(barcode)) {
-    rlang::abort("`barcode` is required when it cannot be resolved from a SIRAP object.")
+  if (is.null(spatial_id)) {
+    rlang::abort("`spatial_id` is required when it cannot be resolved from a SIRAP object.")
   }
   if (is.null(clone)) {
     rlang::abort("`clone` is required when it cannot be resolved from a SIRAP object.")
   }
   .require_namespace("spdep")
-  if (!is.numeric(min_barcodes) || length(min_barcodes) != 1L || is.na(min_barcodes) || min_barcodes < 1) {
-    rlang::abort("`min_barcodes` must be a positive number.")
+  if (!is.numeric(min_spatial_ids) || length(min_spatial_ids) != 1L || is.na(min_spatial_ids) || min_spatial_ids < 1) {
+    rlang::abort("`min_spatial_ids` must be a positive number.")
   }
-  min_barcodes <- as.integer(min_barcodes)
+  min_spatial_ids <- as.integer(min_spatial_ids)
 
   dat <- .sirap_joincount_receptor_data(
     object = object,
     receptors = receptors,
     clone_col = clone,
-    barcode_col = barcode,
+    spatial_id_col = spatial_id,
     polygon = polygon,
     polygon_id = polygon_val,
     images = images,
@@ -239,21 +239,21 @@ spatialCloneJoinCount <- function(object,
     include_boundary = include_boundary,
     require_closed = require_closed
   )
-  .check_required_cols(dat, c(clone, ".sirap_barcode", "x", ".sirap_y", "image", "polygon"), "receptors")
+  .check_required_cols(dat, c(clone, ".sirap_spatial_id", "x", ".sirap_y", "image", "polygon"), "receptors")
   dat <- dat[!is.na(dat[[clone]]) & nzchar(as.character(dat[[clone]])), , drop = FALSE]
   if (nrow(dat) == 0L) {
     rlang::abort("No receptor rows with clone IDs were found in the selected region(s).")
   }
 
   if (is.null(clone_val)) {
-    clone_counts <- sort(table(unique(dat[, c(".sirap_barcode", clone), drop = FALSE])[[clone]]), decreasing = TRUE)
-    clone_val <- names(clone_counts)[clone_counts >= min_barcodes]
+    clone_counts <- sort(table(unique(dat[, c(".sirap_spatial_id", clone), drop = FALSE])[[clone]]), decreasing = TRUE)
+    clone_val <- names(clone_counts)[clone_counts >= min_spatial_ids]
   } else {
     clone_val <- as.character(clone_val)
   }
   clone_val <- unique(clone_val[!is.na(clone_val) & nzchar(clone_val)])
   if (length(clone_val) == 0L) {
-    rlang::abort("No clones met `min_barcodes` in the selected region(s).")
+    rlang::abort("No clones met `min_spatial_ids` in the selected region(s).")
   }
 
   tests <- list()
@@ -267,8 +267,8 @@ spatialCloneJoinCount <- function(object,
     group_key <- strsplit(group_name, "\\|\\|", fixed = FALSE)[[1L]]
     image <- group_key[[1L]]
     polygon_value <- group_key[[2L]]
-    sites <- group_dat[, c(".sirap_barcode", "x", "y", ".sirap_y", "image", "polygon"), drop = FALSE]
-    sites <- sites[!duplicated(sites$.sirap_barcode), , drop = FALSE]
+    sites <- group_dat[, c(".sirap_spatial_id", "x", "y", ".sirap_y", "image", "polygon"), drop = FALSE]
+    sites <- sites[!duplicated(sites$.sirap_spatial_id), , drop = FALSE]
     if (nrow(sites) < 2L) {
       next
     }
@@ -278,14 +278,14 @@ spatialCloneJoinCount <- function(object,
     weights[[group_name]] <- listw
 
     for (clone_id in clone_val) {
-      clone_cells <- unique(group_dat$.sirap_barcode[as.character(group_dat[[clone]]) == clone_id])
-      n_clone_barcodes <- length(clone_cells)
-      if (n_clone_barcodes < min_barcodes || n_clone_barcodes == nrow(sites)) {
+      clone_cells <- unique(group_dat$.sirap_spatial_id[as.character(group_dat[[clone]]) == clone_id])
+      n_clone_spatial_ids <- length(clone_cells)
+      if (n_clone_spatial_ids < min_spatial_ids || n_clone_spatial_ids == nrow(sites)) {
         next
       }
       local_other_label <- if (identical(clone_id, other_label)) paste0(other_label, "_background") else other_label
       sites$join_count_mark <- factor(
-        ifelse(sites$.sirap_barcode %in% clone_cells, clone_id, local_other_label),
+        ifelse(sites$.sirap_spatial_id %in% clone_cells, clone_id, local_other_label),
         levels = c(local_other_label, clone_id)
       )
       test <- spdep::joincount.test(
@@ -301,8 +301,8 @@ spatialCloneJoinCount <- function(object,
         clone_id = clone_id,
         image = image,
         polygon = polygon_value,
-        n_barcodes = nrow(sites),
-        n_clone_barcodes = n_clone_barcodes,
+        n_spatial_ids = nrow(sites),
+        n_clone_spatial_ids = n_clone_spatial_ids,
         radius = radius,
         k = if (is.null(radius)) k else NA_integer_,
         alternative = alternative
@@ -318,7 +318,7 @@ spatialCloneJoinCount <- function(object,
 
   summary <- dplyr::bind_rows(summaries)
   if (nrow(summary) == 0L) {
-    rlang::abort("No clones could be tested after applying `min_barcodes` and region grouping.")
+    rlang::abort("No clones could be tested after applying `min_spatial_ids` and region grouping.")
   }
   summary <- summary[order(summary$p_value, summary$image, summary$polygon, summary$clone_id), , drop = FALSE]
   rownames(summary) <- NULL
@@ -332,7 +332,7 @@ spatialCloneJoinCount <- function(object,
     radius = radius,
     k = k,
     alternative = alternative,
-    min_barcodes = min_barcodes
+    min_spatial_ids = min_spatial_ids
   )
 }
 
@@ -407,14 +407,14 @@ plotSpatialCloneJoinCount <- function(join_count,
   .check_required_cols(
     summary_data,
     c(
-      "clone_id", "image", "polygon", "n_barcodes", "n_clone_barcodes",
+      "clone_id", "image", "polygon", "n_spatial_ids", "n_clone_spatial_ids",
       "observed_join_count", "expected_join_count", "statistic", "p_value"
     ),
     "join_count$summary"
   )
   .check_required_cols(
     mark_data,
-    c("clone_id", "image", "polygon", ".sirap_barcode", "x", ".sirap_y", "join_count_mark"),
+    c("clone_id", "image", "polygon", ".sirap_spatial_id", "x", ".sirap_y", "join_count_mark"),
     "join_count$data"
   )
 
@@ -561,7 +561,7 @@ plotSpatialCloneJoinCount <- function(join_count,
   annotation_data$.sirap_annotation <- paste0(
     "z = ", formatC(summary_data$statistic, digits = 2, format = "f"),
     "\np = ", format.pval(summary_data$p_value, digits = 2, eps = 0.001),
-    "\n", summary_data$n_clone_barcodes, "/", summary_data$n_barcodes, " clone-positive spots"
+    "\n", summary_data$n_clone_spatial_ids, "/", summary_data$n_spatial_ids, " clone-positive spots"
   )
   annotation_data$x <- 1.5
   annotation_data$y <- max(c(count_data$join_count, 0), na.rm = TRUE) * 1.12
@@ -904,7 +904,7 @@ plotRipleyCrossK <- function(kcross,
                                            variable_type,
                                            value,
                                            receptors,
-                                           barcode_col,
+                                           spatial_id_col,
                                            clone_col,
                                            layer,
                                            images,
@@ -913,10 +913,10 @@ plotRipleyCrossK <- function(kcross,
   options <- .sirap_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
-  inputs <- .sirap_resolve_inputs(object, receptors, barcode_col)
+  inputs <- .sirap_resolve_inputs(object, receptors, spatial_id_col)
   object <- inputs$object
   receptors <- inputs$receptors
-  barcode_col <- inputs$barcode_col
+  spatial_id_col <- inputs$spatial_id_col
   if (is.null(clone_col) && !is.null(inputs$receptor_fields$clone)) {
     clone_col <- inputs$receptor_fields$clone
   }
@@ -956,13 +956,13 @@ plotRipleyCrossK <- function(kcross,
     if (is.null(receptors)) {
       rlang::abort("`receptors` is required when `variable_type = 'receptor'`.")
     }
-    if (is.null(barcode_col)) {
-      rlang::abort("`barcode` is required when it cannot be resolved from a SIRAP object.")
+    if (is.null(spatial_id_col)) {
+      rlang::abort("`spatial_id` is required when it cannot be resolved from a SIRAP object.")
     }
     receptors <- .as_data_frame(receptors)
-    .check_required_cols(receptors, barcode_col, "receptors")
-    receptor_barcodes <- unique(as.character(receptors[[barcode_col]]))
-    dat$value <- as.integer(dat$cell %in% receptor_barcodes)
+    .check_required_cols(receptors, spatial_id_col, "receptors")
+    receptor_ids <- unique(as.character(receptors[[spatial_id_col]]))
+    dat$value <- as.integer(dat$cell %in% receptor_ids)
     dat$variable <- variable
   } else {
     # Clone mode is a clone-specific receptor indicator: spots containing any
@@ -970,21 +970,21 @@ plotRipleyCrossK <- function(kcross,
     if (is.null(receptors)) {
       rlang::abort("`receptors` is required when `variable_type = 'clone'`.")
     }
-    if (is.null(barcode_col)) {
-      rlang::abort("`barcode` is required when it cannot be resolved from a SIRAP object.")
+    if (is.null(spatial_id_col)) {
+      rlang::abort("`spatial_id` is required when it cannot be resolved from a SIRAP object.")
     }
     if (is.null(clone_col)) {
       rlang::abort("`clone` is required when it cannot be resolved from a SIRAP object.")
     }
     receptors <- .as_data_frame(receptors)
-    .check_required_cols(receptors, c(barcode_col, clone_col), "receptors")
+    .check_required_cols(receptors, c(spatial_id_col, clone_col), "receptors")
     clone_ids <- as.character(value %||% variable)
     clone_ids <- unique(clone_ids[!is.na(clone_ids) & nzchar(clone_ids)])
     if (length(clone_ids) == 0L) {
       rlang::abort("`variable` or `value` must name at least one clone ID when `variable_type = 'clone'`.")
     }
-    receptor_barcodes <- unique(as.character(receptors[[barcode_col]][as.character(receptors[[clone_col]]) %in% clone_ids]))
-    dat$value <- as.integer(dat$cell %in% receptor_barcodes)
+    receptor_ids <- unique(as.character(receptors[[spatial_id_col]][as.character(receptors[[clone_col]]) %in% clone_ids]))
+    dat$value <- as.integer(dat$cell %in% receptor_ids)
     dat$variable <- paste0("clone_", paste(clone_ids, collapse = "_"))
   }
 
@@ -1070,7 +1070,7 @@ plotRipleyCrossK <- function(kcross,
 .sirap_joincount_receptor_data <- function(object,
                                            receptors,
                                            clone_col,
-                                           barcode_col,
+                                           spatial_id_col,
                                            polygon,
                                            polygon_id,
                                            images,
@@ -1082,16 +1082,16 @@ plotRipleyCrossK <- function(kcross,
                                            include_boundary,
                                            require_closed) {
   receptors <- .as_data_frame(receptors)
-  .check_required_cols(receptors, c(barcode_col, clone_col), "receptors")
+  .check_required_cols(receptors, c(spatial_id_col, clone_col), "receptors")
   coords <- .sirap_spatial_coordinate_table(object, images = images, image_scale = image_scale, swap_coords = swap_coords)
   coords <- coords[is.finite(coords$x) & is.finite(coords$y), , drop = FALSE]
   if (nrow(coords) == 0L) {
     rlang::abort("No finite spatial coordinates were found in `object`.")
   }
 
-  receptor_cols <- setdiff(colnames(receptors), setdiff(c("cell", "x", "y", ".sirap_y", "image", "polygon"), c(barcode_col, clone_col)))
+  receptor_cols <- setdiff(colnames(receptors), setdiff(c("cell", "x", "y", ".sirap_y", "image", "polygon"), c(spatial_id_col, clone_col)))
   receptors <- receptors[, receptor_cols, drop = FALSE]
-  receptors$.sirap_barcode <- as.character(receptors[[barcode_col]])
+  receptors$.sirap_spatial_id <- as.character(receptors[[spatial_id_col]])
 
   if (is.null(polygon)) {
     region_coords <- coords
@@ -1099,7 +1099,7 @@ plotRipleyCrossK <- function(kcross,
     out <- merge(
       receptors,
       region_coords[, c("cell", "x", "y", ".sirap_y", "image", "polygon"), drop = FALSE],
-      by.x = ".sirap_barcode",
+      by.x = ".sirap_spatial_id",
       by.y = "cell",
       all.x = FALSE,
       all.y = FALSE,
@@ -1135,7 +1135,7 @@ plotRipleyCrossK <- function(kcross,
     merge(
       receptors,
       region_coords[, c("cell", "x", "y", ".sirap_y", "image", "polygon"), drop = FALSE],
-      by.x = ".sirap_barcode",
+      by.x = ".sirap_spatial_id",
       by.y = "cell",
       all.x = FALSE,
       all.y = FALSE,
@@ -1150,8 +1150,8 @@ plotRipleyCrossK <- function(kcross,
                                          clone_id,
                                          image,
                                          polygon,
-                                         n_barcodes,
-                                         n_clone_barcodes,
+                                         n_spatial_ids,
+                                         n_clone_spatial_ids,
                                          radius,
                                          k,
                                          alternative) {
@@ -1172,8 +1172,8 @@ plotRipleyCrossK <- function(kcross,
     clone_id = as.character(clone_id),
     image = as.character(image),
     polygon = as.character(polygon),
-    n_barcodes = as.integer(n_barcodes),
-    n_clone_barcodes = as.integer(n_clone_barcodes),
+    n_spatial_ids = as.integer(n_spatial_ids),
+    n_clone_spatial_ids = as.integer(n_clone_spatial_ids),
     observed_join_count = get_estimate("join|observed", 1L),
     expected_join_count = get_estimate("expect", 2L),
     variance = get_estimate("var", 3L),

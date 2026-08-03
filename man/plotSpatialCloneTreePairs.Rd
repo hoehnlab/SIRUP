@@ -7,7 +7,7 @@
 plotSpatialCloneTreePairs(
   trees,
   object,
-  barcode = NULL,
+  spatial_id = NULL,
   clone_val = NULL,
   id = "sequence_id",
   clone = "clone_id",
@@ -34,7 +34,7 @@ element with that output.}
 
 \item{object}{Seurat object with spatial images, or a SIRAP object.}
 
-\item{barcode}{Column in the dowser clone data matching Seurat spot
+\item{spatial_id}{Column in the dowser clone data matching Seurat spot
 names. May be omitted when \code{object} is a SIRAP object.}
 
 \item{clone_val}{Optional clone IDs to plot.}
@@ -45,7 +45,7 @@ names. May be omitted when \code{object} is a SIRAP object.}
 
 \item{color_by}{Column used to assign matching tree and spatial colors.
 Use \code{"identity"} to give each tip its own color. Use another column name,
-such as \code{"tree_cluster"} or a spatial barcode column, to color tips by
+such as \code{"tree_cluster"} or a spatial ID column, to color tips by
 groups in that column.}
 
 \item{palette}{Optional colors. If fewer colors are supplied than needed,
@@ -86,7 +86,7 @@ below the spatial plot.}
 Named list. Each clone element contains \code{tree} and \code{spatial_clone}.
 }
 \description{
-Tips without spatial coordinates or spatial barcodes can still appear in the
-tree panel. The spatial panel only plots tips whose \code{barcode} matches a
+Tips without spatial coordinates or spatial IDs can still appear in the
+tree panel. The spatial panel only plots tips whose \code{spatial_id} matches a
 spot in \code{object}.
 }

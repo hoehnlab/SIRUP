@@ -1,12 +1,12 @@
 #' Calculate receptor clone dominance inside spatial polygons
 #'
-#' Finds Seurat spatial barcodes whose coordinates fall inside closed polygons,
-#' subsets receptor rows to those barcodes, and returns the fraction of regional
+#' Finds Seurat spatial IDs whose coordinates fall inside closed polygons,
+#' subsets receptor rows to those spatial IDs, and returns the fraction of regional
 #' receptors represented by each clone. Points on the polygon boundary are
 #' included by default.
 #'
 #' @param receptors AIRR-style receptor data frame containing clone assignments
-#'   and a spatial barcode column. This may instead be a SIRAP object when
+#'   and a spatial ID column. This may instead be a SIRAP object when
 #'   `object` is omitted.
 #' @param object Seurat object with spatial coordinates or metadata coordinate
 #'   columns, or a SIRAP object. When this is a SIRAP object, `receptors` may
@@ -14,8 +14,8 @@
 #' @param polygon Data frame of polygon vertices in order. Must contain `x` and
 #'   `y` columns by default. If a `polygon` column is present, each polygon is
 #'   summarized independently unless `polygon_val` selects one or more polygons.
-#' @param barcode Column in `receptors` matching Seurat spot/cell barcodes.
-#'   If `NULL`, a barcode-like column is guessed.
+#' @param spatial_id Column in `receptors` matching Seurat spot/cell spatial IDs.
+#'   If `NULL`, a spatial ID-like column is guessed.
 #' @param clone Column in `receptors` containing clone IDs.
 #' @param locus_val Optional locus value(s) used to filter `receptors`, for example
 #'   `"IGH"`. Use `NULL` to keep all loci.
@@ -41,14 +41,14 @@
 #' @param require_closed Require the final polygon vertex to equal the first.
 #'   Set to `FALSE` to close open polygons automatically.
 #' @return A spatial clone dominance object containing the dominance table,
-#'   regional barcodes, regional coordinate rows, regional receptor rows, polygon
+#'   regional spatial IDs, regional coordinate rows, regional receptor rows, polygon
 #'   vertices prepared for plotting, and analysis metadata containing the
 #'   receptor field mappings used for the analysis.
 #' @export
 spatialCloneDominance <- function(receptors = NULL,
                                   object = NULL,
-                                  polygon,
-                                  barcode = NULL,
+                                  polygon = NULL,
+                                  spatial_id = NULL,
                                   clone = "clone_id",
                                   locus_val = NULL,
                                   locus = "locus",
@@ -75,10 +75,19 @@ spatialCloneDominance <- function(receptors = NULL,
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
   is_sirap <- isSIRAP(object)
-  inputs <- .sirap_resolve_inputs(object, receptors, barcode)
+  if (is.null(polygon)) {
+    if (!is_sirap) {
+      rlang::abort("`polygon` must be supplied when `object` is not a SIRAP object.")
+    }
+    polygon <- .sirap_polygon_vertices_table(.sirap_polygons(object))
+    if (nrow(polygon) == 0L) {
+      rlang::abort("The SIRAP object does not contain stored polygons.")
+    }
+  }
+  inputs <- .sirap_resolve_inputs(object, receptors, spatial_id)
   object <- inputs$object
   receptors <- inputs$receptors
-  barcode <- inputs$barcode_col
+  spatial_id <- inputs$spatial_id_col
   if (is.null(receptors)) {
     rlang::abort("`receptors` is required when `object` is not a SIRAP object.")
   }
@@ -93,8 +102,8 @@ spatialCloneDominance <- function(receptors = NULL,
   }
   receptors <- .as_data_frame(receptors)
   polygon <- .as_data_frame(polygon)
-  barcode <- .guess_barcode_col(receptors, barcode)
-  .check_required_cols(receptors, c(barcode, clone), "receptors")
+  spatial_id <- .guess_spatial_id_col(receptors, spatial_id)
+  .check_required_cols(receptors, c(spatial_id, clone), "receptors")
   .check_required_cols(polygon, c(x, y), "polygon")
   if (!is.null(locus_val)) {
     .check_required_cols(receptors, locus, "receptors")
@@ -156,9 +165,9 @@ spatialCloneDominance <- function(receptors = NULL,
       include_boundary = include_boundary
     )
     region_coords <- coords[inside, , drop = FALSE]
-    region_barcodes <- unique(as.character(region_coords$cell))
+    region_spatial_ids <- unique(as.character(region_coords$cell))
 
-    regional_receptors <- receptors[as.character(receptors[[barcode]]) %in% region_barcodes, , drop = FALSE]
+    regional_receptors <- receptors[as.character(receptors[[spatial_id]]) %in% region_spatial_ids, , drop = FALSE]
 
     if (nrow(regional_receptors) == 0L) {
       out <- data.frame(
@@ -169,7 +178,7 @@ spatialCloneDominance <- function(receptors = NULL,
         n_receptors = numeric(),
         proportion = numeric(),
         region_receptor_total = numeric(),
-        n_region_barcodes = integer(),
+        n_region_spatial_ids = integer(),
         stringsAsFactors = FALSE
       )
     } else {
@@ -224,9 +233,9 @@ spatialCloneDominance <- function(receptors = NULL,
       total <- sum(out$n_receptors)
       out$proportion <- out$n_receptors / total
       out$region_receptor_total <- total
-      out$n_region_barcodes <- length(region_barcodes)
+      out$n_region_spatial_ids <- length(region_spatial_ids)
       out <- out[order(out$proportion, out$n_receptors, decreasing = TRUE), , drop = FALSE]
-      out <- out[, c("clone_id", "v_gene", "v_gene_family", "v_gene_superfamily", "n_receptors", "proportion", "region_receptor_total", "n_region_barcodes"), drop = FALSE]
+      out <- out[, c("clone_id", "v_gene", "v_gene_family", "v_gene_superfamily", "n_receptors", "proportion", "region_receptor_total", "n_region_spatial_ids"), drop = FALSE]
     }
     if (!is.null(locus_val)) {
       out$locus_filter <- rep(paste(as.character(locus_val), collapse = ","), nrow(out))
@@ -234,15 +243,15 @@ spatialCloneDominance <- function(receptors = NULL,
     polygon_value <- if (isTRUE(spec$add_polygon_col)) spec$id else "polygon_1"
     out$polygon <- rep(as.character(polygon_value), nrow(out))
 
-    region_barcode_table <- data.frame(
-      barcode = region_barcodes,
-      polygon = rep(as.character(polygon_value), length(region_barcodes)),
+    region_spatial_id_table <- data.frame(
+      spatial_id = region_spatial_ids,
+      polygon = rep(as.character(polygon_value), length(region_spatial_ids)),
       stringsAsFactors = FALSE
     )
     region_coords$polygon <- rep(as.character(polygon_value), nrow(region_coords))
     if (nrow(regional_receptors) == 0L || nrow(region_coords) == 0L) {
       region_receptor_table <- regional_receptors[0, , drop = FALSE]
-      region_receptor_table$.sirap_barcode <- character()
+      region_receptor_table$.sirap_spatial_id <- character()
       region_receptor_table$x <- numeric()
       region_receptor_table$y <- numeric()
       region_receptor_table$.sirap_y <- numeric()
@@ -253,11 +262,11 @@ spatialCloneDominance <- function(receptors = NULL,
       region_coord_table <- region_coords[, c("cell", "x", "y", "image"), drop = FALSE]
       region_coord_table$.sirap_y <- -region_coord_table$y
       region_receptor_table <- .sirap_drop_plot_coordinate_cols(regional_receptors)
-      region_receptor_table$.sirap_barcode <- as.character(region_receptor_table[[barcode]])
+      region_receptor_table$.sirap_spatial_id <- as.character(region_receptor_table[[spatial_id]])
       region_receptor_table <- merge(
         region_receptor_table,
         region_coord_table,
-        by.x = ".sirap_barcode",
+        by.x = ".sirap_spatial_id",
         by.y = "cell",
         all.x = FALSE,
         all.y = FALSE,
@@ -268,7 +277,7 @@ spatialCloneDominance <- function(receptors = NULL,
     }
     list(
       dominance = out,
-      region_barcodes = region_barcode_table,
+      region_spatial_ids = region_spatial_id_table,
       region_coordinates = region_coords,
       region_receptors = region_receptor_table
     )
@@ -278,13 +287,13 @@ spatialCloneDominance <- function(receptors = NULL,
 
   out <- list(
     dominance = out,
-    region_barcodes = .sirap_rbind(results, "region_barcodes"),
+    region_spatial_ids = .sirap_rbind(results, "region_spatial_ids"),
     region_coordinates = .sirap_rbind(results, "region_coordinates"),
     region_receptors = .sirap_rbind(results, "region_receptors"),
     polygons = polygon_plot_data,
     metadata = list(
       receptor_fields = list(
-        barcode = barcode,
+        spatial_id = spatial_id,
         clone = clone,
         locus = locus,
         count = count,
@@ -299,7 +308,7 @@ spatialCloneDominance <- function(receptors = NULL,
 #' Select spatial polygon vertices interactively
 #'
 #' Opens a Shiny app for clicking polygon vertices on a Seurat spatial
-#' coordinate plot. Each click snaps to the nearest spatial barcode. Use
+#' coordinate plot. Each click snaps to the nearest spatial ID. Use
 #' "Close polygon" or "New polygon" before finishing to repeat the first vertex
 #' at the end of each polygon.
 #'
@@ -319,7 +328,7 @@ spatialCloneDominance <- function(receptors = NULL,
 #'   Defaults to `FALSE`.
 #' @param downsample_n Optional number of spatial points to show in the Shiny
 #'   plot. Use `NULL` to show all points. Clicks still snap to the nearest
-#'   barcode in the full coordinate table.
+#'   spatial_id in the full coordinate table.
 #' @param downsample_seed Random seed used when `downsample_n` is not `NULL`.
 #' @param point_size Size of spatial points in the plot.
 #' @param point_alpha Initial opacity for spatial points.
@@ -328,7 +337,7 @@ spatialCloneDominance <- function(receptors = NULL,
 #'   are useful when running from an interactive HPC session through an SSH
 #'   tunnel.
 #' @param quiet Suppress warnings while the app is running.
-#' @return Data frame with `barcode`, `x`, `y`, `polygon`, and `image` columns.
+#' @return Data frame with `spatial_id`, `x`, `y`, `polygon`, and `image` columns.
 #' @export
 selectSpatialPolygons <- function(object,
                                   feature = NULL,
@@ -367,7 +376,7 @@ selectSpatialPolygons <- function(object,
   if (nrow(coords) == 0L) {
     rlang::abort("No spatial coordinates were found in `object`.")
   }
-  coords$barcode <- coords$cell
+  coords$spatial_id <- coords$cell
   coords$.sirap_plot_y <- -coords$y
   y_axis_offset <- min(coords$.sirap_plot_y, na.rm = TRUE)
   plot_coords <- .sirap_downsample_polygon_plot_coords(
@@ -544,7 +553,7 @@ selectSpatialPolygons <- function(object,
       }
       closest <- coords[closest_idx, , drop = FALSE]
       closest <- data.frame(
-        barcode = closest$cell,
+        spatial_id = closest$cell,
         x = closest$x,
         y = closest$y,
         .sirap_plot_y = closest$.sirap_plot_y,
@@ -612,14 +621,14 @@ selectSpatialPolygons <- function(object,
 #' the same vertex-table structure returned by `selectSpatialPolygons()`. By
 #' default, interior point sets are converted to polygon outlines by buffering
 #' and unioning spots with `sf`, then mapping the exterior ring back to the
-#' nearest selected barcode coordinates. This preserves a valid boundary order
-#' for concave polygons while returning Visium barcode coordinates as vertices.
+#' nearest selected spatial_id coordinates. This preserves a valid boundary order
+#' for concave polygons while returning Visium spatial_id coordinates as vertices.
 #' If the input already contains boundary points, use `point_type = "boundary"`.
 #'
 #' @param object Seurat object with spatial coordinates, or a SIRAP object.
 #' @param polygon_points Data frame containing all points inside each polygon,
 #'   or boundary points when `point_type = "boundary"`.
-#' @param barcode Column in `polygon_points` containing Seurat barcodes.
+#' @param spatial_id Column in `polygon_points` containing Seurat spatial IDs.
 #'   Required when `x` and `y` are not present.
 #' @param polygon Column in `polygon_points` identifying each polygon.
 #' @param x,y Coordinate columns in `polygon_points`, if already
@@ -639,12 +648,12 @@ selectSpatialPolygons <- function(object,
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate axes.
 #' @param close_polygons Close each polygon by repeating the first vertex when
 #'   needed.
-#' @return Data frame with `barcode`, `x`, `y`, `polygon`, and `image` columns.
+#' @return Data frame with `spatial_id`, `x`, `y`, `polygon`, and `image` columns.
 #'   Polygons with fewer than three points are excluded with a warning.
 #' @export
 formatSpatialPolygons <- function(object,
                                   polygon_points,
-                                  barcode = "barcode",
+                                  spatial_id = "spatial_id",
                                   polygon = "polygon",
                                   x = "x",
                                   y = "y",
@@ -681,10 +690,10 @@ formatSpatialPolygons <- function(object,
     polygon_points$.sirap_input_order <- NULL
   }
 
-  has_barcode <- barcode %in% colnames(polygon_points)
+  has_spatial_id <- spatial_id %in% colnames(polygon_points)
   has_xy <- all(c(x, y) %in% colnames(polygon_points))
-  if (!has_barcode && !has_xy) {
-    rlang::abort("`polygon_points` must contain barcode values or x/y coordinate columns.")
+  if (!has_spatial_id && !has_xy) {
+    rlang::abort("`polygon_points` must contain spatial_id values or x/y coordinate columns.")
   }
 
   coords <- .sirap_spatial_coordinate_table(
@@ -694,29 +703,29 @@ formatSpatialPolygons <- function(object,
     swap_coords = swap_coords
   )
   coords$cell <- as.character(coords$cell)
-  if (has_barcode) {
-    polygon_points[[barcode]] <- as.character(polygon_points[[barcode]])
+  if (has_spatial_id) {
+    polygon_points[[spatial_id]] <- as.character(polygon_points[[spatial_id]])
   }
 
-  if (has_barcode && (!has_xy || !image %in% colnames(polygon_points))) {
+  if (has_spatial_id && (!has_xy || !image %in% colnames(polygon_points))) {
     has_image <- image %in% colnames(polygon_points)
     if (anyDuplicated(coords$cell) > 0L && !has_image) {
       rlang::abort(
-        "`object` has duplicated spatial barcodes across images; provide `image` in `polygon_points`."
+        "`object` has duplicated spatial IDs across images; provide `image` in `polygon_points`."
       )
     }
     if (has_image) {
       coord_key <- paste(coords$cell, coords$image, sep = "\r")
-      point_key <- paste(polygon_points[[barcode]], polygon_points[[image]], sep = "\r")
+      point_key <- paste(polygon_points[[spatial_id]], polygon_points[[image]], sep = "\r")
       coord_lookup <- coords[match(point_key, coord_key), , drop = FALSE]
     } else {
-      coord_lookup <- coords[match(polygon_points[[barcode]], coords$cell), , drop = FALSE]
+      coord_lookup <- coords[match(polygon_points[[spatial_id]], coords$cell), , drop = FALSE]
     }
-    missing_barcodes <- unique(polygon_points[[barcode]][is.na(coord_lookup$cell)])
-    if (length(missing_barcodes) > 0L) {
+    missing_spatial_ids <- unique(polygon_points[[spatial_id]][is.na(coord_lookup$cell)])
+    if (length(missing_spatial_ids) > 0L) {
       rlang::abort(paste0(
-        "Some polygon point barcodes were not found in `object`: ",
-        paste(utils::head(missing_barcodes, 10), collapse = ", ")
+        "Some polygon point spatial IDs were not found in `object`: ",
+        paste(utils::head(missing_spatial_ids, 10), collapse = ", ")
       ))
     }
     if (!has_xy) {
@@ -737,7 +746,7 @@ formatSpatialPolygons <- function(object,
   }
 
   out <- data.frame(
-    barcode = if (has_barcode) polygon_points[[barcode]] else NA_character_,
+    spatial_id = if (has_spatial_id) polygon_points[[spatial_id]] else NA_character_,
     x = as.numeric(polygon_points[[x]]),
     y = as.numeric(polygon_points[[y]]),
     polygon = polygon_points[[polygon]],
@@ -781,8 +790,8 @@ formatSpatialPolygons <- function(object,
 #'
 #' @param object Seurat object with spatial images, or a SIRAP object.
 #' @param polygon Data frame of polygon vertices in order. Must contain `x` and
-#'   `y` columns by default. If a `polygon` column is present, each polygon is
-#'   drawn independently.
+#'   `y` columns by default. If `object` is a SIRAP object and `polygon` is
+#'   omitted, the object's stored polygons are used.
 #' @param images Optional Seurat image names to show.
 #' @param image_scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
@@ -794,8 +803,17 @@ formatSpatialPolygons <- function(object,
 #' @param x,y Coordinate columns in `polygon`.
 #' @param polygon_id Optional polygon grouping column in `polygon`.
 #' @param polygon_alpha Fill opacity for polygons.
-#' @param fill Fill color for polygons.
-#' @param color Outline color for polygons.
+#' @param polygon_fill Fill color for polygons when no analysis is mapped.
+#' @param fill_analysis Optional name of a stored SIRAP analysis containing
+#'   one row per polygon.
+#' @param fill_column Optional column in `fill_analysis` used to color polygon
+#'   interiors. The analysis must contain `polygon_id` or `polygon` as its
+#'   polygon key.
+#' @param analysis_fill Character vector of two colors used as the low and high
+#'   ends of the numeric analysis gradient. Defaults to
+#'   `c("#D3D3D3", "#FFFF00")`. Non-numeric analysis values use the Glasbey
+#'   palette.
+#' @param polygon_color Outline color for polygons.
 #' @param linewidth Outline width for polygons.
 #' @param image_alpha Tissue image opacity.
 #' @param label Plot labels at polygon centers.
@@ -810,7 +828,7 @@ formatSpatialPolygons <- function(object,
 #'   `combine = FALSE`.
 #' @export
 plotSpatialPolygons <- function(object,
-                                polygon,
+                                polygon = NULL,
                                 images = NULL,
                                 image_scale = NULL,
                                 swap_coords = NULL,
@@ -819,8 +837,11 @@ plotSpatialPolygons <- function(object,
                                 y = "y",
                                 polygon_id = "polygon",
                                 polygon_alpha = 0.2,
-                                fill = "#0072B2",
-                                color = "#0072B2",
+                                polygon_fill = "#0072B2",
+                                fill_analysis = NULL,
+                                fill_column = NULL,
+                                analysis_fill = c("#D3D3D3", "#FFFF00"),
+                                polygon_color = "#0072B2",
                                 linewidth = 0.6,
                                 image_alpha = 1,
                                 label = TRUE,
@@ -830,11 +851,21 @@ plotSpatialPolygons <- function(object,
                                 zoom = FALSE,
                                 require_closed = TRUE,
                                 combine = TRUE) {
+  sirap_object <- if (isSIRAP(object)) object else NULL
   context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
   .require_namespace("SeuratObject")
+  if (is.null(polygon)) {
+    if (is.null(sirap_object)) {
+      rlang::abort("`polygon` must be supplied when `object` is not a SIRAP object.")
+    }
+    polygon <- .sirap_polygon_vertices_table(.sirap_polygons(sirap_object))
+    if (nrow(polygon) == 0L) {
+      rlang::abort("The SIRAP object does not contain stored polygons.")
+    }
+  }
   polygon <- .as_data_frame(polygon)
   .check_required_cols(polygon, c(x, y), "polygon")
   if (!is.numeric(polygon_alpha) || length(polygon_alpha) != 1L || is.na(polygon_alpha) ||
@@ -851,6 +882,20 @@ plotSpatialPolygons <- function(object,
     require_closed = require_closed,
     keep_cols = label_by
   )
+  if (!is.null(fill_analysis) || !is.null(fill_column)) {
+    if (is.null(sirap_object)) {
+      rlang::abort("`fill_analysis` and `fill_column` require a SIRAP object.")
+    }
+    if (is.null(fill_analysis) || is.null(fill_column)) {
+      rlang::abort("Supply both `fill_analysis` and `fill_column`.")
+    }
+    polygon_data <- .sirap_join_polygon_fill_data(
+      object = sirap_object,
+      polygon_data = polygon_data,
+      analysis_name = fill_analysis,
+      fill_column = fill_column
+    )
+  }
   if (!isTRUE(label) && !identical(label, FALSE)) {
     rlang::abort("`label` must be TRUE or FALSE.")
   }
@@ -877,15 +922,51 @@ plotSpatialPolygons <- function(object,
       zoom = zoom,
       view_data = if (isTRUE(zoom)) NULL else full_image_data
     ) +
-      ggplot2::geom_polygon(
-        data = polygon_data,
-        ggplot2::aes(x = .data$x, y = .data$.sirap_y, group = .data$polygon),
-        inherit.aes = FALSE,
-        fill = fill,
-        color = color,
-        alpha = polygon_alpha,
-        linewidth = linewidth
-      )
+      if (is.null(fill_analysis)) {
+        ggplot2::geom_polygon(
+          data = polygon_data,
+          ggplot2::aes(x = .data$x, y = .data$.sirap_y, group = .data$polygon),
+          inherit.aes = FALSE,
+          fill = polygon_fill,
+          color = polygon_color,
+          alpha = polygon_alpha,
+          linewidth = linewidth
+        )
+      } else {
+        ggplot2::geom_polygon(
+          data = polygon_data,
+          ggplot2::aes(
+            x = .data$x, y = .data$.sirap_y, group = .data$polygon,
+            fill = .data$.sirap_fill_value
+          ),
+          inherit.aes = FALSE,
+          color = polygon_color,
+          alpha = polygon_alpha,
+          linewidth = linewidth
+        )
+      }
+    if (!is.null(fill_analysis)) {
+      analysis_is_numeric <- is.numeric(polygon_data$.sirap_fill_value)
+      if (analysis_is_numeric &&
+          (!is.character(analysis_fill) || length(analysis_fill) != 2L ||
+           anyNA(analysis_fill) || any(!nzchar(analysis_fill)))) {
+        rlang::abort("`analysis_fill` must contain exactly two non-missing color values for numeric analysis data.")
+      }
+      fill_scale <- if (analysis_is_numeric) {
+        ggplot2::scale_fill_gradient(
+          low = analysis_fill[[1]],
+          high = analysis_fill[[2]],
+          na.value = "grey85"
+        )
+      } else {
+        levels <- sort(unique(stats::na.omit(as.character(polygon_data$.sirap_fill_value))))
+        fill_values <- .sirap_discrete_palette_values(levels)
+        ggplot2::scale_fill_manual(values = fill_values, na.value = "grey85")
+      }
+      plots[[image]] <- plots[[image]] +
+        fill_scale +
+        ggplot2::labs(fill = fill_column)
+    }
     if (isTRUE(label)) {
       plots[[image]] <- plots[[image]] +
         ggplot2::geom_text(
@@ -1359,9 +1440,9 @@ plotSpatialPolygonPies <- function(dominance,
   }
 }
 
-#' Subset a Seurat object to spatial barcodes inside polygons
+#' Subset a Seurat object to spatial IDs inside polygons
 #'
-#' Keeps only Seurat barcodes whose spatial coordinates fall inside one or more
+#' Keeps only Seurat spatial IDs whose spatial coordinates fall inside one or more
 #' polygon regions and records polygon membership in the returned object's
 #' metadata.
 #'
@@ -1385,7 +1466,7 @@ plotSpatialPolygonPies <- function(dominance,
 #' @param include_boundary Include Seurat spots on polygon edges.
 #' @param require_closed Require the final polygon vertex to equal the first.
 #'   Set to `FALSE` to close open polygons automatically.
-#' @return A Seurat object subset to barcodes inside the selected polygon(s),
+#' @return A Seurat object subset to spatial IDs inside the selected polygon(s),
 #'   with `metadata` appended to `@meta.data`.
 #' @export
 seuratSubsetPolygon <- function(object,
@@ -1449,13 +1530,13 @@ seuratSubsetPolygon <- function(object,
   })
   membership <- .sirap_bind_rows(membership)
   if (nrow(membership) == 0L) {
-    rlang::abort("No Seurat barcodes were found inside the selected polygon(s).")
+    rlang::abort("No Seurat spatial IDs were found inside the selected polygon(s).")
   }
 
   keep_cells <- unique(as.character(membership$cell))
   keep_cells <- keep_cells[keep_cells %in% colnames(object)]
   if (length(keep_cells) == 0L) {
-    rlang::abort("No polygon-matched barcodes are present in `object`.")
+    rlang::abort("No polygon-matched IDs are present in `object`.")
   }
 
   polygon_values <- stats::aggregate(
@@ -1636,7 +1717,7 @@ seuratSubsetPolygon <- function(object,
 
 .sirap_empty_polygon_vertices <- function() {
   data.frame(
-    barcode = character(),
+    spatial_id = character(),
     x = numeric(),
     y = numeric(),
     .sirap_plot_y = numeric(),
@@ -1689,6 +1770,58 @@ seuratSubsetPolygon <- function(object,
   rownames(out) <- NULL
   out$.sirap_y <- -out$y
   out
+}
+
+.sirap_polygon_vertices_table <- function(polygons) {
+  .sirap_validate_polygons(polygons)
+  if (nrow(polygons) == 0L) {
+    return(data.frame(x = numeric(), y = numeric(), polygon = character(), stringsAsFactors = FALSE))
+  }
+  out <- lapply(seq_len(nrow(polygons)), function(i) {
+    vertices <- as.data.frame(polygons$vertices[[i]], stringsAsFactors = FALSE)
+    vertices$polygon <- as.character(polygons$polygon_id[[i]])
+    extra <- setdiff(names(polygons), c("polygon_id", "vertices"))
+    for (column in extra) {
+      if (!column %in% names(vertices)) vertices[[column]] <- polygons[[column]][[i]]
+    }
+    vertices
+  })
+  out <- do.call(rbind, out)
+  rownames(out) <- NULL
+  out
+}
+
+.sirap_join_polygon_fill_data <- function(object,
+                                          polygon_data,
+                                          analysis_name,
+                                          fill_column) {
+  analysis <- getAnalysis(object, analysis_name)
+  if (is.list(analysis) && !is.data.frame(analysis) &&
+      is.data.frame(analysis$dominance)) {
+    analysis <- analysis$dominance
+  }
+  if (!is.data.frame(analysis)) {
+    rlang::abort("The selected polygon analysis must be a data frame or contain a `dominance` data frame.")
+  }
+  key <- if ("polygon_id" %in% names(analysis)) "polygon_id" else "polygon"
+  if (!all(c(key, fill_column) %in% names(analysis))) {
+    rlang::abort(paste0(
+      "The selected polygon analysis must contain `", key, "` and `",
+      fill_column, "`."
+    ))
+  }
+  values <- data.frame(
+    polygon = as.character(analysis[[key]]),
+    .sirap_fill_value = analysis[[fill_column]],
+    stringsAsFactors = FALSE
+  )
+  if (anyDuplicated(values$polygon)) {
+    rlang::abort("The selected polygon analysis must contain one row per polygon.")
+  }
+  polygon_data$polygon <- as.character(polygon_data$polygon)
+  matched <- match(polygon_data$polygon, values$polygon)
+  polygon_data$.sirap_fill_value <- values$.sirap_fill_value[matched]
+  polygon_data
 }
 
 .sirap_region_from_dominance <- function(dominance, polygon_val = NULL) {
@@ -2467,11 +2600,11 @@ seuratSubsetPolygon <- function(object,
     images = images,
     image_scale = image_scale,
     swap_coords = swap_coords,
-    polygon_col = "polygon",
+    polygon_id = "polygon",
     polygon_alpha = polygon_alpha,
     image_alpha = image_alpha,
     label = TRUE,
-    label_col = "polygon_label",
+    label_by = "polygon_label",
     label_size = label_size,
     zoom = zoom,
     require_closed = TRUE,
@@ -2886,19 +3019,19 @@ seuratSubsetPolygon <- function(object,
     nearest_idx <- nearest$nn.idx[, 1L]
     nearest_idx <- nearest_idx[!is.na(nearest_idx)]
     if (length(nearest_idx) == 0L) {
-      rlang::warn(paste0("No boundary barcodes could be identified for polygon ", polygon_id, "."))
+      rlang::warn(paste0("No boundary spatial IDs could be identified for polygon ", polygon_id, "."))
       return(NULL)
     }
     nearest_idx <- nearest_idx[c(TRUE, diff(nearest_idx) != 0)]
     nearest_idx <- nearest_idx[!duplicated(nearest_idx)]
     if (length(nearest_idx) < 3L) {
-      rlang::warn(paste0("Fewer than three boundary barcodes were found for polygon ", polygon_id, "."))
+      rlang::warn(paste0("Fewer than three boundary spatial IDs were found for polygon ", polygon_id, "."))
       return(NULL)
     }
     boundary_points <- current[nearest_idx, , drop = FALSE]
     boundary_points <- .sirap_clean_boundary_barcode_vertices(boundary_points)
     if (nrow(boundary_points) < 3L) {
-      rlang::warn(paste0("Fewer than three non-degenerate boundary barcodes were found for polygon ", polygon_id, "."))
+      rlang::warn(paste0("Fewer than three non-degenerate boundary spatial IDs were found for polygon ", polygon_id, "."))
       return(NULL)
     }
     if (!.sirap_boundary_barcode_vertices_valid(boundary_points)) {
@@ -2911,13 +3044,13 @@ seuratSubsetPolygon <- function(object,
       rlang::warn(paste0(
         "Polygon ",
         polygon_id,
-        " could not be represented as a valid barcode-coordinate boundary and will be excluded."
+        " could not be represented as a valid spatial_id-coordinate boundary and will be excluded."
       ))
       return(NULL)
     }
 
     data.frame(
-      barcode = boundary_points$barcode,
+      spatial_id = boundary_points$spatial_id,
       x = boundary_points$x,
       y = boundary_points$y,
       polygon = boundary_points$polygon,
