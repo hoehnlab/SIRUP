@@ -7,7 +7,7 @@
 plotSpatialColorTips(
   object,
   tip_data,
-  barcode = "spatial_barcode_8um",
+  spatial_id = "spatial_id_8um",
   color = "tip_color",
   label = NULL,
   legend_title = "Tip color",
@@ -27,9 +27,9 @@ plotSpatialColorTips(
 \arguments{
 \item{object}{Seurat object, or a SIRAP object.}
 
-\item{tip_data}{Data frame with spatial barcode and color columns.}
+\item{tip_data}{Data frame with spatial ID and color columns.}
 
-\item{barcode}{Column in \code{tip_data} matching Seurat spot names.}
+\item{spatial_id}{Spatial ID column in \code{tip_data} matching Seurat spot names.}
 
 \item{color}{Column containing colors.}
 

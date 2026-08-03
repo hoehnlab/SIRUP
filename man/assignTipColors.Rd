@@ -21,7 +21,7 @@ assignTipColors(
 \item{clone, id}{Column names for clone and sequence/tip identifiers.}
 
 \item{shared_color}{Optional column whose shared values should receive
-the same tip color within each clone, for example a spatial barcode column.}
+the same tip color within each clone, for example a spatial ID column.}
 
 \item{palette}{Optional color vector. Defaults to \code{pals::glasbey()} when
 available, otherwise base R qualitative colors.}

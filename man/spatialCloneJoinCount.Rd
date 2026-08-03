@@ -8,7 +8,7 @@ spatialCloneJoinCount(
   object,
   receptors = NULL,
   clone = NULL,
-  barcode = NULL,
+  spatial_id = NULL,
   clone_val = NULL,
   polygon = NULL,
   polygon_val = NULL,
@@ -20,7 +20,7 @@ spatialCloneJoinCount(
   polygon_id = "polygon",
   include_boundary = TRUE,
   require_closed = TRUE,
-  min_barcodes = 2,
+  min_spatial_ids = 2,
   radius = NULL,
   k = 6,
   alternative = "greater",
@@ -31,20 +31,20 @@ spatialCloneJoinCount(
 \arguments{
 \item{object}{Seurat object with spatial images, or a SIRAP object.}
 
-\item{receptors}{AIRR-style receptor data frame containing spatial barcodes
+\item{receptors}{AIRR-style receptor data frame containing spatial IDs
 and clone calls. May be omitted when \code{object} is a SIRAP object.}
 
 \item{clone}{Column in \code{receptors} containing clone IDs. Defaults to
 \code{NULL}; when \code{object} is a SIRAP object, the stored receptor clone field
 is used when available.}
 
-\item{barcode}{Column in \code{receptors} matching Seurat spot/cell barcodes.
+\item{spatial_id}{Column in \code{receptors} matching Seurat spot/cell spatial IDs.
 Defaults to \code{NULL}; when \code{object} is a SIRAP object, the stored receptor
-barcode field is used. Pass this explicitly when using separate Seurat and
+spatial_id field is used. Pass this explicitly when using separate Seurat and
 receptor objects.}
 
 \item{clone_val}{Optional clone ID values to test. Defaults to all clones
-observed in at least \code{min_barcodes} spatial barcodes.}
+observed in at least \code{min_spatial_ids} spatial IDs.}
 
 \item{polygon}{Optional polygon vertex data frame used to restrict the test
 to one or more regions.}
@@ -69,7 +69,7 @@ value must be supplied explicitly or by SIRAP object metadata.}
 
 \item{require_closed}{Require the final polygon vertex to equal the first.}
 
-\item{min_barcodes}{Minimum number of spatial barcodes containing a clone for
+\item{min_spatial_ids}{Minimum number of spatial IDs containing a clone for
 that clone to be tested.}
 
 \item{radius}{Optional distance radius defining neighborhoods.}
@@ -79,18 +79,18 @@ that clone to be tested.}
 \item{alternative}{Alternative hypothesis passed to
 \code{spdep::joincount.test()}.}
 
-\item{other_label}{Label used for non-target clone barcodes in each binary
+\item{other_label}{Label used for non-target clone spatial IDs in each binary
 test.}
 
-\item{return_data}{Return the barcode-level mark data used for each test.}
+\item{return_data}{Return the spatial_id-level mark data used for each test.}
 }
 \value{
-List containing a summary table, raw \code{spdep} tests, barcode-level
+List containing a summary table, raw \code{spdep} tests, spatial_id-level
 data, neighbors, and weights.
 }
 \description{
 Runs \code{spdep::joincount.test()} for each clone to test whether neighboring
-receptor-positive spatial barcodes are more likely to share that clone than
+receptor-positive spatial IDs are more likely to share that clone than
 expected under random labeling. This is useful for asking whether clones
 localize within regions of interest such as germinal centers.
 }

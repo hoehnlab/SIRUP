@@ -7,7 +7,7 @@
 createSIRAP(
   spatial,
   receptors,
-  barcode = NULL,
+  spatial_id = NULL,
   image = NULL,
   sample = NULL,
   clone = NULL,
@@ -16,6 +16,8 @@ createSIRAP(
   image_scale = NULL,
   swap_coords = NULL,
   metadata = list(),
+  polygons = NULL,
+  polygons_path = NULL,
   analyses = list(),
   validate = TRUE
 )
@@ -25,8 +27,8 @@ createSIRAP(
 
 \item{receptors}{A data-frame-like AIRR-style receptor table.}
 
-\item{barcode}{Column in \code{receptors} matching spatial cell or spot
-barcodes. When \code{NULL}, a barcode-like column is guessed once and recorded
+\item{spatial_id}{Column in \code{receptors} matching spatial cell or spot
+spatial IDs. When \code{NULL}, a spatial ID-like column is guessed once and recorded
 in the object metadata.}
 
 \item{image}{Optional receptor column identifying the Seurat image.}
@@ -53,6 +55,14 @@ spatial plotting and spatial-statistic functions when they receive this
 SIRAP object and their own \code{swap_coords} argument is \code{NULL}.}
 
 \item{metadata}{Optional named list of dataset-level metadata.}
+
+\item{polygons}{Optional polygon table. A canonical table has one row per
+polygon with \code{polygon_id} and a list-column \code{vertices}; each vertices
+table must contain \code{x} and \code{y}, and may contain \code{spatial_id} and \code{image}.}
+
+\item{polygons_path}{Optional path to a flat polygon vertex CSV. It may use
+\code{polygon_id} or \code{polygon} for the polygon identifier and must contain \code{x}
+and \code{y} coordinate columns.}
 
 \item{analyses}{Optional named list of derived analysis results.}
 

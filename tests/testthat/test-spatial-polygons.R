@@ -121,6 +121,94 @@ test_that("polygon plotting data preserves polygon groups and flips plotting y",
   expect_equal(plot_data$.sirap_y, -plot_data$y)
 })
 
+test_that("plotSpatialPolygons colors stored polygons by an analysis column", {
+  skip_if_not_installed("SeuratObject")
+  spatial <- SeuratObject::CreateSeuratObject(
+    counts = matrix(
+      1,
+      nrow = 1,
+      ncol = 4,
+      dimnames = list("gene", paste0("cell", 1:4))
+    )
+  )
+  spatial$x <- 0:3
+  spatial$y <- 0:3
+  x <- createSIRAP(
+    spatial = spatial,
+    receptors = data.frame(spatial_id = paste0("cell", 1:4)),
+    spatial_id = "spatial_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+  x <- addPolygons(x, polygons = tibble::tibble(
+    polygon_id = c("left", "right"),
+    vertices = list(
+      tibble::tibble(x = c(0, 1, 1, 0, 0), y = c(0, 0, 1, 1, 0)),
+      tibble::tibble(x = c(2, 3, 3, 2, 2), y = c(2, 2, 3, 3, 2))
+    )
+  ))
+  x <- setAnalysis(x, "gc_metrics", data.frame(
+    polygon_id = c("left", "right"),
+    effective_shannon = c(2, 8)
+  ))
+
+  ns <- environment(plotSpatialPolygons)
+  old_images <- get(".sirap_spatial_images", envir = ns)
+  old_data <- get(".sirap_spatial_data", envir = ns)
+  old_base <- get(".sirap_spatial_base", envir = ns)
+  locked <- vapply(c(".sirap_spatial_images", ".sirap_spatial_data", ".sirap_spatial_base"),
+                   bindingIsLocked, logical(1), env = ns)
+  for (name in names(locked)[locked]) unlockBinding(name, ns)
+  assign(".sirap_spatial_images", function(object, images = NULL) "metadata", envir = ns)
+  assign(".sirap_spatial_data", function(object, image, image_scale = NULL, swap_coords = NULL) {
+    list(coords = data.frame(cell = paste0("cell", 1:4), x = 0:3, y = 0:3, .sirap_y = 0:-3), image = NULL)
+  }, envir = ns)
+  assign(".sirap_spatial_base", function(plot_data, image, image_alpha = 1, zoom = FALSE, view_data = NULL) {
+    ggplot2::ggplot()
+  }, envir = ns)
+  withr::defer({
+    assign(".sirap_spatial_images", old_images, envir = ns)
+    assign(".sirap_spatial_data", old_data, envir = ns)
+    assign(".sirap_spatial_base", old_base, envir = ns)
+    for (name in names(locked)[locked]) lockBinding(name, ns)
+  })
+
+  plot <- plotSpatialPolygons(
+    x,
+    fill_analysis = "gc_metrics",
+    fill_column = "effective_shannon"
+  )
+  expect_s3_class(plot, "ggplot")
+  expect_true(any(vapply(plot$layers, function(layer) "fill" %in% names(layer$mapping), logical(1))))
+  fill_scale <- plot$scales$get_scales("fill")
+  expect_s3_class(fill_scale, "ScaleContinuous")
+  expect_identical(unname(fill_scale$palette(c(0, 1))), c("#D3D3D3", "#FFFF00"))
+
+  custom_plot <- plotSpatialPolygons(
+    x,
+    fill_analysis = "gc_metrics",
+    fill_column = "effective_shannon",
+    analysis_fill = c("black", "cyan")
+  )
+  custom_scale <- custom_plot$scales$get_scales("fill")
+  expect_identical(unname(custom_scale$palette(c(0, 1))), c("#000000", "#00FFFF"))
+
+  x <- setAnalysis(x, "gc_classes", data.frame(
+    polygon_id = c("left", "right"),
+    class = c("A", "B")
+  ))
+  discrete_plot <- plotSpatialPolygons(
+    x,
+    fill_analysis = "gc_classes",
+    fill_column = "class"
+  )
+  discrete_scale <- discrete_plot$scales$get_scales("fill")
+  expect_equal(
+    unname(discrete_scale$palette(2)),
+    pals::glasbey(2)
+  )
+})
+
 test_that("V gene helpers retain alleles and extract families and superfamilies", {
   genes <- .sirap_v_genes(c("IGHV3-23*01", "IGHV3-30*02,IGHV3-23*01"))
   families <- .sirap_v_gene_family(c(genes, "IGKV1D-39*01"))
@@ -325,7 +413,7 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
     receptors = receptors,
     object = list(),
     polygon = polygon,
-    barcode = "barcode",
+    spatial_id = "barcode",
     image_scale = "hires",
     swap_coords = FALSE
   )
@@ -338,15 +426,15 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   expect_equal(out$dominance$n_receptors, c(3, 1))
   expect_equal(out$dominance$proportion, c(0.75, 0.25))
   expect_equal(unique(out$dominance$region_receptor_total), 4)
-  expect_equal(unique(out$dominance$n_region_barcodes), 3)
-  expect_equal(sort(unique(out$region_receptors$.sirap_barcode)), c("cell1", "cell2", "cell3"))
+  expect_equal(unique(out$dominance$n_region_spatial_ids), 3)
+  expect_equal(sort(unique(out$region_receptors$.sirap_spatial_id)), c("cell1", "cell2", "cell3"))
   expect_true(all(c("x", "y", ".sirap_y", "polygon") %in% names(out$region_receptors)))
   expect_false(any(c("x.x", "x.y", "y.x", "y.y") %in% names(out$region_receptors)))
   expect_equal(sort(unique(out$region_receptors$x)), c(1, 2, 8))
   expect_equal(sort(unique(out$region_receptors$y)), c(1, 2, 8))
   expect_true(all(c("x", "y", ".sirap_y", "polygon") %in% names(out$polygons)))
-  expect_false(any(c("polygon_col", "barcode_col", "clone_col", "v_call_col") %in% names(out)))
-  expect_equal(out$metadata$receptor_fields$barcode, "barcode")
+  expect_false(any(c("polygon_col", "spatial_id_col", "clone_col", "v_call_col") %in% names(out)))
+  expect_equal(out$metadata$receptor_fields$spatial_id, "barcode")
   expect_equal(out$metadata$receptor_fields$clone, "clone_id")
   expect_equal(out$metadata$receptor_fields$locus, "locus")
   expect_null(out$metadata$receptor_fields$count)
@@ -357,7 +445,7 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
     receptors = receptors,
     object = list(),
     polygon = polygon,
-    barcode = "barcode",
+    spatial_id = "barcode",
     image_scale = "hires",
     swap_coords = FALSE
   )
@@ -367,7 +455,7 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
     receptors = receptors,
     object = list(),
     polygon = polygon,
-    barcode = "barcode",
+    spatial_id = "barcode",
     locus_val = "IGH",
     image_scale = "hires",
     swap_coords = FALSE
@@ -381,7 +469,7 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
     receptors = receptors,
     object = list(),
     polygon = polygon,
-    barcode = "barcode",
+    spatial_id = "barcode",
     exclude_singletons = TRUE,
     image_scale = "hires",
     swap_coords = FALSE
@@ -400,7 +488,7 @@ test_that("regional plotting APIs require dominance and spatial objects", {
   pie_args <- names(formals(plotSpatialPolygonPies))
   density_args <- names(formals(plotSpatialCloneDensity3D))
   redundant_args <- c(
-    "receptors", "bcrs", "polygon", "barcode_col", "x_col", "y_col",
+    "receptors", "bcrs", "polygon", "spatial_id_col", "x_col", "y_col",
     "polygon_col", "require_closed", "color_by", "fill_by"
   )
 
@@ -476,7 +564,7 @@ test_that("spatialCloneDominance summarizes multiple polygons independently", {
     receptors = receptors,
     object = list(),
     polygon = polygon,
-    barcode = "barcode",
+    spatial_id = "barcode",
     image_scale = "hires",
     swap_coords = FALSE
   )
@@ -491,7 +579,7 @@ test_that("spatialCloneDominance summarizes multiple polygons independently", {
     receptors = receptors,
     object = list(),
     polygon = polygon,
-    barcode = "barcode",
+    spatial_id = "barcode",
     polygon_val = "right",
     image_scale = "hires",
     swap_coords = FALSE

@@ -7,8 +7,8 @@
 spatialCloneDominance(
   receptors = NULL,
   object = NULL,
-  polygon,
-  barcode = NULL,
+  polygon = NULL,
+  spatial_id = NULL,
   clone = "clone_id",
   locus_val = NULL,
   locus = "locus",
@@ -28,7 +28,7 @@ spatialCloneDominance(
 }
 \arguments{
 \item{receptors}{AIRR-style receptor data frame containing clone assignments
-and a spatial barcode column. This may instead be a SIRAP object when
+and a spatial ID column. This may instead be a SIRAP object when
 \code{object} is omitted.}
 
 \item{object}{Seurat object with spatial coordinates or metadata coordinate
@@ -39,8 +39,8 @@ be omitted.}
 \code{y} columns by default. If a \code{polygon} column is present, each polygon is
 summarized independently unless \code{polygon_val} selects one or more polygons.}
 
-\item{barcode}{Column in \code{receptors} matching Seurat spot/cell barcodes.
-If \code{NULL}, a barcode-like column is guessed.}
+\item{spatial_id}{Column in \code{receptors} matching Seurat spot/cell spatial IDs.
+If \code{NULL}, a spatial ID-like column is guessed.}
 
 \item{clone}{Column in \code{receptors} containing clone IDs.}
 
@@ -82,13 +82,13 @@ Set to \code{FALSE} to close open polygons automatically.}
 }
 \value{
 A spatial clone dominance object containing the dominance table,
-regional barcodes, regional coordinate rows, regional receptor rows, polygon
+regional spatial IDs, regional coordinate rows, regional receptor rows, polygon
 vertices prepared for plotting, and analysis metadata containing the
 receptor field mappings used for the analysis.
 }
 \description{
-Finds Seurat spatial barcodes whose coordinates fall inside closed polygons,
-subsets receptor rows to those barcodes, and returns the fraction of regional
+Finds Seurat spatial IDs whose coordinates fall inside closed polygons,
+subsets receptor rows to those spatial IDs, and returns the fraction of regional
 receptors represented by each clone. Points on the polygon boundary are
 included by default.
 }

@@ -4,13 +4,13 @@
 \alias{spatialReceptorSummary}
 \title{Summarize a spatial receptor table}
 \usage{
-spatialReceptorSummary(airr_df, barcode = "spatial_barcode_2um")
+spatialReceptorSummary(airr_df, spatial_id = "spatial_id_2um")
 }
 \arguments{
 \item{airr_df}{AIRR-style data frame or a SIRAP object.}
 
-\item{barcode}{Barcode column to count. When omitted for a SIRAP object,
-the barcode field recorded in its metadata is used.}
+\item{spatial_id}{Spatial ID column to count. When omitted for a SIRAP object,
+the spatial ID field recorded in its metadata is used.}
 }
 \value{
 One-row tibble of basic counts.

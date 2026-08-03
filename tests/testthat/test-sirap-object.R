@@ -1,4 +1,4 @@
-make_test_sirap <- function(barcode = "barcode", clone = "clone_id") {
+make_test_sirap <- function(spatial_id = "spatial_id", clone = "clone_id") {
   skip_if_not_installed("SeuratObject")
   spatial <- SeuratObject::CreateSeuratObject(
     counts = matrix(
@@ -11,7 +11,7 @@ make_test_sirap <- function(barcode = "barcode", clone = "clone_id") {
   spatial$x <- c(0, 1, 2, 3)
   spatial$y <- c(0, 1, 2, 3)
   receptors <- data.frame(
-    barcode_value = c("cell1", "cell2", "bulk1"),
+    spatial_id_value = c("cell1", "cell2", "bulk1"),
     clone_value = c("A", "B", "A"),
     locus = c("IGH", "IGH", "IGH"),
     v_sequence_start = c(1, 1, 1),
@@ -21,12 +21,12 @@ make_test_sirap <- function(barcode = "barcode", clone = "clone_id") {
     junction_length = c(30, 33, 36),
     stringsAsFactors = FALSE
   )
-  names(receptors)[names(receptors) == "barcode_value"] <- barcode
+  names(receptors)[names(receptors) == "spatial_id_value"] <- spatial_id
   names(receptors)[names(receptors) == "clone_value"] <- clone
   createSIRAP(
     spatial = spatial,
     receptors = receptors,
-    barcode = barcode,
+    spatial_id = spatial_id,
     clone = clone,
     image_scale = "hires",
     swap_coords = FALSE
@@ -58,7 +58,7 @@ make_collapse_test_sirap <- function() {
   createSIRAP(
     spatial = spatial,
     receptors = receptors,
-    barcode = "spot",
+    spatial_id = "spot",
     locus = "locus",
     count = "consensus_count",
     image_scale = "hires",
@@ -72,18 +72,69 @@ test_that("createSIRAP creates a validated tibble-backed container", {
   expect_s3_class(x, "sirap")
   expect_true(isSIRAP(x))
   expect_s3_class(x$receptors, "tbl_df")
-  expect_identical(names(x), c("spatial", "receptors", "metadata", "analyses"))
+  expect_identical(names(x), c("spatial", "receptors", "metadata", "polygons", "analyses"))
   expect_identical(x$analyses, list())
-  expect_identical(x$metadata$receptor_fields$barcode, "barcode")
+  expect_identical(x$metadata$receptor_fields$spatial_id, "spatial_id")
   expect_identical(x$metadata$receptor_fields$clone, "clone_id")
   expect_identical(x$metadata$receptor_fields$locus, "locus")
   expect_identical(x$metadata$image_scale, "hires")
   expect_false(x$metadata$swap_coords)
+  expect_equal(nrow(getPolygons(x)), 0)
   expect_identical(getReceptors(x), x$receptors)
   expect_identical(getSpatial(x), x$spatial)
   expect_identical(SIRAP:::.sirap_spatial_input(x), x$spatial)
   expect_identical(SIRAP:::.sirap_receptor_input(x)$receptors, x$receptors)
   expect_invisible(validateSIRAP(x))
+})
+
+test_that("SIRAP objects store canonical polygon geometry", {
+  x <- make_test_sirap()
+  polygon_table <- tibble::tibble(
+    polygon_id = c("GC1", "GC2"),
+    vertices = list(
+      tibble::tibble(spatial_id = c("cell1", "cell2", "cell3", "cell1"), x = c(0, 1, 2, 0), y = c(0, 1, 0, 0)),
+      tibble::tibble(spatial_id = c("cell2", "cell3", "cell4", "cell2"), x = c(1, 2, 3, 1), y = c(1, 0, 1, 1))
+    )
+  )
+
+  with_polygons <- addPolygons(x, polygons = polygon_table)
+  expect_equal(getPolygons(with_polygons), polygon_table)
+  expect_invisible(validateSIRAP(with_polygons))
+
+  flat <- data.frame(
+    polygon = c("GC1", "GC1", "GC1", "GC2", "GC2", "GC2"),
+    spatial_id = c("cell1", "cell2", "cell3", "cell2", "cell3", "cell4"),
+    x = c(0, 1, 2, 1, 2, 3),
+    y = c(0, 1, 0, 1, 0, 1)
+  )
+  flat_path <- tempfile(fileext = ".csv")
+  utils::write.csv(flat, flat_path, row.names = FALSE)
+  from_path <- addPolygons(x, polygons_path = flat_path)
+  expect_equal(from_path$polygons$polygon_id, c("GC1", "GC2"))
+  expect_equal(from_path$metadata$polygons_path, flat_path)
+  expect_error(addPolygons(x, polygons = polygon_table, polygons_path = flat_path), "only one")
+})
+
+test_that("createSIRAP accepts a polygon path", {
+  x <- make_test_sirap()
+  flat <- data.frame(
+    polygon_id = rep("GC1", 3),
+    x = c(0, 1, 2),
+    y = c(0, 1, 0)
+  )
+  flat_path <- tempfile(fileext = ".csv")
+  utils::write.csv(flat, flat_path, row.names = FALSE)
+  out <- createSIRAP(
+    spatial = getSpatial(x),
+    receptors = getReceptors(x),
+    spatial_id = "spatial_id",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE,
+    polygons_path = flat_path
+  )
+  expect_equal(out$polygons$polygon_id, "GC1")
+  expect_invisible(validateSIRAP(out))
 })
 
 test_that("analysis accessors store arbitrary named results", {
@@ -115,7 +166,7 @@ test_that("legacy SIRAP objects behave as though analyses are empty", {
 
   x <- setAnalysis(x, "result", 1)
   expect_identical(getAnalysis(x, "result"), 1)
-  expect_identical(names(x), c("spatial", "receptors", "metadata", "analyses"))
+  expect_identical(names(x), c("spatial", "receptors", "metadata", "polygons", "analyses"))
 })
 
 test_that("createSIRAP validates initial analyses", {
@@ -198,18 +249,18 @@ test_that("createSIRAP retains unmatched nonspatial receptors", {
   info <- summary(x)
 
   expect_equal(nrow(getReceptors(x)), 3)
-  expect_equal(info$n_receptor_barcodes, 3)
-  expect_equal(info$n_matched_barcodes, 2)
+  expect_equal(info$n_receptor_ids, 3)
+  expect_equal(info$n_matched_ids, 2)
   expect_equal(info$n_matched_records, 2)
-  expect_equal(info$barcode_match_rate, 2 / 3)
+  expect_equal(info$id_match_rate, 2 / 3)
 })
 
 test_that("receptor summaries and QC plots accept SIRAP objects", {
-  x <- make_test_sirap(barcode = "spot")
+  x <- make_test_sirap(spatial_id = "spot")
 
   receptor_summary <- spatialReceptorSummary(x)
   expect_equal(receptor_summary$n_sequences, 3)
-  expect_equal(receptor_summary$n_barcodes, 3)
+  expect_equal(receptor_summary$n_spatial_ids, 3)
   expect_equal(receptor_summary$n_loci, 1)
 
   expect_s3_class(plotLengthQc(x), "ggplot")
@@ -233,7 +284,7 @@ test_that("collapseIdenticalNeighbors updates SIRAP objects", {
   expect_equal(nrow(getReceptors(collapsed)), 3)
   expect_false("cell1" %in% getReceptors(collapsed)$spot)
   expect_true(all(c("cell2", "cell13", "cell25") %in% getReceptors(collapsed)$spot))
-  expect_identical(collapsed$metadata$receptor_fields$barcode, "spot")
+  expect_identical(collapsed$metadata$receptor_fields$spatial_id, "spot")
 })
 
 test_that("collapseIdenticalNeighbors accepts receptor tables with a Seurat object", {
@@ -246,7 +297,7 @@ test_that("collapseIdenticalNeighbors accepts receptor tables with a Seurat obje
   collapsed <- collapseIdenticalNeighbors(
     getReceptors(x),
     seurat_object = getSpatial(x),
-    barcode = "spot",
+    spatial_id = "spot",
     sequence = "sequence_alignment",
     consensus_count = "consensus_count",
     num_neighbors_non_boundary = 2L,
@@ -258,7 +309,7 @@ test_that("collapseIdenticalNeighbors accepts receptor tables with a Seurat obje
   expect_equal(nrow(collapsed), 3)
   expect_false(isSIRAP(collapsed))
   expect_error(
-    collapseIdenticalNeighbors(getReceptors(x), barcode = "spot"),
+    collapseIdenticalNeighbors(getReceptors(x), spatial_id = "spot"),
     "`seurat_object` is required"
   )
 })
@@ -268,14 +319,14 @@ test_that("default optional receptor fields are NULL when absent", {
   spatial <- SeuratObject::CreateSeuratObject(
     counts = matrix(1, nrow = 1, ncol = 1, dimnames = list("gene", "cell1"))
   )
-  x <- createSIRAP(spatial, data.frame(barcode = "cell1"))
+  x <- createSIRAP(spatial, data.frame(spatial_id = "cell1"))
 
   expect_null(x$metadata$receptor_fields$clone)
   expect_null(x$metadata$receptor_fields$locus)
   expect_null(x$metadata$image_scale)
   expect_null(x$metadata$swap_coords)
   expect_error(
-    createSIRAP(spatial, data.frame(barcode = "cell1"), clone = "missing"),
+    createSIRAP(spatial, data.frame(spatial_id = "cell1"), clone = "missing"),
     "missing column"
   )
 })
@@ -287,19 +338,19 @@ test_that("createSIRAP rejects receptor tables without spatial overlap", {
   )
 
   expect_error(
-    createSIRAP(spatial, data.frame(barcode = "bulk1")),
-    "No receptor barcodes match"
+    createSIRAP(spatial, data.frame(spatial_id = "bulk1")),
+    "No receptor IDs match"
   )
   expect_error(
-    createSIRAP(spatial, data.frame(barcode = "cell1"), metadata = list("unnamed")),
+    createSIRAP(spatial, data.frame(spatial_id = "cell1"), metadata = list("unnamed")),
     "named list"
   )
   expect_error(
-    createSIRAP(spatial, data.frame(barcode = "cell1"), metadata = list(receptor_fields = list())),
+    createSIRAP(spatial, data.frame(spatial_id = "cell1"), metadata = list(receptor_fields = list())),
     "reserved"
   )
   expect_error(
-    createSIRAP(spatial, data.frame(barcode = "cell1"), metadata = list(image_scale = "hires")),
+    createSIRAP(spatial, data.frame(spatial_id = "cell1"), metadata = list(image_scale = "hires")),
     "reserved"
   )
 })
@@ -309,7 +360,7 @@ test_that("spatial options require explicit values without SIRAP metadata", {
   spatial <- SeuratObject::CreateSeuratObject(
     counts = matrix(1, nrow = 1, ncol = 1, dimnames = list("gene", "cell1"))
   )
-  x <- createSIRAP(spatial, data.frame(barcode = "cell1"))
+  x <- createSIRAP(spatial, data.frame(spatial_id = "cell1"))
 
   expect_error(
     SIRAP:::.sirap_spatial_options(spatial),
@@ -326,7 +377,7 @@ test_that("spatial options require explicit values without SIRAP metadata", {
 })
 
 test_that("SIRAP metadata supplies receptor inputs to spatial analyses", {
-  x <- make_test_sirap(barcode = "spot", clone = "clonal_group")
+  x <- make_test_sirap(spatial_id = "spot", clone = "clonal_group")
 
   polygon <- data.frame(
     x = c(-1, 4, 4, -1, -1),
@@ -334,15 +385,15 @@ test_that("SIRAP metadata supplies receptor inputs to spatial analyses", {
   )
   dominance <- spatialCloneDominance(x, polygon = polygon)
   expect_s3_class(dominance, "sirap_spatial_clone_dominance")
-  expect_equal(dominance$metadata$receptor_fields$barcode, "spot")
+  expect_equal(dominance$metadata$receptor_fields$spatial_id, "spot")
   expect_equal(dominance$metadata$receptor_fields$clone, "clonal_group")
   expect_equal(sort(dominance$dominance$clone_id), c("A", "B"))
-  expect_equal(sort(dominance$region_receptors$.sirap_barcode), c("cell1", "cell2"))
+  expect_equal(sort(dominance$region_receptors$.sirap_spatial_id), c("cell1", "cell2"))
 })
 
-test_that("spatialLocalMoran uses the receptor barcode stored in SIRAP metadata", {
+test_that("spatialLocalMoran uses the receptor ID stored in SIRAP metadata", {
   skip_if_not_installed("spdep")
-  x <- make_test_sirap(barcode = "spot", clone = "clonal_group")
+  x <- make_test_sirap(spatial_id = "spot", clone = "clonal_group")
 
   local <- spatialLocalMoran(
     object = x,
@@ -374,7 +425,7 @@ test_that("spatialCloneJoinCount uses receptor fields stored in SIRAP metadata",
   x <- createSIRAP(
     spatial = spatial,
     receptors = receptors,
-    barcode = "spot",
+    spatial_id = "spot",
     clone = "clonal_group",
     image_scale = "hires",
     swap_coords = FALSE
@@ -384,16 +435,16 @@ test_that("spatialCloneJoinCount uses receptor fields stored in SIRAP metadata",
     object = x,
     clone_val = "A",
     k = 1,
-    min_barcodes = 2,
+    min_spatial_ids = 2,
     return_data = TRUE
   )
 
   expect_true("A" %in% out$summary$clone_id)
-  expect_equal(out$summary$n_clone_barcodes[out$summary$clone_id == "A"], 2)
-  expect_true(all(c("join_count_mark", "clone_id", ".sirap_barcode") %in% names(out$data)))
+  expect_equal(out$summary$n_clone_spatial_ids[out$summary$clone_id == "A"], 2)
+  expect_true(all(c("join_count_mark", "clone_id", ".sirap_spatial_id") %in% names(out$data)))
   expect_false("style" %in% names(out))
   expect_false("style" %in% names(out$summary))
-  expect_equal(sort(unique(out$data$.sirap_barcode)), c("cell1", "cell2", "cell3"))
+  expect_equal(sort(unique(out$data$.sirap_spatial_id)), c("cell1", "cell2", "cell3"))
 })
 
 test_that("SIRAP print reports spatial and receptor dimensions", {
@@ -403,13 +454,36 @@ test_that("SIRAP print reports spatial and receptor dimensions", {
     print(x),
     paste0(
       "<SIRAP object>\\n",
-      "Spatial data:    Seurat, 4 barcodes, 1 gene, 0 images\\n",
+      "Spatial data:    Seurat, 4 spatial IDs, 1 gene, 0 images\\n",
       "Receptor data:   tibble, 3 receptor sequences x 8 columns\\n",
-      "Spatial overlap: 2/3 receptor barcodes in spatial data \\(66.7%\\)\\n",
-      "Barcode field:   barcode\\n",
+      "Spatial overlap: 2/3 receptor IDs in spatial data \\(66.7%\\)\\n",
+      "Spatial ID field: spatial_id\\n",
       "Clone field:     clone_id\\n",
       "Analyses:        0"
     )
+  )
+})
+
+test_that("SIRAP summaries align values and report stored polygons", {
+  x <- make_test_sirap()
+  polygon_table <- tibble::tibble(
+    polygon_id = c("GC1", "GC2"),
+    vertices = list(
+      tibble::tibble(x = c(0, 1, 0, 0), y = c(0, 0, 1, 0)),
+      tibble::tibble(x = c(1, 2, 1, 1), y = c(1, 1, 2, 1))
+    )
+  )
+  x <- addPolygons(x, polygons = polygon_table)
+
+  expect_equal(summary(x)$n_polygons, 2)
+  expect_output(
+    print(x),
+    "Analyses:        0\\nPolygons:        2"
+  )
+  expect_output(
+    print(summary(x)),
+    "(?s)  Spatial IDs:\\s+4.*  Receptor records:\\s+3.*  Polygons:\\s+2",
+    perl = TRUE
   )
 })
 

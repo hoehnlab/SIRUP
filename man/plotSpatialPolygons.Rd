@@ -6,7 +6,7 @@
 \usage{
 plotSpatialPolygons(
   object,
-  polygon,
+  polygon = NULL,
   images = NULL,
   image_scale = NULL,
   swap_coords = NULL,
@@ -15,8 +15,11 @@ plotSpatialPolygons(
   y = "y",
   polygon_id = "polygon",
   polygon_alpha = 0.2,
-  fill = "#0072B2",
-  color = "#0072B2",
+  polygon_fill = "#0072B2",
+  fill_analysis = NULL,
+  fill_column = NULL,
+  analysis_fill = c("#D3D3D3", "#FFFF00"),
+  polygon_color = "#0072B2",
   linewidth = 0.6,
   image_alpha = 1,
   label = TRUE,
@@ -32,8 +35,8 @@ plotSpatialPolygons(
 \item{object}{Seurat object with spatial images, or a SIRAP object.}
 
 \item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
-\code{y} columns by default. If a \code{polygon} column is present, each polygon is
-drawn independently.}
+\code{y} columns by default. If \code{object} is a SIRAP object and \code{polygon} is
+omitted, the object's stored polygons are used.}
 
 \item{images}{Optional Seurat image names to show.}
 
@@ -53,9 +56,21 @@ exists.}
 
 \item{polygon_alpha}{Fill opacity for polygons.}
 
-\item{fill}{Fill color for polygons.}
+\item{polygon_fill}{Fill color for polygons when no analysis is mapped.}
 
-\item{color}{Outline color for polygons.}
+\item{fill_analysis}{Optional name of a stored SIRAP analysis containing
+one row per polygon.}
+
+\item{fill_column}{Optional column in \code{fill_analysis} used to color polygon
+interiors. The analysis must contain \code{polygon_id} or \code{polygon} as its
+polygon key.}
+
+\item{analysis_fill}{Character vector of two colors used as the low and high
+ends of the numeric analysis gradient. Defaults to
+\code{c("#D3D3D3", "#FFFF00")}. Non-numeric analysis values use the Glasbey
+palette.}
+
+\item{polygon_color}{Outline color for polygons.}
 
 \item{linewidth}{Outline width for polygons.}
 

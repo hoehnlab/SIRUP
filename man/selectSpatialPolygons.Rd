@@ -50,7 +50,7 @@ Defaults to \code{FALSE}.}
 
 \item{downsample_n}{Optional number of spatial points to show in the Shiny
 plot. Use \code{NULL} to show all points. Clicks still snap to the nearest
-barcode in the full coordinate table.}
+spatial_id in the full coordinate table.}
 
 \item{downsample_seed}{Random seed used when \code{downsample_n} is not \code{NULL}.}
 
@@ -67,11 +67,11 @@ tunnel.}
 \item{quiet}{Suppress warnings while the app is running.}
 }
 \value{
-Data frame with \code{barcode}, \code{x}, \code{y}, \code{polygon}, and \code{image} columns.
+Data frame with \code{spatial_id}, \code{x}, \code{y}, \code{polygon}, and \code{image} columns.
 }
 \description{
 Opens a Shiny app for clicking polygon vertices on a Seurat spatial
-coordinate plot. Each click snaps to the nearest spatial barcode. Use
+coordinate plot. Each click snaps to the nearest spatial ID. Use
 "Close polygon" or "New polygon" before finishing to repeat the first vertex
 at the end of each polygon.
 }

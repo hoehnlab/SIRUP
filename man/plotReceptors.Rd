@@ -9,7 +9,7 @@ plotReceptors(
   receptors = NULL,
   group,
   group_val = NULL,
-  barcode = NULL,
+  spatial_id = NULL,
   colors = NULL,
   receptor_size = 1,
   receptor_alpha = 1,
@@ -29,7 +29,7 @@ plotReceptors(
 \item{object}{Seurat object, or a SIRAP object containing both spatial and
 receptor data.}
 
-\item{receptors}{AIRR-style receptor table containing a spatial barcode and
+\item{receptors}{AIRR-style receptor table containing a spatial ID and
 grouping column. May be omitted when \code{object} is a SIRAP object.}
 
 \item{group}{Column in \code{receptors} used to select and color receptor
@@ -38,8 +38,8 @@ groups, for example \code{"clone_id"}.}
 \item{group_val}{Optional values from \code{group} to plot. Defaults to all
 non-missing values in \code{group}.}
 
-\item{barcode}{Column in \code{receptors} matching Seurat spot names. If
-\code{NULL}, the first available barcode-like column is used.}
+\item{spatial_id}{Column in \code{receptors} matching Seurat spot names. If
+\code{NULL}, the first available spatial ID-like column is used.}
 
 \item{colors}{Optional colors for receptor groups. Named colors are matched
 to \code{values}; otherwise colors are used in value order.}

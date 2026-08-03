@@ -2,7 +2,7 @@
 #'
 #' Filters AIRR-seq data for productivity, V/J/junction length, a minimum
 #' consensus count, optional max opening gap length, and optionally adding a
-#' spatial sequence ID combining `sequence_id` and a spatial barcode.
+#' spatial sequence ID combining `sequence_id` and a spatial ID.
 #'
 #' @param airr_df AIRR-style data frame.
 #' @param locus_val Character vector of locus values to keep. Use `NULL` to skip
@@ -15,12 +15,12 @@
 #' @param max_opening_gap Optional maximum opening gap in `sequence_alignment`.
 #' @param sequence_alignment Sequence alignment column for gap filtering.
 #' @param id Column containing read or consensus identifiers.
-#' @param barcode Optional name of a spatial barcode column that is already
+#' @param spatial_id Optional name of a spatial ID column that is already
 #'   present in `airr_df`.
 #' @param add_spatial_sequence_id Add a combined ID with the original sequence ID
-#'   and spatial barcode. `barcode` must be provided if `TRUE`.
+#'   and spatial ID. `spatial_id` must be provided if `TRUE`.
 #' @param spatial_sequence_id Name of the combined spatial sequence ID column.
-#' @param spatial_barcode_key Barcode field name to use in the combined spatial
+#' @param spatial_id_key Spatial ID field name to use in the combined spatial
 #'   sequence ID.
 #' @return Preprocessed data frame with `v_sequence_length`,
 #'   `j_sequence_length`, and optional spatial sequence ID columns.
@@ -35,10 +35,10 @@ filterAirr <- function(airr_df,
                        max_opening_gap = NULL,
                        sequence_alignment = "sequence_alignment",
                        id = "sequence_id",
-                       barcode = NULL,
+                       spatial_id = NULL,
                        add_spatial_sequence_id = FALSE,
                        spatial_sequence_id = "spatial_sequence_id",
-                       spatial_barcode_key = "spatial_barcode") {
+                       spatial_id_key = "spatial_id") {
   required <- c(
     "v_sequence_end", "v_sequence_start",
     "j_sequence_end", "j_sequence_start",
@@ -78,18 +78,18 @@ filterAirr <- function(airr_df,
     out <- out[gaps <= max_opening_gap, , drop = FALSE]
   }
 
-  if (!is.null(barcode)) {
-    .check_required_cols(out, barcode, "airr_df")
+  if (!is.null(spatial_id)) {
+    .check_required_cols(out, spatial_id, "airr_df")
   }
 
   if (add_spatial_sequence_id) {
-    if (is.null(barcode)) {
-      rlang::abort("`barcode` is required when `add_spatial_sequence_id` is TRUE.")
+    if (is.null(spatial_id)) {
+      rlang::abort("`spatial_id` is required when `add_spatial_sequence_id` is TRUE.")
     }
-    .check_required_cols(out, c(id, barcode), "airr_df")
+    .check_required_cols(out, c(id, spatial_id), "airr_df")
     out[[spatial_sequence_id]] <- paste0(
       "sequence_id=", out[[id]],
-      "|", spatial_barcode_key, "=", out[[barcode]]
+      "|", spatial_id_key, "=", out[[spatial_id]]
     )
   }
 
@@ -105,10 +105,10 @@ filterAirr <- function(airr_df,
 #' This function keeps the external Immcantation/pRESTO command-line workflow
 #' inside an R script. It builds and runs the following files in order:
 #'
-#' * `ClusterSets.py set` groups reads within each spatial barcode using `cluster_field`,
+#' * `ClusterSets.py set` groups reads within each spatial ID using `cluster_field`,
 #'   the requested identity threshold `identity`, and vsearch.
 #' * `ParseHeaders.py merge` is used to write a new field into the headers that combines
-#'   the spatial barcode and the cluster id (provided with parse_fields). These are
+#'   the spatial ID and the cluster id (provided with parse_fields). These are
 #'   combined using `parse_act` (default cat) and written to a new header field `parse_key`.
 #'   Uses `delimiters` to specify the FASTA header delimiters.
 #' * `AlignSets.py muscle` aligns reads within each `parse_key` group created by `ParseHeaders`.
@@ -147,7 +147,7 @@ filterAirr <- function(airr_df,
 #' @param muscle_exec Path passed to `AlignSets.py --exec`.
 #' @param nproc Number of processors for pRESTO and AssignGenes steps.
 #' @param cluster_field Required FASTA header field used for within-spot
-#'   clustering. This has no default because barcode fields vary by platform
+#'   clustering. This has no default because spatial_id fields vary by platform
 #'   and preprocessing workflow.
 #' @param delimiters String of pRESTO delimiter values passed after `--delim`.
 #'   Defaults to `"'|' '=' ','"`.
@@ -212,7 +212,7 @@ processSpatialSample <- function(input_fasta,
     )
   }
 
-  # Cluster reads per spatial barcode, then preserve the barcode-cluster
+  # Cluster reads per spatial ID, then preserve the spatial_id-cluster
   # grouping in the FASTA headers used by alignment and consensus calling.
   commands <- c(
     sprintf(
@@ -243,7 +243,7 @@ processSpatialSample <- function(input_fasta,
     )
   )
 
-  # Build consensus sequences from aligned barcode-cluster groups, assign
+  # Build consensus sequences from aligned spatial_id-cluster groups, assign
   # V(D)J genes with IgBLAST, then make an AIRR-style database table.
   commands <- c(
     commands,
@@ -320,30 +320,30 @@ processSpatialSamples <- function(input_fastas,
   invisible(results)
 }
 
-#' Collapse to the most abundant consensus sequence per barcode and locus
+#' Collapse to the most abundant consensus sequence per spatial ID and locus
 #'
 #' Adds `prop_total_consensus`, `non_N_nucleotide_prop`, `max_gap_length`, and
-#' `opening_gap_length`, then keeps the highest-consensus row per barcode/locus.
+#' `opening_gap_length`, then keeps the highest-consensus row per spatial ID/locus.
 #'
 #' @param airr_df AIRR-style data frame.
-#' @param barcode,locus,consensus Column names for grouping/ranking.
+#' @param spatial_id,locus,consensus Column names for grouping/ranking.
 #' @param sequence Sequence column for non-N proportion.
 #' @param alignment Alignment column for gap metrics.
 #' @param ties Keep all tied top rows or only the first tied row.
 #' @return Collapsed data frame.
 #' @export
-collapseTopConsensusPerBarcode <- function(airr_df,
-                                           barcode = "spatial_barcode_2um",
+collapseTopConsensusPerSpatialId <- function(airr_df,
+                                           spatial_id = "spatial_id_2um",
                                            locus = "locus",
                                            consensus = "consensus_count",
                                            sequence = "sequence",
                                            alignment = "sequence_alignment",
                                            ties = c("all", "first")) {
   ties <- match.arg(ties)
-  .check_required_cols(airr_df, c(barcode, locus, consensus), "airr_df")
+  .check_required_cols(airr_df, c(spatial_id, locus, consensus), "airr_df")
   out <- .as_data_frame(airr_df)
   tie_summary <- out %>%
-    dplyr::group_by(dplyr::across(dplyr::all_of(c(barcode, locus)))) %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(c(spatial_id, locus)))) %>%
     dplyr::summarise(
       max_consensus = max(.data[[consensus]], na.rm = TRUE),
       n_top_consensus = sum(.data[[consensus]] == max(.data[[consensus]], na.rm = TRUE), na.rm = TRUE),
@@ -352,12 +352,12 @@ collapseTopConsensusPerBarcode <- function(airr_df,
     dplyr::filter(.data$n_top_consensus > 1)
   if (nrow(tie_summary) > 0L) {
     message(
-      "collapseTopConsensusPerBarcode found ", nrow(tie_summary),
-      " barcode/locus groups with tied top consensus rows."
+      "collapseTopConsensusPerSpatialId found ", nrow(tie_summary),
+      " spatial ID/locus groups with tied top consensus rows."
     )
   }
   out <- out %>%
-    dplyr::group_by(dplyr::across(dplyr::all_of(c(barcode, locus)))) %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(c(spatial_id, locus)))) %>%
     dplyr::mutate(prop_total_consensus = .data[[consensus]] / sum(.data[[consensus]], na.rm = TRUE)) %>%
     dplyr::filter(.data[[consensus]] == max(.data[[consensus]], na.rm = TRUE))
 
@@ -379,22 +379,22 @@ collapseTopConsensusPerBarcode <- function(airr_df,
 #' Summarize a spatial receptor table
 #'
 #' @param airr_df AIRR-style data frame or a SIRAP object.
-#' @param barcode Barcode column to count. When omitted for a SIRAP object,
-#'   the barcode field recorded in its metadata is used.
+#' @param spatial_id Spatial ID column to count. When omitted for a SIRAP object,
+#'   the spatial ID field recorded in its metadata is used.
 #' @return One-row tibble of basic counts.
 #' @export
-spatialReceptorSummary <- function(airr_df, barcode = "spatial_barcode_2um") {
-  barcode_missing <- missing(barcode)
+spatialReceptorSummary <- function(airr_df, spatial_id = "spatial_id_2um") {
+  spatial_id_missing <- missing(spatial_id)
   inputs <- .sirap_receptor_input(
     airr_df,
-    if (isSIRAP(airr_df) && barcode_missing) NULL else barcode
+    if (isSIRAP(airr_df) && spatial_id_missing) NULL else spatial_id
   )
   airr_df <- inputs$receptors
-  barcode <- inputs$barcode_col %||% "spatial_barcode_2um"
-  .check_required_cols(airr_df, barcode, "airr_df")
+  spatial_id <- inputs$spatial_id_col %||% "spatial_id_2um"
+  .check_required_cols(airr_df, spatial_id, "airr_df")
   tibble::tibble(
     n_sequences = nrow(airr_df),
-    n_barcodes = dplyr::n_distinct(airr_df[[barcode]], na.rm = TRUE),
+    n_spatial_ids = dplyr::n_distinct(airr_df[[spatial_id]], na.rm = TRUE),
     n_loci = if ("locus" %in% colnames(airr_df)) dplyr::n_distinct(airr_df$locus, na.rm = TRUE) else NA_integer_,
     n_productive = if ("productive" %in% colnames(airr_df)) sum(airr_df$productive %in% c(TRUE, "TRUE", "T"), na.rm = TRUE) else NA_integer_
   )
@@ -404,7 +404,7 @@ spatialReceptorSummary <- function(airr_df, barcode = "spatial_barcode_2um") {
 #'
 #' For each unique receptor sequence, finds connected components of neighboring
 #' spots sharing that sequence, then collapses each component to a single
-#' representative spot. A SIRAP object is the preferred input: receptor barcodes
+#' representative spot. A SIRAP object is the preferred input: receptor IDs
 #' are read from the SIRAP field mapping and spatial coordinates are read from
 #' the stored Seurat object. If you are not using a SIRAP object, pass an
 #' AIRR-style receptor table as `object` and the matching Seurat object as
@@ -417,9 +417,9 @@ spatialReceptorSummary <- function(airr_df, barcode = "spatial_barcode_2um") {
 #' @param object A SIRAP object, or an AIRR-style receptor data frame.
 #' @param seurat_object Optional Seurat object used only when `object` is a
 #'   receptor data frame.
-#' @param barcode Column in the receptor table matching Seurat spot/cell
-#'   barcodes. When omitted for a SIRAP object, the recorded SIRAP barcode field
-#'   is used. When omitted for a receptor table, a barcode-like column is
+#' @param spatial_id Column in the receptor table matching Seurat spot/cell
+#'   spatial IDs. When omitted for a SIRAP object, the recorded SIRAP spatial ID field
+#'   is used. When omitted for a receptor table, a spatial ID-like column is
 #'   guessed.
 #' @param sequence Column containing receptor sequence strings.
 #' @param consensus_count Column containing consensus counts used to choose
@@ -439,7 +439,7 @@ spatialReceptorSummary <- function(airr_df, barcode = "spatial_barcode_2um") {
 #' @export
 collapseIdenticalNeighbors <- function(object,
                                        seurat_object = NULL,
-                                       barcode = NULL,
+                                       spatial_id = NULL,
                                        sequence = "sequence",
                                        consensus_count = "consensus_count",
                                        images = NULL,
@@ -455,14 +455,14 @@ collapseIdenticalNeighbors <- function(object,
     validateSIRAP(object)
     receptor_fields <- .sirap_receptor_fields(object)
     receptors <- object$receptors
-    barcode <- barcode %||% receptor_fields$barcode
+    spatial_id <- spatial_id %||% receptor_fields$spatial_id
     seurat_object <- object$spatial
   } else {
     if (is.null(seurat_object)) {
       rlang::abort("`seurat_object` is required when `object` is a receptor table.")
     }
     receptors <- .as_data_frame(object)
-    barcode <- .guess_barcode_col(receptors, barcode)
+    spatial_id <- .guess_spatial_id_col(receptors, spatial_id)
   }
   options <- .sirap_spatial_options(
     object = if (is_sirap) object else seurat_object,
@@ -481,7 +481,7 @@ collapseIdenticalNeighbors <- function(object,
   collapsed <- .collapse_identical_neighbors_table(
     receptors = receptors,
     tissue_positions = coords,
-    barcode_col = barcode,
+    spatial_id_col = spatial_id,
     sequence_col = sequence,
     consensus_count_col = consensus_count,
     num_neighbors_non_boundary = num_neighbors_non_boundary
@@ -502,41 +502,41 @@ collapseIdenticalNeighbors <- function(object,
 # resolved to a receptor table and a coordinate table.
 .collapse_identical_neighbors_table <- function(receptors,
                                                 tissue_positions,
-                                                barcode_col,
+                                                spatial_id_col,
                                                 sequence_col,
                                                 consensus_count_col,
                                                 num_neighbors_non_boundary) {
   data <- .as_data_frame(receptors)
-  .check_required_cols(data, c(barcode_col, sequence_col, consensus_count_col), "receptors")
+  .check_required_cols(data, c(spatial_id_col, sequence_col, consensus_count_col), "receptors")
   .check_required_cols(tissue_positions, c("cell", "x", "y"), "spatial coordinates")
 
   temp <- .collapse_identical_neighbors_temp_cols(data)
-  data[[temp$barcode]] <- as.character(data[[barcode_col]])
+  data[[temp$spatial_id]] <- as.character(data[[spatial_id_col]])
   data[[temp$sequence]] <- as.character(data[[sequence_col]])
   data[[temp$row]] <- seq_len(nrow(data))
 
   tissue_positions <- .as_data_frame(tissue_positions)
   tissue_positions <- tissue_positions[is.finite(tissue_positions$x) & is.finite(tissue_positions$y), , drop = FALSE]
   tissue_positions <- tissue_positions[!duplicated(tissue_positions$cell), c("cell", "x", "y"), drop = FALSE]
-  colnames(tissue_positions) <- c(temp$barcode, temp$x, temp$y)
+  colnames(tissue_positions) <- c(temp$spatial_id, temp$x, temp$y)
 
   data <- merge(
     data,
     tissue_positions,
-    by = temp$barcode,
+    by = temp$spatial_id,
     all.x = FALSE,
     all.y = FALSE,
     sort = FALSE
   )
   if (nrow(data) == 0L) {
-    rlang::abort("No receptor barcodes matched finite spatial coordinates in `seurat_object`.")
+    rlang::abort("No receptor IDs matched finite spatial coordinates in `seurat_object`.")
   }
 
-  # A barcode can contain duplicate rows for the same sequence. Collapse those
-  # first so the spatial graph only has one observation per barcode/sequence.
-  cli::cli_progress_step("Ensuring one row per barcode/sequence...")
+  # A spatial_id can contain duplicate rows for the same sequence. Collapse those
+  # first so the spatial graph only has one observation per spatial_id/sequence.
+  cli::cli_progress_step("Ensuring one row per spatial_id/sequence...")
   data <- data %>%
-    dplyr::group_by(dplyr::across(dplyr::all_of(c(temp$barcode, temp$sequence)))) %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(c(temp$spatial_id, temp$sequence)))) %>%
     dplyr::summarise(
       dplyr::across(dplyr::all_of(consensus_count_col), sum),
       dplyr::across(dplyr::all_of(c(temp$x, temp$y)), mean),
@@ -607,10 +607,10 @@ collapseIdenticalNeighbors <- function(object,
   # Build the graph only on spots with receptor observations, but keep the
   # threshold learned from all tissue positions so boundary spots are not
   # over-connected.
-  barcodes <- unique(data[[temp$barcode]])
-  tissue_data <- tissue_positions[tissue_positions[[temp$barcode]] %in% barcodes, ]
+  spatial_ids <- unique(data[[temp$spatial_id]])
+  tissue_data <- tissue_positions[tissue_positions[[temp$spatial_id]] %in% spatial_ids, ]
   coords <- as.matrix(tissue_data[, c(temp$x, temp$y)])
-  barcodes_ordered <- tissue_data[[temp$barcode]]
+  spatial_ids_ordered <- tissue_data[[temp$spatial_id]]
   n <- nrow(tissue_data)
   n_pretty <- scales::comma(n)
   n_all_pretty <- scales::comma(n_all)
@@ -650,12 +650,12 @@ collapseIdenticalNeighbors <- function(object,
     j = c(col_idx, row_idx),
     x = TRUE,
     dims = c(n, n),
-    dimnames = list(barcodes_ordered, barcodes_ordered)
+    dimnames = list(spatial_ids_ordered, spatial_ids_ordered)
   )
 
   cli::cli_progress_done()
 
-  barcode_to_idx <- stats::setNames(seq_len(n), barcodes_ordered)
+  spatial_id_to_idx <- stats::setNames(seq_len(n), spatial_ids_ordered)
   unique_sequences <- unique(data[[temp$sequence]])
   n_seqs <- length(unique_sequences)
   component_labels <- vector("list", n_seqs)
@@ -668,14 +668,14 @@ collapseIdenticalNeighbors <- function(object,
 
   for (si in seq_len(n_seqs)) {
     seq_i <- unique_sequences[[si]]
-    seq_barcodes <- data[[temp$barcode]][data[[temp$sequence]] == seq_i]
-    seq_idx <- barcode_to_idx[seq_barcodes]
+    seq_spatial_ids <- data[[temp$spatial_id]][data[[temp$sequence]] == seq_i]
+    seq_idx <- spatial_id_to_idx[seq_spatial_ids]
 
     # For each exact sequence, connected components identify spatially
     # contiguous spots carrying that sequence.
     if (length(seq_idx) == 1L) {
       component_labels[[si]] <- data.frame(
-        .sirap_barcode = seq_barcodes,
+        .sirap_spatial_id = seq_spatial_ids,
         .sirap_sequence = seq_i,
         component = 1L
       )
@@ -685,7 +685,7 @@ collapseIdenticalNeighbors <- function(object,
       components <- igraph::components(g)
 
       component_labels[[si]] <- data.frame(
-        .sirap_barcode = seq_barcodes,
+        .sirap_spatial_id = seq_spatial_ids,
         .sirap_sequence = seq_i,
         component = components$membership
       )
@@ -700,16 +700,16 @@ collapseIdenticalNeighbors <- function(object,
 
   cli::cli_progress_step("Collapsing components to representative spots...")
 
-  coords_df <- data.frame(barcodes_ordered, cx = coords[, 1], cy = coords[, 2])
-  colnames(coords_df)[1] <- temp$barcode
+  coords_df <- data.frame(spatial_ids_ordered, cx = coords[, 1], cy = coords[, 2])
+  colnames(coords_df)[1] <- temp$spatial_id
 
-  colnames(component_df)[colnames(component_df) == ".sirap_barcode"] <- temp$barcode
+  colnames(component_df)[colnames(component_df) == ".sirap_spatial_id"] <- temp$spatial_id
   colnames(component_df)[colnames(component_df) == ".sirap_sequence"] <- temp$sequence
-  component_df <- merge(component_df, coords_df, by = temp$barcode)
+  component_df <- merge(component_df, coords_df, by = temp$spatial_id)
   component_df <- merge(
     component_df,
-    data[, c(temp$barcode, temp$sequence, consensus_count_col)],
-    by = c(temp$barcode, temp$sequence)
+    data[, c(temp$spatial_id, temp$sequence, consensus_count_col)],
+    by = c(temp$spatial_id, temp$sequence)
   )
 
   representative_rows <- lapply(
@@ -744,8 +744,8 @@ collapseIdenticalNeighbors <- function(object,
 
   cli::cli_progress_step("Filtering data to representative spots...")
 
-  keep_keys <- paste(representative_df[[temp$barcode]], representative_df[[temp$sequence]], sep = "___")
-  all_keys <- paste(data[[temp$barcode]], data[[temp$sequence]], sep = "___")
+  keep_keys <- paste(representative_df[[temp$spatial_id]], representative_df[[temp$sequence]], sep = "___")
+  all_keys <- paste(data[[temp$spatial_id]], data[[temp$sequence]], sep = "___")
   result <- data[all_keys %in% keep_keys, ]
   result <- result[, setdiff(colnames(result), unlist(temp, use.names = FALSE)), drop = FALSE]
   n_result_pretty <- scales::comma(nrow(result))
@@ -764,7 +764,7 @@ collapseIdenticalNeighbors <- function(object,
 # Seurat coordinates.
 .collapse_identical_neighbors_temp_cols <- function(data) {
   temp <- c(
-    barcode = ".sirap_collapse_barcode",
+    spatial_id = ".sirap_collapse_barcode",
     sequence = ".sirap_collapse_sequence",
     row = ".sirap_collapse_row",
     x = ".sirap_collapse_x",
