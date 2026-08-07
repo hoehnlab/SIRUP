@@ -126,6 +126,8 @@ createSIRAP <- function(spatial,
     class = c("sirap", "list")
   )
 
+  out <- .sirap_annotate_stored_polygons(out)
+
   if (isTRUE(validate)) {
     validateSIRAP(out)
   }
@@ -287,6 +289,7 @@ addPolygons <- function(x, polygons = NULL, polygons_path = NULL, validate = TRU
     x$metadata$polygons_path <- as.character(polygons_path)
   }
   x$polygons <- .sirap_prepare_polygons(polygons)
+  x <- .sirap_annotate_stored_polygons(x)
   if (isTRUE(validate)) validateSIRAP(x)
   x
 }
@@ -618,6 +621,34 @@ print.summary.sirap <- function(x, ...) {
   out
 }
 
+# Add stored polygon IDs to both SIRAP data components. Receptors and Seurat
+# metadata receive `polygon_id`, with `NA` for records outside all polygons.
+.sirap_annotate_stored_polygons <- function(x) {
+  if (nrow(.sirap_polygons(x)) == 0L) {
+    return(x)
+  }
+  polygon <- .sirap_polygon_vertices_table(.sirap_polygons(x))
+  x$spatial <- assignSpatialPolygons(
+    object = x$spatial,
+    polygon = polygon,
+    image_scale = x$metadata$image_scale,
+    swap_coords = x$metadata$swap_coords,
+    polygon_id = "polygon",
+    metadata = "polygon_id"
+  )
+  x$receptors <- assignReceptorPolygons(
+    receptors = x$receptors,
+    object = x$spatial,
+    polygon = polygon,
+    column = "polygon_id",
+    spatial_id = .sirap_receptor_fields(x)$spatial_id,
+    image_scale = x$metadata$image_scale,
+    swap_coords = x$metadata$swap_coords,
+    polygon_id = "polygon"
+  )
+  x
+}
+
 .sirap_validate_polygons <- function(polygons) {
   if (!tibble::is_tibble(polygons)) {
     rlang::abort("`polygons` must be a tibble.")
@@ -643,6 +674,11 @@ print.summary.sirap <- function(x, ...) {
     }
   }
   invisible(polygons)
+}
+
+# Return TRUE for a single non-missing, non-empty character string.
+.sirap_is_non_empty_string <- function(x) {
+  is.character(x) && length(x) == 1L && !is.na(x) && nzchar(x)
 }
 
 # Validate and normalize one analysis name used for lookup or replacement.

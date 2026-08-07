@@ -23,6 +23,49 @@ test_that("point-in-polygon includes boundary points when requested", {
   expect_equal(inside_no_boundary, c(TRUE, FALSE))
 })
 
+test_that("polygon assignment annotates spatial metadata and receptor tables", {
+  skip_if_not_installed("SeuratObject")
+  spatial <- SeuratObject::CreateSeuratObject(
+    counts = matrix(
+      1,
+      nrow = 1,
+      ncol = 4,
+      dimnames = list("gene", paste0("cell", 1:4))
+    )
+  )
+  spatial$x <- c(0, 1, 2, 3)
+  spatial$y <- c(0, 1, 2, 3)
+  polygon <- data.frame(
+    polygon = c(rep("left", 5), rep("right", 5)),
+    x = c(-0.5, 1.5, 1.5, -0.5, -0.5, 1.5, 3.5, 3.5, 1.5, 1.5),
+    y = c(-0.5, -0.5, 1.5, 1.5, -0.5, 1.5, 1.5, 3.5, 3.5, 1.5),
+    stringsAsFactors = FALSE
+  )
+  receptors <- data.frame(
+    spatial_id = c("cell1", "cell2", "cell3", "missing"),
+    sequence_id = paste0("seq", 1:4),
+    stringsAsFactors = FALSE
+  )
+
+  spatial_out <- assignSpatialPolygons(
+    spatial,
+    polygon = polygon,
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+  receptors_out <- assignReceptorPolygons(
+    receptors,
+    object = spatial,
+    polygon = polygon,
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+
+  expect_equal(unname(spatial_out$polygon_id), c("left", "left", "right", "right"))
+  expect_equal(receptors_out$polygon_id, c("left", "left", "right", NA))
+  expect_equal(ncol(spatial_out), ncol(spatial))
+})
+
 test_that("polygon vertex selection requires closed polygons by default", {
   polygon <- data.frame(
     x = c(0, 10, 10, 0),

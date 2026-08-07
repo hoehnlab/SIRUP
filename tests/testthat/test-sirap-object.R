@@ -115,12 +115,27 @@ test_that("SIRAP objects store canonical polygon geometry", {
   expect_error(addPolygons(x, polygons = polygon_table, polygons_path = flat_path), "only one")
 })
 
+test_that("addPolygons annotates SIRAP spatial metadata and receptors", {
+  x <- make_test_sirap()
+  polygon <- data.frame(
+    polygon = "GC1",
+    x = c(-0.5, 1.5, 1.5, -0.5, -0.5),
+    y = c(-0.5, -0.5, 1.5, 1.5, -0.5)
+  )
+
+  out <- addPolygons(x, polygons = polygon)
+
+  expect_equal(unname(out$spatial$polygon_id), c("GC1", "GC1", NA, NA))
+  expect_equal(out$receptors$polygon_id, c("GC1", "GC1", NA))
+  expect_invisible(validateSIRAP(out))
+})
+
 test_that("createSIRAP accepts a polygon path", {
   x <- make_test_sirap()
   flat <- data.frame(
-    polygon_id = rep("GC1", 3),
-    x = c(0, 1, 2),
-    y = c(0, 1, 0)
+    polygon_id = rep("GC1", 5),
+    x = c(-0.5, 1.5, 1.5, -0.5, -0.5),
+    y = c(-0.5, -0.5, 1.5, 1.5, -0.5)
   )
   flat_path <- tempfile(fileext = ".csv")
   utils::write.csv(flat, flat_path, row.names = FALSE)
@@ -134,6 +149,8 @@ test_that("createSIRAP accepts a polygon path", {
     polygons_path = flat_path
   )
   expect_equal(out$polygons$polygon_id, "GC1")
+  expect_equal(unname(out$spatial$polygon_id), c("GC1", "GC1", NA, NA))
+  expect_equal(out$receptors$polygon_id, c("GC1", "GC1", NA))
   expect_invisible(validateSIRAP(out))
 })
 

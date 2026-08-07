@@ -1481,23 +1481,182 @@ seuratSubsetPolygon <- function(object,
                                 metadata = "polygon",
                                 include_boundary = TRUE,
                                 require_closed = TRUE) {
+  annotated <- assignSpatialPolygons(
+    object = object,
+    polygon = polygon,
+    images = images,
+    image_scale = image_scale,
+    swap_coords = swap_coords,
+    polygon_val = polygon_val,
+    x = x,
+    y = y,
+    polygon_id = polygon_id,
+    metadata = metadata,
+    include_boundary = include_boundary,
+    require_closed = require_closed
+  )
+  keep_cells <- rownames(annotated@meta.data)[!is.na(annotated@meta.data[[metadata]])]
+  keep_cells <- keep_cells[keep_cells %in% colnames(annotated)]
+  if (length(keep_cells) == 0L) {
+    rlang::abort("No Seurat spatial IDs were found inside the selected polygon(s).")
+  }
+  suppressWarnings(annotated[, keep_cells], classes = "validationWarning")
+}
+
+#' Assign polygon IDs to spatial metadata
+#'
+#' Adds a polygon-membership column to a Seurat object's metadata without
+#' subsetting the object. Spatial IDs outside the selected polygon(s) receive
+#' `NA`. Spatial IDs inside overlapping polygons receive comma-separated polygon
+#' IDs. When `object` is a SIRAP object and `polygon` is omitted, the stored
+#' polygons in the SIRAP object are used.
+#'
+#' @inheritParams seuratSubsetPolygon
+#' @return A Seurat object with `metadata` added to `@meta.data`.
+#' @export
+assignSpatialPolygons <- function(object,
+                                  polygon = NULL,
+                                  images = NULL,
+                                  image_scale = NULL,
+                                  swap_coords = NULL,
+                                  polygon_val = NULL,
+                                  x = "x",
+                                  y = "y",
+                                  polygon_id = "polygon",
+                                  metadata = "polygon_id",
+                                  include_boundary = TRUE,
+                                  require_closed = TRUE) {
   .require_namespace("SeuratObject")
-  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
-  object <- context$object
-  image_scale <- context$image_scale
-  swap_coords <- context$swap_coords
-  if (!is.character(metadata) || length(metadata) != 1L || is.na(metadata) || !nzchar(metadata)) {
+  if (!.sirap_is_non_empty_string(metadata)) {
     rlang::abort("`metadata` must be a non-empty character string.")
   }
+  if (isSIRAP(object) && is.null(polygon)) {
+    polygon <- .sirap_polygon_vertices_table(.sirap_polygons(object))
+    if (nrow(polygon) == 0L) {
+      rlang::abort("The SIRAP object does not contain stored polygons.")
+    }
+  }
+  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  object <- context$object
+  membership <- .sirap_polygon_membership(
+    object = object,
+    polygon = polygon,
+    images = images,
+    image_scale = context$image_scale,
+    swap_coords = context$swap_coords,
+    polygon_val = polygon_val,
+    x = x,
+    y = y,
+    polygon_id = polygon_id,
+    include_boundary = include_boundary,
+    require_closed = require_closed
+  )
 
+  polygon_lookup <- .sirap_polygon_lookup(membership)
+  object <- .sirap_update_seurat_image_slots(object)
+  object@meta.data[[metadata]] <- unname(polygon_lookup[rownames(object@meta.data)])
+  object
+}
+
+#' Assign polygon IDs to a receptor table
+#'
+#' Adds a polygon-membership column to an AIRR-style receptor table without
+#' subsetting the table. Receptor rows whose spatial ID falls outside the
+#' selected polygon(s), or does not match the spatial object, receive `NA`.
+#' Receptors in spatial IDs inside overlapping polygons receive comma-separated
+#' polygon IDs. When `receptors` is a SIRAP object and `object` and `polygon`
+#' are omitted, the stored spatial object and polygons are used.
+#'
+#' @param receptors AIRR-style receptor data frame, or a SIRAP object when
+#'   `object` is omitted.
+#' @param object Seurat object with spatial coordinates, or a SIRAP object.
+#' @param column Column added to the returned receptor table with polygon
+#'   membership.
+#' @param spatial_id Column in `receptors` matching Seurat spot/cell spatial IDs.
+#'   If `NULL`, a spatial ID-like column is guessed or pulled from the SIRAP
+#'   object.
+#' @inheritParams seuratSubsetPolygon
+#' @return A tibble with `column` added.
+#' @export
+assignReceptorPolygons <- function(receptors,
+                                   object = NULL,
+                                   polygon = NULL,
+                                   column = "polygon_id",
+                                   spatial_id = NULL,
+                                   images = NULL,
+                                   image_scale = NULL,
+                                   swap_coords = NULL,
+                                   polygon_val = NULL,
+                                   x = "x",
+                                   y = "y",
+                                   polygon_id = "polygon",
+                                   include_boundary = TRUE,
+                                   require_closed = TRUE) {
+  if (!.sirap_is_non_empty_string(column)) {
+    rlang::abort("`column` must be a non-empty character string.")
+  }
+  if (isSIRAP(receptors) && is.null(object)) {
+    object <- receptors
+    receptors <- NULL
+  }
+  if (isSIRAP(object) && is.null(polygon)) {
+    polygon <- .sirap_polygon_vertices_table(.sirap_polygons(object))
+    if (nrow(polygon) == 0L) {
+      rlang::abort("The SIRAP object does not contain stored polygons.")
+    }
+  }
+  options <- .sirap_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
+  inputs <- .sirap_resolve_inputs(object, receptors, spatial_id)
+  object <- inputs$object
+  receptors <- .as_data_frame(inputs$receptors)
+  spatial_id <- .guess_spatial_id_col(receptors, inputs$spatial_id_col)
+  .check_required_cols(receptors, spatial_id, "receptors")
+
+  membership <- .sirap_polygon_membership(
+    object = object,
+    polygon = polygon,
+    images = images,
+    image_scale = options$image_scale,
+    swap_coords = options$swap_coords,
+    polygon_val = polygon_val,
+    x = x,
+    y = y,
+    polygon_id = polygon_id,
+    include_boundary = include_boundary,
+    require_closed = require_closed
+  )
+  polygon_lookup <- .sirap_polygon_lookup(membership)
+  out <- tibble::as_tibble(receptors)
+  out[[column]] <- unname(polygon_lookup[as.character(out[[spatial_id]])])
+  out
+}
+
+# Find which spatial IDs fall inside each polygon and return one row per
+# spatial ID/polygon hit. The helper keeps membership calculation shared across
+# Seurat annotation, receptor annotation, and subsetting.
+.sirap_polygon_membership <- function(object,
+                                      polygon,
+                                      images,
+                                      image_scale,
+                                      swap_coords,
+                                      polygon_val,
+                                      x,
+                                      y,
+                                      polygon_id,
+                                      include_boundary,
+                                      require_closed) {
   polygon <- .as_data_frame(polygon)
   .check_required_cols(polygon, c(x, y), "polygon")
-  coords <- .sirap_spatial_coordinate_table(object, images = images, image_scale = image_scale, swap_coords = swap_coords)
+  coords <- .sirap_spatial_coordinate_table(
+    object,
+    images = images,
+    image_scale = image_scale,
+    swap_coords = swap_coords
+  )
   coords <- coords[is.finite(coords$x) & is.finite(coords$y), , drop = FALSE]
   if (nrow(coords) == 0L) {
     rlang::abort("No finite spatial coordinates were found in `object`.")
   }
-
   polygon_specs <- .sirap_polygon_specs(polygon, polygon_id = polygon_val, polygon_col = polygon_id)
   membership <- lapply(polygon_specs, function(spec) {
     vertices <- .sirap_select_polygon_vertices(
@@ -1528,24 +1687,26 @@ seuratSubsetPolygon <- function(object,
       stringsAsFactors = FALSE
     )
   })
-  membership <- .sirap_bind_rows(membership)
+  .sirap_bind_rows(membership)
+}
+
+# Collapse one-row-per-hit polygon membership into a named lookup vector from
+# spatial ID to comma-separated polygon IDs.
+.sirap_polygon_lookup <- function(membership) {
   if (nrow(membership) == 0L) {
-    rlang::abort("No Seurat spatial IDs were found inside the selected polygon(s).")
+    return(stats::setNames(character(), character()))
   }
-
-  keep_cells <- unique(as.character(membership$cell))
-  keep_cells <- keep_cells[keep_cells %in% colnames(object)]
-  if (length(keep_cells) == 0L) {
-    rlang::abort("No polygon-matched IDs are present in `object`.")
-  }
-
   polygon_values <- stats::aggregate(
     polygon ~ cell,
     data = membership,
     FUN = function(x) paste(unique(as.character(x)), collapse = ",")
   )
-  polygon_lookup <- stats::setNames(as.character(polygon_values$polygon), as.character(polygon_values$cell))
+  stats::setNames(as.character(polygon_values$polygon), as.character(polygon_values$cell))
+}
 
+# Repair older Seurat image objects before subsetting or metadata updates so
+# polygon helpers do not fail on images with legacy slot layouts.
+.sirap_update_seurat_image_slots <- function(object) {
   update_slots <- utils::getFromNamespace("UpdateSlots", "SeuratObject")
   for (image_name in SeuratObject::Images(object)) {
     image <- object[[image_name]]
@@ -1562,10 +1723,7 @@ seuratSubsetPolygon <- function(object,
       methods::slot(object, "images")[[image_name]] <- suppressWarnings(update_slots(image))
     }
   }
-
-  out <- suppressWarnings(object[, keep_cells], classes = "validationWarning")
-  out@meta.data[[metadata]] <- unname(polygon_lookup[rownames(out@meta.data)])
-  out
+  object
 }
 
 .sirap_select_polygon_vertices <- function(polygon,
