@@ -58,11 +58,15 @@ SIRAP object and their own \code{swap_coords} argument is \code{NULL}.}
 
 \item{polygons}{Optional polygon table. A canonical table has one row per
 polygon with \code{polygon_id} and a list-column \code{vertices}; each vertices
-table must contain \code{x} and \code{y}, and may contain \code{spatial_id} and \code{image}.}
+table must contain \code{x} and \code{y}, and may contain \code{spatial_id} and \code{image}.
+Stored polygons automatically annotate both Seurat metadata and receptor
+tables with a primary \code{polygon_id} column plus logical \verb{polygon_<ID>}
+membership columns for each individual polygon.}
 
 \item{polygons_path}{Optional path to a flat polygon vertex CSV. It may use
 \code{polygon_id} or \code{polygon} for the polygon identifier and must contain \code{x}
-and \code{y} coordinate columns.}
+and \code{y} coordinate columns. Stored polygons from this path receive the same
+automatic annotation as \code{polygons}.}
 
 \item{analyses}{Optional named list of derived analysis results.}
 

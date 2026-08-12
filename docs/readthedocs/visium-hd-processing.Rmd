@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 ```
 
 This vignette walks through the Visium HD BCR/TCR processing workflow. It starts from RAD
-output, keeps spatial barcodes attached through the pRESTO/IgBLAST consensus workflow,
+output, keeps spatial IDs attached through the pRESTO/IgBLAST consensus workflow,
 produces AIRR-style tables with spatial coordinates, and plots BCR/TCR locations over the
 tissue.
 
@@ -130,9 +130,9 @@ um and 16 um barcodes used for plotting and analysis.
 barcodeMapPath <- file.path(thymusDir, "M5_barcode_mappings.csv")
 positionsPath8um <- file.path(thymusDir, sprintf("%s_tissue_positions_8um.csv", sampleId))
 
-barcodeMap <- readBarcodeMapping(barcodeMapPath)
+barcodeMap <- readSpatialIdMapping(barcodeMapPath)
 
-positions8um <- readBarcodeMapping(positionsPath8um) %>%
+positions8um <- readSpatialIdMapping(positionsPath8um) %>%
   mutate(
     barcode_8um = barcode,
     x = pxl_col_in_fullres,
@@ -145,7 +145,7 @@ head(positions8um)
 
 ## Start from Raw IgBLAST Output
 
-Extract the 2 um spatial barcode before pRESTO and do a first length/locus
+Extract the 2 um spatial ID before pRESTO and do a first length/locus
 filter. `filterAirr()` keeps preprocessing in memory; we explicitly
 write AIRR tables and FASTA files only when we need pRESTO inputs.
 
@@ -153,19 +153,19 @@ write AIRR tables and FASTA files only when we need pRESTO inputs.
 bcrRaw <- data.table::fread(rawBCRIgblastPath)
 tcrRaw <- data.table::fread(rawTCRIgblastPath)
 
-bcrRaw <- extractSpatialBarcodes(
+bcrRaw <- extractSpatialIds(
   bcrRaw,
   id = "sequence_id",
-  barcode = "barcode_2um",
+  spatial_id = "barcode_2um",
   regex = "[0-9]+_[0-9]+$",
   prefix = "s_002um_",
   suffix = "-1"
 )
 
-tcrRaw <- extractSpatialBarcodes(
+tcrRaw <- extractSpatialIds(
   tcrRaw,
   id = "sequence_id",
-  barcode = "barcode_2um",
+  spatial_id = "barcode_2um",
   regex = "[0-9]+_[0-9]+$",
   prefix = "s_002um_",
   suffix = "-1"
@@ -177,7 +177,7 @@ bcrHeavy <- filterAirr(
   min_v_length = 100,
   min_j_length = 10,
   min_junction_length = 1,
-  barcode = "barcode_2um",
+  spatial_id = "barcode_2um",
   add_spatial_sequence_id = TRUE
 )
 
@@ -187,19 +187,19 @@ tcrBeta <- filterAirr(
   min_v_length = 100,
   min_j_length = 10,
   min_junction_length = 1,
-  barcode = "barcode_2um",
+  spatial_id = "barcode_2um",
   add_spatial_sequence_id = TRUE
 )
 
-spatialReceptorSummary(bcrHeavy, barcode = "barcode_2um")
-spatialReceptorSummary(tcrBeta, barcode = "barcode_2um")
+spatialReceptorSummary(bcrHeavy, spatial_id = "barcode_2um")
+spatialReceptorSummary(tcrBeta, spatial_id = "barcode_2um")
 ```
 
 ```{r write-presto-inputs}
-bcrHeavySpatialTsv <- file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_barcode.tsv", sampleLower))
-bcrHeavySpatialFasta <- file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_barcode.fasta", sampleLower))
-tcrBetaSpatialTsv <- file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_barcode.tsv", sampleLower))
-tcrBetaSpatialFasta <- file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_barcode.fasta", sampleLower))
+bcrHeavySpatialTsv <- file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_id.tsv", sampleLower))
+bcrHeavySpatialFasta <- file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_id.fasta", sampleLower))
+tcrBetaSpatialTsv <- file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_id.tsv", sampleLower))
+tcrBetaSpatialFasta <- file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_id.fasta", sampleLower))
 
 airr::write_rearrangement(bcrHeavy, bcrHeavySpatialTsv)
 airr::write_rearrangement(tcrBeta, tcrBetaSpatialTsv)
@@ -255,17 +255,17 @@ tissue positions, and collapse obvious spatial bleedover.
 bcrConsensus <- airr::read_rearrangement(bcrPrestoPaths$db_pass)
 tcrConsensus <- airr::read_rearrangement(tcrPrestoPaths$db_pass)
 
-bcrConsensus <- extractSpatialBarcodes(
+bcrConsensus <- extractSpatialIds(
   bcrConsensus,
   id = "sequence_id",
-  barcode = "barcode_2um",
+  spatial_id = "barcode_2um",
   regex = ",([^,]+)"
 )
 
-tcrConsensus <- extractSpatialBarcodes(
+tcrConsensus <- extractSpatialIds(
   tcrConsensus,
   id = "sequence_id",
-  barcode = "barcode_2um",
+  spatial_id = "barcode_2um",
   regex = ",([^,]+)"
 )
 
@@ -278,7 +278,7 @@ bcrConsensusFiltered <- filterAirr(
   productive_only = TRUE,
   min_consensus_count = 2,
   max_opening_gap = 2,
-  barcode = "barcode_2um"
+  spatial_id = "barcode_2um"
 )
 
 tcrConsensusFiltered <- filterAirr(
@@ -290,7 +290,7 @@ tcrConsensusFiltered <- filterAirr(
   productive_only = TRUE,
   min_consensus_count = 2,
   max_opening_gap = 2,
-  barcode = "barcode_2um"
+  spatial_id = "barcode_2um"
 )
 
 bcrConsensusFiltered <- bcrConsensusFiltered %>%
@@ -312,8 +312,8 @@ tcrConsensusFiltered <- tcrConsensusFiltered %>%
 bcrConsensusFilteredPos <- addTissuePositions(
   bcrConsensusFiltered,
   positions8um,
-  barcode = "barcode_8um",
-  position_barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
+  position_spatial_id = "barcode_8um",
   x = "x",
   y = "y"
 ) %>% filter(!is.na(x), !is.na(y))
@@ -321,8 +321,8 @@ bcrConsensusFilteredPos <- addTissuePositions(
 tcrConsensusFilteredPos <- addTissuePositions(
   tcrConsensusFiltered,
   positions8um,
-  barcode = "barcode_8um",
-  position_barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
+  position_spatial_id = "barcode_8um",
   x = "x",
   y = "y"
 ) %>% filter(!is.na(x), !is.na(y))
@@ -330,7 +330,7 @@ tcrConsensusFilteredPos <- addTissuePositions(
 bcrCollapsed <- collapseIdenticalNeighbors(
   data = bcrConsensusFilteredPos,
   tissue_positions = positions8um,
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   x = "x",
   y = "y",
   sequence = "sequence_alignment",
@@ -341,7 +341,7 @@ bcrCollapsed <- collapseIdenticalNeighbors(
 tcrCollapsed <- collapseIdenticalNeighbors(
   data = tcrConsensusFilteredPos,
   tissue_positions = positions8um,
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   x = "x",
   y = "y",
   sequence = "sequence_alignment",
@@ -349,8 +349,8 @@ tcrCollapsed <- collapseIdenticalNeighbors(
   num_neighbors_non_boundary = 8L
 )
 
-bcrTopBarcode <- collapseTopConsensusPerBarcode(bcrCollapsed, barcode = "barcode_2um", locus = "locus", ties = "all")
-tcrTopBarcode <- collapseTopConsensusPerBarcode(tcrCollapsed, barcode = "barcode_2um", locus = "locus", ties = "all")
+bcrTopBarcode <- collapseTopConsensusPerSpatialId(bcrCollapsed, spatial_id = "barcode_2um", locus = "locus", ties = "all")
+tcrTopBarcode <- collapseTopConsensusPerSpatialId(tcrCollapsed, spatial_id = "barcode_2um", locus = "locus", ties = "all")
 
 airr::write_rearrangement(bcrTopBarcode, finalBCRPath)
 airr::write_rearrangement(tcrTopBarcode, finalTCRPath)
@@ -367,7 +367,7 @@ allBCRPlot <- plotReceptors(
   receptors = dplyr::mutate(bcrTopBarcode, receptor_type = "BCR"),
   group = "receptor_type",
   group_val = "BCR",
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   colors = "white",
   receptor_size = 0.5,
   title = paste(sampleId, "all BCR-positive spots")
@@ -378,7 +378,7 @@ allTCRPlot <- plotReceptors(
   receptors = dplyr::mutate(tcrTopBarcode, receptor_type = "TCR"),
   group = "receptor_type",
   group_val = "TCR",
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   colors = "#d95f02",
   receptor_size = 0.5,
   title = paste(sampleId, "all TCR-positive spots")

@@ -81,7 +81,7 @@ if (file.exists(bcrClonesPath)) {
 
 `selectSpatialPolygons()` opens a Shiny app for selecting polygon vertices over
 the spatial tissue coordinates. Each click snaps to the nearest full-resolution
-spatial barcode, even if `downsample_n` is used to make the browser plot
+spatial ID, even if `downsample_n` is used to make the browser plot
 lighter.
 
 For an HPC interactive node, define the host and port explicitly. Start the R
@@ -234,7 +234,7 @@ clonalDominance <- spatialCloneDominance(
   receptors = dominanceBcrs,
   object = thymus,
   polygon = allGcsPolygons,
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   clone = "spaced_clone_id",
   locus = "chain_for_pairing",
   locus_val = "heavy",
@@ -246,7 +246,7 @@ clonalDominanceNoSingletons <- spatialCloneDominance(
   receptors = dominanceBcrs,
   object = thymus,
   polygon = allGcsPolygons,
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   clone = "spaced_clone_id",
   locus = "chain_for_pairing",
   locus_val = "heavy",
@@ -261,7 +261,7 @@ head(clonalDominance$dominance)
 The returned object contains:
 
 - `dominance`: clone counts and proportions for each polygon.
-- `region_barcodes`: spatial barcodes inside each polygon.
+- `region_spatial_ids`: spatial IDs inside each polygon.
 - `region_coordinates`: spatial coordinate rows inside each polygon.
 - `region_receptors`: BCR rows inside each polygon, with plotting coordinates and
   V-gene summaries.
@@ -274,7 +274,7 @@ and broad `v_gene_superfamily` values for each clone.
 
 `plotSpatialRegionReceptors()` requires the dominance result and its original
 SIRAP or Seurat object. It plots the regional receptor rows already stored by
-`spatialCloneDominance()` over the tissue image, without repeating barcode or
+`spatialCloneDominance()` over the tissue image, without repeating spatial_id or
 polygon arguments. In this example those rows are heavy-chain BCRs. `top_n`
 keeps the most common displayed levels and groups lower-frequency levels as
 `Other`.

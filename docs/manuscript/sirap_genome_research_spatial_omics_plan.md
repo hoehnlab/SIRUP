@@ -99,7 +99,7 @@ Existing anchors:
 - `SIRAP/inst/scripts/visium_hd_bcr_tcr_walkthrough.R`
 - `SIRAP/docs/readthedocs/visium-hd-processing.Rmd`
 - `spatialExpressionPlot()`
-- `plotReceptorExpression()`
+- `plotReceptorsExpression()`
 
 ### Figure 2: Ectopic Thymic GCs Show Spatially Localized BCR Clones
 
@@ -158,7 +158,7 @@ Panels:
 
 Existing anchors:
 
-- `plotReceptorExpression()`
+- `plotReceptorsExpression()`
 - `spatialRipleyCrossK()`
 - `spatialExpressionBlendPlot()`
 - `SIRAP/docs/readthedocs/spatial-expression-and-colocalization.Rmd`

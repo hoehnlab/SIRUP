@@ -63,10 +63,12 @@ Set to \code{FALSE} to close open polygons automatically.}
 A tibble with \code{column} added.
 }
 \description{
-Adds a polygon-membership column to an AIRR-style receptor table without
+Adds polygon-membership columns to an AIRR-style receptor table without
 subsetting the table. Receptor rows whose spatial ID falls outside the
 selected polygon(s), or does not match the spatial object, receive \code{NA}.
-Receptors in spatial IDs inside overlapping polygons receive comma-separated
-polygon IDs. When \code{receptors} is a SIRAP object and \code{object} and \code{polygon}
-are omitted, the stored spatial object and polygons are used.
+Receptors in spatial IDs inside overlapping polygons are assigned to the
+smallest polygon by area in the primary polygon column. Additional logical
+columns named \verb{polygon_<ID>} record membership in each individual polygon.
+When \code{receptors} is a SIRAP object and \code{object} and \code{polygon} are omitted,
+the stored spatial object and polygons are used.
 }

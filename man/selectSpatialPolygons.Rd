@@ -74,4 +74,10 @@ Opens a Shiny app for clicking polygon vertices on a Seurat spatial
 coordinate plot. Each click snaps to the nearest spatial ID. Use
 "Close polygon" or "New polygon" before finishing to repeat the first vertex
 at the end of each polygon.
+The returned vertices may describe overlapping or nested polygons. Polygon
+membership is resolved when these vertices are passed to
+\code{\link[=assignSpatialPolygons]{assignSpatialPolygons()}}, \code{\link[=assignReceptorPolygons]{assignReceptorPolygons()}}, \code{\link[=createSIRAP]{createSIRAP()}}, or
+\code{\link[=addPolygons]{addPolygons()}}: the primary \code{polygon_id} uses the smallest matching polygon
+by area, while logical \verb{polygon_<ID>} columns retain membership in each
+individual polygon.
 }

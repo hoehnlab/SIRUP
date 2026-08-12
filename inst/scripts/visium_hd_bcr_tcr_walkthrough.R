@@ -91,15 +91,15 @@ tcrCloneIdsToPlot <- NULL
 
 all(file.exists(c(rawBCRIgblastPath, rawTCRIgblastPath, barcodeMapPath, positionsPath2um, positionsPath8um, positionsPath16um)))
 
-barcodeMap <- readBarcodeMapping(barcodeMapPath)
+barcodeMap <- readSpatialIdMapping(barcodeMapPath)
 
-positions2um <- readBarcodeMapping(positionsPath2um) %>%
+positions2um <- readSpatialIdMapping(positionsPath2um) %>%
   mutate(
     barcode_2um = barcode,
     x = pxl_col_in_fullres,
     y = max(pxl_row_in_fullres) - pxl_row_in_fullres
   )
-positions8um <- readBarcodeMapping(positionsPath8um) %>%
+positions8um <- readSpatialIdMapping(positionsPath8um) %>%
   mutate(
     barcode_8um = barcode,
     x = pxl_col_in_fullres,
@@ -121,19 +121,19 @@ tcrRaw <- data.table::fread(rawTCRIgblastPath)
 dim(bcrRaw)
 dim(tcrRaw)
 
-bcrRaw <- extractSpatialBarcodes(
+bcrRaw <- extractSpatialIds(
   bcrRaw,
   id = "sequence_id",
-  barcode = "barcode_2um",
+  spatial_id = "barcode_2um",
   regex = "[0-9]+_[0-9]+$",
   prefix = "s_002um_",
   suffix = "-1"
 )
 
-tcrRaw <- extractSpatialBarcodes(
+tcrRaw <- extractSpatialIds(
   tcrRaw,
   id = "sequence_id",
-  barcode = "barcode_2um",
+  spatial_id = "barcode_2um",
   regex = "[0-9]+_[0-9]+$",
   prefix = "s_002um_",
   suffix = "-1"
@@ -145,7 +145,7 @@ bcrHeavy <- filterAirr(
   min_v_length = 100,
   min_j_length = 10,
   min_junction_length = 1,
-  barcode = "barcode_2um",
+  spatial_id = "barcode_2um",
   add_full_id = TRUE
 )
 cat("Kept BCR heavy chains: ", nrow(bcrHeavy), "\n")
@@ -156,17 +156,17 @@ tcrBeta <- filterAirr(
   min_v_length = 100,
   min_j_length = 10,
   min_junction_length = 1,
-  barcode = "barcode_2um",
+  spatial_id = "barcode_2um",
   add_full_id = TRUE
 )
 cat("Kept TCR beta chains: ", nrow(tcrBeta), "\n")
 
 
 # Save the processed BCRs and TCRs as airr.tsvs and FASTAs for pRESTO/IgBLAST
-bcrHeavySpatialTsv <- file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_barcode.tsv", sampleLower))
-bcrHeavySpatialFasta <- file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_barcode.fasta", sampleLower))
-tcrBetaSpatialTsv <- file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_barcode.tsv", sampleLower))
-tcrBetaSpatialFasta <- file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_barcode.fasta", sampleLower))
+bcrHeavySpatialTsv <- file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_id.tsv", sampleLower))
+bcrHeavySpatialFasta <- file.path(prestoInputDir, sprintf("%s_igblast_bcr_pass_length_spatial_id.fasta", sampleLower))
+tcrBetaSpatialTsv <- file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_id.tsv", sampleLower))
+tcrBetaSpatialFasta <- file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_length_spatial_id.fasta", sampleLower))
 
 airr::write_rearrangement(bcrHeavy, bcrHeavySpatialTsv)
 airr::write_rearrangement(tcrBeta, tcrBetaSpatialTsv)
@@ -175,10 +175,10 @@ dowser::dfToFasta(bcrHeavy, file = bcrHeavySpatialFasta, id = "full_id", seq = "
 dowser::dfToFasta(tcrBeta, file = tcrBetaSpatialFasta, id = "full_id", seq = "sequence_alignment")
 
 # Summarize pre and post filtering
-spatialReceptorSummary(bcrRaw, barcode = "barcode_2um")
-spatialReceptorSummary(bcrHeavy, barcode = "barcode_2um")
-spatialReceptorSummary(tcrRaw, barcode = "barcode_2um")
-spatialReceptorSummary(bcrHeavy, barcode = "barcode_2um")
+spatialReceptorSummary(bcrRaw, spatial_id = "barcode_2um")
+spatialReceptorSummary(bcrHeavy, spatial_id = "barcode_2um")
+spatialReceptorSummary(tcrRaw, spatial_id = "barcode_2um")
+spatialReceptorSummary(bcrHeavy, spatial_id = "barcode_2um")
 
 # Plot the distribution of v, j, and junction lengths before and after filtering if requested
 if (savePlots) {
@@ -243,7 +243,7 @@ if (!exists("bcrPrestoPaths")) {
   bcrConsensusFasta <- file.path(
     prestoOutputDir,
     sprintf(
-      "%s_igblast_bcr_pass_length_spatial_barcode_ident_%s_barcode_cluster_freq_%s_cluster-pass_reheader_align-pass_consensus-pass.fasta",
+      "%s_igblast_bcr_pass_length_spatial_id_ident_%s_barcode_cluster_freq_%s_cluster-pass_reheader_align-pass_consensus-pass.fasta",
       sampleLower,
       identityThreshold,
       consensusFreqThreshold
@@ -259,7 +259,7 @@ if (!exists("tcrPrestoPaths")) {
   tcrConsensusFasta <- file.path(
     prestoOutputDir,
     sprintf(
-      "%s_igblast_tcr_pass_length_spatial_barcode_ident_%s_barcode_cluster_freq_%s_cluster-pass_reheader_align-pass_consensus-pass.fasta",
+      "%s_igblast_tcr_pass_length_spatial_id_ident_%s_barcode_cluster_freq_%s_cluster-pass_reheader_align-pass_consensus-pass.fasta",
       sampleLower,
       identity,
       consensusFreq
@@ -297,18 +297,18 @@ if (requireNamespace("airr", quietly = TRUE)) {
   tcrConsensus <- data.table::fread(tcrPrestoFullDbPassPath)
 }
 
-# Get the spatial barcode back out of the sequence_id
-bcrConsensus <- extractSpatialBarcodes(
+# Get the spatial ID back out of the sequence_id
+bcrConsensus <- extractSpatialIds(
   bcrConsensus,
   id = "sequence_id",
-  barcode = "barcode_2um",
+  spatial_id = "barcode_2um",
   regex = ",([^,]+)"
 )
 
-tcrConsensus <- extractSpatialBarcodes(
+tcrConsensus <- extractSpatialIds(
   tcrConsensus,
   id = "sequence_id",
-  barcode = "barcode_2um",
+  spatial_id = "barcode_2um",
   regex = ",([^,]+)"
 )
 
@@ -323,7 +323,7 @@ bcrConsensusFiltered <- filterAirr(
   productive_only = TRUE,
   min_consensus_count = 2,
   max_opening_gap = 2,
-  barcode = "barcode_2um"
+  spatial_id = "barcode_2um"
 )
 cat("Kept BCR consensus sequences after filtering: ", nrow(bcrConsensusFiltered), "\n")
 
@@ -336,7 +336,7 @@ tcrConsensusFiltered <- filterAirr(
   productive_only = TRUE,
   min_consensus_count = 2,
   max_opening_gap = 2,
-  barcode = "barcode_2um"
+  spatial_id = "barcode_2um"
 )
 cat("Kept TCR consensus sequences after filtering: ", nrow(tcrConsensusFiltered), "\n")
 
@@ -362,8 +362,8 @@ tcrConsensusFiltered <- tcrConsensusFiltered %>%
 bcrConsensusFilteredPos <- addTissuePositions(
   bcrConsensusFiltered,
   positions8um,
-  barcode = "barcode_8um",
-  position_barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
+  position_spatial_id = "barcode_8um",
   x = "x",
   y = "y"
 ) %>% filter(!is.na(x), !is.na(y))
@@ -371,8 +371,8 @@ bcrConsensusFilteredPos <- addTissuePositions(
 tcrConsensusFilteredPos <- addTissuePositions(
   tcrConsensusFiltered,
   positions8um,
-  barcode = "barcode_8um",
-  position_barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
+  position_spatial_id = "barcode_8um",
   x = "x",
   y = "y"
 ) %>% filter(!is.na(x), !is.na(y))
@@ -402,7 +402,7 @@ if (remove_bleed_example) {
         receptors = seqMatches,
         group = "sequence_alignment",
         group_val = seq,
-        barcode = "barcode_8um",
+        spatial_id = "barcode_8um",
         colors = "#2c7fb8",
         receptor_size = 1.2,
         image_scale = "hires",
@@ -421,7 +421,7 @@ if (remove_bleed_example) {
   bcrConsensusFilteredPosSpatialCollapse <- collapseIdenticalNeighbors(
     bcrConsensusFilteredPos,
     seurat_object = thymus,
-    barcode = "barcode_8um",
+    spatial_id = "barcode_8um",
     sequence = "sequence_alignment",
     consensus_count = "consensus_count",
     image_scale = "hires",
@@ -442,7 +442,7 @@ if (remove_bleed_example) {
         receptors = seqMatches,
         group = "sequence_alignment",
         group_val = seq,
-        barcode = "barcode_8um",
+        spatial_id = "barcode_8um",
         colors = "#2c7fb8",
         receptor_size = 1.2,
         image_scale = "hires",
@@ -459,7 +459,7 @@ if (remove_bleed_example) {
 bcrConsensusFilteredPosSpatialCollapse <- collapseIdenticalNeighbors(
   bcrConsensusFilteredPos,
   seurat_object = thymus,
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   sequence = "sequence_alignment",
   consensus_count = "consensus_count",
   image_scale = "hires",
@@ -470,7 +470,7 @@ bcrConsensusFilteredPosSpatialCollapse <- collapseIdenticalNeighbors(
 tcrConsensusFilteredPosSpatialCollapse <- collapseIdenticalNeighbors(
   tcrConsensusFilteredPos,
   seurat_object = thymus,
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   sequence = "sequence_alignment",
   consensus_count = "consensus_count",
   image_scale = "hires",
@@ -480,8 +480,8 @@ tcrConsensusFilteredPosSpatialCollapse <- collapseIdenticalNeighbors(
 
 
 # Get one consensus sequence per barcode (most present in barcode) at 2um level
-bcrTopBarcode <- collapseTopConsensusPerBarcode(bcrConsensusFilteredPosSpatialCollapse, barcode = "barcode_2um", locus = "locus", ties = "all")
-tcrTopBarcode <- collapseTopConsensusPerBarcode(tcrConsensusFilteredPosSpatialCollapse, barcode = "barcode_2um", locus = "locus", ties = "all")
+bcrTopBarcode <- collapseTopConsensusPerSpatialId(bcrConsensusFilteredPosSpatialCollapse, spatial_id = "barcode_2um", locus = "locus", ties = "all")
+tcrTopBarcode <- collapseTopConsensusPerSpatialId(tcrConsensusFilteredPosSpatialCollapse, spatial_id = "barcode_2um", locus = "locus", ties = "all")
 
 
 if (requireNamespace("airr", quietly = TRUE)) {
@@ -493,8 +493,8 @@ if (requireNamespace("airr", quietly = TRUE)) {
 }
 
 list(
-  bcr = spatialReceptorSummary(bcrTopBarcode, barcode = "barcode_2um"),
-  tcr = spatialReceptorSummary(tcrTopBarcode, barcode = "barcode_2um")
+  bcr = spatialReceptorSummary(bcrTopBarcode, spatial_id = "barcode_2um"),
+  tcr = spatialReceptorSummary(tcrTopBarcode, spatial_id = "barcode_2um")
 )
 
 postPrestoQcPlot <- cowplot::plot_grid(
@@ -535,7 +535,7 @@ if (!is.null(thymus)) {
     receptors = dplyr::mutate(bcrTopBarcode, receptor_type = "BCR"),
     group = "receptor_type",
     group_val = "BCR",
-    barcode = "barcode_8um",
+    spatial_id = "barcode_8um",
     colors = "white",
     receptor_size = 0.5,
     image_scale = "hires",
@@ -551,7 +551,7 @@ if (!is.null(thymus)) {
     receptors = dplyr::mutate(tcrTopBarcode, receptor_type = "TCR"),
     group = "receptor_type",
     group_val = "TCR",
-    barcode = "barcode_8um",
+    spatial_id = "barcode_8um",
     colors = "#d95f02",
     receptor_size = 0.5,
     image_scale = "hires",
@@ -607,7 +607,7 @@ if (!is.null(thymus)) {
       group = "receptor_type",
       group_val = "BCR",
       gene = gene,
-      barcode = "barcode_8um",
+      spatial_id = "barcode_8um",
       colors = "#2c7fb8",
       receptor_size = 0.5,
       receptor_stroke = 0.25,
@@ -625,7 +625,7 @@ if (!is.null(thymus)) {
       group = "receptor_type",
       group_val = "TCR",
       gene = gene,
-      barcode = "barcode_8um",
+      spatial_id = "barcode_8um",
       colors = "#d95f02",
       receptor_size = 0.5,
       receptor_stroke = 0.25,
@@ -686,7 +686,7 @@ if (!is.null(thymus)) {
     variable = "BCR presence",
     variable_type = "receptor",
     receptors = bcrTopBarcode,
-    barcode = "barcode_8um",
+    spatial_id = "barcode_8um",
     image_scale = "hires",
     swap_coords = FALSE,
     # radius = spatialStatsRadius # Unadvisable to use the radius for visium HD data since nSpots is so high
@@ -913,7 +913,7 @@ if (!is.null(thymus)) {
         receptors = filter(bcrClones, .data$clone_id == .env$cloneId),
         group = "clone_id",
         group_val = cloneId,
-        barcode = "barcode_8um",
+        spatial_id = "barcode_8um",
         colors = "#2c7fb8",
         receptor_size = 1.7,
         image_scale = "hires",
@@ -940,7 +940,7 @@ if (!is.null(thymus)) {
         receptors = filter(tcrClones, .data$clone_id == .env$cloneId),
         group = "clone_id",
         group_val = cloneId,
-        barcode = "barcode_8um",
+        spatial_id = "barcode_8um",
         colors = "#d95f02",
         receptor_size = 1.7,
         image_scale = "hires",
@@ -1016,7 +1016,7 @@ if (is.null(thymus)) {
   pairedTreeSpatialPlots <- plotSpatialCloneTreePairs(
     bcrTrees,
     object = thymus,
-    barcode = "barcode_8um",
+    spatial_id = "barcode_8um",
     clone_val = bcrCloneIds,
     id = "sequence_id",
     image_scale = "hires",
@@ -1028,7 +1028,7 @@ if (is.null(thymus)) {
   pairedTreeSpatialClusterPlots <- plotSpatialCloneTreePairs(
     bcrTreesClustered,
     object = thymus,
-    barcode = "barcode_8um",
+    spatial_id = "barcode_8um",
     clone_val = bcrCloneIds,
     id = "sequence_id",
     color_by = "tree_cluster",
@@ -1291,7 +1291,7 @@ if (runClonalDominance) {
     receptors = dominanceBcrs,
     object = thymus,
     polygon = allGcsPolygons,
-    barcode = "barcode_8um",
+    spatial_id = "barcode_8um",
     clone = "spaced_clone_id",
     locus = "chain_for_pairing",
     locus_val = "heavy",
@@ -1303,7 +1303,7 @@ if (runClonalDominance) {
     receptors = dominanceBcrs,
     object = thymus,
     polygon = allGcsPolygons,
-    barcode = "barcode_8um",
+    spatial_id = "barcode_8um",
     clone = "spaced_clone_id",
     locus = "chain_for_pairing",
     locus_val = "heavy",

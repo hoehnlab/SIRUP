@@ -53,7 +53,7 @@ tcrTopBarcode <- airr::read_rearrangement(finalTCRPath)
 bcrSirap <- createSIRAP(
   spatial = thymus,
   receptors = bcrTopBarcode,
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   image_scale = "hires",
   swap_coords = FALSE,
   metadata = list(sample_id = sampleId, receptor_type = "BCR")
@@ -62,7 +62,7 @@ bcrSirap <- createSIRAP(
 tcrSirap <- createSIRAP(
   spatial = thymus,
   receptors = tcrTopBarcode,
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   image_scale = "hires",
   swap_coords = FALSE,
   metadata = list(sample_id = sampleId, receptor_type = "TCR")
@@ -70,7 +70,7 @@ tcrSirap <- createSIRAP(
 ```
 
 The SIRAP objects retain ordinary Seurat and AIRR-style data internally, while
-recording which receptor column joins to spatial barcodes. Their receptor
+recording which receptor column joins to spatial IDs. Their receptor
 components are tibbles and remain available through `getReceptors()`.
 `getSpatial()` returns the stored Seurat object for read-only external use, and
 `updateSpatial()` returns a SIRAP object containing an updated Seurat result.
@@ -134,7 +134,7 @@ tcrCd3ePlot <- plotReceptorsExpression(
   group = "receptor_type",
   group_val = "TCR",
   gene = "CD3E",
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   colors = "#d95f02",
   receptor_size = 0.55,
   receptor_stroke = 0.25,
@@ -149,7 +149,7 @@ bcrMs4a1Plot <- plotReceptorsExpression(
   group = "receptor_type",
   group_val = "BCR",
   gene = "MS4A1",
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   colors = "#2c7fb8",
   receptor_size = 0.55,
   receptor_stroke = 0.25,

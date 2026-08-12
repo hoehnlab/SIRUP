@@ -27,4 +27,9 @@ updated SIRAP object.
 \code{addPolygons()} stores one canonical polygon table per SIRAP object. The
 input may be a nested \code{polygon_id}/\code{vertices} tibble or a flat vertex table
 such as the CSV returned by \code{selectSpatialPolygons()}.
+Stored polygons automatically annotate both the Seurat metadata and AIRR
+receptor table with a primary \code{polygon_id} column. When a barcode belongs to
+overlapping or nested polygons, the primary assignment uses the smallest
+matching polygon by area. Logical \verb{polygon_<ID>} columns retain membership in
+each individual polygon.
 }

@@ -127,6 +127,8 @@ test_that("addPolygons annotates SIRAP spatial metadata and receptors", {
 
   expect_equal(unname(out$spatial$polygon_id), c("GC1", "GC1", NA, NA))
   expect_equal(out$receptors$polygon_id, c("GC1", "GC1", NA))
+  expect_equal(unname(out$spatial$polygon_GC1), c(TRUE, TRUE, FALSE, FALSE))
+  expect_equal(out$receptors$polygon_GC1, c(TRUE, TRUE, FALSE))
   expect_invisible(validateSIRAP(out))
 })
 
@@ -151,6 +153,8 @@ test_that("createSIRAP accepts a polygon path", {
   expect_equal(out$polygons$polygon_id, "GC1")
   expect_equal(unname(out$spatial$polygon_id), c("GC1", "GC1", NA, NA))
   expect_equal(out$receptors$polygon_id, c("GC1", "GC1", NA))
+  expect_equal(unname(out$spatial$polygon_GC1), c(TRUE, TRUE, FALSE, FALSE))
+  expect_equal(out$receptors$polygon_GC1, c(TRUE, TRUE, FALSE))
   expect_invisible(validateSIRAP(out))
 })
 
