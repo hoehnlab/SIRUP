@@ -42,9 +42,9 @@ exists.}
 
 \item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
 
-\item{metadata}{Metadata column added to the returned Seurat object with
-polygon membership. Barcodes in overlapping polygons receive comma-separated
-polygon IDs.}
+\item{metadata}{Metadata column added to the returned Seurat object with the
+primary polygon assignment. Barcodes in overlapping polygons are assigned to
+the smallest polygon by area.}
 
 \item{include_boundary}{Include Seurat spots on polygon edges.}
 
@@ -55,9 +55,11 @@ Set to \code{FALSE} to close open polygons automatically.}
 A Seurat object with \code{metadata} added to \verb{@meta.data}.
 }
 \description{
-Adds a polygon-membership column to a Seurat object's metadata without
+Adds polygon-membership columns to a Seurat object's metadata without
 subsetting the object. Spatial IDs outside the selected polygon(s) receive
-\code{NA}. Spatial IDs inside overlapping polygons receive comma-separated polygon
-IDs. When \code{object} is a SIRAP object and \code{polygon} is omitted, the stored
-polygons in the SIRAP object are used.
+\code{NA} in the primary metadata column. Spatial IDs inside overlapping polygons
+are assigned to the smallest polygon by area in the primary metadata column.
+Additional logical columns named \verb{polygon_<ID>} record membership in each
+individual polygon. When \code{object} is a SIRAP object and \code{polygon} is omitted,
+the stored polygons in the SIRAP object are used.
 }

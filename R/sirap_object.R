@@ -34,9 +34,13 @@
 #' @param polygons Optional polygon table. A canonical table has one row per
 #'   polygon with `polygon_id` and a list-column `vertices`; each vertices
 #'   table must contain `x` and `y`, and may contain `spatial_id` and `image`.
+#'   Stored polygons automatically annotate both Seurat metadata and receptor
+#'   tables with a primary `polygon_id` column plus logical `polygon_<ID>`
+#'   membership columns for each individual polygon.
 #' @param polygons_path Optional path to a flat polygon vertex CSV. It may use
 #'   `polygon_id` or `polygon` for the polygon identifier and must contain `x`
-#'   and `y` coordinate columns.
+#'   and `y` coordinate columns. Stored polygons from this path receive the same
+#'   automatic annotation as `polygons`.
 #' @param analyses Optional named list of derived analysis results.
 #' @param validate Whether to validate the completed object.
 #'
@@ -260,6 +264,11 @@ getReceptors <- function(x) {
 #' `addPolygons()` stores one canonical polygon table per SIRAP object. The
 #' input may be a nested `polygon_id`/`vertices` tibble or a flat vertex table
 #' such as the CSV returned by `selectSpatialPolygons()`.
+#' Stored polygons automatically annotate both the Seurat metadata and AIRR
+#' receptor table with a primary `polygon_id` column. When a barcode belongs to
+#' overlapping or nested polygons, the primary assignment uses the smallest
+#' matching polygon by area. Logical `polygon_<ID>` columns retain membership in
+#' each individual polygon.
 #'
 #' @param x A SIRAP object.
 #' @param polygons Optional polygon table.
@@ -621,8 +630,9 @@ print.summary.sirap <- function(x, ...) {
   out
 }
 
-# Add stored polygon IDs to both SIRAP data components. Receptors and Seurat
-# metadata receive `polygon_id`, with `NA` for records outside all polygons.
+# Add stored polygon IDs and per-polygon membership flags to both SIRAP data
+# components. Receptors and Seurat metadata receive `polygon_id`, with `NA` for
+# records outside all polygons.
 .sirap_annotate_stored_polygons <- function(x) {
   if (nrow(.sirap_polygons(x)) == 0L) {
     return(x)

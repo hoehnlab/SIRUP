@@ -311,6 +311,12 @@ spatialCloneDominance <- function(receptors = NULL,
 #' coordinate plot. Each click snaps to the nearest spatial ID. Use
 #' "Close polygon" or "New polygon" before finishing to repeat the first vertex
 #' at the end of each polygon.
+#' The returned vertices may describe overlapping or nested polygons. Polygon
+#' membership is resolved when these vertices are passed to
+#' [assignSpatialPolygons()], [assignReceptorPolygons()], [createSIRAP()], or
+#' [addPolygons()]: the primary `polygon_id` uses the smallest matching polygon
+#' by area, while logical `polygon_<ID>` columns retain membership in each
+#' individual polygon.
 #'
 #' @param object Seurat object with spatial coordinates, or a SIRAP object.
 #' @param feature Optional feature shown as a color scale under the clicked
@@ -1460,9 +1466,9 @@ plotSpatialPolygonPies <- function(dominance,
 #'   exists.
 #' @param x,y Coordinate columns in `polygon`.
 #' @param polygon_id Optional polygon grouping column in `polygon`.
-#' @param metadata Metadata column added to the returned Seurat object with
-#'   polygon membership. Barcodes in overlapping polygons receive comma-separated
-#'   polygon IDs.
+#' @param metadata Metadata column added to the returned Seurat object with the
+#'   primary polygon assignment. Barcodes in overlapping polygons are assigned to
+#'   the smallest polygon by area.
 #' @param include_boundary Include Seurat spots on polygon edges.
 #' @param require_closed Require the final polygon vertex to equal the first.
 #'   Set to `FALSE` to close open polygons automatically.
@@ -1505,11 +1511,13 @@ seuratSubsetPolygon <- function(object,
 
 #' Assign polygon IDs to spatial metadata
 #'
-#' Adds a polygon-membership column to a Seurat object's metadata without
+#' Adds polygon-membership columns to a Seurat object's metadata without
 #' subsetting the object. Spatial IDs outside the selected polygon(s) receive
-#' `NA`. Spatial IDs inside overlapping polygons receive comma-separated polygon
-#' IDs. When `object` is a SIRAP object and `polygon` is omitted, the stored
-#' polygons in the SIRAP object are used.
+#' `NA` in the primary metadata column. Spatial IDs inside overlapping polygons
+#' are assigned to the smallest polygon by area in the primary metadata column.
+#' Additional logical columns named `polygon_<ID>` record membership in each
+#' individual polygon. When `object` is a SIRAP object and `polygon` is omitted,
+#' the stored polygons in the SIRAP object are used.
 #'
 #' @inheritParams seuratSubsetPolygon
 #' @return A Seurat object with `metadata` added to `@meta.data`.
@@ -1553,19 +1561,27 @@ assignSpatialPolygons <- function(object,
   )
 
   polygon_lookup <- .sirap_polygon_lookup(membership)
+  polygon_flags <- .sirap_polygon_flag_lookup(membership)
   object <- .sirap_update_seurat_image_slots(object)
   object@meta.data[[metadata]] <- unname(polygon_lookup[rownames(object@meta.data)])
+  object@meta.data <- .sirap_append_polygon_flags(
+    object@meta.data,
+    rownames(object@meta.data),
+    polygon_flags
+  )
   object
 }
 
 #' Assign polygon IDs to a receptor table
 #'
-#' Adds a polygon-membership column to an AIRR-style receptor table without
+#' Adds polygon-membership columns to an AIRR-style receptor table without
 #' subsetting the table. Receptor rows whose spatial ID falls outside the
 #' selected polygon(s), or does not match the spatial object, receive `NA`.
-#' Receptors in spatial IDs inside overlapping polygons receive comma-separated
-#' polygon IDs. When `receptors` is a SIRAP object and `object` and `polygon`
-#' are omitted, the stored spatial object and polygons are used.
+#' Receptors in spatial IDs inside overlapping polygons are assigned to the
+#' smallest polygon by area in the primary polygon column. Additional logical
+#' columns named `polygon_<ID>` record membership in each individual polygon.
+#' When `receptors` is a SIRAP object and `object` and `polygon` are omitted,
+#' the stored spatial object and polygons are used.
 #'
 #' @param receptors AIRR-style receptor data frame, or a SIRAP object when
 #'   `object` is omitted.
@@ -1626,8 +1642,14 @@ assignReceptorPolygons <- function(receptors,
     require_closed = require_closed
   )
   polygon_lookup <- .sirap_polygon_lookup(membership)
+  polygon_flags <- .sirap_polygon_flag_lookup(membership)
   out <- tibble::as_tibble(receptors)
   out[[column]] <- unname(polygon_lookup[as.character(out[[spatial_id]])])
+  out <- .sirap_append_polygon_flags(
+    out,
+    as.character(out[[spatial_id]]),
+    polygon_flags
+  )
   out
 }
 
@@ -1658,7 +1680,12 @@ assignReceptorPolygons <- function(receptors,
     rlang::abort("No finite spatial coordinates were found in `object`.")
   }
   polygon_specs <- .sirap_polygon_specs(polygon, polygon_id = polygon_val, polygon_col = polygon_id)
-  membership <- lapply(polygon_specs, function(spec) {
+  polygon_values <- vapply(polygon_specs, function(spec) {
+    as.character(if (isTRUE(spec$add_polygon_col)) spec$id else "polygon_1")
+  }, character(1))
+  polygon_columns <- .sirap_polygon_flag_columns(polygon_values)
+  membership <- lapply(seq_along(polygon_specs), function(i) {
+    spec <- polygon_specs[[i]]
     vertices <- .sirap_select_polygon_vertices(
       polygon = polygon,
       polygon_id = spec$id,
@@ -1677,31 +1704,80 @@ assignReceptorPolygons <- function(receptors,
     if (!any(inside)) {
       return(data.frame())
     }
-    polygon_value <- if (isTRUE(spec$add_polygon_col)) spec$id else "polygon_1"
+    polygon_value <- polygon_values[[i]]
     data.frame(
       cell = as.character(coords$cell[inside]),
-      polygon = rep(as.character(polygon_value), sum(inside)),
+      polygon = rep(polygon_value, sum(inside)),
+      polygon_area = rep(.sirap_polygon_area(vertices$x, vertices$y), sum(inside)),
+      polygon_order = rep(i, sum(inside)),
+      polygon_column = rep(polygon_columns[[i]], sum(inside)),
       image = as.character(coords$image[inside]),
       x = as.numeric(coords$x[inside]),
       y = as.numeric(coords$y[inside]),
       stringsAsFactors = FALSE
     )
   })
-  .sirap_bind_rows(membership)
+  out <- .sirap_bind_rows(membership)
+  attr(out, "polygon_columns") <- polygon_columns
+  out
 }
 
 # Collapse one-row-per-hit polygon membership into a named lookup vector from
-# spatial ID to comma-separated polygon IDs.
+# spatial ID to a primary polygon ID. Overlapping IDs resolve to the smallest
+# polygon by area, then to polygon input order for exact ties.
 .sirap_polygon_lookup <- function(membership) {
   if (nrow(membership) == 0L) {
     return(stats::setNames(character(), character()))
   }
-  polygon_values <- stats::aggregate(
-    polygon ~ cell,
-    data = membership,
-    FUN = function(x) paste(unique(as.character(x)), collapse = ",")
-  )
-  stats::setNames(as.character(polygon_values$polygon), as.character(polygon_values$cell))
+  membership <- membership[order(membership$cell, membership$polygon_area, membership$polygon_order), , drop = FALSE]
+  membership <- membership[!duplicated(membership$cell), , drop = FALSE]
+  stats::setNames(as.character(membership$polygon), as.character(membership$cell))
+}
+
+# Return one logical flag column per polygon ID, keyed by spatial ID.
+.sirap_polygon_flag_lookup <- function(membership) {
+  all_polygon_columns <- attr(membership, "polygon_columns", exact = TRUE)
+  if (nrow(membership) == 0L) {
+    out <- data.frame(cell = character(), stringsAsFactors = FALSE)
+    for (column in all_polygon_columns %||% character()) {
+      out[[column]] <- logical()
+    }
+    return(out)
+  }
+  cells <- sort(unique(as.character(membership$cell)))
+  polygon_columns <- all_polygon_columns %||% unique(as.character(membership$polygon_column)[order(membership$polygon_order)])
+  out <- data.frame(cell = cells, stringsAsFactors = FALSE)
+  for (column in polygon_columns) {
+    out[[column]] <- cells %in% membership$cell[as.character(membership$polygon_column) == column]
+  }
+  out
+}
+
+.sirap_append_polygon_flags <- function(out, spatial_ids, polygon_flags) {
+  flag_cols <- setdiff(colnames(polygon_flags), "cell")
+  if (length(flag_cols) == 0L) {
+    return(out)
+  }
+  row_idx <- match(as.character(spatial_ids), polygon_flags$cell)
+  for (column in flag_cols) {
+    out[[column]] <- !is.na(row_idx) & polygon_flags[[column]][row_idx]
+  }
+  out
+}
+
+.sirap_polygon_flag_columns <- function(polygon_id) {
+  make.names(paste0("polygon_", as.character(polygon_id)), unique = TRUE)
+}
+
+.sirap_polygon_area <- function(x, y) {
+  x <- as.numeric(x)
+  y <- as.numeric(y)
+  if (length(x) > 1L && .sirap_same_xy(data.frame(x = x[[1L]], y = y[[1L]]), data.frame(x = x[[length(x)]], y = y[[length(y)]]))) {
+    x <- x[-length(x)]
+    y <- y[-length(y)]
+  }
+  j <- c(seq_along(x)[-1L], 1L)
+  abs(sum(x * y[j] - x[j] * y)) / 2
 }
 
 # Repair older Seurat image objects before subsetting or metadata updates so
@@ -2166,14 +2242,22 @@ assignReceptorPolygons <- function(receptors,
   }
   region_receptors$.sirap_density_weight <- weights
 
-  image_dim <- .sirap_image_dim(image)
+  image_dim <- if (is.null(image)) {
+    .sirap_image_dim(image, spatial_coords = spatial_coords)
+  } else {
+    .sirap_image_dim(image)
+  }
   region_xlim <- .sirap_density_plot_range(c(region_receptors$x, polygons$x), c(0, image_dim$width))
   region_ylim <- .sirap_density_plot_range(c(region_receptors$.sirap_y, polygons$.sirap_y), c(-image_dim$height, 0))
   object_xlim <- .sirap_density_plot_range(spatial_coords$x, c(0, image_dim$width))
   object_ylim <- .sirap_density_plot_range(spatial_coords$.sirap_y, c(-image_dim$height, 0))
   image_xlim <- if (isTRUE(zoom)) region_xlim else object_xlim
   image_ylim <- if (isTRUE(zoom)) region_ylim else object_ylim
-  image_extent <- .sirap_image_texture_extent(image_dim, image_xlim, image_ylim)
+  image_extent <- if (is.null(image)) {
+    list(rows = 1:2, cols = 1:2, xlim = image_xlim, ylim = image_ylim)
+  } else {
+    .sirap_image_texture_extent(image_dim, image_xlim, image_ylim)
+  }
   span <- max(diff(region_xlim), diff(region_ylim))
   z_base <- z_offset * span
   max_height <- height_scale * span
@@ -2383,7 +2467,17 @@ assignReceptorPolygons <- function(receptors,
   }
 }
 
-.sirap_image_dim <- function(image) {
+.sirap_image_dim <- function(image, spatial_coords = NULL) {
+  if (is.null(image)) {
+    if (!is.null(spatial_coords) && nrow(spatial_coords) > 0L) {
+      xlim <- range(spatial_coords$x, na.rm = TRUE)
+      ylim <- range(spatial_coords$.sirap_y, na.rm = TRUE)
+      width <- ceiling(max(abs(xlim), diff(xlim), 1, na.rm = TRUE))
+      height <- ceiling(max(abs(ylim), diff(ylim), 1, na.rm = TRUE))
+      return(list(height = height, width = width))
+    }
+    return(list(height = 1, width = 1))
+  }
   img <- SeuratObject::GetImage(image, mode = "raw")
   dims <- dim(img)
   list(height = dims[[1]], width = dims[[2]])
@@ -2599,8 +2693,13 @@ assignReceptorPolygons <- function(receptors,
 }
 
 .sirap_image_texture_file <- function(image, extent, alpha = 1, texture_dir = NULL) {
-  img <- SeuratObject::GetImage(image, mode = "raw")
-  crop <- img[extent$rows, extent$cols, , drop = FALSE]
+  if (is.null(image)) {
+    crop <- array(1, dim = c(2, 2, 4))
+    crop[, , 4] <- alpha
+  } else {
+    img <- SeuratObject::GetImage(image, mode = "raw")
+    crop <- img[extent$rows, extent$cols, , drop = FALSE]
+  }
   if (alpha < 1) {
     rgba <- array(NA_real_, dim = c(dim(crop)[1:2], 4))
     rgba[, , 1:3] <- crop[, , 1:3]

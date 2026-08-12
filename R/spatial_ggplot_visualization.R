@@ -1549,11 +1549,14 @@ spatialCloneTreePairsToPDF <- function(pairs,
 
 .sirap_spatial_images <- function(object, images = NULL) {
   .require_namespace("SeuratObject")
-  images <- images %||% SeuratObject::Images(object)
-  if (length(images) == 0L) {
-    rlang::abort("Could not find any spatial image information in `object`.")
+  object_images <- SeuratObject::Images(object)
+  if (is.null(images)) {
+    if (length(object_images) == 0L) {
+      return("metadata")
+    }
+    return(object_images)
   }
-  missing_images <- setdiff(images, SeuratObject::Images(object))
+  missing_images <- setdiff(images, c(object_images, "metadata"))
   if (length(missing_images) > 0L) {
     rlang::abort(paste0("Could not find image(s): ", paste(missing_images, collapse = ", ")))
   }
@@ -1575,6 +1578,21 @@ spatialCloneTreePairsToPDF <- function(pairs,
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
   .require_namespace("SeuratObject")
+  object_images <- SeuratObject::Images(object)
+  if (identical(image, "metadata") && !"metadata" %in% object_images) {
+    coords <- .sirap_metadata_coordinate_table(object)
+    if (isTRUE(swap_coords)) {
+      coords <- data.frame(
+        cell = coords$cell,
+        x = coords$y,
+        y = coords$x,
+        image = coords$image,
+        stringsAsFactors = FALSE
+      )
+      coords$.sirap_y <- -coords$y
+    }
+    return(list(coords = coords, image = NULL))
+  }
   image_obj <- object[[image]]
   if (isTRUE(swap_coords)) {
     coords <- .sirap_swapped_spatial_coordinates(image_obj, image_scale = image_scale)
@@ -1772,21 +1790,30 @@ spatialCloneTreePairsToPDF <- function(pairs,
                                 image_alpha = 1,
                                 zoom = FALSE,
                                 view_data = NULL) {
-  raster <- .sirap_image_raster(image, alpha = image_alpha)
-  image_dim <- dim(raster)
-  height <- image_dim[[1]]
-  width <- image_dim[[2]]
-
-  xlim <- c(0, width)
-  ylim <- c(-height, 0)
+  raster <- NULL
+  if (!is.null(image)) {
+    raster <- .sirap_image_raster(image, alpha = image_alpha)
+  }
+  xlim <- c(0, 1)
+  ylim <- c(-1, 0)
+  if (!is.null(raster)) {
+    image_dim <- dim(raster)
+    height <- image_dim[[1]]
+    width <- image_dim[[2]]
+    xlim <- c(0, width)
+    ylim <- c(-height, 0)
+  }
   limit_data <- if (isTRUE(zoom)) plot_data else view_data %||% plot_data
   if (!is.null(limit_data) && nrow(limit_data) > 0L) {
     xlim <- .sirap_pad_range(limit_data$x, fallback = xlim)
     ylim <- .sirap_pad_range(limit_data$.sirap_y, fallback = ylim)
   }
 
-  ggplot2::ggplot(plot_data, ggplot2::aes(x = .data$x, y = .data$.sirap_y)) +
-    ggplot2::annotation_raster(raster, xmin = 0, xmax = width, ymin = -height, ymax = 0, interpolate = FALSE) +
+  p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = .data$x, y = .data$.sirap_y))
+  if (!is.null(raster)) {
+    p <- p + ggplot2::annotation_raster(raster, xmin = 0, xmax = width, ymin = -height, ymax = 0, interpolate = FALSE)
+  }
+  p +
     ggplot2::coord_fixed(xlim = xlim, ylim = ylim, expand = FALSE) +
     ggplot2::theme_void() +
     ggplot2::theme(

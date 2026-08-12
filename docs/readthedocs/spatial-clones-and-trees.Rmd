@@ -136,7 +136,7 @@ bcrClonePlots <- lapply(
       receptors = filter(bcrClones, .data$clone_val == .env$cloneId),
       group = "clone_id",
       group_val = cloneId,
-      barcode = "barcode_8um",
+      spatial_id = "barcode_8um",
       colors = "#2c7fb8",
       receptor_size = 1.7,
       title = paste("BCR clone", cloneId)
@@ -152,7 +152,7 @@ tcrClonePlots <- lapply(
       receptors = filter(tcrClones, .data$clone_val == .env$cloneId),
       group = "clone_id",
       group_val = cloneId,
-      barcode = "barcode_8um",
+      spatial_id = "barcode_8um",
       colors = "#d95f02",
       receptor_size = 1.7,
       title = paste("TCR clone", cloneId)
@@ -214,7 +214,7 @@ each tip gets its own color.
 pairedTreeSpatialPlots <- plotSpatialCloneTreePairs(
   bcrTrees,
   object = thymus,
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   clone_val = bcrCloneIds,
   id = "sequence_id",
   image_scale = "hires",
@@ -248,7 +248,7 @@ bcrTreesClustered <- clusterTreesTips(
 pairedTreeSpatialClusterPlots <- plotSpatialCloneTreePairs(
   bcrTreesClustered,
   object = thymus,
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   clone_val = bcrCloneIds,
   id = "sequence_id",
   image_scale = "hires",

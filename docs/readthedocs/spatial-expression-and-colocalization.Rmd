@@ -111,7 +111,7 @@ tcrCd3ePlot <- plotReceptorsExpression(
   group = "receptor_type",
   group_val = "TCR",
   gene = "CD3E",
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   colors = "#d95f02",
   receptor_size = 0.55,
   receptor_stroke = 0.25,
@@ -126,7 +126,7 @@ bcrMs4a1Plot <- plotReceptorsExpression(
   group = "receptor_type",
   group_val = "BCR",
   gene = "MS4A1",
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   colors = "#2c7fb8",
   receptor_size = 0.55,
   receptor_stroke = 0.25,
@@ -152,7 +152,7 @@ tcrMoran <- spatialMoran(
   variable = "TCR presence",
   variable_type = "receptor",
   receptors = tcrTopBarcode,
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   k = spatialStatsK
 )
 tcrMoran$test
@@ -171,7 +171,7 @@ bcrMoran <- spatialMoran(
   variable = "BCR presence",
   variable_type = "receptor",
   receptors = bcrTopBarcode,
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   k = spatialStatsK
 )
 bcrMoran$test

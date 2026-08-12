@@ -98,7 +98,7 @@ into Seurat metadata.
 bcrSirap <- createSIRAP(
   spatial = thymus,
   receptors = bcrClones,
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   clone = "clone_id",
   image_scale = "hires",
   swap_coords = FALSE,
@@ -108,7 +108,7 @@ bcrSirap <- createSIRAP(
 tcrSirap <- createSIRAP(
   spatial = thymus,
   receptors = tcrClones,
-  barcode = "barcode_8um",
+  spatial_id = "barcode_8um",
   clone = "clone_id",
   image_scale = "hires",
   swap_coords = FALSE,

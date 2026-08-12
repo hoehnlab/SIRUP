@@ -322,7 +322,7 @@ result$reformat  # radReformat() result (NULL if do_reformat = FALSE)
 
 The reason SIRAP exists is the wonky end of rad's range: long-read targeted
 enrichment of BCR/TCR from **Visium HD** data, where each read carries a *paired*
-spatial barcode (BC1 + BC2) instead of a single cell barcode. The flow is the
+spatial ID (BC1 + BC2) instead of a single cell barcode. The flow is the
 same wrappers with a spatial layout and a couple of HD-specific switches.
 
 The `visium_hd` layout already names `visium_hd_bc1` and `visium_hd_bc2` as the
@@ -343,7 +343,7 @@ radDemux(
 )
 ```
 
-Then rewrite the headers in coordinate mode so the spatial barcode becomes a
+Then rewrite the headers in coordinate mode so the spatial ID becomes a
 tissue coordinate downstream. `coordinate = TRUE` uses rad's default mode
 (`vizHD-v1`); `bin_size` sets the target bin in microns (rad default 2 µm — the
 finest Visium HD grid):
@@ -360,10 +360,10 @@ radReformat(
 The Visium HD layout and its paired-barcode whitelists are **experimental** —
 validate on a pilot before scaling up.
 
-From here the demultiplexed reads carry their 2 µm spatial barcode in the read
+From here the demultiplexed reads carry their 2 µm spatial ID in the read
 header. They go through your aligner / IgBLAST step (outside rad and SIRAP) to
 produce AIRR-style rearrangement tables, at which point the [Visium HD processing
-guide](visium-hd-processing.html) takes over: `extractSpatialBarcodes()` lifts the
+guide](visium-hd-processing.html) takes over: `extractSpatialIds()` lifts the
 barcode back out of the `sequence_id`, `filterAirr()` does length/locus
 QC, and the 2 µm barcode is remapped to the 8 µm/16 µm grid for plotting.
 
@@ -388,7 +388,7 @@ subcommand's help from R, and the wrappers accept extra raw CLI tokens through
 - [Custom read layouts](custom-read-layouts-with-rad.html) — describe a wonky or
   non-standard read structure of your own and run this same pipeline on it.
 - [Visium HD processing](visium-hd-processing.html) — pick up from RAD output:
-  spatial barcodes through pRESTO/IgBLAST to spatial AIRR tables.
+  spatial IDs through pRESTO/IgBLAST to spatial AIRR tables.
 - [Spatial clones and BCR trees](spatial-clones-and-trees.html) — call clones and
   build lineage trees over tissue.
 - [Spatial expression and colocalization](spatial-expression-and-colocalization.html)

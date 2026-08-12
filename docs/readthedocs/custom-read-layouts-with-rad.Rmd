@@ -322,7 +322,7 @@ assay it saves re-describing the structure. Confirm your `rad` is recent enough
   `prep → scan-wl → demux → reformat` pipeline on bundled layouts, including the
   Visium HD paired-barcode case.
 - [Visium HD processing](visium-hd-processing.html) — pick up from RAD output:
-  spatial barcodes through pRESTO/IgBLAST to spatial AIRR tables.
+  spatial IDs through pRESTO/IgBLAST to spatial AIRR tables.
 - rad's own docs:
   [layouts and
   whitelists](https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md),

@@ -42,9 +42,9 @@ exists.}
 
 \item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
 
-\item{metadata}{Metadata column added to the returned Seurat object with
-polygon membership. Barcodes in overlapping polygons receive comma-separated
-polygon IDs.}
+\item{metadata}{Metadata column added to the returned Seurat object with the
+primary polygon assignment. Barcodes in overlapping polygons are assigned to
+the smallest polygon by area.}
 
 \item{include_boundary}{Include Seurat spots on polygon edges.}
 

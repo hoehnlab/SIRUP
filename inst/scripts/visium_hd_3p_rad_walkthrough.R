@@ -122,7 +122,7 @@ radOutRoot <- file.path(dataDir, "rad_walkthrough")
 layoutKey <- "visium"
 
 # Whitelist kits control barcode correction. RAD's canonical kit names are
-# shown by `radList(whitelists = TRUE)`. Visium HD uses two spatial barcode
+# shown by `radList(whitelists = TRUE)`. Visium HD uses two spatial ID
 # halves, so the two-part whitelist scan uses both of these.
 bc1WhitelistKit <- "visium_hd_bc1"
 bc2WhitelistKit <- "visium_hd_bc2"
@@ -133,7 +133,7 @@ bc2WhitelistKit <- "visium_hd_bc2"
 # uses both Visium HD whitelist halves.
 demuxKit <- NULL
 
-# `radScanWl()` searches for spatial barcodes relative to an adapter/primer
+# `radScanWl()` searches for spatial IDs relative to an adapter/primer
 # sequence. This sequence is experiment/layout-specific, so the walkthrough
 # skips that section until this value is filled in. Ask Chinmay or check the RAD
 # layout CSV if this section is needed.
@@ -432,7 +432,7 @@ runOrPrint("Generate/check Visium HD barcode-pair whitelist with radScanWl()", {
       #
       # This command scans reads around an adapter/primer sequence and counts
       # valid barcode pairs. For Visium HD, we pass the BC1 and BC2 whitelist
-      # kit names so RAD can validate both halves of the spatial barcode.
+      # kit names so RAD can validate both halves of the spatial ID.
       scan <- radScanWl(
         adapter_seq = adapterSeq,
         input = receptorFastq,

@@ -63,7 +63,57 @@ test_that("polygon assignment annotates spatial metadata and receptor tables", {
 
   expect_equal(unname(spatial_out$polygon_id), c("left", "left", "right", "right"))
   expect_equal(receptors_out$polygon_id, c("left", "left", "right", NA))
+  expect_equal(unname(spatial_out$polygon_left), c(TRUE, TRUE, FALSE, FALSE))
+  expect_equal(unname(spatial_out$polygon_right), c(FALSE, FALSE, TRUE, TRUE))
+  expect_equal(receptors_out$polygon_left, c(TRUE, TRUE, FALSE, FALSE))
+  expect_equal(receptors_out$polygon_right, c(FALSE, FALSE, TRUE, FALSE))
   expect_equal(ncol(spatial_out), ncol(spatial))
+})
+
+test_that("overlapping polygon assignment keeps flags and chooses smallest polygon", {
+  skip_if_not_installed("SeuratObject")
+  spatial <- SeuratObject::CreateSeuratObject(
+    counts = matrix(
+      1,
+      nrow = 1,
+      ncol = 4,
+      dimnames = list("gene", paste0("cell", 1:4))
+    )
+  )
+  spatial$x <- c(0, 1, 2, 3)
+  spatial$y <- c(0, 1, 2, 3)
+  polygon <- data.frame(
+    polygon = c(rep("outer", 5), rep("inner", 5)),
+    x = c(-1, 4, 4, -1, -1, 0.5, 2.5, 2.5, 0.5, 0.5),
+    y = c(-1, -1, 4, 4, -1, 0.5, 0.5, 2.5, 2.5, 0.5),
+    stringsAsFactors = FALSE
+  )
+  receptors <- data.frame(
+    spatial_id = c("cell1", "cell2", "cell3", "cell4", "missing"),
+    sequence_id = paste0("seq", 1:5),
+    stringsAsFactors = FALSE
+  )
+
+  spatial_out <- assignSpatialPolygons(
+    spatial,
+    polygon = polygon,
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+  receptors_out <- assignReceptorPolygons(
+    receptors,
+    object = spatial,
+    polygon = polygon,
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+
+  expect_equal(unname(spatial_out$polygon_id), c("outer", "inner", "inner", "outer"))
+  expect_equal(unname(spatial_out$polygon_outer), c(TRUE, TRUE, TRUE, TRUE))
+  expect_equal(unname(spatial_out$polygon_inner), c(FALSE, TRUE, TRUE, FALSE))
+  expect_equal(receptors_out$polygon_id, c("outer", "inner", "inner", "outer", NA))
+  expect_equal(receptors_out$polygon_outer, c(TRUE, TRUE, TRUE, TRUE, FALSE))
+  expect_equal(receptors_out$polygon_inner, c(FALSE, TRUE, TRUE, FALSE, FALSE))
 })
 
 test_that("polygon vertex selection requires closed polygons by default", {
