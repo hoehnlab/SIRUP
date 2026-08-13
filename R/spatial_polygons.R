@@ -1,9 +1,10 @@
 #' Calculate receptor clone dominance inside spatial polygons
 #'
-#' Finds Seurat spatial IDs whose coordinates fall inside closed polygons,
+#' Finds Seurat spatial IDs whose coordinates fall inside polygons,
 #' subsets receptor rows to those spatial IDs, and returns the fraction of regional
 #' receptors represented by each clone. Points on the polygon boundary are
-#' included by default.
+#' included. Open polygons are closed automatically by repeating the first
+#' vertex at the end.
 #'
 #' @param receptors AIRR-style receptor data frame containing clone assignments
 #'   and a spatial ID column. This may instead be a SIRAP object when
@@ -35,11 +36,13 @@
 #'   value must be supplied explicitly or by SIRAP object metadata.
 #' @param polygon_val Optional polygon ID value(s) to select when `polygon_id`
 #'   exists. When `NULL`, all polygons in `polygon_id` are analyzed.
-#' @param x,y Coordinate columns in `polygon`.
+#' @param x Coordinate column in `polygon`.
+#' @param y Coordinate column in `polygon`.
 #' @param polygon_id Optional polygon grouping column in `polygon`.
-#' @param include_boundary Include Seurat spots on polygon edges.
-#' @param require_closed Require the final polygon vertex to equal the first.
-#'   Set to `FALSE` to close open polygons automatically.
+#' @param include_boundary Include Seurat spots on polygon edges when polygon
+#'   membership must be calculated from `polygon`. If a SIRAP object with stored
+#'   polygon annotations is supplied and `polygon = NULL`, stored annotations
+#'   are used and this argument is ignored.
 #' @return A spatial clone dominance object containing the dominance table,
 #'   regional spatial IDs, regional coordinate rows, regional receptor rows, polygon
 #'   vertices prepared for plotting, and analysis metadata containing the
@@ -62,8 +65,7 @@ spatialCloneDominance <- function(receptors = NULL,
                                   x = "x",
                                   y = "y",
                                   polygon_id = "polygon",
-                                  include_boundary = TRUE,
-                                  require_closed = TRUE) {
+                                  include_boundary = TRUE) {
   clone_missing <- missing(clone)
   locus_missing <- missing(locus)
   count_missing <- missing(count)
@@ -75,6 +77,8 @@ spatialCloneDominance <- function(receptors = NULL,
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
   is_sirap <- isSIRAP(object)
+  sirap_container <- if (is_sirap) object else NULL
+  use_stored_polygons <- is_sirap && is.null(polygon)
   if (is.null(polygon)) {
     if (!is_sirap) {
       rlang::abort("`polygon` must be supplied when `object` is not a SIRAP object.")
@@ -144,30 +148,41 @@ spatialCloneDominance <- function(receptors = NULL,
     polygon_id = polygon_val,
     polygon_col = polygon_id,
     x_col = x,
-    y_col = y,
-    require_closed = require_closed
+    y_col = y
   )
 
   results <- lapply(polygon_specs, function(spec) {
-    vertices <- .sirap_select_polygon_vertices(
-      polygon = polygon,
-      polygon_id = spec$id,
-      polygon_col = polygon_id,
-      x_col = x,
-      y_col = y,
-      require_closed = require_closed
-    )
-    inside <- .sirap_points_in_polygon(
-      px = coords$x,
-      py = coords$y,
-      vx = vertices$x,
-      vy = vertices$y,
-      include_boundary = include_boundary
-    )
-    region_coords <- coords[inside, , drop = FALSE]
+    polygon_value <- if (isTRUE(spec$add_polygon_col)) spec$id else "polygon_1"
+    if (isTRUE(use_stored_polygons)) {
+      region_coords <- .sirap_stored_polygon_coords(
+        coords = coords,
+        spatial = getSpatial(sirap_container),
+        polygon_value = polygon_value
+      )
+    } else {
+      vertices <- .sirap_select_polygon_vertices(
+        polygon = polygon,
+        polygon_id = spec$id,
+        polygon_col = polygon_id,
+        x_col = x,
+        y_col = y
+      )
+      inside <- .sirap_points_in_polygon(
+        px = coords$x,
+        py = coords$y,
+        vx = vertices$x,
+        vy = vertices$y,
+        include_boundary = include_boundary
+      )
+      region_coords <- coords[inside, , drop = FALSE]
+    }
     region_spatial_ids <- unique(as.character(region_coords$cell))
 
-    regional_receptors <- receptors[as.character(receptors[[spatial_id]]) %in% region_spatial_ids, , drop = FALSE]
+    regional_receptors <- if (isTRUE(use_stored_polygons)) {
+      .sirap_receptors_in_polygon(receptors, polygon_value, polygon_id = "polygon_id")
+    } else {
+      receptors[as.character(receptors[[spatial_id]]) %in% region_spatial_ids, , drop = FALSE]
+    }
 
     if (nrow(regional_receptors) == 0L) {
       out <- data.frame(
@@ -240,7 +255,6 @@ spatialCloneDominance <- function(receptors = NULL,
     if (!is.null(locus_val)) {
       out$locus_filter <- rep(paste(as.character(locus_val), collapse = ","), nrow(out))
     }
-    polygon_value <- if (isTRUE(spec$add_polygon_col)) spec$id else "polygon_1"
     out$polygon <- rep(as.character(polygon_value), nrow(out))
 
     region_spatial_id_table <- data.frame(
@@ -339,9 +353,10 @@ spatialCloneDominance <- function(receptors = NULL,
 #' @param point_size Size of spatial points in the plot.
 #' @param point_alpha Initial opacity for spatial points.
 #' @param launch_browser Passed to `shiny::runApp()`.
-#' @param host,port Optional host and port passed to `shiny::runApp()`. These
-#'   are useful when running from an interactive HPC session through an SSH
-#'   tunnel.
+#' @param host Optional host passed to `shiny::runApp()`. This is useful when
+#'   running from an interactive HPC session through an SSH tunnel.
+#' @param port Optional port passed to `shiny::runApp()`. This is useful when
+#'   running from an interactive HPC session through an SSH tunnel.
 #' @param quiet Suppress warnings while the app is running.
 #' @return Data frame with `spatial_id`, `x`, `y`, `polygon`, and `image` columns.
 #' @export
@@ -637,8 +652,8 @@ selectSpatialPolygons <- function(object,
 #' @param spatial_id Column in `polygon_points` containing Seurat spatial IDs.
 #'   Required when `x` and `y` are not present.
 #' @param polygon Column in `polygon_points` identifying each polygon.
-#' @param x,y Coordinate columns in `polygon_points`, if already
-#'   present.
+#' @param x X-coordinate column in `polygon_points`, if already present.
+#' @param y Y-coordinate column in `polygon_points`, if already present.
 #' @param image Image column in `polygon_points`, if already present.
 #' @param point_type Are `polygon_points` all interior points or already
 #'   boundary points?
@@ -806,7 +821,8 @@ formatSpatialPolygons <- function(object,
 #'   value must be supplied explicitly or by SIRAP object metadata.
 #' @param polygon_val Optional polygon ID value(s) to select when `polygon_id`
 #'   exists.
-#' @param x,y Coordinate columns in `polygon`.
+#' @param x Coordinate column in `polygon`.
+#' @param y Coordinate column in `polygon`.
 #' @param polygon_id Optional polygon grouping column in `polygon`.
 #' @param polygon_alpha Fill opacity for polygons.
 #' @param polygon_fill Fill color for polygons when no analysis is mapped.
@@ -827,8 +843,6 @@ formatSpatialPolygons <- function(object,
 #' @param label_size Text size for polygon labels.
 #' @param label_color Text color for polygon labels.
 #' @param zoom Zoom to the polygon extents instead of the full tissue.
-#' @param require_closed Require the final polygon vertex to equal the first.
-#'   Set to `FALSE` to close open polygons automatically.
 #' @param combine Combine plots with patchwork when possible.
 #' @return A ggplot/patchwork object or a named list of ggplots when
 #'   `combine = FALSE`.
@@ -855,7 +869,6 @@ plotSpatialPolygons <- function(object,
                                 label_size = 3,
                                 label_color = "black",
                                 zoom = FALSE,
-                                require_closed = TRUE,
                                 combine = TRUE) {
   sirap_object <- if (isSIRAP(object)) object else NULL
   context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
@@ -885,7 +898,6 @@ plotSpatialPolygons <- function(object,
     polygon_col = polygon_id,
     x_col = x,
     y_col = y,
-    require_closed = require_closed,
     keep_cols = label_by
   )
   if (!is.null(fill_analysis) || !is.null(fill_column)) {
@@ -1464,14 +1476,13 @@ plotSpatialPolygonPies <- function(dominance,
 #'   value must be supplied explicitly or by SIRAP object metadata.
 #' @param polygon_val Optional polygon ID value(s) to select when `polygon_id`
 #'   exists.
-#' @param x,y Coordinate columns in `polygon`.
+#' @param x Coordinate column in `polygon`.
+#' @param y Coordinate column in `polygon`.
 #' @param polygon_id Optional polygon grouping column in `polygon`.
 #' @param metadata Metadata column added to the returned Seurat object with the
 #'   primary polygon assignment. Barcodes in overlapping polygons are assigned to
 #'   the smallest polygon by area.
 #' @param include_boundary Include Seurat spots on polygon edges.
-#' @param require_closed Require the final polygon vertex to equal the first.
-#'   Set to `FALSE` to close open polygons automatically.
 #' @return A Seurat object subset to spatial IDs inside the selected polygon(s),
 #'   with `metadata` appended to `@meta.data`.
 #' @export
@@ -1485,8 +1496,7 @@ seuratSubsetPolygon <- function(object,
                                 y = "y",
                                 polygon_id = "polygon",
                                 metadata = "polygon",
-                                include_boundary = TRUE,
-                                require_closed = TRUE) {
+                                include_boundary = TRUE) {
   annotated <- assignSpatialPolygons(
     object = object,
     polygon = polygon,
@@ -1498,8 +1508,7 @@ seuratSubsetPolygon <- function(object,
     y = y,
     polygon_id = polygon_id,
     metadata = metadata,
-    include_boundary = include_boundary,
-    require_closed = require_closed
+    include_boundary = include_boundary
   )
   keep_cells <- rownames(annotated@meta.data)[!is.na(annotated@meta.data[[metadata]])]
   keep_cells <- keep_cells[keep_cells %in% colnames(annotated)]
@@ -1519,7 +1528,26 @@ seuratSubsetPolygon <- function(object,
 #' individual polygon. When `object` is a SIRAP object and `polygon` is omitted,
 #' the stored polygons in the SIRAP object are used.
 #'
-#' @inheritParams seuratSubsetPolygon
+#' @param object Seurat object with spatial coordinates, or a SIRAP object.
+#' @param polygon Data frame of polygon vertices in order. Must contain `x` and
+#'   `y` columns by default. If a `polygon` column is present, each polygon is
+#'   evaluated independently. If `object` is a SIRAP object and `polygon` is
+#'   omitted, the object's stored polygons are used.
+#' @param images Optional Seurat image names to use for spatial coordinates.
+#' @param image_scale Image scale passed to
+#'   `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
+#'   axes before plotting or polygon membership checks. If `NULL`, the
+#'   value must be supplied explicitly or by SIRAP object metadata.
+#' @param polygon_val Optional polygon ID value(s) to select when `polygon_id`
+#'   exists.
+#' @param x Coordinate column in `polygon`.
+#' @param y Coordinate column in `polygon`.
+#' @param polygon_id Optional polygon grouping column in `polygon`.
+#' @param metadata Metadata column added to the returned Seurat object with the
+#'   primary polygon assignment. Spatial IDs in overlapping polygons are assigned
+#'   to the smallest polygon by area.
+#' @param include_boundary Include Seurat spots on polygon edges.
 #' @return A Seurat object with `metadata` added to `@meta.data`.
 #' @export
 assignSpatialPolygons <- function(object,
@@ -1532,8 +1560,7 @@ assignSpatialPolygons <- function(object,
                                   y = "y",
                                   polygon_id = "polygon",
                                   metadata = "polygon_id",
-                                  include_boundary = TRUE,
-                                  require_closed = TRUE) {
+                                  include_boundary = TRUE) {
   .require_namespace("SeuratObject")
   if (!.sirap_is_non_empty_string(metadata)) {
     rlang::abort("`metadata` must be a non-empty character string.")
@@ -1556,8 +1583,7 @@ assignSpatialPolygons <- function(object,
     x = x,
     y = y,
     polygon_id = polygon_id,
-    include_boundary = include_boundary,
-    require_closed = require_closed
+    include_boundary = include_boundary
   )
 
   polygon_lookup <- .sirap_polygon_lookup(membership)
@@ -1591,7 +1617,22 @@ assignSpatialPolygons <- function(object,
 #' @param spatial_id Column in `receptors` matching Seurat spot/cell spatial IDs.
 #'   If `NULL`, a spatial ID-like column is guessed or pulled from the SIRAP
 #'   object.
-#' @inheritParams seuratSubsetPolygon
+#' @param polygon Data frame of polygon vertices in order. Must contain `x` and
+#'   `y` columns by default. If a `polygon` column is present, each polygon is
+#'   evaluated independently. If `object` is a SIRAP object and `polygon` is
+#'   omitted, the object's stored polygons are used.
+#' @param images Optional Seurat image names to use for spatial coordinates.
+#' @param image_scale Image scale passed to
+#'   `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
+#'   axes before plotting or polygon membership checks. If `NULL`, the
+#'   value must be supplied explicitly or by SIRAP object metadata.
+#' @param polygon_val Optional polygon ID value(s) to select when `polygon_id`
+#'   exists.
+#' @param x Coordinate column in `polygon`.
+#' @param y Coordinate column in `polygon`.
+#' @param polygon_id Optional polygon grouping column in `polygon`.
+#' @param include_boundary Include Seurat spots on polygon edges.
 #' @return A tibble with `column` added.
 #' @export
 assignReceptorPolygons <- function(receptors,
@@ -1606,8 +1647,7 @@ assignReceptorPolygons <- function(receptors,
                                    x = "x",
                                    y = "y",
                                    polygon_id = "polygon",
-                                   include_boundary = TRUE,
-                                   require_closed = TRUE) {
+                                   include_boundary = TRUE) {
   if (!.sirap_is_non_empty_string(column)) {
     rlang::abort("`column` must be a non-empty character string.")
   }
@@ -1638,8 +1678,7 @@ assignReceptorPolygons <- function(receptors,
     x = x,
     y = y,
     polygon_id = polygon_id,
-    include_boundary = include_boundary,
-    require_closed = require_closed
+    include_boundary = include_boundary
   )
   polygon_lookup <- .sirap_polygon_lookup(membership)
   polygon_flags <- .sirap_polygon_flag_lookup(membership)
@@ -1651,6 +1690,696 @@ assignReceptorPolygons <- function(receptors,
     polygon_flags
   )
   out
+}
+
+#' Summarize receptor content inside spatial polygons
+#'
+#' Builds one receptor summary row per polygon from a SIRAP object or from an
+#' already polygon-annotated receptor table. For SIRAP objects, the summary is
+#' also stored as a named analysis and the updated object is returned. For a
+#' receptor table input, the summary tibble is returned directly.
+#'
+#' @param object A SIRAP object or an AIRR-style receptor data frame.
+#' @param polygons Optional polygon table used to define the output polygon
+#'   order. When `NULL`, polygon IDs are taken from the SIRAP object or from
+#'   `polygon_id` values already present in `receptors`.
+#' @param spatial_id Column identifying spatial spots/cells. If `NULL`, the
+#'   value is pulled from the SIRAP object or guessed from `receptors`.
+#' @param polygon_id Primary polygon assignment column in `receptors`.
+#' @param clone Clone column used for `n_clones` and `top_clone_fraction`.
+#'   If this column is absent, those clone summaries are omitted.
+#' @param weight Optional numeric receptor weight column. When supplied,
+#'   `n_receptors`, `top_clone_fraction`, and numeric custom summaries are
+#'   weighted by this column.
+#' @param summary_columns Optional receptor columns to summarize.
+#' @param summary_operations Operations to apply to `summary_columns`. Must be
+#'   length 1 or the same length as `summary_columns`. Supported operations are
+#'   `count`, `sum`, `mean`, `median`, `variance`, `var`, `sd`, `min`, `max`,
+#'   `any`, `all`, and `cat`.
+#' @param analysis_name Name used when storing the summary in a SIRAP object.
+#' @param validate Whether to validate an updated SIRAP object.
+#' @return An updated SIRAP object for SIRAP input, otherwise a summary tibble.
+#' @export
+polygonReceptorSummary <- function(object,
+                                   polygons = NULL,
+                                   spatial_id = NULL,
+                                   polygon_id = "polygon",
+                                   clone = "clone_id",
+                                   weight = NULL,
+                                   summary_columns = NULL,
+                                   summary_operations = NULL,
+                                   analysis_name = "polygon_receptor_summary",
+                                   validate = TRUE) {
+  is_sirap <- isSIRAP(object)
+  x <- if (is_sirap) object else NULL
+  polygon_id_missing <- missing(polygon_id)
+  polygon_column <- if (is_sirap && isTRUE(polygon_id_missing)) "polygon_id" else polygon_id
+  receptor_table <- if (is_sirap) getReceptors(x) else tibble::as_tibble(object)
+  if (is_sirap) {
+    fields <- .sirap_receptor_fields(x)
+    spatial_id <- spatial_id %||% fields$spatial_id
+    if (missing(clone) && !is.null(fields$clone)) {
+      clone <- fields$clone
+    }
+    polygons <- polygons %||% getPolygons(x)
+  } else {
+    spatial_id <- tryCatch(
+      .guess_spatial_id_col(receptor_table, spatial_id),
+      error = function(e) spatial_id
+    )
+  }
+
+  polygon_ids <- .sirap_polygon_ids(receptor_table, polygons = polygons, polygon_id = polygon_column)
+  summary <- .sirap_polygon_receptor_summary_table(
+    receptors = receptor_table,
+    polygon_ids = polygon_ids,
+    spatial_id = spatial_id,
+    polygon_id = polygon_column,
+    clone = clone,
+    weight = weight,
+    summary_columns = summary_columns,
+    summary_operations = summary_operations
+  )
+
+  if (is_sirap) {
+    return(setAnalysis(x, analysis_name, summary, validate = validate))
+  }
+  summary
+}
+
+#' Run a function on receptor rows from stored spatial polygons
+#'
+#' Splits the receptor table by polygon membership and applies a function to
+#' each polygon's receptor rows, or applies the function once to all receptors
+#' that fall in any polygon.
+#'
+#' @param receptors A SIRAP object or an AIRR-style receptor data frame.
+#' @param .f Function to apply.
+#' @param ... Additional arguments passed to `.f`.
+#' @param polygons Optional polygon table used to define the output polygon
+#'   order. When `NULL`, polygon IDs are taken from the SIRAP object or from
+#'   `polygon_id` values already present in `receptors`.
+#' @param polygon_id Primary polygon assignment column in `receptors`.
+#' @param mode `"by_polygon"` runs `.f` once per polygon; `"all_polygons"` runs
+#'   `.f` once on all receptors in any polygon.
+#' @param pass_polygon_id Pass the current polygon ID to `.f` as `polygon_id`
+#'   when `.f` can accept it. Defaults to `FALSE`.
+#' @return A named list for `mode = "by_polygon"`, otherwise the function result.
+#' @export
+withPolygons <- function(receptors,
+                         .f,
+                         ...,
+                         polygons = NULL,
+                         polygon_id = "polygon",
+                         mode = c("by_polygon", "all_polygons"),
+                         pass_polygon_id = FALSE) {
+  mode <- match.arg(mode)
+  is_sirap <- isSIRAP(receptors)
+  x <- if (is_sirap) receptors else NULL
+  polygon_id_missing <- missing(polygon_id)
+  polygon_column <- if (is_sirap && isTRUE(polygon_id_missing)) "polygon_id" else polygon_id
+  receptor_table <- if (is_sirap) getReceptors(x) else tibble::as_tibble(receptors)
+  if (is_sirap) {
+    polygons <- polygons %||% getPolygons(x)
+  }
+  polygon_ids <- .sirap_polygon_ids(receptor_table, polygons = polygons, polygon_id = polygon_column)
+  groups <- .sirap_polygon_receptor_groups(
+    receptors = receptor_table,
+    polygon_ids = polygon_ids,
+    polygon_id = polygon_column,
+    mode = mode
+  )
+  fun <- match.fun(.f)
+
+  if (identical(mode, "all_polygons")) {
+    return(.sirap_call_polygon_function(fun, groups[[1L]], polygon_id = NULL, pass_polygon_id = pass_polygon_id, ...))
+  }
+  stats::setNames(
+    lapply(names(groups), function(id) .sirap_call_polygon_function(fun, groups[[id]], polygon_id = id, pass_polygon_id = pass_polygon_id, ...)),
+    names(groups)
+  )
+}
+
+#' Estimate receptor clonal abundance inside spatial polygons
+#'
+#' Runs [alakazam::estimateAbundance()] on receptor rows in each polygon, or on
+#' all receptors that fall in any polygon. Polygons with fewer than `min_n`
+#' receptor rows return `NULL`. SIRAP input stores the result as an analysis and
+#' returns the updated object.
+#'
+#' @param receptors A SIRAP object or an AIRR-style receptor data frame.
+#' @param polygons Optional polygon table used to define the output polygon
+#'   order. When `NULL`, polygon IDs are taken from the SIRAP object or from
+#'   `polygon_id` values already present in `receptors`.
+#' @param polygon_id Primary polygon assignment column in `receptors`.
+#' @param mode `"by_polygon"` runs the abundance calculation once per polygon;
+#'   `"all_polygons"` runs it once on all receptors in any polygon.
+#' @param analysis_name Name used when storing the abundance result in a SIRAP
+#'   object.
+#' @param clone alakazam: name of the data column containing clone identifiers.
+#' @param copy alakazam: name of the data column containing copy numbers for
+#'   each sequence. If copy=NULL (the default), then clone abundance is
+#'   determined by the number of sequences. If a copy column is specified, then
+#'   clone abundances is determined by the sum of copy numbers within each
+#'   clonal group.
+#' @param group alakazam: name of the data column containing group identifiers.
+#'   If NULL then no grouping is performed and the group column of the output
+#'   will contain the value NA for each row.
+#' @param min_n alakazam: minimum number of observations to sample. A group with
+#'   less observations than the minimum is excluded.
+#' @param max_n alakazam: maximum number of observations to sample. If NULL then
+#'   no maximum is set.
+#' @param uniform alakazam: if TRUE then uniformly resample each group to the
+#'   same number of observations. If FALSE then allow each group to be resampled
+#'   to its original size or, if specified, max_size.
+#' @param ci alakazam: confidence interval to calculate; the value must be
+#'   between 0 and 1.
+#' @param nboot alakazam: number of bootstrap realizations to generate.
+#' @param cell_id alakazam: name of the data column containing cell identifiers.
+#'   If cell_id=NULL then the function will assume bulk data.
+#' @param progress alakazam: if TRUE show a progress bar.
+#' @param validate Whether to validate an updated SIRAP object.
+#' @return An updated SIRAP object for SIRAP input, otherwise abundance result(s).
+#' @export
+polygonAbundance <- function(receptors,
+                             polygons = NULL,
+                             polygon_id = "polygon",
+                             mode = c("by_polygon", "all_polygons"),
+                             analysis_name = "polygon_abundance",
+                             clone = "clone_id",
+                             copy = NULL,
+                             group = NULL,
+                             min_n = 5,
+                             max_n = NULL,
+                             uniform = TRUE,
+                             ci = 0.95,
+                             nboot = 2000,
+                             cell_id = NULL,
+                             progress = FALSE,
+                             validate = TRUE) {
+  .require_namespace("alakazam")
+  clone_missing <- missing(clone)
+  polygon_id_missing <- missing(polygon_id)
+  if (isSIRAP(receptors) && isTRUE(clone_missing)) {
+    clone <- .sirap_receptor_fields(receptors)$clone %||% clone
+  }
+  polygon_column <- if (isSIRAP(receptors) && isTRUE(polygon_id_missing)) "polygon_id" else polygon_id
+  mode <- match.arg(mode)
+  result <- .sirap_polygon_alakazam(
+    receptors = receptors,
+    polygons = polygons,
+    polygon_id = polygon_column,
+    mode = mode,
+    threshold_n = min_n,
+    fun = alakazam::estimateAbundance,
+    clone = clone,
+    copy = copy,
+    group = group,
+    min_n = min_n,
+    max_n = max_n,
+    uniform = uniform,
+    ci = ci,
+    nboot = nboot,
+    cell_id = cell_id,
+    progress = progress
+  )
+  if (isSIRAP(receptors)) {
+    return(setAnalysis(receptors, analysis_name, result, validate = validate))
+  }
+  result
+}
+
+#' Estimate receptor clonal diversity inside spatial polygons
+#'
+#' Runs [alakazam::alphaDiversity()] on receptor rows in each polygon, or on all
+#' receptors that fall in any polygon. Polygons with fewer than `min_n` receptor
+#' rows return `NULL`. SIRAP input stores the result as an analysis and returns
+#' the updated object.
+#'
+#' @param receptors A SIRAP object or an AIRR-style receptor data frame.
+#' @param polygons Optional polygon table used to define the output polygon
+#'   order. When `NULL`, polygon IDs are taken from the SIRAP object or from
+#'   `polygon_id` values already present in `receptors`.
+#' @param polygon_id Primary polygon assignment column in `receptors`.
+#' @param mode `"by_polygon"` runs the diversity calculation once per polygon;
+#'   `"all_polygons"` runs it once on all receptors in any polygon.
+#' @param analysis_name Name used when storing the diversity result in a SIRAP
+#'   object.
+#' @param clone alakazam: name of the data column containing clone identifiers.
+#' @param copy alakazam: name of the data column containing copy numbers for
+#'   each sequence. If copy=NULL (the default), then clone abundance is
+#'   determined by the number of sequences. If a copy column is specified, then
+#'   clone abundances is determined by the sum of copy numbers within each
+#'   clonal group.
+#' @param group alakazam: name of the data column containing group identifiers.
+#'   If NULL then no grouping is performed and the group column of the output
+#'   will contain the value NA for each row.
+#' @param min_n alakazam: minimum number of observations to sample. A group with
+#'   less observations than the minimum is excluded.
+#' @param min_q alakazam: minimum value of q.
+#' @param max_q alakazam: maximum value of q.
+#' @param step_q alakazam: value by which to increment q.
+#' @param ci alakazam: confidence interval to calculate; the value must be
+#'   between 0 and 1.
+#' @param ... alakazam: additional arguments to pass to estimateAbundance.
+#'   Additional arguments are ignored if a AbundanceCurve is provided as input.
+#' @param validate Whether to validate an updated SIRAP object.
+#' @return An updated SIRAP object for SIRAP input, otherwise diversity result(s).
+#' @export
+polygonDiversity <- function(receptors,
+                             polygons = NULL,
+                             polygon_id = "polygon",
+                             mode = c("by_polygon", "all_polygons"),
+                             analysis_name = "polygon_diversity",
+                             clone = "clone_id",
+                             copy = NULL,
+                             group = NULL,
+                             min_n = 30,
+                             min_q = 0,
+                             max_q = 4,
+                             step_q = 0.1,
+                             ci = 0.95,
+                             ...,
+                             validate = TRUE) {
+  .require_namespace("alakazam")
+  clone_missing <- missing(clone)
+  polygon_id_missing <- missing(polygon_id)
+  if (isSIRAP(receptors) && isTRUE(clone_missing)) {
+    clone <- .sirap_receptor_fields(receptors)$clone %||% clone
+  }
+  polygon_column <- if (isSIRAP(receptors) && isTRUE(polygon_id_missing)) "polygon_id" else polygon_id
+  mode <- match.arg(mode)
+  result <- .sirap_polygon_alakazam(
+    receptors = receptors,
+    polygons = polygons,
+    polygon_id = polygon_column,
+    mode = mode,
+    threshold_n = min_n,
+    fun = alakazam::alphaDiversity,
+    clone = clone,
+    copy = copy,
+    group = group,
+    min_n = min_n,
+    min_q = min_q,
+    max_q = max_q,
+    step_q = step_q,
+    ci = ci,
+    ...
+  )
+  if (isSIRAP(receptors)) {
+    return(setAnalysis(receptors, analysis_name, result, validate = validate))
+  }
+  result
+}
+
+#' Summarize stored polygon diversity at one q value
+#'
+#' Extracts the diversity estimate for a specific diversity order from a stored
+#' polygon diversity analysis, producing one table row per polygon and saving
+#' that table as a new SIRAP analysis.
+#'
+#' @param object A SIRAP object.
+#' @param q Diversity order to extract, such as `2` for Simpson diversity.
+#' @param diversity_analysis Name of the stored analysis produced by
+#'   [polygonDiversity()].
+#' @param analysis_name Name used to store the summarized table.
+#' @param tolerance Numeric tolerance used when matching `q`.
+#' @param validate Whether to validate the updated SIRAP object.
+#' @return An updated SIRAP object containing the diversity summary analysis.
+#' @export
+summarizePolygonDiversity <- function(object,
+                                      q,
+                                      diversity_analysis = "polygon_diversity",
+                                      analysis_name = NULL,
+                                      tolerance = sqrt(.Machine$double.eps),
+                                      validate = TRUE) {
+  validateSIRAP(object)
+  if (!is.numeric(q) || length(q) != 1L || is.na(q)) {
+    rlang::abort("`q` must be one numeric diversity order.")
+  }
+  if (is.null(analysis_name)) {
+    analysis_name <- paste0("polygon_diversity_q", gsub("[^0-9A-Za-z]+", "_", as.character(q)))
+  }
+  diversity <- getAnalysis(object, diversity_analysis)
+  if (!is.list(diversity)) {
+    rlang::abort("`diversity_analysis` must be a polygon diversity analysis list.")
+  }
+  rows <- lapply(names(diversity), function(polygon) {
+    curve <- diversity[[polygon]]
+    if (is.null(curve)) {
+      return(tibble::tibble(polygon_id = polygon, q = q, d = NA_real_, d_sd = NA_real_, d_lower = NA_real_, d_upper = NA_real_, e = NA_real_, e_lower = NA_real_, e_upper = NA_real_))
+    }
+    dat <- .sirap_diversity_curve_table(curve)
+    if (!"q" %in% colnames(dat)) {
+      rlang::abort("Diversity curve tables must contain a `q` column.")
+    }
+    idx <- which(abs(as.numeric(dat$q) - q) <= tolerance)
+    if (length(idx) == 0L) {
+      return(tibble::tibble(polygon_id = polygon, q = q, d = NA_real_, d_sd = NA_real_, d_lower = NA_real_, d_upper = NA_real_, e = NA_real_, e_lower = NA_real_, e_upper = NA_real_))
+    }
+    row <- dat[idx[[1L]], , drop = FALSE]
+    row$polygon_id <- polygon
+    row[, c("polygon_id", setdiff(colnames(row), "polygon_id")), drop = FALSE]
+  })
+  summary <- dplyr::bind_rows(rows)
+  setAnalysis(object, analysis_name, summary, validate = validate)
+}
+
+# Return polygon IDs from stored polygons when available, otherwise from the
+# receptor table annotation. This keeps empty polygons in summaries when their
+# geometry is known.
+.sirap_polygon_ids <- function(receptors, polygons = NULL, polygon_id = "polygon_id") {
+  if (!is.null(polygons)) {
+    polygons <- .sirap_prepare_polygons(polygons)
+    return(as.character(polygons$polygon_id))
+  }
+  if (!polygon_id %in% colnames(receptors)) {
+    rlang::abort(paste0(
+      "`receptors` must contain `", polygon_id,
+      "` when `polygons` are not supplied."
+    ))
+  }
+  ids <- sort(unique(as.character(stats::na.omit(receptors[[polygon_id]]))))
+  ids[nzchar(ids)]
+}
+
+# Split a receptor table by its primary polygon assignment. Per-polygon logical
+# membership flags are intentionally ignored here; they are retained only so
+# users can build a different primary polygon column before analysis.
+.sirap_polygon_receptor_groups <- function(receptors,
+                                           polygon_ids,
+                                           polygon_id = "polygon_id",
+                                           mode = c("by_polygon", "all_polygons")) {
+  mode <- match.arg(mode)
+  receptors <- tibble::as_tibble(receptors)
+  if (!polygon_id %in% colnames(receptors)) {
+    rlang::abort(paste0("`receptors` must contain `", polygon_id, "`."))
+  }
+  keep_list <- vector("list", length(polygon_ids))
+  groups <- stats::setNames(vector("list", length(polygon_ids)), polygon_ids)
+  for (i in seq_along(polygon_ids)) {
+    keep <- as.character(receptors[[polygon_id]]) == as.character(polygon_ids[[i]])
+    keep[is.na(keep)] <- FALSE
+    keep_list[[i]] <- keep
+    groups[[i]] <- receptors[keep, , drop = FALSE]
+  }
+  if (identical(mode, "by_polygon")) {
+    return(groups)
+  }
+  if (length(groups) == 0L) {
+    return(list(all_polygons = receptors[0, , drop = FALSE]))
+  }
+  keep_any <- Reduce(`|`, keep_list)
+  list(all_polygons = receptors[keep_any, , drop = FALSE])
+}
+
+# Build one compact polygon summary table from split receptor rows.
+.sirap_polygon_receptor_summary_table <- function(receptors,
+                                                  polygon_ids,
+                                                  spatial_id,
+                                                  polygon_id,
+                                                  clone,
+                                                  weight,
+                                                  summary_columns,
+                                                  summary_operations) {
+  if (length(polygon_ids) == 0L) {
+    return(tibble::tibble(polygon_id = character(), n_receptors = integer()))
+  }
+  operations <- .sirap_summary_operations(summary_columns, summary_operations)
+  missing_summary <- setdiff(summary_columns %||% character(), colnames(receptors))
+  if (length(missing_summary) > 0L) {
+    rlang::abort(paste0(
+      "`summary_columns` were not found in `receptors`: ",
+      paste(missing_summary, collapse = ", ")
+    ))
+  }
+  groups <- .sirap_polygon_receptor_groups(
+    receptors = receptors,
+    polygon_ids = polygon_ids,
+    polygon_id = polygon_id,
+    mode = "by_polygon"
+  )
+  spatial_col <- if (!is.null(spatial_id) && spatial_id %in% colnames(receptors)) spatial_id else NULL
+  clone_col <- if (!is.null(clone) && clone %in% colnames(receptors)) clone else NULL
+  weight_col <- if (!is.null(weight) && weight %in% colnames(receptors)) weight else NULL
+  if (!is.null(weight) && is.null(weight_col)) {
+    rlang::abort(paste0("`weight` column was not found in `receptors`: ", weight))
+  }
+  if (!is.null(weight_col)) {
+    rlang::warn("Weighted polygon summaries apply weights to numeric count/sum/mean/median/variance/sd summaries. Categorical/logical summaries such as `cat`, `any`, and `all` ignore weights and should be interpreted carefully.")
+  }
+  rows <- lapply(names(groups), function(id) {
+    dat <- groups[[id]]
+    weights <- .sirap_summary_weights(dat, weight_col)
+    out <- list(
+      polygon_id = id,
+      n_receptors = if (is.null(weight_col)) nrow(dat) else sum(weights, na.rm = TRUE)
+    )
+    if (!is.null(spatial_col)) {
+      vals <- as.character(dat[[spatial_col]])
+      out$n_spatial_ids <- length(unique(vals[!is.na(vals) & nzchar(vals)]))
+    }
+    if (!is.null(clone_col)) {
+      vals <- as.character(dat[[clone_col]])
+      keep_vals <- !is.na(vals) & nzchar(vals)
+      vals <- vals[keep_vals]
+      out$n_clones <- length(unique(vals))
+      out$top_clone_fraction <- if (length(vals) == 0L) {
+        NA_real_
+      } else if (is.null(weight_col)) {
+        max(table(vals)) / length(vals)
+      } else {
+        clone_weights <- stats::aggregate(
+          weights[keep_vals],
+          by = list(clone_id = vals),
+          FUN = sum,
+          na.rm = TRUE
+        )
+        max(clone_weights$x) / sum(clone_weights$x)
+      }
+    }
+    if (length(operations) > 0L) {
+      for (i in seq_along(operations)) {
+        column <- summary_columns[[i]]
+        operation <- operations[[i]]
+        out[[paste0(operation, "_", column)]] <- .sirap_apply_summary_operation(dat[[column]], operation, weights = weights)
+      }
+    }
+    tibble::as_tibble(out)
+  })
+  dplyr::bind_rows(rows)
+}
+
+# Validate and recycle summary operations to match summary columns.
+.sirap_summary_operations <- function(summary_columns, summary_operations) {
+  if (is.null(summary_columns)) {
+    if (!is.null(summary_operations)) {
+      rlang::abort("`summary_columns` is required when `summary_operations` is supplied.")
+    }
+    return(character())
+  }
+  if (is.null(summary_operations)) {
+    rlang::abort("`summary_operations` must be supplied when `summary_columns` is supplied.")
+  }
+  summary_columns <- as.character(summary_columns)
+  summary_operations <- as.character(summary_operations)
+  if (!length(summary_columns) || any(!nzchar(summary_columns))) {
+    rlang::abort("`summary_columns` must contain non-empty column names.")
+  }
+  if (length(summary_operations) == 1L) {
+    summary_operations <- rep(summary_operations, length(summary_columns))
+  }
+  if (length(summary_operations) != length(summary_columns)) {
+    rlang::abort("`summary_operations` must have length 1 or match `summary_columns`.")
+  }
+  allowed <- c("count", "sum", "mean", "median", "variance", "var", "sd", "min", "max", "any", "all", "cat")
+  bad <- setdiff(summary_operations, allowed)
+  if (length(bad) > 0L) {
+    rlang::abort(paste0(
+      "Unsupported `summary_operations`: ",
+      paste(bad, collapse = ", "),
+      "."
+    ))
+  }
+  summary_operations
+}
+
+# Apply one named summary operation to a vector from one polygon.
+.sirap_apply_summary_operation <- function(x, operation, weights = NULL) {
+  x_nonmissing <- x[!is.na(x)]
+  w <- if (is.null(weights)) NULL else weights[!is.na(x)]
+  if (identical(operation, "count")) {
+    return(if (is.null(w)) length(x_nonmissing) else sum(w, na.rm = TRUE))
+  }
+  if (identical(operation, "cat")) {
+    vals <- sort(unique(as.character(x_nonmissing)))
+    vals <- vals[nzchar(vals)]
+    return(if (length(vals) == 0L) NA_character_ else paste(vals, collapse = ","))
+  }
+  if (identical(operation, "any")) {
+    return(if (length(x_nonmissing) == 0L) NA else any(as.logical(x_nonmissing)))
+  }
+  if (identical(operation, "all")) {
+    return(if (length(x_nonmissing) == 0L) NA else all(as.logical(x_nonmissing)))
+  }
+  num <- suppressWarnings(as.numeric(x_nonmissing))
+  if (!is.null(w)) {
+    w <- w[!is.na(num)]
+  }
+  num <- num[!is.na(num)]
+  if (length(num) == 0L) {
+    return(NA_real_)
+  }
+  if (!is.null(w)) {
+    w[is.na(w)] <- 0
+    if (sum(w) <= 0) {
+      return(NA_real_)
+    }
+    return(switch(
+      operation,
+      sum = sum(num * w),
+      mean = stats::weighted.mean(num, w),
+      median = .sirap_weighted_median(num, w),
+      variance = .sirap_weighted_variance(num, w),
+      var = .sirap_weighted_variance(num, w),
+      sd = sqrt(.sirap_weighted_variance(num, w)),
+      min = min(num),
+      max = max(num)
+    ))
+  }
+  switch(
+    operation,
+    sum = sum(num),
+    mean = mean(num),
+    median = stats::median(num),
+    variance = stats::var(num),
+    var = stats::var(num),
+    sd = stats::sd(num),
+    min = min(num),
+    max = max(num)
+  )
+}
+
+# Extract non-negative numeric weights for polygon summaries.
+.sirap_summary_weights <- function(dat, weight_col) {
+  if (is.null(weight_col)) {
+    return(NULL)
+  }
+  weights <- suppressWarnings(as.numeric(dat[[weight_col]]))
+  weights[is.na(weights) | weights < 0] <- 0
+  weights
+}
+
+# Weighted median used by weighted polygon summaries.
+.sirap_weighted_median <- function(x, w) {
+  ord <- order(x)
+  x <- x[ord]
+  w <- w[ord]
+  x[which(cumsum(w) >= sum(w) / 2)[[1L]]]
+}
+
+# Population-style weighted variance for weighted polygon summaries.
+.sirap_weighted_variance <- function(x, w) {
+  mu <- stats::weighted.mean(x, w)
+  sum(w * (x - mu)^2) / sum(w)
+}
+
+# Apply an Alakazam estimator to polygon-specific receptor tables, returning
+# NULL for polygons that do not meet the requested receptor-count threshold.
+.sirap_polygon_alakazam <- function(receptors,
+                                    polygons,
+                                    polygon_id,
+                                    mode,
+                                    threshold_n,
+                                    fun,
+                                    ...) {
+  groups <- withPolygons(
+    receptors = receptors,
+    .f = identity,
+    polygons = polygons,
+    polygon_id = polygon_id,
+    mode = mode
+  )
+  run_one <- function(dat) {
+    if (nrow(dat) < threshold_n) {
+      return(NULL)
+    }
+    args <- list(...)
+    if ("cell_id" %in% names(args) && is.null(args$cell_id)) {
+      args$cell_id <- .sirap_absent_column_name(dat, ".sirap_bulk_cell_id")
+    }
+    do.call(fun, c(list(data = dat), args))
+  }
+  if (identical(mode, "all_polygons")) {
+    return(run_one(groups))
+  }
+  lapply(groups, run_one)
+}
+
+# Choose a column name guaranteed not to exist in a data frame.
+.sirap_absent_column_name <- function(dat, prefix) {
+  candidate <- prefix
+  i <- 1L
+  while (candidate %in% colnames(dat)) {
+    candidate <- paste0(prefix, "_", i)
+    i <- i + 1L
+  }
+  candidate
+}
+
+# Pass polygon_id only to functions that can accept it. This makes withPolygons
+# useful with ordinary one-table functions and with polygon-aware callbacks.
+.sirap_call_polygon_function <- function(fun, dat, polygon_id = NULL, pass_polygon_id = FALSE, ...) {
+  if (!isTRUE(pass_polygon_id)) {
+    return(fun(dat, ...))
+  }
+  fmls <- names(formals(fun))
+  if ("polygon_id" %in% fmls || "..." %in% fmls) {
+    return(fun(dat, polygon_id = polygon_id, ...))
+  }
+  fun(dat, ...)
+}
+
+# Return spatial coordinate rows for one stored polygon annotation.
+.sirap_stored_polygon_coords <- function(coords, spatial, polygon_value, polygon_id = "polygon_id") {
+  metadata <- spatial[[]]
+  keep <- .sirap_polygon_membership_vector(metadata, rownames(metadata), polygon_value, polygon_id = polygon_id)
+  coord_keep <- keep[as.character(coords$cell)]
+  coord_keep[is.na(coord_keep)] <- FALSE
+  coords[coord_keep, , drop = FALSE]
+}
+
+# Return receptor rows for one stored polygon annotation.
+.sirap_receptors_in_polygon <- function(receptors, polygon_value, polygon_id = "polygon_id") {
+  keep <- .sirap_polygon_membership_vector(receptors, seq_len(nrow(receptors)), polygon_value, polygon_id = polygon_id)
+  receptors[keep, , drop = FALSE]
+}
+
+# Read a stored primary polygon membership vector. Per-polygon flags are not
+# used by analyses; they are available for users to derive a different
+# `polygon_id` column if they want overlapping/nested behavior.
+.sirap_polygon_membership_vector <- function(dat, ids, polygon_value, polygon_id = "polygon_id") {
+  if (!polygon_id %in% colnames(dat)) {
+    rlang::abort("Stored polygon annotations were not found. Re-run `addPolygons()` on the SIRAP object.")
+  }
+  out <- as.character(dat[[polygon_id]]) == as.character(polygon_value)
+  out[is.na(out)] <- FALSE
+  stats::setNames(out, as.character(ids))
+}
+
+# Extract the tibble of diversity estimates from Alakazam DiversityCurve objects
+# and simple data-frame/list fallbacks.
+.sirap_diversity_curve_table <- function(curve) {
+  if (is.data.frame(curve)) {
+    return(tibble::as_tibble(curve))
+  }
+  if (methods::is(curve, "DiversityCurve")) {
+    return(tibble::as_tibble(methods::slot(curve, "diversity")))
+  }
+  if (is.list(curve) && is.data.frame(curve$diversity)) {
+    return(tibble::as_tibble(curve$diversity))
+  }
+  rlang::abort("Could not find a diversity table in the stored polygon diversity result.")
 }
 
 # Find which spatial IDs fall inside each polygon and return one row per
@@ -1665,8 +2394,7 @@ assignReceptorPolygons <- function(receptors,
                                       x,
                                       y,
                                       polygon_id,
-                                      include_boundary,
-                                      require_closed) {
+                                      include_boundary) {
   polygon <- .as_data_frame(polygon)
   .check_required_cols(polygon, c(x, y), "polygon")
   coords <- .sirap_spatial_coordinate_table(
@@ -1691,8 +2419,7 @@ assignReceptorPolygons <- function(receptors,
       polygon_id = spec$id,
       polygon_col = polygon_id,
       x_col = x,
-      y_col = y,
-      require_closed = require_closed
+      y_col = y
     )
     inside <- .sirap_points_in_polygon(
       px = coords$x,
@@ -1806,8 +2533,7 @@ assignReceptorPolygons <- function(receptors,
                                            polygon_id,
                                            polygon_col,
                                            x_col,
-                                           y_col,
-                                           require_closed) {
+                                           y_col) {
   if (!is.null(polygon_id) && polygon_col %in% colnames(polygon)) {
     polygon <- polygon[as.character(polygon[[polygon_col]]) == as.character(polygon_id), , drop = FALSE]
   } else if (is.null(polygon_id) && polygon_col %in% colnames(polygon)) {
@@ -1816,8 +2542,8 @@ assignReceptorPolygons <- function(receptors,
       rlang::abort("`polygon` contains multiple polygons; pass `polygon_id`.")
     }
   }
-  if (nrow(polygon) < 4L) {
-    rlang::abort("`polygon` must contain at least four rows, including the closing vertex.")
+  if (nrow(polygon) < 3L) {
+    rlang::abort("`polygon` must contain at least three rows.")
   }
   out <- data.frame(
     x = as.numeric(polygon[[x_col]]),
@@ -1828,9 +2554,6 @@ assignReceptorPolygons <- function(receptors,
     rlang::abort("`polygon` contains non-finite coordinates.")
   }
   closed <- .sirap_same_xy(out[1, , drop = FALSE], out[nrow(out), , drop = FALSE])
-  if (!closed && isTRUE(require_closed)) {
-    rlang::abort("`polygon` must be closed: the last vertex should match the first vertex.")
-  }
   if (!closed) {
     out <- rbind(out, out[1, , drop = FALSE])
   }
@@ -1921,14 +2644,16 @@ assignReceptorPolygons <- function(receptors,
     j <- i
   }
 
+  boundary <- rep(FALSE, length(px))
+  j <- length(vx)
+  for (i in seq_along(vx)) {
+    boundary <- boundary | .sirap_points_on_segment(px, py, vx[[j]], vy[[j]], vx[[i]], vy[[i]], tol = tol)
+    j <- i
+  }
   if (isTRUE(include_boundary)) {
-    boundary <- rep(FALSE, length(px))
-    j <- length(vx)
-    for (i in seq_along(vx)) {
-      boundary <- boundary | .sirap_points_on_segment(px, py, vx[[j]], vy[[j]], vx[[i]], vy[[i]], tol = tol)
-      j <- i
-    }
     inside <- inside | boundary
+  } else {
+    inside <- inside & !boundary
   }
   inside
 }
@@ -1970,7 +2695,6 @@ assignReceptorPolygons <- function(receptors,
                                      polygon_col,
                                      x_col,
                                      y_col,
-                                     require_closed,
                                      keep_cols = character()) {
   specs <- .sirap_polygon_specs(polygon, polygon_id = polygon_id, polygon_col = polygon_col)
   keep_cols <- unique(keep_cols[keep_cols %in% colnames(polygon)])
@@ -1985,8 +2709,7 @@ assignReceptorPolygons <- function(receptors,
       polygon_id = spec$id,
       polygon_col = polygon_col,
       x_col = x_col,
-      y_col = y_col,
-      require_closed = require_closed
+      y_col = y_col
     )
     vertices$polygon <- if (isTRUE(spec$add_polygon_col)) {
       as.character(spec$id)
@@ -2864,7 +3587,6 @@ assignReceptorPolygons <- function(receptors,
     label_by = "polygon_label",
     label_size = label_size,
     zoom = zoom,
-    require_closed = TRUE,
     combine = FALSE
   )
   map_plot <- if (is.list(map_plots)) map_plots[[1L]] else map_plots

@@ -17,8 +17,7 @@ assignReceptorPolygons(
   x = "x",
   y = "y",
   polygon_id = "polygon",
-  include_boundary = TRUE,
-  require_closed = TRUE
+  include_boundary = TRUE
 )
 }
 \arguments{
@@ -29,7 +28,8 @@ assignReceptorPolygons(
 
 \item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
 \code{y} columns by default. If a \code{polygon} column is present, each polygon is
-evaluated independently.}
+evaluated independently. If \code{object} is a SIRAP object and \code{polygon} is
+omitted, the object's stored polygons are used.}
 
 \item{column}{Column added to the returned receptor table with polygon
 membership.}
@@ -50,14 +50,13 @@ value must be supplied explicitly or by SIRAP object metadata.}
 \item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
 exists.}
 
-\item{x, y}{Coordinate columns in \code{polygon}.}
+\item{x}{Coordinate column in \code{polygon}.}
+
+\item{y}{Coordinate column in \code{polygon}.}
 
 \item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
 
 \item{include_boundary}{Include Seurat spots on polygon edges.}
-
-\item{require_closed}{Require the final polygon vertex to equal the first.
-Set to \code{FALSE} to close open polygons automatically.}
 }
 \value{
 A tibble with \code{column} added.

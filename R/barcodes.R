@@ -26,7 +26,8 @@ readSpatialIdMapping <- function(path) {
 #' @param regex Regular expression used to extract the spatial ID. If the regex
 #'   contains a capture group, the first capture group is used. Otherwise the
 #'   full match is used.
-#' @param prefix,suffix Optional text added before or after the extracted match.
+#' @param prefix Optional text added before the extracted match.
+#' @param suffix Optional text added after the extracted match.
 #' @return Input data with `spatial_id` added.
 #' @export
 extractSpatialIds <- function(airr_df,
@@ -56,7 +57,8 @@ extractSpatialIds <- function(airr_df,
 #' @param positions Tissue positions data frame or CSV/parquet path.
 #' @param spatial_id Column in `airr_df` to match.
 #' @param position_spatial_id Spatial ID column in `positions`.
-#' @param x,y Coordinate columns to copy or rename to `x` and `y`.
+#' @param x Coordinate column to copy or rename to `x`.
+#' @param y Coordinate column to copy or rename to `y`.
 #' @param keep_position_cols Whether to retain all position columns.
 #' @return Data frame with `x` and `y` columns.
 #' @export

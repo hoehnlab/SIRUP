@@ -26,8 +26,8 @@ spatialLocalMoran(
 \item{variable}{Feature or metadata column to analyze.}
 
 \item{variable_type}{One of \code{feature}, \code{metadata}, \code{receptor}, or \code{clone}.
-Use \code{clone} to calculate Moran's I for a binary indicator marking spots
-that contain a particular clone ID.}
+Use \code{clone} to calculate local Moran's I for a binary indicator marking
+spots that contain a particular clone ID.}
 
 \item{value}{Optional metadata value to convert to a binary indicator.}
 

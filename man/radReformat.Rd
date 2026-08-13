@@ -45,7 +45,10 @@ default 2.}
 
 \item{...}{Additional raw CLI tokens.}
 
-\item{capture, rad}{See \code{\link[=radPrep]{radPrep()}}.}
+\item{capture}{Logical; capture stdout/stderr in the returned result instead
+of streaming to the R console.}
+
+\item{rad}{Path to the rad binary. Defaults to \code{\link[=radPath]{radPath()}}.}
 }
 \value{
 Invisible list with \code{status}, \code{stdout}, \code{stderr}, \code{command}.

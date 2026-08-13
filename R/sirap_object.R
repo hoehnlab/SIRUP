@@ -41,6 +41,8 @@
 #'   `polygon_id` or `polygon` for the polygon identifier and must contain `x`
 #'   and `y` coordinate columns. Stored polygons from this path receive the same
 #'   automatic annotation as `polygons`.
+#' @param include_boundary Whether spots exactly on stored polygon edges should
+#'   be annotated as polygon members when polygons are attached.
 #' @param analyses Optional named list of derived analysis results.
 #' @param validate Whether to validate the completed object.
 #'
@@ -59,6 +61,7 @@ createSIRAP <- function(spatial,
                         metadata = list(),
                         polygons = NULL,
                         polygons_path = NULL,
+                        include_boundary = TRUE,
                         analyses = list(),
                         validate = TRUE) {
   clone_missing <- missing(clone)
@@ -118,6 +121,7 @@ createSIRAP <- function(spatial,
   )
   metadata$image_scale <- image_scale
   metadata$swap_coords <- swap_coords
+  metadata$polygons_include_boundary <- isTRUE(include_boundary)
 
   out <- structure(
     list(
@@ -273,6 +277,8 @@ getReceptors <- function(x) {
 #' @param x A SIRAP object.
 #' @param polygons Optional polygon table.
 #' @param polygons_path Optional path to a flat polygon vertex CSV.
+#' @param include_boundary Whether spots exactly on polygon edges should be
+#'   annotated as polygon members.
 #' @param validate Whether to validate the updated object.
 #' @return `getPolygons()` returns a polygon tibble. `addPolygons()` returns an
 #'   updated SIRAP object.
@@ -288,7 +294,11 @@ getPolygons <- function(x) {
 
 #' @rdname sirap-polygons
 #' @export
-addPolygons <- function(x, polygons = NULL, polygons_path = NULL, validate = TRUE) {
+addPolygons <- function(x,
+                        polygons = NULL,
+                        polygons_path = NULL,
+                        include_boundary = TRUE,
+                        validate = TRUE) {
   validateSIRAP(x)
   if (!is.null(polygons) && !is.null(polygons_path)) {
     rlang::abort("Supply only one of `polygons` and `polygons_path`.")
@@ -298,6 +308,7 @@ addPolygons <- function(x, polygons = NULL, polygons_path = NULL, validate = TRU
     x$metadata$polygons_path <- as.character(polygons_path)
   }
   x$polygons <- .sirap_prepare_polygons(polygons)
+  x$metadata$polygons_include_boundary <- isTRUE(include_boundary)
   x <- .sirap_annotate_stored_polygons(x)
   if (isTRUE(validate)) validateSIRAP(x)
   x
@@ -570,6 +581,32 @@ print.summary.sirap <- function(x, ...) {
   x$analyses
 }
 
+# Bring an on-disk or legacy SIRAP object up to the current schema. Older
+# objects may lack the `polygons`/`analyses` components (the "legacy" name
+# sets tolerated by validateSIRAP()) or the spatial-metadata defaults. This
+# rebuilds the canonical five-component object and backfills defaults without
+# re-guessing the receptor field mappings. Version-stamp attributes added by
+# saveSIRAP() are intentionally dropped here; readSIRAP() reads them first.
+.sirap_upgrade <- function(x) {
+  if (!isSIRAP(x)) {
+    rlang::abort("`x` must inherit from class 'sirap'.")
+  }
+  metadata <- if (is.list(x$metadata)) x$metadata else list()
+  if (is.null(metadata$polygons_include_boundary)) {
+    metadata$polygons_include_boundary <- TRUE
+  }
+  structure(
+    list(
+      spatial = x$spatial,
+      receptors = x$receptors,
+      metadata = metadata,
+      polygons = x$polygons %||% .sirap_empty_polygons(),
+      analyses = x$analyses %||% list()
+    ),
+    class = c("sirap", "list")
+  )
+}
+
 .sirap_polygons <- function(x) {
   if (is.null(x$polygons)) {
     return(.sirap_empty_polygons())
@@ -644,7 +681,8 @@ print.summary.sirap <- function(x, ...) {
     image_scale = x$metadata$image_scale,
     swap_coords = x$metadata$swap_coords,
     polygon_id = "polygon",
-    metadata = "polygon_id"
+    metadata = "polygon_id",
+    include_boundary = isTRUE(x$metadata$polygons_include_boundary %||% TRUE)
   )
   x$receptors <- assignReceptorPolygons(
     receptors = x$receptors,
@@ -654,7 +692,8 @@ print.summary.sirap <- function(x, ...) {
     spatial_id = .sirap_receptor_fields(x)$spatial_id,
     image_scale = x$metadata$image_scale,
     swap_coords = x$metadata$swap_coords,
-    polygon_id = "polygon"
+    polygon_id = "polygon",
+    include_boundary = isTRUE(x$metadata$polygons_include_boundary %||% TRUE)
   )
   x
 }

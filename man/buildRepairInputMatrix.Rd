@@ -7,7 +7,10 @@
 buildRepairInputMatrix(heavy_points, light_points, sparse = FALSE)
 }
 \arguments{
-\item{heavy_points, light_points}{Clone spatial tables with \code{clone_id},
+\item{heavy_points}{Heavy-chain clone spatial table with \code{clone_id},
+\code{barcode}, and \code{n}.}
+
+\item{light_points}{Light-chain clone spatial table with \code{clone_id},
 \code{barcode}, and \code{n}.}
 
 \item{sparse}{Return a sparse \code{Matrix} instead of a dense data frame.}

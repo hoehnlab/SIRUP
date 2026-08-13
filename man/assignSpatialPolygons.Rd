@@ -15,16 +15,16 @@ assignSpatialPolygons(
   y = "y",
   polygon_id = "polygon",
   metadata = "polygon_id",
-  include_boundary = TRUE,
-  require_closed = TRUE
+  include_boundary = TRUE
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial coordinates.}
+\item{object}{Seurat object with spatial coordinates, or a SIRAP object.}
 
 \item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
 \code{y} columns by default. If a \code{polygon} column is present, each polygon is
-evaluated independently.}
+evaluated independently. If \code{object} is a SIRAP object and \code{polygon} is
+omitted, the object's stored polygons are used.}
 
 \item{images}{Optional Seurat image names to use for spatial coordinates.}
 
@@ -38,18 +38,17 @@ value must be supplied explicitly or by SIRAP object metadata.}
 \item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
 exists.}
 
-\item{x, y}{Coordinate columns in \code{polygon}.}
+\item{x}{Coordinate column in \code{polygon}.}
+
+\item{y}{Coordinate column in \code{polygon}.}
 
 \item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
 
 \item{metadata}{Metadata column added to the returned Seurat object with the
-primary polygon assignment. Barcodes in overlapping polygons are assigned to
-the smallest polygon by area.}
+primary polygon assignment. Spatial IDs in overlapping polygons are assigned
+to the smallest polygon by area.}
 
 \item{include_boundary}{Include Seurat spots on polygon edges.}
-
-\item{require_closed}{Require the final polygon vertex to equal the first.
-Set to \code{FALSE} to close open polygons automatically.}
 }
 \value{
 A Seurat object with \code{metadata} added to \verb{@meta.data}.

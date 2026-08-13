@@ -22,8 +22,7 @@ spatialCloneDominance(
   x = "x",
   y = "y",
   polygon_id = "polygon",
-  include_boundary = TRUE,
-  require_closed = TRUE
+  include_boundary = TRUE
 )
 }
 \arguments{
@@ -71,14 +70,16 @@ value must be supplied explicitly or by SIRAP object metadata.}
 \item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
 exists. When \code{NULL}, all polygons in \code{polygon_id} are analyzed.}
 
-\item{x, y}{Coordinate columns in \code{polygon}.}
+\item{x}{Coordinate column in \code{polygon}.}
+
+\item{y}{Coordinate column in \code{polygon}.}
 
 \item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
 
-\item{include_boundary}{Include Seurat spots on polygon edges.}
-
-\item{require_closed}{Require the final polygon vertex to equal the first.
-Set to \code{FALSE} to close open polygons automatically.}
+\item{include_boundary}{Include Seurat spots on polygon edges when polygon
+membership must be calculated from \code{polygon}. If a SIRAP object with stored
+polygon annotations is supplied and \code{polygon = NULL}, stored annotations
+are used and this argument is ignored.}
 }
 \value{
 A spatial clone dominance object containing the dominance table,
@@ -87,8 +88,9 @@ vertices prepared for plotting, and analysis metadata containing the
 receptor field mappings used for the analysis.
 }
 \description{
-Finds Seurat spatial IDs whose coordinates fall inside closed polygons,
+Finds Seurat spatial IDs whose coordinates fall inside polygons,
 subsets receptor rows to those spatial IDs, and returns the fraction of regional
 receptors represented by each clone. Points on the polygon boundary are
-included by default.
+included. Open polygons are closed automatically by repeating the first
+vertex at the end.
 }

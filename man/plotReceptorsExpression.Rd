@@ -76,7 +76,11 @@ to \code{values}; otherwise colors are used in value order.}
 \item{order_points}{Plot lower expression values first so higher expression
 appears on top. Receptor groups are drawn in \code{values} order.}
 
-\item{assay, layer, image_scale}{Additional plotting controls.}
+\item{assay}{Optional assay to set before plotting.}
+
+\item{layer}{Seurat expression layer to fetch.}
+
+\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate axes.}
 

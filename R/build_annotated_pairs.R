@@ -36,11 +36,15 @@
 #'   `spaceranger_dir` is set, inferred as
 #'   `<spaceranger_dir>/square_002um/spatial/tissue_positions.parquet`
 #'   (falling back to `.csv` / `.csv.gz` if the parquet is missing).
-#' @param sr_filtered_2um,sr_filtered_8um,sr_filtered_16um Paths to
-#'   Space Ranger filtered barcodes (`barcodes.tsv.gz`) at each
-#'   resolution. If `NULL` and `spaceranger_dir` is set, inferred from
-#'   that root. A path that doesn't exist is treated as an empty
-#'   filtered set (all flags zero at that resolution).
+#' @param sr_filtered_2um Path to Space Ranger filtered 2um barcodes
+#'   (`barcodes.tsv.gz`). If `NULL` and `spaceranger_dir` is set, inferred from
+#'   that root. A path that doesn't exist is treated as an empty filtered set.
+#' @param sr_filtered_8um Path to Space Ranger filtered 8um barcodes
+#'   (`barcodes.tsv.gz`). If `NULL` and `spaceranger_dir` is set, inferred from
+#'   that root. A path that doesn't exist is treated as an empty filtered set.
+#' @param sr_filtered_16um Path to Space Ranger filtered 16um barcodes
+#'   (`barcodes.tsv.gz`). If `NULL` and `spaceranger_dir` is set, inferred from
+#'   that root. A path that doesn't exist is treated as an empty filtered set.
 #' @param out_csv Output CSV path. Gzipped when the path ends in `.gz`.
 #'   `NULL` (default) only returns the result.
 #' @param verbose Print progress and a summary block.

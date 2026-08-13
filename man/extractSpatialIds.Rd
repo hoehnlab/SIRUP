@@ -24,7 +24,9 @@ extractSpatialIds(
 contains a capture group, the first capture group is used. Otherwise the
 full match is used.}
 
-\item{prefix, suffix}{Optional text added before or after the extracted match.}
+\item{prefix}{Optional text added before the extracted match.}
+
+\item{suffix}{Optional text added after the extracted match.}
 }
 \value{
 Input data with \code{spatial_id} added.

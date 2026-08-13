@@ -32,8 +32,9 @@ Required when \code{x} and \code{y} are not present.}
 
 \item{polygon}{Column in \code{polygon_points} identifying each polygon.}
 
-\item{x, y}{Coordinate columns in \code{polygon_points}, if already
-present.}
+\item{x}{X-coordinate column in \code{polygon_points}, if already present.}
+
+\item{y}{Y-coordinate column in \code{polygon_points}, if already present.}
 
 \item{image}{Image column in \code{polygon_points}, if already present.}
 

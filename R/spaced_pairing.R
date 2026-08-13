@@ -17,11 +17,13 @@
 #' @param data Clone-assigned data frame.
 #' @param positions Optional spatial positions data frame. If supplied, it is
 #'   joined to `data` by barcode.
-#' @param barcode,position_barcode Barcode columns in `data` and
-#'   `positions`.
+#' @param barcode Barcode column in `data`.
+#' @param position_barcode Barcode column in `positions`.
 #' @param clone Clone identifier column in `data`.
-#' @param x,y Spatial coordinate columns. If `positions` is supplied,
-#'   these are read after the join.
+#' @param x Spatial x-coordinate column. If `positions` is supplied, this is
+#'   read after the join.
+#' @param y Spatial y-coordinate column. If `positions` is supplied, this is
+#'   read after the join.
 #' @param count Optional count column. When `NULL`, each row contributes 1.
 #' @param clone_prefix Optional prefix added to clone IDs, for example
 #'   `"heavy_"` or `"light_kappa_"`.
@@ -91,7 +93,9 @@ buildSpacedCloneTable <- function(data,
 #' Convert a wide SPaCeD expression table to clone spatial points
 #'
 #' @param df Wide table with barcode, coordinate, and clone count columns.
-#' @param barcode,x,y Column names.
+#' @param barcode Barcode column name.
+#' @param x Spatial x-coordinate column name.
+#' @param y Spatial y-coordinate column name.
 #' @param clone Optional clone columns. Defaults to all non-barcode and
 #'   non-coordinate columns.
 #' @param clone_prefix Optional prefix added to clone IDs.
@@ -143,7 +147,9 @@ spacedCloneTableFromWide <- function(df,
 #' SPaCeD-style point-pattern optimal-transport distance through
 #' `spatstat::pppdist()`.
 #'
-#' @param heavy_points,light_points Output from `buildSpacedCloneTable()` or any
+#' @param heavy_points Heavy-chain output from `buildSpacedCloneTable()` or any
+#'   data frame with `clone_id`, `barcode`, and `n`.
+#' @param light_points Light-chain output from `buildSpacedCloneTable()` or any
 #'   data frame with `clone_id`, `barcode`, and `n`.
 #' @param method Spatial scoring method. `"weighted_cosim"` is the scalable
 #'   SIRAP default, and `"ot"` is the original SPaCeD optimal-transport
@@ -156,7 +162,8 @@ spacedCloneTableFromWide <- function(df,
 #'   spatial kernel. Defaults to `3 * kernel_sigma`.
 #' @param kernel_max_neighbors Maximum nearby features retained per feature when
 #'   building the sparse kernel.
-#' @param x,y Spatial coordinate columns.
+#' @param x Spatial x-coordinate column.
+#' @param y Spatial y-coordinate column.
 #' @param ot_cutoff Maximum transport distance passed to `pppdist()` when
 #'   `method = "ot"`.
 #' @param ot_scale Distance scale used by `transformSpacedDistances()` for
@@ -346,7 +353,9 @@ pairHeavyLightSpaced <- function(spatial_affinity,
 #' `"^light"`. This helper builds that matrix directly from SPaCeD/SIRAP clone
 #' point tables.
 #'
-#' @param heavy_points,light_points Clone spatial tables with `clone_id`,
+#' @param heavy_points Heavy-chain clone spatial table with `clone_id`,
+#'   `barcode`, and `n`.
+#' @param light_points Light-chain clone spatial table with `clone_id`,
 #'   `barcode`, and `n`.
 #' @param sparse Return a sparse `Matrix` instead of a dense data frame.
 #' @return Barcode-by-clone count table. Dense output includes a `barcode`
@@ -424,7 +433,11 @@ writeRepairInputMatrix <- function(repair_input,
 #' @param output_dir REPAIR output directory.
 #' @param a_pattern Heavy clone column regex.
 #' @param b_pattern Light clone column regex.
-#' @param mxo,x,b,nb,min_counts Arguments passed to `repair analyze`.
+#' @param mxo Maximum number of output candidates passed to `repair analyze`.
+#' @param x REPAIR `x` argument passed to `repair analyze`.
+#' @param b REPAIR `b` argument passed to `repair analyze`.
+#' @param nb REPAIR `nb` argument passed to `repair analyze`.
+#' @param min_counts Minimum count threshold passed to `repair analyze`.
 #' @param repair_bin REPAIR executable.
 #' @return Shell command string.
 #' @export

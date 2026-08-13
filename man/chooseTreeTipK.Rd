@@ -26,7 +26,10 @@ distance falls below this value.}
 \item{ignore_tips}{Optional tip labels to drop before scoring, for example
 \code{"Germline"}.}
 
-\item{method, cut_terminal_edges}{Arguments passed to \code{clusterTreeTips()}.}
+\item{method}{Tree clustering method passed to \code{clusterTreeTips()}.}
+
+\item{cut_terminal_edges}{Cut terminal branches when choosing branches to
+remove, passed to \code{clusterTreeTips()}.}
 }
 \value{
 List with selected \code{k} and a candidate score data frame.

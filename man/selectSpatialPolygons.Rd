@@ -60,9 +60,11 @@ spatial_id in the full coordinate table.}
 
 \item{launch_browser}{Passed to \code{shiny::runApp()}.}
 
-\item{host, port}{Optional host and port passed to \code{shiny::runApp()}. These
-are useful when running from an interactive HPC session through an SSH
-tunnel.}
+\item{host}{Optional host passed to \code{shiny::runApp()}. This is useful when
+running from an interactive HPC session through an SSH tunnel.}
+
+\item{port}{Optional port passed to \code{shiny::runApp()}. This is useful when
+running from an interactive HPC session through an SSH tunnel.}
 
 \item{quiet}{Suppress warnings while the app is running.}
 }

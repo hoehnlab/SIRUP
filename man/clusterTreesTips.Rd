@@ -47,8 +47,11 @@ computed cluster labels overwritten with their \code{keep} value.}
 remove. Defaults to \code{FALSE}, which prioritizes internal clade splits; set
 to \code{TRUE} to allow terminal tips to be peeled off by branch cuts.}
 
-\item{k_range, improvement_threshold}{Arguments passed to \code{chooseTreeTipK()}
-when \code{k = "auto"}.}
+\item{k_range}{Candidate k values passed to \code{chooseTreeTipK()} when
+\code{k = "auto"}.}
+
+\item{improvement_threshold}{Relative improvement threshold passed to
+\code{chooseTreeTipK()} when \code{k = "auto"}.}
 }
 \value{
 \code{trees}, with \code{cluster} added to each clone data object.

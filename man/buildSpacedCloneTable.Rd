@@ -23,15 +23,19 @@ buildSpacedCloneTable(
 \item{positions}{Optional spatial positions data frame. If supplied, it is
 joined to \code{data} by barcode.}
 
-\item{barcode, position_barcode}{Barcode columns in \code{data} and
-\code{positions}.}
+\item{barcode}{Barcode column in \code{data}.}
 
 \item{clone}{Clone identifier column in \code{data}.}
 
-\item{x, y}{Spatial coordinate columns. If \code{positions} is supplied,
-these are read after the join.}
+\item{x}{Spatial x-coordinate column. If \code{positions} is supplied, this is
+read after the join.}
+
+\item{y}{Spatial y-coordinate column. If \code{positions} is supplied, this is
+read after the join.}
 
 \item{count}{Optional count column. When \code{NULL}, each row contributes 1.}
+
+\item{position_barcode}{Barcode column in \code{positions}.}
 
 \item{clone_prefix}{Optional prefix added to clone IDs, for example
 \code{"heavy_"} or \code{"light_kappa_"}.}

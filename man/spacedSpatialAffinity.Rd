@@ -25,7 +25,10 @@ spacedSpatialAffinity(
 )
 }
 \arguments{
-\item{heavy_points, light_points}{Output from \code{buildSpacedCloneTable()} or any
+\item{heavy_points}{Heavy-chain output from \code{buildSpacedCloneTable()} or any
+data frame with \code{clone_id}, \code{barcode}, and \code{n}.}
+
+\item{light_points}{Light-chain output from \code{buildSpacedCloneTable()} or any
 data frame with \code{clone_id}, \code{barcode}, and \code{n}.}
 
 \item{method}{Spatial scoring method. \code{"weighted_cosim"} is the scalable
@@ -44,7 +47,9 @@ spatial kernel. Defaults to \code{3 * kernel_sigma}.}
 \item{kernel_max_neighbors}{Maximum nearby features retained per feature when
 building the sparse kernel.}
 
-\item{x, y}{Spatial coordinate columns.}
+\item{x}{Spatial x-coordinate column.}
+
+\item{y}{Spatial y-coordinate column.}
 
 \item{ot_cutoff}{Maximum transport distance passed to \code{pppdist()} when
 \code{method = "ot"}.}

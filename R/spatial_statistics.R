@@ -75,7 +75,27 @@ spatialMoran <- function(object,
 
 #' Calculate local Moran's I/LISA for a spatial variable
 #'
-#' @inheritParams spatialMoran
+#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param variable Feature or metadata column to analyze.
+#' @param variable_type One of `feature`, `metadata`, `receptor`, or `clone`.
+#'   Use `clone` to calculate local Moran's I for a binary indicator marking
+#'   spots that contain a particular clone ID.
+#' @param value Optional metadata value to convert to a binary indicator.
+#' @param receptors AIRR-style receptor data frame. Required when
+#'   `variable_type = "receptor"` or `"clone"` unless `object` is a SIRAP
+#'   object.
+#' @param spatial_id Spatial ID column in `receptors`. Defaults to `NULL`; when
+#'   `object` is a SIRAP object, the stored receptor ID field is used.
+#'   Pass this explicitly when using separate Seurat and receptor objects.
+#' @param clone Clone column in `receptors`; used only when
+#'   `variable_type = "clone"`. Defaults to `NULL`; when `object` is a SIRAP
+#'   object, the stored receptor clone field is used when available.
+#' @param layer Seurat expression layer to fetch for features.
+#' @param images Optional Seurat image names.
+#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
+#'   axes before plotting or polygon membership checks. If `NULL`, the
+#'   value must be supplied explicitly or by SIRAP object metadata.
 #' @param radius Optional distance radius defining local neighborhoods. When
 #'   `NULL`, k-nearest neighbors are used.
 #' @param k Number of nearest neighbors when `radius` is `NULL`.
@@ -157,10 +177,12 @@ spatialLocalMoran <- function(object,
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. If `NULL`, the
 #'   value must be supplied explicitly or by SIRAP object metadata.
-#' @param x,y Coordinate columns in `polygon`.
+#' @param x Coordinate column in `polygon`.
+#' @param y Coordinate column in `polygon`.
 #' @param polygon_id Optional polygon grouping column in `polygon`.
 #' @param include_boundary Include Seurat spots on polygon edges.
-#' @param require_closed Require the final polygon vertex to equal the first.
+#'   Ignored when `object` is a SIRAP object with stored polygons and `polygon`
+#'   is `NULL`; in that case stored polygon annotations are used.
 #' @param min_spatial_ids Minimum number of spatial IDs containing a clone for
 #'   that clone to be tested.
 #' @param radius Optional distance radius defining neighborhoods.
@@ -187,13 +209,16 @@ spatialCloneJoinCount <- function(object,
                                   y = "y",
                                   polygon_id = "polygon",
                                   include_boundary = TRUE,
-                                  require_closed = TRUE,
                                   min_spatial_ids = 2,
                                   radius = NULL,
                                   k = 6,
                                   alternative = "greater",
                                   other_label = "Other",
                                   return_data = FALSE) {
+  sirap_container <- if (isSIRAP(object)) object else NULL
+  use_stored_polygons <- !is.null(sirap_container) &&
+    is.null(polygon) &&
+    nrow(.sirap_polygons(sirap_container)) > 0L
   options <- .sirap_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
@@ -223,7 +248,19 @@ spatialCloneJoinCount <- function(object,
   }
   min_spatial_ids <- as.integer(min_spatial_ids)
 
-  dat <- .sirap_joincount_receptor_data(
+  dat <- if (isTRUE(use_stored_polygons)) {
+    .sirap_joincount_receptor_data_stored_polygons(
+      object = sirap_container,
+      receptors = receptors,
+      clone_col = clone,
+      spatial_id_col = spatial_id,
+      polygon_id = polygon_val,
+      images = images,
+      image_scale = image_scale,
+      swap_coords = swap_coords
+    )
+  } else {
+    .sirap_joincount_receptor_data(
     object = object,
     receptors = receptors,
     clone_col = clone,
@@ -236,9 +273,9 @@ spatialCloneJoinCount <- function(object,
     x_col = x,
     y_col = y,
     polygon_col = polygon_id,
-    include_boundary = include_boundary,
-    require_closed = require_closed
-  )
+    include_boundary = include_boundary
+    )
+  }
   .check_required_cols(dat, c(clone, ".sirap_spatial_id", "x", ".sirap_y", "image", "polygon"), "receptors")
   dat <- dat[!is.na(dat[[clone]]) & nzchar(as.character(dat[[clone]])), , drop = FALSE]
   if (nrow(dat) == 0L) {
@@ -356,9 +393,12 @@ spatialCloneJoinCount <- function(object,
 #'   the selected clone.
 #' @param clone_color Color for selected-clone spots and neighbor edges.
 #' @param other_color Color for other receptor-positive spots.
-#' @param point_size,point_alpha Size and opacity of plotted spots.
-#' @param edge_width,edge_alpha Width and opacity of neighbor edges.
-#' @param polygon_color,polygon_linewidth Color and width of polygon outlines.
+#' @param point_size Size of plotted spots.
+#' @param point_alpha Opacity of plotted spots.
+#' @param edge_width Width of neighbor edges.
+#' @param edge_alpha Opacity of neighbor edges.
+#' @param polygon_color Color of polygon outlines.
+#' @param polygon_linewidth Width of polygon outlines.
 #' @param image_alpha Tissue image opacity.
 #' @param zoom Zoom the spatial panel to the spots used in the test.
 #' @param title Optional title for the combined plot.
@@ -451,8 +491,7 @@ plotSpatialCloneJoinCount <- function(join_count,
       polygon_id = polygon_val,
       polygon_col = "polygon",
       x_col = "x",
-      y_col = "y",
-      require_closed = TRUE
+      y_col = "y"
     )
   }
 
@@ -716,7 +755,8 @@ plotSpatialLocalMoran <- function(object,
 #'
 #' @param object SIRAP object, or a spatial Seurat object.
 #' @param mark_col Metadata column containing point types.
-#' @param i,j Mark levels to compare.
+#' @param i First mark level to compare.
+#' @param j Second mark level to compare.
 #' @param nsim Number of random-label simulations for an envelope. Use `0` for
 #'   observed K only.
 #' @param max_r Optional maximum radius to evaluate. Ignored if `r` is supplied.
@@ -1079,8 +1119,7 @@ plotRipleyCrossK <- function(kcross,
                                            x_col,
                                            y_col,
                                            polygon_col,
-                                           include_boundary,
-                                           require_closed) {
+                                           include_boundary) {
   receptors <- .as_data_frame(receptors)
   .check_required_cols(receptors, c(spatial_id_col, clone_col), "receptors")
   coords <- .sirap_spatial_coordinate_table(object, images = images, image_scale = image_scale, swap_coords = swap_coords)
@@ -1117,8 +1156,7 @@ plotRipleyCrossK <- function(kcross,
       polygon_id = spec$id,
       polygon_col = polygon_col,
       x_col = x_col,
-      y_col = y_col,
-      require_closed = require_closed
+      y_col = y_col
     )
     inside <- .sirap_points_in_polygon(
       px = coords$x,
@@ -1134,6 +1172,71 @@ plotRipleyCrossK <- function(kcross,
     region_coords$polygon <- as.character(if (isTRUE(spec$add_polygon_col)) spec$id else "polygon_1")
     merge(
       receptors,
+      region_coords[, c("cell", "x", "y", ".sirap_y", "image", "polygon"), drop = FALSE],
+      by.x = ".sirap_spatial_id",
+      by.y = "cell",
+      all.x = FALSE,
+      all.y = FALSE,
+      sort = FALSE
+    )
+  })
+  dplyr::bind_rows(regions)
+}
+
+# Join receptor clone calls to spatial coordinates by using polygon membership
+# that was already stored by addPolygons() on a SIRAP object.
+.sirap_joincount_receptor_data_stored_polygons <- function(object,
+                                                           receptors,
+                                                           clone_col,
+                                                           spatial_id_col,
+                                                           polygon_id,
+                                                           images,
+                                                           image_scale,
+                                                           swap_coords) {
+  validateSIRAP(object)
+  receptors <- .as_data_frame(receptors)
+  .check_required_cols(receptors, c(spatial_id_col, clone_col), "receptors")
+  coords <- .sirap_spatial_coordinate_table(
+    getSpatial(object),
+    images = images,
+    image_scale = image_scale,
+    swap_coords = swap_coords
+  )
+  coords <- coords[is.finite(coords$x) & is.finite(coords$y), , drop = FALSE]
+  if (nrow(coords) == 0L) {
+    rlang::abort("No finite spatial coordinates were found in `object`.")
+  }
+  polygon_ids <- as.character(getPolygons(object)$polygon_id)
+  if (!is.null(polygon_id)) {
+    polygon_ids <- polygon_ids[polygon_ids %in% as.character(polygon_id)]
+  }
+  if (length(polygon_ids) == 0L) {
+    rlang::abort("No stored polygon IDs matched `polygon_val`.")
+  }
+  receptor_cols <- setdiff(colnames(receptors), setdiff(c("cell", "x", "y", ".sirap_y", "image", "polygon"), c(spatial_id_col, clone_col)))
+  receptors <- receptors[, receptor_cols, drop = FALSE]
+  receptors$.sirap_spatial_id <- as.character(receptors[[spatial_id_col]])
+
+  regions <- lapply(polygon_ids, function(polygon_value) {
+    region_coords <- .sirap_stored_polygon_coords(
+      coords = coords,
+      spatial = getSpatial(object),
+      polygon_value = polygon_value
+    )
+    if (nrow(region_coords) == 0L) {
+      return(data.frame())
+    }
+    region_receptors <- .sirap_receptors_in_polygon(
+      receptors = receptors,
+      polygon_value = polygon_value,
+      polygon_id = "polygon_id"
+    )
+    if (nrow(region_receptors) == 0L) {
+      return(data.frame())
+    }
+    region_coords$polygon <- polygon_value
+    merge(
+      region_receptors,
       region_coords[, c("cell", "x", "y", ".sirap_y", "image", "polygon"), drop = FALSE],
       by.x = ".sirap_spatial_id",
       by.y = "cell",

@@ -19,8 +19,11 @@ radList(
 
 \item{...}{Additional raw CLI tokens.}
 
-\item{capture, rad}{See \code{\link[=radPrep]{radPrep()}}. Defaults to \code{capture = TRUE} because
-the output is structured table-like text most callers want to keep.}
+\item{capture}{Logical; capture stdout/stderr in the returned result instead
+of streaming to the R console. Defaults to \code{TRUE} because the output is
+structured table-like text most callers want to keep.}
+
+\item{rad}{Path to the rad binary. Defaults to \code{\link[=radPath]{radPath()}}.}
 }
 \value{
 Invisible list with \code{status}, \code{stdout} (the listing), \code{stderr},

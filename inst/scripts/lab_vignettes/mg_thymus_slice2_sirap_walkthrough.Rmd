@@ -2,12 +2,12 @@
 title: "SIRAP walkthrough with MG thymus slice 2"
 author: "Hunter J. Melton"
 output:
-  pdf_document:
-    toc: true
   html_document:
     toc: true
     toc_float: true
     number_sections: true
+  pdf_document:
+    toc: true
 ---
 
 ```{r setup, message=FALSE, warning=FALSE}
@@ -320,6 +320,25 @@ getSpatial(mg_thymus_slice2_sirap)
 getReceptors(mg_thymus_slice2_sirap) %>% head()
 listAnalyses(mg_thymus_slice2_sirap)
 getPolygons(mg_thymus_slice2_sirap)
+```
+
+SIRAP objects can also be saved at natural stopping points in the analysis.
+`saveSIRAP()` writes the object to an RDS file after validating it and
+recording the SIRAP and SeuratObject versions used to save it. `readSIRAP()`
+loads the object back in, updates older object schemas when needed, warns if the
+saved package versions differ from the versions currently installed, and
+validates the object before returning it. This is useful after a slow processing
+step or before moving the same object between machines.
+
+```{r save-read-sirap-object, eval=FALSE}
+sirap_checkpoint_path <- file.path(
+  walkthrough_dir,
+  "mg_thymus_slice2_checkpoint.sirap.rds"
+)
+
+saveSIRAP(mg_thymus_slice2_sirap, sirap_checkpoint_path)
+
+mg_thymus_slice2_sirap <- readSIRAP(sirap_checkpoint_path)
 ```
 
 # Check for identical sequences in neighboring spots
@@ -768,20 +787,21 @@ plotSpatialCloneJoinCount(
 
 # Select or load GC polygons
 
-The `selectSpatialPolygons()` function takes a SIRAP object `object`, an `assay` and `layer` to use for plotting, a `feature` to show on the plot (i.e., AICDA), a save path to save the polygon vertices, and arguments for the Rshiny app (`host`, `port`, `plot_image`, `launch_browser`). The function returns a vertex table.
+The `selectSpatialPolygons()` function takes a SIRAP object `object`, an `assay` and `layer` to use for plotting, a `feature` to show on the plot (i.e., AICDA, default is NA and just shows black dots), a save path to save the polygon vertices, and arguments for the Rshiny app (`host`, `port`, `plot_image`, `launch_browser`). The function returns a vertex table.
 
 `selectSpatialPolygons()` will build the Shiny app for drawing region boundaries using a
 SIRAP object (or spatial seurat object). At a high level, it pulls the tissue coordinates from the object, using the `image_scale` and `swap_coords` metadata stored in the SIRAP object, and
 opens a clickable plot of the spots. The spots are
-colored by a `feature`, we optionally show the histology image underneath, adjust point
-size/opacity, and then click around the boundary of a region. Each click is snapped to the
+colored by a `feature`, we optionally show the histology image underneath with `plot_image`,
+adjust point size/opacity, and then click around the boundary of a region. Each click is snapped to the
 nearest actual spatial ID. As you click, the function records the selected spatial ID, x/y
 coordinates, polygon ID, and image name. `Close polygon` repeats the first point at the end of
 the current polygon, `New polygon` closes the current one and starts another region, and the
 `remove/reset` buttons let you fix mistakes by removing the last point or fully resetting. When
 you hit `Done`, it closes any open polygon,
-returns a vertex table, and optionally writes that table to CSV if save_path is provided. We
-then attach that geometry to the SIRAP object with `addPolygons()`. `addPolygons()` will
+returns a vertex table, and optionally writes that table to CSV if save_path is provided.
+
+We then attach that geometry to the SIRAP object with `addPolygons()`. `addPolygons()` will
 automatically annotate which polygon each spatial barcode is in, both in the metadata of the
 spatial Seurat object and in the receptor table,  Once attached, downstream
 polygon-aware functions can use the stored geometry directly without passing the same vertex
@@ -792,7 +812,7 @@ taking a sirap object `object` with attached polygons (or we can specify polygon
 `polygon`).
 
 ```{r load-or-select-polygons}
-if (nrow(getPolygons(mg_thymus_slice2_sirap)) == 0L) {
+if (!file.exists(polygon_path)) {
   mg_thymus_slice2_polygons <- selectSpatialPolygons(
     object = mg_thymus_slice2_sirap,
     assay = "alra",
@@ -804,11 +824,15 @@ if (nrow(getPolygons(mg_thymus_slice2_sirap)) == 0L) {
     plot_image = TRUE,
     launch_browser = TRUE
   )
-  mg_thymus_slice2_sirap <- addPolygons(
-    mg_thymus_slice2_sirap,
-    polygons = mg_thymus_slice2_polygons
+} else {
+  mg_thymus_slice2_polygons <- read.csv(
+    polygon_path
   )
 }
+mg_thymus_slice2_sirap <- addPolygons(
+  mg_thymus_slice2_sirap,
+  polygons = mg_thymus_slice2_polygons
+)
 
 # The object now owns the polygon geometry. The plotting function uses it when
 # polygon is omitted, while getPolygons() provides the canonical table for
@@ -820,6 +844,54 @@ plotSpatialPolygons(
 )
 ```
 
+Because `addPolygons()` annotates both the receptor table and the spatial metadata, we can
+also immediately summarize the receptors in each polygon.
+
+# Working with polygons
+
+`polygonReceptorSummary()` returns
+an updated SIRAP object and saves the summary as an analysis. By default, this will return
+n_receptors, n_spatial_ids, n_clones and top_clone_fraction (if `clone` argument is specified). We can also specify a `spatial_id` (default is NULL which pulls from the SIRAP object),
+`polygon_id` (default `polygon`, but if that's not a column looks in the SIRAP object for
+polygons and uses "polygon_id"). Also takes `weight` (default NULL) which if specified will
+weight receptor rows in all analysis by the column (note that this can lead to weirdness for
+things like cat operations),
+
+We can do additional summary operations with `summary_columns` (default NULL) which is a vector
+of columns to also summarize, `summary_operations` (default NULL) which is a vector of
+operations to perform on the summary columns (options are `count`, `sum`, `mean`, `median`,
+`variance`, `var`, `sd`, `min`, `max`, `any`, `all`, and `cat`), and `analysis_name` (default
+"polygon_receptor_summary") which is the name of the analysis to store in the SIRAP object.
+The output columns from custom summaries are named as `[operation]_[column]`, so `cat_locus`
+contains the observed receptor loci in each polygon.
+
+```{r polygon-receptor-summary}
+mg_thymus_slice2_sirap <- polygonReceptorSummary(
+  mg_thymus_slice2_sirap,
+  clone = "clone_id", # this is the default
+  polygon_id = "polygon_id",
+  summary_columns = c("locus", "junction_length"),
+  summary_operations = c("cat", "mean")
+)
+
+getAnalysis(mg_thymus_slice2_sirap, "polygon_receptor_summary")
+```
+
+If we want to run something more custom, `withPolygons()` splits the receptor table by polygon
+and applies a function to each polygon's rows. For instance, if I wanted to do baseline to get
+selection pressure for sequences in each polygon, this is how we could do it. That's too much
+so we don't do it here.
+
+```{r with-polygons-example}
+withPolygons(
+  mg_thymus_slice2_sirap,
+  function(receptors) {
+    receptors %>%
+      count(locus, name = "n_receptors")
+  }
+)
+```
+
 I recently added support for more complex polygons, including overlapping or nested
 polygons. We do more selection below using `selectSpatialPolygons()` on a weird polygon setup.
 When we add polygons to a SIRAP object, we now add more information. There's a simplified
@@ -828,6 +900,9 @@ barcode is inside more than one polygon, it is assigned to the smallest matching
 area for the `polygon_id`. Then, we have boolean columns for each individual polygon
 `polygon_<polygon_ID>` to keep the full membership information, so
 nested or overlapping regions can be recombined later if we want a different primary label.
+The polygon analyses use the single `polygon_id` column, not the boolean membership columns;
+if we want analyses to use a different overlap rule, we can make a new `polygon_id` column
+from those flags first.
 
 ```{r load-or-select-complex-polygons}
 if (file.exists(complex_polygon_path)) {
@@ -841,7 +916,7 @@ if (file.exists(complex_polygon_path)) {
     object = mg_thymus_slice2_sirap,
     assay = "alra",
     layer = "data",
-    feature = "CD3E",
+    feature = NA, #default is NA, doesn't show gex
     save_path = complex_polygon_path,
     host = "0.0.0.0",
     port = 8789L,
@@ -866,7 +941,39 @@ plotSpatialPolygons(
 )
 ```
 
-See the polygons I selected here: ![overlapping polygons](~/Desktop/polygons_overlapping.png)
+
+## Clonal abundance and diversity within polygons
+
+For clonal abundance and diversity, we can also estimate curves separately for each polygon using `polygonAbundance()` and `polygonDiversity()` which are wrappers for `alakazam` functions `estimateAbundance()` and `alphaDiversity()`. Arguments to both are the SIRAP object or airr table `receptors`, `polygons` (default NULL, which pulls from the SIRAP object), `polygon_id` (default "polygon"), `mode` (by_polygon or all_polygons) which determines whether to do this by polygons separately or using all receptors in any polygon, and `analysis_name` (default polygon_abundance) which sets the name of the analysis to save. Other arguments are directly from the `alakazam` functions.
+Polygons below the requested `min_n` threshold return `NULL`. Once the diversity curves are
+stored, `summarizePolygonDiversity()` pulls out a single `q` value into a polygon-level table,
+which is handy if we want to map something like Simpson diversity (`q = 2`) back onto polygons.
+
+`plotSpatialPolygons()`, which we saw earlier just show where the polygons were, can also
+color the stored GC polygons by a column in a
+stored analysis. Numeric columns use `scale_fill_gradient()` with the default
+`analysis_fill = c("#D3D3D3", "#FFFF00")`; the two colors can be changed when
+the metric needs a different range. Categorical columns use the Glasbey palette. Polygons
+without a matching summary value are shown in grey. `polygon_fill` and `polygon_color` control
+the solid fill and outline when no analysis column is supplied.
+
+```{r polygon-diversity-curves, eval=FALSE}
+mg_thymus_slice2_sirap <- mg_thymus_slice2_sirap %>%
+  polygonAbundance(min_n = 5) %>%
+  polygonDiversity(min_n = 5, max_q = 3, step_q = 0.1) %>%
+  summarizePolygonDiversity(q = 2, analysis_name = "polygon_simpson_diversity")
+
+getAnalysis(mg_thymus_slice2_sirap, "polygon_simpson_diversity")
+
+plotSpatialPolygons(
+  object = mg_thymus_slice2_sirap,
+  fill_analysis = "polygon_simpson_diversity",
+  fill_column = "d",
+  polygon_alpha = 1,
+  polygon_color = "white",
+  label = TRUE
+) + labs(title = "Polygon-level Simpson diversity (q=2)")
+```
 
 # Clonal dominance
 
@@ -881,17 +988,16 @@ polygon vertices, and metadata needed for downstream plotting functions.
 We pass the function a SIRAP object in `object`. We can pass polygons to `polygon` if we're
 using a spatial Seurat object or we haven't added polygons to the SIRAP object, but we don't
 need to if we've run `addPolygons()`. If we only want to use particular polygons, we can pass
-those IDs to `polygon_val`. `barcode`, `clone`, `locus`, `count`, and
+those IDs to `polygon_val`, `clone`, `locus`, `count`, and
 `v_call` are all arguments to point to those columns in the spAIRR data. If `count` is
 NULL (which it is by default), each receptor row counts once. `locus` restricts the analysis to
 specific receptor loci, and `exclude_singletons` removes singleton clones. `images` can
 restrict which spatial image is used, while `image_scale` and `swap_coords` can be specified
 but are automatically pulled from the SIRAP object metadata here. `include_boundary`
-(TRUE/FALSE - default TRUE) determines whether or not we count
-sequences on a polygon bounadry as inside or outside and `require_closed` (TRUE/FALSE - default
-TRUE) determines whether or not we require the polygon to be closed (i.e., first and last
-vertex are the same). The same result can also be stored in the SIRAP object's
-`analyses` slot.
+is set when we add polygons to the SIRAP object with `addPolygons()` and determines whether
+spots exactly on polygon boundaries are treated as inside or outside. If a polygon is not
+already closed, SIRAP closes it automatically by repeating the first vertex. The same result can
+also be stored in the SIRAP object's `analyses` slot.
 
 The clonal dominance object is a list with a few different pieces:
 
@@ -938,66 +1044,6 @@ getAnalysis(mg_thymus_slice2_sirap, "gc_clonal_dominance")$dominance %>%
 str(gc_clonal_dominance)
 ```
 
-# Store and plot polygon-level summary metrics
-
-We can store results calculated using the polygons
-lives in the `analyses` slot. We count the number of sequences, spatial barcodes, clones, and
-get the largest clone fraction below and stick it in analysis so we can plot it.
-
-```{r polygon-level-summary}
-gc_polygon_summary <- getAnalysis(
-  mg_thymus_slice2_sirap,
-  "gc_clonal_dominance"
-)$dominance %>%
-  group_by(polygon) %>%
-  summarise(
-    n_bcr_sequences = first(region_receptor_total),
-    n_region_spatial_ids = first(n_region_spatial_ids),
-    n_clones = n(),
-    top_clone_fraction = max(proportion),
-    .groups = "drop"
-  ) %>%
-  mutate(
-    bcr_sequences_per_barcode = n_bcr_sequences / n_region_spatial_ids
-  )
-
-mg_thymus_slice2_sirap <- setAnalysis(
-  mg_thymus_slice2_sirap,
-  "gc_polygon_summary",
-  gc_polygon_summary
-)
-
-getAnalysis(mg_thymus_slice2_sirap, "gc_polygon_summary")
-```
-
-`plotSpatialPolygons()`, which we saw earlier just show where the polygons were, can also
-color the stored GC polygons by a column in a
-stored analysis. Numeric columns use `scale_fill_gradient()` with the default
-`analysis_fill = c("#D3D3D3", "#FFFF00")`; the two colors can be changed when
-the metric needs a different range. Categorical columns use the Glasbey palette. Polygons
-without a matching summary value are shown in grey. `polygon_fill` and `polygon_color` control
-the solid fill and outline when no analysis column is supplied.
-
-```{r polygon-level-summary-plot}
-plotSpatialPolygons(
-  object = mg_thymus_slice2_sirap,
-  fill_analysis = "gc_polygon_summary",
-  fill_column = "n_clones",
-  polygon_alpha = 1,
-  polygon_color = "white",
-  label = TRUE
-)
-
-plotSpatialPolygons(
-  object = mg_thymus_slice2_sirap,
-  fill_analysis = "gc_polygon_summary",
-  fill_column = "bcr_sequences_per_barcode",
-  analysis_fill = c("white", "#B2182B"),
-  polygon_alpha = 1,
-  polygon_color = "white",
-  label = TRUE
-)
-```
 
 We can then plot the receptor-level dominance results. The receptor-point and pie functions
 below require the dominance result (`dominance`) and the SIRAP object (`object`).
@@ -1089,44 +1135,57 @@ plotSpatialCloneDensity3D(
 
 # Build and plot trees
 
-We'll grab some of the dominant clones from the above plot and build trees for them.
+We'll grab some of the dominant clones from the above plot and build trees for them. Tree
+building needs germline sequences first, so the SIRAP workflow is to add germlines to the
+receptor table by using `updateReceptors()` to call dowser's `createGermlines()`, make formatted clones with
+with `formatSpatialClones()` (arguments are `object` for the SIRAP object and `analysis_name`
+for the name of the analysis to save the formatted clones under, everything else is just the
+arguments from formatClones), and then build trees with `getSpatialTrees()` (arguments are
+`object` for the SIRAP object, `f_clones_analysis` for the analysis slot with the formatted
+clones, and  `analysis_name` for the name of the analysis to save the formatted clones under,
+everything else is just the arguments from getTrees.
+
+Here I use a temporary SIRAP object called `tree_sirap` so that we only build trees for the
+few clones we want to show in the walkthrough. Then I stick those trees in the main SIRAP
+object.
 
 ```{r build-trees}
 tree_clone_ids <- c("249", "295", "472")
 
 tree_path <- file.path(walkthrough_dir, "mg_thymus_slice2_bcr_trees.rds")
 
-if (!file.exists(tree_path)) {
-  imgt_refs <- dowser::readIMGT(
-    file.path(hunter_dir, "germlines/imgt/human/vdj")
-  )
+tree_sirap <- updateReceptors(
+  mg_thymus_slice2_sirap,
+  dplyr::filter,
+  clone_id %in% tree_clone_ids
+)
 
-  tree_input <- mg_thymus_slice2_sirap$receptors %>%
-    filter(clone_id %in% tree_clone_ids)
+refs <- readIMGT(dir = "/Volumes/HoehnK/Hunter/germlines/imgt/human/vdj")
+tree_sirap <- updateReceptors(
+  tree_sirap,
+  dowser::createGermlines,
+  references = refs,
+  id = "sequence_id"
+)
 
-  tree_input <- dowser::createGermlines(
-    tree_input,
-    imgt_refs,
-    id = "sequence_id"
-  )
+tree_sirap <- formatSpatialClones(
+  tree_sirap,
+  analysis_name = "f_clones",
+  id = "sequence_id",
+  germ = "germline_alignment",
+  traits = "barcode_10x"
+)
 
-  f_clones <- dowser::formatClones(
-    tree_input,
-    id = "sequence_id",
-    germ = "germline_alignment",
-    traits = "barcode_10x"
-  )
+tree_sirap <- getSpatialTrees(
+  tree_sirap,
+  f_clones_analysis = "f_clones",
+  analysis_name = "trees",
+  nproc = 1
+)
 
-  bcr_trees <- dowser::getTrees(
-    f_clones,
-    nproc = 1
-  )
+bcr_trees <- getAnalysis(tree_sirap, "trees")
 
-  saveRDS(bcr_trees, tree_path)
-} else {
-  bcr_trees <- readRDS(tree_path)
-}
-
+# Then add to original sirap object so we're not carrying forward the tiny one
 mg_thymus_slice2_sirap <- setAnalysis(
   mg_thymus_slice2_sirap,
   "trees",
@@ -1143,7 +1202,9 @@ assigns individual colors to each distinct tip), draws the lineage tree with ggt
 and then plots the colored tips onto the tissue image as a scatter plot. The output is a named
 list by clone ID; each clone contains a tree plot and a spatial_clone plot. Tips that exist in
 the tree but do not have matching spatial IDs can still appear in the tree panel, but only
-spatially matched tips appear on the tissue plot.
+spatially matched tips appear on the tissue plot. By default, tree tips with spatial data are
+circles and tips without spatial data are squares, which makes it easier to see how much of a
+tree is actually represented on the tissue.
 
 The arguments are `trees` which is just dowser `getTrees` output, `object` which is a SIRAP
 object or spatial Seurat object (if a SIRAP object isn't provided then provide `barcode`.

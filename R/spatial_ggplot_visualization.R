@@ -216,13 +216,17 @@ spatialDiscretePlot <- function(object,
 #' @param object Seurat object with spatial images, or a SIRAP object.
 #' @param features Two feature names.
 #' @param combine Combine plots with patchwork.
-#' @param feature_1_alt_name,feature_2_alt_name Optional axis labels for the
+#' @param feature_1_alt_name Optional axis label for the first feature in the
+#'   blend legend.
+#' @param feature_2_alt_name Optional axis label for the second feature in the
 #'   blend legend.
 #' @param assay Optional assay to set before plotting.
 #' @param layer Seurat expression layer to fetch.
 #' @param only_blended Return only the blended spatial panel and legend.
-#' @param bottom_left,bottom_right,top_left,top_right Corner colors for the
-#'   two-feature blend grid.
+#' @param bottom_left Bottom-left corner color for the two-feature blend grid.
+#' @param bottom_right Bottom-right corner color for the two-feature blend grid.
+#' @param top_left Top-left corner color for the two-feature blend grid.
+#' @param top_right Top-right corner color for the two-feature blend grid.
 #' @param zero_tol Values at or below this threshold are treated as zero.
 #' @param images Optional Seurat image names.
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
@@ -499,7 +503,9 @@ spatialExpressionMultiPlot <- function(object,
 #' @param title Optional plot title.
 #' @param order_points Plot lower expression values first so higher expression
 #'   appears on top. Receptor groups are drawn in `values` order.
-#' @param assay,layer,image_scale Additional plotting controls.
+#' @param assay Optional assay to set before plotting.
+#' @param layer Seurat expression layer to fetch.
+#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate axes.
 #' @param images Optional Seurat image names.
 #' @param image_alpha Tissue image opacity.
@@ -1081,9 +1087,19 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #' @param images Optional Seurat image names.
 #' @param zoom Zoom spatial plots to the clone. Defaults to `FALSE`, which
 #'   shows the full tissue area covered by spatial coordinates.
-#' @param tree_layout Layout passed to `ggtree::ggtree()`.
-#' @param tree_tip_size Size of tree tip points.
-#' @param treescale Mutational distance shown in the tree scale bar.
+#' @param layout Tree layout passed to `ggtree::ggtree()`.
+#' @param tipsize Size of tree tip points.
+#' @param scale Mutational distance shown in the tree scale bar.
+#' @param title Whether to title each tree panel with the clone ID. A character
+#'   value is used as the tree title directly.
+#' @param shape_by Column in dowser clone data used to assign tree tip shapes.
+#'   The default marks tips as `"spatial"` when they have a non-missing spatial
+#'   ID and `"not_spatial"` otherwise.
+#' @param shape_values Named shape vector passed to
+#'   [ggplot2::scale_shape_manual()].
+#' @param tree_layout Backward-compatible alias for `layout`.
+#' @param tree_tip_size Backward-compatible alias for `tipsize`.
+#' @param treescale Backward-compatible alias for `scale`.
 #' @param spatial_tip_size Size of spatial tip points.
 #' @param spatial_tip_alpha Opacity for spatial tip points.
 #' @param order_points Plot earlier spatial tip-color groups first so later
@@ -1106,9 +1122,15 @@ plotSpatialCloneTreePairs <- function(trees,
                                       swap_coords = NULL,
                                       images = NULL,
                                       zoom = FALSE,
-                                      tree_layout = "rectangular",
-                                      tree_tip_size = 2.5,
-                                      treescale = 0.01,
+                                      tipsize = NULL,
+                                      scale = 0.01,
+                                      layout = "rectangular",
+                                      title = TRUE,
+                                      shape_by = ".sirap_spatial_status",
+                                      shape_values = c(spatial = 16, not_spatial = 15),
+                                      tree_layout = NULL,
+                                      tree_tip_size = NULL,
+                                      treescale = NULL,
                                       spatial_tip_size = 1.6,
                                       spatial_tip_alpha = 1,
                                       order_points = FALSE,
@@ -1134,6 +1156,9 @@ plotSpatialCloneTreePairs <- function(trees,
   if (length(records) == 0L) {
     rlang::abort("No dowser trees matched the requested clone IDs.")
   }
+  layout <- tree_layout %||% layout
+  tipsize <- tree_tip_size %||% tipsize %||% 2.5
+  scale <- treescale %||% scale
 
   plot_one_clone <- function(clone_id) {
     record <- records[[clone_id]]
@@ -1151,6 +1176,12 @@ plotSpatialCloneTreePairs <- function(trees,
       .check_required_cols(tip_data, color_by, "dowser clone data")
       shared_color_col <- color_by
     }
+    if (identical(shape_by, ".sirap_spatial_status")) {
+      spatial_vals <- as.character(tip_data[[spatial_id]])
+      tip_data[[shape_by]] <- ifelse(!is.na(spatial_vals) & nzchar(spatial_vals), "spatial", "not_spatial")
+    } else if (!is.null(shape_by)) {
+      .check_required_cols(tip_data, shape_by, "dowser clone data")
+    }
     colored_tips <- assignTipColors(
       tip_data,
       clone_val = clone_id,
@@ -1161,16 +1192,25 @@ plotSpatialCloneTreePairs <- function(trees,
     )
     legend_info <- .sirap_spatial_tip_legend_info(colored_tips, color_by = color_by)
     colored_tips <- legend_info$tip_data
+    tree_title <- if (isTRUE(title)) {
+      paste("Clone", clone_id)
+    } else if (isFALSE(title) || is.null(title)) {
+      NULL
+    } else {
+      as.character(title)
+    }
 
     tree_plot <- .sirap_plot_colored_tree(
       tree,
       colored_tips,
       id_col = id,
       color_col = "tip_color",
-      title = paste("Clone", clone_id),
-      layout = tree_layout,
-      tip_size = tree_tip_size,
-      treescale = treescale,
+      title = tree_title,
+      layout = layout,
+      tip_size = tipsize,
+      treescale = scale,
+      shape_col = shape_by,
+      shape_values = shape_values,
       label_col = ".sirap_tip_legend_label",
       legend_title = "Tip cluster",
       legend_colors = legend_info$colors,
@@ -1227,7 +1267,8 @@ plotSpatialCloneTreePairs <- function(trees,
 #'
 #' @param pairs Output from `plotSpatialCloneTreePairs()`.
 #' @param path PDF path.
-#' @param width,height PDF page size in inches.
+#' @param width PDF page width in inches.
+#' @param height PDF page height in inches.
 #' @param rel_widths Relative widths for tree and spatial panels.
 #' @param nproc Number of processes used to render PDF pages. Parallel PDF
 #'   rendering requires the optional `qpdf` package to combine pages; otherwise
@@ -1491,6 +1532,8 @@ spatialCloneTreePairsToPDF <- function(pairs,
                                      layout,
                                      tip_size,
                                      treescale,
+                                     shape_col = NULL,
+                                     shape_values = NULL,
                                      label_col = NULL,
                                      legend_title = "Tip cluster",
                                      legend_colors = NULL,
@@ -1502,6 +1545,9 @@ spatialCloneTreePairsToPDF <- function(pairs,
   if (!is.null(label_col)) {
     join_cols <- c(join_cols, label_col)
   }
+  if (!is.null(shape_col)) {
+    join_cols <- c(join_cols, shape_col)
+  }
   join_data <- tip_data[, join_cols, drop = FALSE]
   join_data <- join_data[!duplicated(join_data[[id_col]]), , drop = FALSE]
   idx <- match(p$data$label, join_data[[id_col]])
@@ -1509,14 +1555,36 @@ spatialCloneTreePairsToPDF <- function(pairs,
   if (!is.null(label_col)) {
     p$data[[label_col]] <- factor(join_data[[label_col]][idx], levels = names(legend_colors))
   }
+  if (!is.null(shape_col)) {
+    p$data[[shape_col]] <- join_data[[shape_col]][idx]
+    if (!is.null(shape_values)) {
+      p$data[[shape_col]] <- factor(p$data[[shape_col]], levels = names(shape_values))
+    }
+  }
   color_aes_col <- if (is.null(label_col)) color_col else label_col
+  tip_aes <- if (is.null(shape_col)) {
+    ggplot2::aes(color = .data[[color_aes_col]])
+  } else {
+    ggplot2::aes(color = .data[[color_aes_col]], shape = .data[[shape_col]])
+  }
 
-  p <- p +
+  tip_layer <- if (is.null(shape_col)) {
     ggtree::geom_tippoint(
-      ggplot2::aes(color = .data[[color_aes_col]]),
+      tip_aes,
+      size = tip_size,
+      shape = 16,
+      na.rm = TRUE
+    )
+  } else {
+    ggtree::geom_tippoint(
+      tip_aes,
       size = tip_size,
       na.rm = TRUE
-    ) +
+    )
+  }
+
+  p <- p +
+    tip_layer +
     ggtree::geom_treescale(width = treescale) +
     ggplot2::ggtitle(title)
 
@@ -1538,6 +1606,9 @@ spatialCloneTreePairsToPDF <- function(pairs,
           override.aes = list(size = tip_size)
         )
       )
+  }
+  if (!is.null(shape_col) && !is.null(shape_values)) {
+    p <- p + ggplot2::scale_shape_manual(values = shape_values, drop = FALSE)
   }
 
   p +

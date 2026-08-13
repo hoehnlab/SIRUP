@@ -18,6 +18,7 @@ createSIRAP(
   metadata = list(),
   polygons = NULL,
   polygons_path = NULL,
+  include_boundary = TRUE,
   analyses = list(),
   validate = TRUE
 )
@@ -67,6 +68,9 @@ membership columns for each individual polygon.}
 \code{polygon_id} or \code{polygon} for the polygon identifier and must contain \code{x}
 and \code{y} coordinate columns. Stored polygons from this path receive the same
 automatic annotation as \code{polygons}.}
+
+\item{include_boundary}{Whether spots exactly on stored polygon edges should
+be annotated as polygon members when polygons are attached.}
 
 \item{analyses}{Optional named list of derived analysis results.}
 

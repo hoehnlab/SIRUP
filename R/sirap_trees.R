@@ -173,7 +173,9 @@ clusterTreeTips <- function(tree,
 #'   distance falls below this value.
 #' @param ignore_tips Optional tip labels to drop before scoring, for example
 #'   `"Germline"`.
-#' @param method,cut_terminal_edges Arguments passed to `clusterTreeTips()`.
+#' @param method Tree clustering method passed to `clusterTreeTips()`.
+#' @param cut_terminal_edges Cut terminal branches when choosing branches to
+#'   remove, passed to `clusterTreeTips()`.
 #' @return List with selected `k` and a candidate score data frame.
 #' @export
 chooseTreeTipK <- function(tree,
@@ -257,8 +259,10 @@ chooseTreeTipK <- function(tree,
 #' @param cut_terminal_edges Cut terminal branches when choosing branches to
 #'   remove. Defaults to `FALSE`, which prioritizes internal clade splits; set
 #'   to `TRUE` to allow terminal tips to be peeled off by branch cuts.
-#' @param k_range,improvement_threshold Arguments passed to `chooseTreeTipK()`
-#'   when `k = "auto"`.
+#' @param k_range Candidate k values passed to `chooseTreeTipK()` when
+#'   `k = "auto"`.
+#' @param improvement_threshold Relative improvement threshold passed to
+#'   `chooseTreeTipK()` when `k = "auto"`.
 #' @return `trees`, with `cluster` added to each clone data object.
 #' @export
 clusterTreesTips <- function(trees,
@@ -382,6 +386,240 @@ clusterTreesTips <- function(trees,
   out
 }
 
+#' Format SIRAP receptors as dowser clones
+#'
+#' Runs [dowser::formatClones()] on the SIRAP receptor table and stores the
+#' result as a named analysis. The default germline column follows dowser's
+#' default; if it is missing, add germlines to the receptor table first with
+#' `updateReceptors()` and [dowser::createGermlines()].
+#'
+#' @param object A SIRAP object.
+#' @param analysis_name Name used to store the formatted clone analysis.
+#' @param seq dowser: name of the column containing observed DNA sequences. All
+#'   sequences in this column must be multiple aligned.
+#' @param clone dowser: name of the column containing the identifier for the
+#'   clone. All entries in this column should be identical.
+#' @param subgroup dowser: name of the column containing the identifier for the
+#'   subgroup.
+#' @param id dowser: name of the column containing sequence identifiers.
+#' @param germ dowser: name of the column containing germline DNA sequences.
+#'   All entries in this column should be identical for any given clone, and
+#'   they must be multiple aligned with the data in the seq column.
+#' @param v_call dowser: name of the column containing V-segment allele
+#'   assignments. All entries in this column should be identical to the gene
+#'   level.
+#' @param j_call dowser: name of the column containing J-segment allele
+#'   assignments. All entries in this column should be identical to the gene
+#'   level.
+#' @param junc_len dowser: name of the column containing the length of the
+#'   junction as a numeric value. All entries in this column should be identical
+#'   for any given clone.
+#' @param mask_char dowser: character to use for masking and padding.
+#' @param max_mask dowser: maximum number of characters to mask at the leading
+#'   and trailing sequence ends. If NULL then the upper masking bound will be
+#'   automatically determined from the maximum number of observed leading or
+#'   trailing Ns amongst all sequences. If set to 0 (default) then masking will
+#'   not be performed.
+#' @param pad_end dowser: if TRUE pad the end of each sequence with mask_char to
+#'   make every sequence the same length.
+#' @param text_fields dowser: text annotation columns to retain and merge during
+#'   duplicate removal.
+#' @param num_fields dowser: numeric annotation columns to retain and sum during
+#'   duplicate removal.
+#' @param seq_fields dowser: sequence annotation columns to retain and collapse
+#'   during duplicate removal. Note, this is distinct from the seq and germ
+#'   arguments, which contain the primary sequence data for the clone and should
+#'   not be repeated in this argument.
+#' @param add_count dowser: if TRUE add an additional annotation column called
+#'   COLLAPSE_COUNT during duplicate removal that indicates the number of
+#'   sequences that were collapsed.
+#' @param verbose dowser: passed on to collapseDuplicates. If TRUE, report the
+#'   numbers of input, discarded and output sequences; otherwise, process
+#'   sequences silently.
+#' @param collapse dowser: collapse identical sequences?
+#' @param cell dowser: name of the column containing cell assignment information
+#' @param locus dowser: name of the column containing locus information
+#' @param traits dowser: column ids to keep distinct during sequence collapse
+#' @param mod3 dowser: pad sequences to length multiple three?
+#' @param randomize dowser: randomize sequence order? Important if using PHYLIP
+#' @param use_regions dowser: assign CDR/FWR regions?
+#' @param dup_singles dowser: Duplicate sequences in singleton clones to include
+#'   them as trees?
+#' @param nproc dowser: number of cores to parallelize formatting over.
+#' @param chain dowser: if HL, include light chain information if available.
+#' @param heavy dowser: name of heavy chain locus (default = "IGH")
+#' @param filterstop dowser: only use sequences that do not contain an in-frame
+#'   stop codon
+#' @param minseq dowser: minimum number of sequences per clone
+#' @param split_light dowser: split or lump subgroups? See resolveLightChains.
+#' @param light_traits dowser: Include the traits from the light chain when
+#'   concatenating and collapsing trees?
+#' @param majoronly dowser: only return largest subgroup and sequences without
+#'   light chains
+#' @param columns dowser: additional data columns to include in output
+#' @param validate Whether to validate the updated SIRAP object.
+#' @return An updated SIRAP object with the formatted clones stored as an analysis.
+#' @export
+formatSpatialClones <- function(object,
+                                analysis_name = "f_clones",
+                                seq = "sequence_alignment",
+                                clone = "clone_id",
+                                subgroup = "clone_subgroup",
+                                id = "sequence_id",
+                                germ = "germline_alignment_d_mask",
+                                v_call = "v_call",
+                                j_call = "j_call",
+                                junc_len = "junction_length",
+                                mask_char = "N",
+                                max_mask = 0,
+                                pad_end = TRUE,
+                                text_fields = NULL,
+                                num_fields = NULL,
+                                seq_fields = NULL,
+                                add_count = TRUE,
+                                verbose = FALSE,
+                                collapse = TRUE,
+                                cell = "cell_id",
+                                locus = "locus",
+                                traits = NULL,
+                                mod3 = TRUE,
+                                randomize = TRUE,
+                                use_regions = TRUE,
+                                dup_singles = FALSE,
+                                nproc = 1,
+                                chain = "H",
+                                heavy = "IGH",
+                                filterstop = TRUE,
+                                minseq = 2,
+                                split_light = FALSE,
+                                light_traits = FALSE,
+                                majoronly = FALSE,
+                                columns = NULL,
+                                validate = TRUE) {
+  .require_namespace("dowser")
+  validateSIRAP(object)
+  receptors <- getReceptors(object)
+  if (!germ %in% colnames(receptors)) {
+    rlang::abort(paste0(
+      "The receptor table does not contain `", germ,
+      "`. Run `updateReceptors()` on this SIRAP object with ",
+      "`dowser::createGermlines()` before `formatSpatialClones()`."
+    ))
+  }
+  f_clones <- dowser::formatClones(
+    data = receptors,
+    seq = seq,
+    clone = clone,
+    subgroup = subgroup,
+    id = id,
+    germ = germ,
+    v_call = v_call,
+    j_call = j_call,
+    junc_len = junc_len,
+    mask_char = mask_char,
+    max_mask = max_mask,
+    pad_end = pad_end,
+    text_fields = text_fields,
+    num_fields = num_fields,
+    seq_fields = seq_fields,
+    add_count = add_count,
+    verbose = verbose,
+    collapse = collapse,
+    cell = cell,
+    locus = locus,
+    traits = traits,
+    mod3 = mod3,
+    randomize = randomize,
+    use_regions = use_regions,
+    dup_singles = dup_singles,
+    nproc = nproc,
+    chain = chain,
+    heavy = heavy,
+    filterstop = filterstop,
+    minseq = minseq,
+    split_light = split_light,
+    light_traits = light_traits,
+    majoronly = majoronly,
+    columns = columns
+  )
+  setAnalysis(object, analysis_name, f_clones, validate = validate)
+}
+
+#' Infer dowser trees from formatted SIRAP clone analyses
+#'
+#' Runs [dowser::getTrees()] on a stored formatted-clone analysis and stores the
+#' resulting trees as another SIRAP analysis.
+#'
+#' @param object A SIRAP object.
+#' @param f_clones_analysis Name of the stored formatted-clone analysis.
+#' @param analysis_name Name used to store the tree analysis.
+#' @param trait dowser: trait to use for parsimony models (required if igphyml
+#'   specified)
+#' @param id dowser: unique identifier for this analysis (required if igphyml or
+#'   dnapars specified)
+#' @param dir dowser: directory where temporary files will be placed.
+#' @param modelfile dowser: file specifying parsimony model to use
+#' @param build dowser: program to use for tree building (pratchet, pml,
+#'   dnapars, dnaml, igphyml, raxml)
+#' @param exec dowser: location of desired phylogenetic executable
+#' @param igphyml dowser: optional location of igphyml executable for parsimony
+#' @param fixtrees dowser: if TRUE, use supplied tree topologies
+#' @param nproc dowser: number of cores to parallelize computations
+#' @param quiet dowser: amount of rubbish to print to console
+#' @param rm_temp dowser: remove temporary files (default=TRUE)
+#' @param palette dowser: deprecated
+#' @param seq dowser: column name containing sequence information
+#' @param collapse dowser: Collapse internal nodes with identical sequences?
+#' @param check_divergence dowser: run checkDivergence on trees?
+#' @param ... dowser: Additional arguments passed to tree building programs
+#' @param validate Whether to validate the updated SIRAP object.
+#' @return An updated SIRAP object with dowser trees stored as an analysis.
+#' @export
+getSpatialTrees <- function(object,
+                            f_clones_analysis = "f_clones",
+                            analysis_name = "trees",
+                            trait = NULL,
+                            id = NULL,
+                            dir = NULL,
+                            modelfile = NULL,
+                            build = "pratchet",
+                            exec = NULL,
+                            igphyml = NULL,
+                            fixtrees = FALSE,
+                            nproc = 1,
+                            quiet = 0,
+                            rm_temp = TRUE,
+                            palette = NULL,
+                            seq = NULL,
+                            collapse = FALSE,
+                            check_divergence = TRUE,
+                            ...,
+                            validate = TRUE) {
+  .require_namespace("dowser")
+  validateSIRAP(object)
+  clones <- getAnalysis(object, f_clones_analysis)
+  trees <- dowser::getTrees(
+    clones = clones,
+    trait = trait,
+    id = id,
+    dir = dir,
+    modelfile = modelfile,
+    build = build,
+    exec = exec,
+    igphyml = igphyml,
+    fixtrees = fixtrees,
+    nproc = nproc,
+    quiet = quiet,
+    rm_temp = rm_temp,
+    palette = palette,
+    seq = seq,
+    collapse = collapse,
+    check_divergence = check_divergence,
+    ...
+  )
+  setAnalysis(object, analysis_name, trees, validate = validate)
+}
+
 #' Assign stable colors within selected clones
 #'
 #' Adds a per-tip color identifier and color value that can be used consistently
@@ -389,7 +627,8 @@ clusterTreesTips <- function(trees,
 #'
 #' @param clones Clone-assigned AIRR data frame.
 #' @param clone_val Optional clone IDs to retain before assigning colors.
-#' @param clone,id Column names for clone and sequence/tip identifiers.
+#' @param clone Column name for clone identifiers.
+#' @param id Column name for sequence/tip identifiers.
 #' @param shared_color Optional column whose shared values should receive
 #'   the same tip color within each clone, for example a spatial ID column.
 #' @param palette Optional color vector. Defaults to `pals::glasbey()` when
