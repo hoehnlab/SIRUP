@@ -8,7 +8,13 @@
 \usage{
 getPolygons(x)
 
-addPolygons(x, polygons = NULL, polygons_path = NULL, validate = TRUE)
+addPolygons(
+  x,
+  polygons = NULL,
+  polygons_path = NULL,
+  include_boundary = TRUE,
+  validate = TRUE
+)
 }
 \arguments{
 \item{x}{A SIRAP object.}
@@ -16,6 +22,9 @@ addPolygons(x, polygons = NULL, polygons_path = NULL, validate = TRUE)
 \item{polygons}{Optional polygon table.}
 
 \item{polygons_path}{Optional path to a flat polygon vertex CSV.}
+
+\item{include_boundary}{Whether spots exactly on polygon edges should be
+annotated as polygon members.}
 
 \item{validate}{Whether to validate the updated object.}
 }

@@ -21,7 +21,9 @@ spatialRipleyCrossK(
 
 \item{mark_col}{Metadata column containing point types.}
 
-\item{i, j}{Mark levels to compare.}
+\item{i}{First mark level to compare.}
+
+\item{j}{Second mark level to compare.}
 
 \item{nsim}{Number of random-label simulations for an envelope. Use \code{0} for
 observed K only.}

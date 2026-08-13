@@ -308,9 +308,12 @@ radPrep <- function(layout,
 #' @param bc_split Logical; split reads into per-barcode FASTQs (see note in
 #'   the rad README about `rad reformat --split-bc` being the current way).
 #' @param threads Number of threads.
-#' @param verbose,max_verbose Verbosity controls.
+#' @param verbose Logical; verbose logging.
+#' @param max_verbose Logical; maximum verbose logging.
 #' @param ... Additional raw CLI tokens.
-#' @param capture,rad See [radPrep()].
+#' @param capture Logical; capture stdout/stderr in the returned result instead
+#'   of streaming to the R console.
+#' @param rad Path to the rad binary. Defaults to [radPath()].
 #' @return Invisible list with `status`, `stdout`, `stderr`, `command`.
 #' @export
 radDemux <- function(layout,
@@ -381,7 +384,9 @@ radDemux <- function(layout,
 #' @param threads Number of worker threads. rad default 2.
 #' @param verbose Logical; verbose logging.
 #' @param ... Additional raw CLI tokens.
-#' @param capture,rad See [radPrep()].
+#' @param capture Logical; capture stdout/stderr in the returned result instead
+#'   of streaming to the R console.
+#' @param rad Path to the rad binary. Defaults to [radPath()].
 #' @return Invisible list with `status`, `stdout`, `stderr`, `command`.
 #' @export
 radReformat <- function(fastq,
@@ -429,8 +434,10 @@ radReformat <- function(fastq,
 #' @param layouts Logical; list read-layout keys and resolved paths.
 #' @param whitelists Logical; list whitelist kit keys and resolved paths.
 #' @param ... Additional raw CLI tokens.
-#' @param capture,rad See [radPrep()]. Defaults to `capture = TRUE` because
-#'   the output is structured table-like text most callers want to keep.
+#' @param capture Logical; capture stdout/stderr in the returned result instead
+#'   of streaming to the R console. Defaults to `TRUE` because the output is
+#'   structured table-like text most callers want to keep.
+#' @param rad Path to the rad binary. Defaults to [radPath()].
 #' @return Invisible list with `status`, `stdout` (the listing), `stderr`,
 #'   `command`.
 #' @export
@@ -461,7 +468,9 @@ radList <- function(layouts = FALSE,
 #'   `remove`.
 #' @param remove Logical; remove the mapping. Mutually exclusive with `add`.
 #' @param ... Additional raw CLI tokens.
-#' @param capture,rad See [radPrep()].
+#' @param capture Logical; capture stdout/stderr in the returned result instead
+#'   of streaming to the R console.
+#' @param rad Path to the rad binary. Defaults to [radPath()].
 #' @return Invisible list with `status`, `stdout`, `stderr`, `command`.
 #' @export
 radModify <- function(layout_key = NULL,
@@ -498,20 +507,24 @@ radModify <- function(layout_key = NULL,
 #' @param batch_csv CSV with two columns: FASTQ path, output prefix.
 #' @param output_prefix Output prefix for generated `.txt` and `.csv` files.
 #' @param barcode_length Bases to extract.
-#' @param left_margin,right_margin Extra bases on each side.
+#' @param left_margin Extra bases on the left side.
+#' @param right_margin Extra bases on the right side.
 #' @param max_reads Max reads to process. `NULL` = all.
 #' @param max_error Maximum edit-distance ratio. rad default 0.1.
 #' @param whitelist Optional whitelist kit key or path.
 #' @param threads Threads. rad default auto.
 #' @param chunk_size rad default 10000.
-#' @param bc1_whitelist,bc2_whitelist Two-part-barcode mode (BC1+BC2).
+#' @param bc1_whitelist BC1 whitelist for two-part-barcode mode (BC1+BC2).
 #'   Setting `bc1_whitelist` activates this mode.
+#' @param bc2_whitelist BC2 whitelist for two-part-barcode mode (BC1+BC2).
 #' @param umi_length UMI length between primer and BC1. rad default 9.
-#' @param offset_min,offset_max Min/max extra bases after UMI for BC1
-#'   search. rad defaults 0 and 3.
+#' @param offset_min Minimum extra bases after UMI for BC1 search. rad default 0.
+#' @param offset_max Maximum extra bases after UMI for BC1 search. rad default 3.
 #' @param verbose Logical; verbose logging.
 #' @param ... Additional raw CLI tokens.
-#' @param capture,rad See [radPrep()].
+#' @param capture Logical; capture stdout/stderr in the returned result instead
+#'   of streaming to the R console.
+#' @param rad Path to the rad binary. Defaults to [radPath()].
 #' @return Invisible list with `status`, `stdout`, `stderr`, `command`.
 #' @export
 radScanWl <- function(adapter_seq,
@@ -638,8 +651,9 @@ radHelp <- function(topic = NULL, rad = radPath()) {
 #' @param reformat_fastq Path to the FASTQ fed to reformat. Defaults
 #'   to `<out_dir>/<output>.fq.gz` (what rad demux writes). Override
 #'   only if rad wrote it elsewhere.
-#' @param verbose,max_verbose Verbosity controls, forwarded to all
-#'   three steps.
+#' @param verbose Logical; verbose logging, forwarded to all three steps.
+#' @param max_verbose Logical; maximum verbose logging, forwarded to all three
+#'   steps.
 #' @param ... Additional named args forwarded to [radDemux()].
 #' @param capture Logical; capture stdout/stderr from each step into
 #'   the returned result instead of streaming to the R console.

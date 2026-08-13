@@ -40,11 +40,17 @@ it unless explicitly overridden.}
 \verb{<spaceranger_dir>/square_002um/spatial/tissue_positions.parquet}
 (falling back to \code{.csv} / \code{.csv.gz} if the parquet is missing).}
 
-\item{sr_filtered_2um, sr_filtered_8um, sr_filtered_16um}{Paths to
-Space Ranger filtered barcodes (\code{barcodes.tsv.gz}) at each
-resolution. If \code{NULL} and \code{spaceranger_dir} is set, inferred from
-that root. A path that doesn't exist is treated as an empty
-filtered set (all flags zero at that resolution).}
+\item{sr_filtered_2um}{Path to Space Ranger filtered 2um barcodes
+(\code{barcodes.tsv.gz}). If \code{NULL} and \code{spaceranger_dir} is set, inferred from
+that root. A path that doesn't exist is treated as an empty filtered set.}
+
+\item{sr_filtered_8um}{Path to Space Ranger filtered 8um barcodes
+(\code{barcodes.tsv.gz}). If \code{NULL} and \code{spaceranger_dir} is set, inferred from
+that root. A path that doesn't exist is treated as an empty filtered set.}
+
+\item{sr_filtered_16um}{Path to Space Ranger filtered 16um barcodes
+(\code{barcodes.tsv.gz}). If \code{NULL} and \code{spaceranger_dir} is set, inferred from
+that root. A path that doesn't exist is treated as an empty filtered set.}
 
 \item{out_csv}{Output CSV path. Gzipped when the path ends in \code{.gz}.
 \code{NULL} (default) only returns the result.}

@@ -195,3 +195,15 @@ This means clone calling or germline creation can be run directly against the
 stored receptor table, for example
 `updateReceptors(sirap, scoper::hierarchicalClones, ...)`. A conventional
 `clone_id` column added by the function is recorded automatically.
+
+## Save and load a SIRAP object
+
+`saveSIRAP()` writes a validated object to a single RDS file and `readSIRAP()`
+reads it back. Unlike a bare `saveRDS()`/`readRDS()`, this pair validates on
+write, records the SIRAP and Seurat versions used, upgrades older objects to the
+current schema, warns on version drift, and re-validates on read.
+
+```r
+saveSIRAP(sirap, "m1.sirap.rds")
+sirap <- readSIRAP("m1.sirap.rds")
+```

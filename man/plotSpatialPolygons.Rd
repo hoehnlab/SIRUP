@@ -27,7 +27,6 @@ plotSpatialPolygons(
   label_size = 3,
   label_color = "black",
   zoom = FALSE,
-  require_closed = TRUE,
   combine = TRUE
 )
 }
@@ -50,7 +49,9 @@ value must be supplied explicitly or by SIRAP object metadata.}
 \item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
 exists.}
 
-\item{x, y}{Coordinate columns in \code{polygon}.}
+\item{x}{Coordinate column in \code{polygon}.}
+
+\item{y}{Coordinate column in \code{polygon}.}
 
 \item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
 
@@ -85,9 +86,6 @@ palette.}
 \item{label_color}{Text color for polygon labels.}
 
 \item{zoom}{Zoom to the polygon extents instead of the full tissue.}
-
-\item{require_closed}{Require the final polygon vertex to equal the first.
-Set to \code{FALSE} to close open polygons automatically.}
 
 \item{combine}{Combine plots with patchwork when possible.}
 }

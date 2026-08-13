@@ -35,7 +35,10 @@ spatialExpressionBlendPlot(
 
 \item{combine}{Combine plots with patchwork.}
 
-\item{feature_1_alt_name, feature_2_alt_name}{Optional axis labels for the
+\item{feature_1_alt_name}{Optional axis label for the first feature in the
+blend legend.}
+
+\item{feature_2_alt_name}{Optional axis label for the second feature in the
 blend legend.}
 
 \item{assay}{Optional assay to set before plotting.}
@@ -44,8 +47,13 @@ blend legend.}
 
 \item{only_blended}{Return only the blended spatial panel and legend.}
 
-\item{bottom_left, bottom_right, top_left, top_right}{Corner colors for the
-two-feature blend grid.}
+\item{bottom_left}{Bottom-left corner color for the two-feature blend grid.}
+
+\item{bottom_right}{Bottom-right corner color for the two-feature blend grid.}
+
+\item{top_left}{Top-left corner color for the two-feature blend grid.}
+
+\item{top_right}{Top-right corner color for the two-feature blend grid.}
 
 \item{zero_tol}{Values at or below this threshold are treated as zero.}
 

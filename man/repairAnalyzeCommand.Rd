@@ -26,7 +26,15 @@ repairAnalyzeCommand(
 
 \item{b_pattern}{Light clone column regex.}
 
-\item{mxo, x, b, nb, min_counts}{Arguments passed to \verb{repair analyze}.}
+\item{mxo}{Maximum number of output candidates passed to \verb{repair analyze}.}
+
+\item{x}{REPAIR \code{x} argument passed to \verb{repair analyze}.}
+
+\item{b}{REPAIR \code{b} argument passed to \verb{repair analyze}.}
+
+\item{nb}{REPAIR \code{nb} argument passed to \verb{repair analyze}.}
+
+\item{min_counts}{Minimum count threshold passed to \verb{repair analyze}.}
 
 \item{repair_bin}{REPAIR executable.}
 }

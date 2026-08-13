@@ -19,7 +19,6 @@ spatialCloneJoinCount(
   y = "y",
   polygon_id = "polygon",
   include_boundary = TRUE,
-  require_closed = TRUE,
   min_spatial_ids = 2,
   radius = NULL,
   k = 6,
@@ -61,13 +60,15 @@ exists.}
 axes before plotting or polygon membership checks. If \code{NULL}, the
 value must be supplied explicitly or by SIRAP object metadata.}
 
-\item{x, y}{Coordinate columns in \code{polygon}.}
+\item{x}{Coordinate column in \code{polygon}.}
+
+\item{y}{Coordinate column in \code{polygon}.}
 
 \item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
 
-\item{include_boundary}{Include Seurat spots on polygon edges.}
-
-\item{require_closed}{Require the final polygon vertex to equal the first.}
+\item{include_boundary}{Include Seurat spots on polygon edges.
+Ignored when \code{object} is a SIRAP object with stored polygons and \code{polygon}
+is \code{NULL}; in that case stored polygon annotations are used.}
 
 \item{min_spatial_ids}{Minimum number of spatial IDs containing a clone for
 that clone to be tested.}

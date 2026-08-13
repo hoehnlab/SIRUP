@@ -18,7 +18,9 @@ assignTipColors(
 
 \item{clone_val}{Optional clone IDs to retain before assigning colors.}
 
-\item{clone, id}{Column names for clone and sequence/tip identifiers.}
+\item{clone}{Column name for clone identifiers.}
+
+\item{id}{Column name for sequence/tip identifiers.}
 
 \item{shared_color}{Optional column whose shared values should receive
 the same tip color within each clone, for example a spatial ID column.}

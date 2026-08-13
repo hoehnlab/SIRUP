@@ -16,7 +16,11 @@ spacedCloneTableFromWide(
 \arguments{
 \item{df}{Wide table with barcode, coordinate, and clone count columns.}
 
-\item{barcode, x, y}{Column names.}
+\item{barcode}{Barcode column name.}
+
+\item{x}{Spatial x-coordinate column name.}
+
+\item{y}{Spatial y-coordinate column name.}
 
 \item{clone}{Optional clone columns. Defaults to all non-barcode and
 non-coordinate columns.}

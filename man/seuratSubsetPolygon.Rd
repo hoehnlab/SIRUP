@@ -15,8 +15,7 @@ seuratSubsetPolygon(
   y = "y",
   polygon_id = "polygon",
   metadata = "polygon",
-  include_boundary = TRUE,
-  require_closed = TRUE
+  include_boundary = TRUE
 )
 }
 \arguments{
@@ -38,7 +37,9 @@ value must be supplied explicitly or by SIRAP object metadata.}
 \item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
 exists.}
 
-\item{x, y}{Coordinate columns in \code{polygon}.}
+\item{x}{Coordinate column in \code{polygon}.}
+
+\item{y}{Coordinate column in \code{polygon}.}
 
 \item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
 
@@ -47,9 +48,6 @@ primary polygon assignment. Barcodes in overlapping polygons are assigned to
 the smallest polygon by area.}
 
 \item{include_boundary}{Include Seurat spots on polygon edges.}
-
-\item{require_closed}{Require the final polygon vertex to equal the first.
-Set to \code{FALSE} to close open polygons automatically.}
 }
 \value{
 A Seurat object subset to spatial IDs inside the selected polygon(s),

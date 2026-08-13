@@ -326,7 +326,9 @@ processSpatialSamples <- function(input_fastas,
 #' `opening_gap_length`, then keeps the highest-consensus row per spatial ID/locus.
 #'
 #' @param airr_df AIRR-style data frame.
-#' @param spatial_id,locus,consensus Column names for grouping/ranking.
+#' @param spatial_id Spatial ID column name used for grouping.
+#' @param locus Locus column name used for grouping.
+#' @param consensus Consensus-count column name used for ranking rows.
 #' @param sequence Sequence column for non-N proportion.
 #' @param alignment Alignment column for gap metrics.
 #' @param ties Keep all tied top rows or only the first tied row.

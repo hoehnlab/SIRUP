@@ -53,11 +53,17 @@ the selected clone.}
 
 \item{other_color}{Color for other receptor-positive spots.}
 
-\item{point_size, point_alpha}{Size and opacity of plotted spots.}
+\item{point_size}{Size of plotted spots.}
 
-\item{edge_width, edge_alpha}{Width and opacity of neighbor edges.}
+\item{point_alpha}{Opacity of plotted spots.}
 
-\item{polygon_color, polygon_linewidth}{Color and width of polygon outlines.}
+\item{edge_width}{Width of neighbor edges.}
+
+\item{edge_alpha}{Opacity of neighbor edges.}
+
+\item{polygon_color}{Color of polygon outlines.}
+
+\item{polygon_linewidth}{Width of polygon outlines.}
 
 \item{image_alpha}{Tissue image opacity.}
 

@@ -83,8 +83,10 @@ rad default 2.}
 to \verb{<out_dir>/<output>.fq.gz} (what rad demux writes). Override
 only if rad wrote it elsewhere.}
 
-\item{verbose, max_verbose}{Verbosity controls, forwarded to all
-three steps.}
+\item{verbose}{Logical; verbose logging, forwarded to all three steps.}
+
+\item{max_verbose}{Logical; maximum verbose logging, forwarded to all three
+steps.}
 
 \item{...}{Additional named args forwarded to \code{\link[=radDemux]{radDemux()}}.}
 

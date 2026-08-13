@@ -116,32 +116,19 @@ test_that("overlapping polygon assignment keeps flags and chooses smallest polyg
   expect_equal(receptors_out$polygon_inner, c(FALSE, TRUE, TRUE, FALSE, FALSE))
 })
 
-test_that("polygon vertex selection requires closed polygons by default", {
+test_that("polygon vertex selection closes open polygons automatically", {
   polygon <- data.frame(
     x = c(0, 10, 10, 0),
     y = c(0, 0, 10, 10),
     stringsAsFactors = FALSE
   )
 
-  expect_error(
-    .sirap_select_polygon_vertices(
-      polygon = polygon,
-      polygon_id = NULL,
-      polygon_col = "polygon",
-      x = "x",
-      y = "y",
-      require_closed = TRUE
-    ),
-    "must be closed"
-  )
-
   closed <- .sirap_select_polygon_vertices(
     polygon = polygon,
     polygon_id = NULL,
     polygon_col = "polygon",
-    x = "x",
-    y = "y",
-    require_closed = FALSE
+    x_col = "x",
+    y_col = "y"
   )
 
   expect_equal(nrow(closed), 5)
@@ -205,9 +192,8 @@ test_that("polygon plotting data preserves polygon groups and flips plotting y",
     polygon = polygon,
     polygon_id = NULL,
     polygon_col = "polygon",
-    x = "x",
-    y = "y",
-    require_closed = TRUE
+    x_col = "x",
+    y_col = "y"
   )
 
   expect_equal(sort(unique(plot_data$polygon)), c("left", "right"))

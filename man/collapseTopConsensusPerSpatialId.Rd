@@ -17,7 +17,11 @@ collapseTopConsensusPerSpatialId(
 \arguments{
 \item{airr_df}{AIRR-style data frame.}
 
-\item{spatial_id, locus, consensus}{Column names for grouping/ranking.}
+\item{spatial_id}{Spatial ID column name used for grouping.}
+
+\item{locus}{Locus column name used for grouping.}
+
+\item{consensus}{Consensus-count column name used for ranking rows.}
 
 \item{sequence}{Sequence column for non-N proportion.}
 

@@ -39,7 +39,9 @@ radScanWl(
 
 \item{barcode_length}{Bases to extract.}
 
-\item{left_margin, right_margin}{Extra bases on each side.}
+\item{left_margin}{Extra bases on the left side.}
+
+\item{right_margin}{Extra bases on the right side.}
 
 \item{max_reads}{Max reads to process. \code{NULL} = all.}
 
@@ -51,19 +53,25 @@ radScanWl(
 
 \item{chunk_size}{rad default 10000.}
 
-\item{bc1_whitelist, bc2_whitelist}{Two-part-barcode mode (BC1+BC2).
+\item{bc1_whitelist}{BC1 whitelist for two-part-barcode mode (BC1+BC2).
 Setting \code{bc1_whitelist} activates this mode.}
+
+\item{bc2_whitelist}{BC2 whitelist for two-part-barcode mode (BC1+BC2).}
 
 \item{umi_length}{UMI length between primer and BC1. rad default 9.}
 
-\item{offset_min, offset_max}{Min/max extra bases after UMI for BC1
-search. rad defaults 0 and 3.}
+\item{offset_min}{Minimum extra bases after UMI for BC1 search. rad default 0.}
+
+\item{offset_max}{Maximum extra bases after UMI for BC1 search. rad default 3.}
 
 \item{verbose}{Logical; verbose logging.}
 
 \item{...}{Additional raw CLI tokens.}
 
-\item{capture, rad}{See \code{\link[=radPrep]{radPrep()}}.}
+\item{capture}{Logical; capture stdout/stderr in the returned result instead
+of streaming to the R console.}
+
+\item{rad}{Path to the rad binary. Defaults to \code{\link[=radPath]{radPath()}}.}
 }
 \value{
 Invisible list with \code{status}, \code{stdout}, \code{stderr}, \code{command}.

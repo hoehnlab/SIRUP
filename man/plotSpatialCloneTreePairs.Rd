@@ -17,9 +17,15 @@ plotSpatialCloneTreePairs(
   swap_coords = NULL,
   images = NULL,
   zoom = FALSE,
-  tree_layout = "rectangular",
-  tree_tip_size = 2.5,
-  treescale = 0.01,
+  tipsize = NULL,
+  scale = 0.01,
+  layout = "rectangular",
+  title = TRUE,
+  shape_by = ".sirap_spatial_status",
+  shape_values = c(spatial = 16, not_spatial = 15),
+  tree_layout = NULL,
+  tree_tip_size = NULL,
+  treescale = NULL,
   spatial_tip_size = 1.6,
   spatial_tip_alpha = 1,
   order_points = FALSE,
@@ -62,11 +68,27 @@ value must be supplied explicitly or by SIRAP object metadata.}
 \item{zoom}{Zoom spatial plots to the clone. Defaults to \code{FALSE}, which
 shows the full tissue area covered by spatial coordinates.}
 
-\item{tree_layout}{Layout passed to \code{ggtree::ggtree()}.}
+\item{tipsize}{Size of tree tip points.}
 
-\item{tree_tip_size}{Size of tree tip points.}
+\item{scale}{Mutational distance shown in the tree scale bar.}
 
-\item{treescale}{Mutational distance shown in the tree scale bar.}
+\item{layout}{Tree layout passed to \code{ggtree::ggtree()}.}
+
+\item{title}{Whether to title each tree panel with the clone ID. A character
+value is used as the tree title directly.}
+
+\item{shape_by}{Column in dowser clone data used to assign tree tip shapes.
+The default marks tips as \code{"spatial"} when they have a non-missing spatial
+ID and \code{"not_spatial"} otherwise.}
+
+\item{shape_values}{Named shape vector passed to
+\code{\link[ggplot2:scale_shape_manual]{ggplot2::scale_shape_manual()}}.}
+
+\item{tree_layout}{Backward-compatible alias for \code{layout}.}
+
+\item{tree_tip_size}{Backward-compatible alias for \code{tipsize}.}
+
+\item{treescale}{Backward-compatible alias for \code{scale}.}
 
 \item{spatial_tip_size}{Size of spatial tip points.}
 

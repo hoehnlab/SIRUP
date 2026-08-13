@@ -132,6 +132,191 @@ test_that("addPolygons annotates SIRAP spatial metadata and receptors", {
   expect_invisible(validateSIRAP(out))
 })
 
+test_that("addPolygons can exclude boundary points from stored annotations", {
+  x <- make_test_sirap()
+  polygon <- data.frame(
+    polygon = "GC1",
+    x = c(0, 2, 2, 0),
+    y = c(0, 0, 2, 2)
+  )
+
+  out <- addPolygons(x, polygons = polygon, include_boundary = FALSE)
+
+  expect_equal(unname(out$spatial$polygon_id), c(NA, "GC1", NA, NA))
+  expect_equal(out$receptors$polygon_id, c(NA, "GC1", NA))
+  expect_false(out$metadata$polygons_include_boundary)
+})
+
+test_that("polygonReceptorSummary stores one summary row per SIRAP polygon", {
+  x <- make_test_sirap()
+  x$receptors$mu_freq <- c(0.1, 0.3, 0.5)
+  x$receptors$productive <- c(TRUE, FALSE, TRUE)
+  polygon <- data.frame(
+    polygon = "GC1",
+    x = c(-0.5, 1.5, 1.5, -0.5),
+    y = c(-0.5, -0.5, 1.5, 1.5)
+  )
+  x <- addPolygons(x, polygons = polygon)
+
+  out <- polygonReceptorSummary(
+    x,
+    summary_columns = c("mu_freq", "clone_id", "productive", "productive"),
+    summary_operations = c("mean", "cat", "any", "all")
+  )
+  summary <- getAnalysis(out, "polygon_receptor_summary")
+
+  expect_s3_class(out, "sirap")
+  expect_equal(summary$polygon_id, "GC1")
+  expect_equal(summary$n_receptors, 2)
+  expect_equal(summary$n_spatial_ids, 2)
+  expect_equal(summary$n_clones, 2)
+  expect_equal(summary$top_clone_fraction, 0.5)
+  expect_equal(summary$mean_mu_freq, 0.2)
+  expect_equal(summary$cat_clone_id, "A,B")
+  expect_true(summary$any_productive)
+  expect_false(summary$all_productive)
+})
+
+test_that("polygonReceptorSummary can weight receptor summaries", {
+  x <- make_test_sirap()
+  x$receptors$mu_freq <- c(0.1, 0.3, 0.5)
+  x$receptors$consensus_count <- c(10, 1, 100)
+  polygon <- data.frame(
+    polygon = "GC1",
+    x = c(-0.5, 1.5, 1.5, -0.5),
+    y = c(-0.5, -0.5, 1.5, 1.5)
+  )
+  x <- addPolygons(x, polygons = polygon)
+
+  out <- NULL
+  expect_warning(
+    out <- polygonReceptorSummary(
+      x,
+      weight = "consensus_count",
+      summary_columns = "mu_freq",
+      summary_operations = "mean"
+    ),
+    "Weighted polygon summaries"
+  )
+  summary <- getAnalysis(out, "polygon_receptor_summary")
+
+  expect_equal(summary$n_receptors, 11)
+  expect_equal(summary$top_clone_fraction, 10 / 11)
+  expect_equal(summary$mean_mu_freq, stats::weighted.mean(c(0.1, 0.3), c(10, 1)))
+})
+
+test_that("polygon analyses use stored SIRAP annotations when polygons are attached", {
+  x <- make_test_sirap()
+  polygon <- data.frame(
+    polygon = "GC1",
+    x = c(0, 2, 2, 0),
+    y = c(0, 0, 2, 2)
+  )
+  x <- addPolygons(x, polygons = polygon, include_boundary = FALSE)
+
+  dominance <- spatialCloneDominance(x)
+  expect_equal(dominance$dominance$clone_id, "B")
+  expect_equal(dominance$region_spatial_ids$spatial_id, "cell2")
+
+  join_data <- SIRAP:::.sirap_joincount_receptor_data_stored_polygons(
+    object = x,
+    receptors = getReceptors(x),
+    clone_col = "clone_id",
+    spatial_id_col = "spatial_id",
+    polygon_id = NULL,
+    images = NULL,
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+  expect_equal(unique(join_data$.sirap_spatial_id), "cell2")
+})
+
+test_that("withPolygons applies functions by polygon and across all polygons", {
+  x <- make_test_sirap()
+  polygon <- data.frame(
+    polygon = "GC1",
+    x = c(-0.5, 1.5, 1.5, -0.5),
+    y = c(-0.5, -0.5, 1.5, 1.5)
+  )
+  x <- addPolygons(x, polygons = polygon)
+
+  by_polygon <- withPolygons(x, function(dat, polygon_id) {
+    data.frame(polygon_id = polygon_id, n = nrow(dat))
+  }, pass_polygon_id = TRUE)
+  all_polygons <- withPolygons(x, nrow, mode = "all_polygons")
+
+  expect_equal(names(by_polygon), "GC1")
+  expect_equal(by_polygon$GC1$n, 2)
+  expect_equal(all_polygons, 2)
+})
+
+test_that("formatSpatialClones asks for germlines before formatting", {
+  skip_if_not_installed("dowser")
+  x <- make_test_sirap()
+
+  expect_error(
+    formatSpatialClones(x),
+    "createGermlines"
+  )
+})
+
+test_that("polygonAbundance and polygonDiversity return NULL below threshold", {
+  skip_if_not_installed("alakazam")
+  x <- make_test_sirap()
+  polygon <- data.frame(
+    polygon = "GC1",
+    x = c(-0.5, 1.5, 1.5, -0.5),
+    y = c(-0.5, -0.5, 1.5, 1.5)
+  )
+  x <- addPolygons(x, polygons = polygon)
+
+  abundance <- polygonAbundance(x, min_n = 10)
+  diversity <- polygonDiversity(x, min_n = 10)
+
+  expect_null(getAnalysis(abundance, "polygon_abundance")$GC1)
+  expect_null(getAnalysis(diversity, "polygon_diversity")$GC1)
+})
+
+test_that("polygonAbundance runs above threshold with bulk default cell_id", {
+  skip_if_not_installed("alakazam")
+  x <- make_test_sirap()
+  polygon <- data.frame(
+    polygon = "GC1",
+    x = c(-0.5, 1.5, 1.5, -0.5),
+    y = c(-0.5, -0.5, 1.5, 1.5)
+  )
+  x <- addPolygons(x, polygons = polygon)
+
+  abundance <- polygonAbundance(x, min_n = 1, nboot = 2)
+
+  expect_s3_class(abundance, "sirap")
+  expect_s4_class(getAnalysis(abundance, "polygon_abundance")$GC1, "AbundanceCurve")
+})
+
+test_that("summarizePolygonDiversity stores a q-specific diversity table", {
+  skip_if_not_installed("alakazam")
+  x <- make_test_sirap()
+  polygon <- data.frame(
+    polygon = "GC1",
+    x = c(-0.5, 1.5, 1.5, -0.5),
+    y = c(-0.5, -0.5, 1.5, 1.5)
+  )
+  x <- addPolygons(x, polygons = polygon)
+  x <- polygonDiversity(
+    x,
+    min_n = 1,
+    max_q = 2,
+    step_q = 1,
+    nboot = 2
+  )
+  x <- summarizePolygonDiversity(x, q = 2)
+  summary <- getAnalysis(x, "polygon_diversity_q2")
+
+  expect_equal(summary$polygon_id, "GC1")
+  expect_equal(summary$q, 2)
+  expect_true("d" %in% names(summary))
+})
+
 test_that("createSIRAP accepts a polygon path", {
   x <- make_test_sirap()
   flat <- data.frame(

@@ -18,7 +18,9 @@ spatialCloneTreePairsToPDF(
 
 \item{path}{PDF path.}
 
-\item{width, height}{PDF page size in inches.}
+\item{width}{PDF page width in inches.}
+
+\item{height}{PDF page height in inches.}
 
 \item{rel_widths}{Relative widths for tree and spatial panels.}
 

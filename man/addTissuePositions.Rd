@@ -23,7 +23,9 @@ addTissuePositions(
 
 \item{position_spatial_id}{Spatial ID column in \code{positions}.}
 
-\item{x, y}{Coordinate columns to copy or rename to \code{x} and \code{y}.}
+\item{x}{Coordinate column to copy or rename to \code{x}.}
+
+\item{y}{Coordinate column to copy or rename to \code{y}.}
 
 \item{keep_position_cols}{Whether to retain all position columns.}
 }
