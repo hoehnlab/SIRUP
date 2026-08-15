@@ -2,12 +2,12 @@
 title: "SIRAP walkthrough with MG thymus slice 2"
 author: "Hunter J. Melton"
 output:
+  pdf_document:
+    toc: true
   html_document:
     toc: true
     toc_float: true
     number_sections: true
-  pdf_document:
-    toc: true
 ---
 
 ```{r setup, message=FALSE, warning=FALSE}
@@ -538,7 +538,7 @@ gex_bcr_plot <- plotReceptorsExpression(
 )
 gex_bcr_plot
 
-demo_clone_id <- "635" # one of bigger clones
+demo_clone_id <- "1065" # one of bigger clones
 clone_plot <- plotReceptors(
   mg_thymus_slice2_sirap,
   group = "clone_id",
@@ -755,7 +755,7 @@ alternative hypothesis `alternative`, and the minimum number of barcodes a clone
 found in to be tested (can run this on multiple clones at once) `min_spatial_ids`. Be sure to return the data if we want to plot the results with `plotSpatialCloneJoinCount()`. The plot shows all the locations with the clone and the observed and expected values of the statistic (just counts number of clone-clone neighbors).
 
 ```{r clone-join-count}
-join_count_clone_id <- "635"
+join_count_clone_id <- "1065"
 
 clone_join_count <- spatialCloneJoinCount(
   object = mg_thymus_slice2_sirap,
@@ -1150,7 +1150,7 @@ few clones we want to show in the walkthrough. Then I stick those trees in the m
 object.
 
 ```{r build-trees}
-tree_clone_ids <- c("249", "295", "472")
+tree_clone_ids <- c("249", "295", "1065")
 
 tree_path <- file.path(walkthrough_dir, "mg_thymus_slice2_bcr_trees.rds")
 

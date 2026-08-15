@@ -22,7 +22,9 @@ NULL
 # as base data frames, but turn data.table inputs into tibbles so data.table's
 # by-reference behavior and printing do not leak into SIRAP internals.
 .as_data_frame <- function(x) {
-  if (data.table::is.data.table(x)) {
+  if (tibble::is_tibble(x)) {
+    x
+  } else if (data.table::is.data.table(x)) {
     tibble::as_tibble(x)
   } else {
     as.data.frame(x, stringsAsFactors = FALSE)

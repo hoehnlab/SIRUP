@@ -70,6 +70,31 @@ test_that("polygon assignment annotates spatial metadata and receptor tables", {
   expect_equal(ncol(spatial_out), ncol(spatial))
 })
 
+test_that("polygon assignment can use receptor coordinate columns directly", {
+  polygon <- data.frame(
+    polygon = c(rep("left", 5), rep("right", 5)),
+    x = c(-0.5, 1.5, 1.5, -0.5, -0.5, 1.5, 3.5, 3.5, 1.5, 1.5),
+    y = c(-0.5, -0.5, 1.5, 1.5, -0.5, 1.5, 1.5, 3.5, 3.5, 1.5),
+    stringsAsFactors = FALSE
+  )
+  receptors <- data.frame(
+    sequence_id = paste0("seq", 1:4),
+    x = c(0, 1, 2, 10),
+    y = c(0, 1, 2, 10),
+    stringsAsFactors = FALSE
+  )
+
+  receptors_out <- assignReceptorPolygons(
+    receptors,
+    polygon = polygon
+  )
+
+  expect_equal(receptors_out$polygon_id, c("left", "left", "right", NA))
+  expect_equal(receptors_out$polygon_left, c(TRUE, TRUE, FALSE, FALSE))
+  expect_equal(receptors_out$polygon_right, c(FALSE, FALSE, TRUE, FALSE))
+  expect_false(".sirap_receptor_row" %in% colnames(receptors_out))
+})
+
 test_that("overlapping polygon assignment keeps flags and chooses smallest polygon", {
   skip_if_not_installed("SeuratObject")
   spatial <- SeuratObject::CreateSeuratObject(
@@ -111,6 +136,34 @@ test_that("overlapping polygon assignment keeps flags and chooses smallest polyg
   expect_equal(unname(spatial_out$polygon_id), c("outer", "inner", "inner", "outer"))
   expect_equal(unname(spatial_out$polygon_outer), c(TRUE, TRUE, TRUE, TRUE))
   expect_equal(unname(spatial_out$polygon_inner), c(FALSE, TRUE, TRUE, FALSE))
+  expect_equal(receptors_out$polygon_id, c("outer", "inner", "inner", "outer", NA))
+  expect_equal(receptors_out$polygon_outer, c(TRUE, TRUE, TRUE, TRUE, FALSE))
+  expect_equal(receptors_out$polygon_inner, c(FALSE, TRUE, TRUE, FALSE, FALSE))
+})
+
+test_that("direct receptor coordinate polygon assignment keeps overlap flags", {
+  polygon <- data.frame(
+    polygon = c(rep("outer", 5), rep("inner", 5)),
+    vertex_x = c(-1, 4, 4, -1, -1, 0.5, 2.5, 2.5, 0.5, 0.5),
+    vertex_y = c(-1, -1, 4, 4, -1, 0.5, 0.5, 2.5, 2.5, 0.5),
+    stringsAsFactors = FALSE
+  )
+  receptors <- data.frame(
+    sequence_id = paste0("seq", 1:5),
+    receptor_x = c(0, 1, 2, 3, 10),
+    receptor_y = c(0, 1, 2, 3, 10),
+    stringsAsFactors = FALSE
+  )
+
+  receptors_out <- assignReceptorPolygons(
+    receptors,
+    polygon = polygon,
+    x = "vertex_x",
+    y = "vertex_y",
+    receptor_x = "receptor_x",
+    receptor_y = "receptor_y"
+  )
+
   expect_equal(receptors_out$polygon_id, c("outer", "inner", "inner", "outer", NA))
   expect_equal(receptors_out$polygon_outer, c(TRUE, TRUE, TRUE, TRUE, FALSE))
   expect_equal(receptors_out$polygon_inner, c(FALSE, TRUE, TRUE, FALSE, FALSE))
@@ -665,4 +718,31 @@ test_that("spatialCloneDominance summarizes multiple polygons independently", {
   )
   expect_equal(unique(right$dominance$polygon), "right")
   expect_equal(right$dominance$clone_id, "D")
+})
+
+test_that(".sirap_spatial_base crops to spatial barcodes by default", {
+  skip_if_not_installed("ggplot2")
+  plot_data <- data.frame(x = c(10, 20), .sirap_y = c(-10, -20))
+  spots <- data.frame(x = c(0, 100), .sirap_y = c(0, -100))
+
+  # crop = TRUE with spot coordinates as view_data -> limits follow the spots.
+  p_crop <- .sirap_spatial_base(plot_data, image = NULL, crop = TRUE, view_data = spots)
+  xlim <- p_crop$coordinates$limits$x
+  ylim <- p_crop$coordinates$limits$y
+  expect_true(xlim[[1]] <= 0 && xlim[[2]] >= 100)
+  expect_true(ylim[[1]] <= -100 && ylim[[2]] >= 0)
+
+  # crop = FALSE with no image -> default unit box, not the spot extent.
+  p_full <- .sirap_spatial_base(plot_data, image = NULL, crop = FALSE, view_data = spots)
+  expect_equal(p_full$coordinates$limits$x, c(0, 1))
+
+  # An empty view_data is treated as absent and falls back to plot_data.
+  p_empty <- .sirap_spatial_base(
+    plot_data,
+    image = NULL,
+    crop = TRUE,
+    view_data = data.frame(x = numeric(), .sirap_y = numeric())
+  )
+  xr <- p_empty$coordinates$limits$x
+  expect_true(xr[[1]] <= 10 && xr[[2]] >= 20)
 })
