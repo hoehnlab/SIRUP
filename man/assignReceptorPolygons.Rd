@@ -16,6 +16,8 @@ assignReceptorPolygons(
   polygon_val = NULL,
   x = "x",
   y = "y",
+  receptor_x = "x",
+  receptor_y = "y",
   polygon_id = "polygon",
   include_boundary = TRUE
 )
@@ -54,6 +56,9 @@ exists.}
 
 \item{y}{Coordinate column in \code{polygon}.}
 
+\item{receptor_x, receptor_y}{Coordinate columns in \code{receptors} used when
+\code{object = NULL}.}
+
 \item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
 
 \item{include_boundary}{Include Seurat spots on polygon edges.}
@@ -63,8 +68,10 @@ A tibble with \code{column} added.
 }
 \description{
 Adds polygon-membership columns to an AIRR-style receptor table without
-subsetting the table. Receptor rows whose spatial ID falls outside the
-selected polygon(s), or does not match the spatial object, receive \code{NA}.
+subsetting the table. When \code{object} is supplied, receptor rows whose spatial
+ID falls outside the selected polygon(s), or does not match the spatial
+object, receive \code{NA}. When \code{object = NULL}, polygon membership is computed
+directly from coordinate columns in \code{receptors}.
 Receptors in spatial IDs inside overlapping polygons are assigned to the
 smallest polygon by area in the primary polygon column. Additional logical
 columns named \verb{polygon_<ID>} record membership in each individual polygon.

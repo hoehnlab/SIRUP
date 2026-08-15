@@ -9,3 +9,9 @@ Rplots.pdf
 ai/runs/
 ai/**/*.secret.*
 ai/**/.env
+
+# Agent and editor state (not part of the package)
+.claude/
+.vscode/
+ai/
+CLAUDE.md

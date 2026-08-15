@@ -1073,6 +1073,10 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #'   names. May be omitted when `object` is a SIRAP object.
 #' @param clone_val Optional clone IDs to plot.
 #' @param id Column in the dowser clone data matching tree tip labels.
+#' @param sequence_id Column in `object` receptor data used to decide which
+#'   tree tips belong to the current spatial object. Defaults to `id`. This is
+#'   only applied when `object` is a SIRAP object; tips absent from this receptor
+#'   column remain in the tree panel but are not plotted in the spatial panel.
 #' @param clone Clone ID column.
 #' @param color_by Column used to assign matching tree and spatial colors.
 #'   Use `"identity"` to give each tip its own color. Use another column name,
@@ -1115,6 +1119,7 @@ plotSpatialCloneTreePairs <- function(trees,
                                       spatial_id = NULL,
                                       clone_val = NULL,
                                       id = "sequence_id",
+                                      sequence_id = id,
                                       clone = "clone_id",
                                       color_by = "identity",
                                       palette = NULL,
@@ -1137,8 +1142,23 @@ plotSpatialCloneTreePairs <- function(trees,
                                       show_spatial_legend = FALSE,
                                       nproc = 1L,
                                       ...) {
-  if (isSIRAP(object) && is.null(spatial_id)) {
-    spatial_id <- .sirap_receptor_fields(object)$spatial_id
+  object_tip_ids <- NULL
+  object_spatial_ids <- NULL
+  object_samples <- NULL
+  sample_field <- NULL
+  uid_col <- ".sirap_uid"
+  if (isSIRAP(object)) {
+    if (is.null(spatial_id)) {
+      spatial_id <- .sirap_receptor_fields(object)$spatial_id
+    }
+    receptor_data <- getReceptors(object)
+    .check_required_cols(receptor_data, c(sequence_id, spatial_id), "object receptor data")
+    object_tip_ids <- unique(stats::na.omit(as.character(receptor_data[[sequence_id]])))
+    object_spatial_ids <- unique(stats::na.omit(as.character(receptor_data[[spatial_id]])))
+    sample_field <- .sirap_receptor_fields(object)$sample
+    if (!is.null(sample_field) && sample_field %in% colnames(receptor_data)) {
+      object_samples <- unique(stats::na.omit(as.character(receptor_data[[sample_field]])))
+    }
   }
   context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
@@ -1170,6 +1190,35 @@ plotSpatialCloneTreePairs <- function(trees,
     tip_data <- clone_data[clone_data[[id]] %in% tip_ids, , drop = FALSE]
     if (nrow(tip_data) == 0L) {
       return(NULL)
+    }
+    if (!is.null(object_tip_ids)) {
+      # Match tree tips back to this object's receptors. Prefer the verbatim id
+      # copy (`.sirap_uid`) carried by `formatSpatialClones()`: dowser sanitizes
+      # tip labels for Newick, so the tree `id` column no longer equals the raw
+      # receptor id. dowser also comma-joins text fields when it collapses
+      # identical sequences, so a tip may carry several ids; it belongs to this
+      # object if ANY of them matches. Trees built before `.sirap_uid` existed
+      # fall back to matching on the (verbatim) spatial id.
+      if (uid_col %in% colnames(tip_data)) {
+        tip_id_lists <- strsplit(as.character(tip_data[[uid_col]]), ",", fixed = TRUE)
+        in_current_object <- vapply(
+          tip_id_lists,
+          function(ids) any(trimws(ids) %in% object_tip_ids),
+          logical(1)
+        )
+      } else {
+        in_current_object <- as.character(tip_data[[spatial_id]]) %in% object_spatial_ids
+      }
+      # When the SIRAP `sample` field is set and carried into the tree data,
+      # also require the tip's sample to belong to this object. This keeps spots
+      # that share a barcode name across sections from being drawn on the wrong
+      # section.
+      if (!is.null(object_samples) && sample_field %in% colnames(tip_data)) {
+        in_current_object <- in_current_object &
+          (as.character(tip_data[[sample_field]]) %in% object_samples)
+      }
+      tip_data[[spatial_id]] <- as.character(tip_data[[spatial_id]])
+      tip_data[[spatial_id]][!in_current_object] <- NA_character_
     }
     shared_color_col <- NULL
     if (!identical(color_by, "identity")) {
@@ -1860,6 +1909,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
                                 image,
                                 image_alpha = 1,
                                 zoom = FALSE,
+                                crop = TRUE,
                                 view_data = NULL) {
   raster <- NULL
   if (!is.null(image)) {
@@ -1874,7 +1924,23 @@ spatialCloneTreePairsToPDF <- function(pairs,
     xlim <- c(0, width)
     ylim <- c(-height, 0)
   }
-  limit_data <- if (isTRUE(zoom)) plot_data else view_data %||% plot_data
+  # Choose the extent to display:
+  #   zoom = TRUE  -> crop tightly to the plotted geometry (`plot_data`);
+  #   crop = TRUE  -> crop to the spatial barcodes (`view_data` when supplied,
+  #                   otherwise `plot_data`), matching Seurat's crop behaviour;
+  #   crop = FALSE -> show the full tissue image.
+  # An empty `view_data` is treated as absent so callers can fall back to
+  # `plot_data` cleanly.
+  if (!is.null(view_data) && nrow(view_data) == 0L) {
+    view_data <- NULL
+  }
+  limit_data <- if (isTRUE(zoom)) {
+    plot_data
+  } else if (isTRUE(crop)) {
+    view_data %||% plot_data
+  } else {
+    NULL
+  }
   if (!is.null(limit_data) && nrow(limit_data) > 0L) {
     xlim <- .sirap_pad_range(limit_data$x, fallback = xlim)
     ylim <- .sirap_pad_range(limit_data$.sirap_y, fallback = ylim)

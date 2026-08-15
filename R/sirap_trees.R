@@ -506,6 +506,20 @@ formatSpatialClones <- function(object,
       "`dowser::createGermlines()` before `formatSpatialClones()`."
     ))
   }
+  # Carry a verbatim copy of the receptor id (and the sample column, when the
+  # SIRAP `sample` field is set) through tree building. dowser sanitizes tip
+  # labels for Newick output (":" and "," become "_"), so the tree `id` column
+  # can no longer be matched against the raw receptor id. `.sirap_uid` is passed
+  # as a text field, which dowser preserves verbatim (and comma-joins when it
+  # collapses identical sequences), so `plotSpatialCloneTreePairs()` can match
+  # tree tips back to this object's receptors. See that function for the match.
+  uid_col <- ".sirap_uid"
+  receptors[[uid_col]] <- as.character(receptors[[id]])
+  text_fields <- union(text_fields, uid_col)
+  sample_field <- .sirap_receptor_fields(object)$sample
+  if (!is.null(sample_field) && sample_field %in% colnames(receptors)) {
+    traits <- union(traits, sample_field)
+  }
   f_clones <- dowser::formatClones(
     data = receptors,
     seq = seq,
@@ -961,6 +975,20 @@ assignTipColors <- function(clones,
   } else {
     total / n_pairs
   }
+}
+
+#' Calculate patristic distances among selected tree tips
+#'
+#' Returns a pairwise patristic-distance matrix for selected tip labels,
+#' preserving the requested tip order. This is the public wrapper around
+#' SIRAP's tree-tip distance helper used by tree-tip clustering workflows.
+#'
+#' @param tree A phylogenetic tree with `edge`, `edge.length`, and `tip.label`.
+#' @param tip_labels Character vector of tip labels to include.
+#' @return A numeric matrix of pairwise patristic distances.
+#' @export
+tipPatristicMatrix <- function(tree, tip_labels) {
+  .sirap_tip_patristic_matrix(tree = tree, tip_labels = tip_labels)
 }
 
 # Return patristic distances among selected tips, preserving tip order.

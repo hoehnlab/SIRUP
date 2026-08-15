@@ -930,15 +930,17 @@ plotSpatialPolygons <- function(object,
   }
 
   plots <- list()
-  full_image_data <- data.frame(x = numeric(), .sirap_y = numeric())
   for (image in .sirap_spatial_images(object, images = images)) {
     spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
+    # `plot_data` is the polygon geometry, so the spatial-barcode coordinates are
+    # passed as `view_data`. This crops the plot to the sequenced spots (like
+    # Seurat SpatialFeaturePlot) instead of the full tissue image.
     plots[[image]] <- .sirap_spatial_base(
       plot_data = polygon_data,
       image = spatial$image,
       image_alpha = image_alpha,
       zoom = zoom,
-      view_data = if (isTRUE(zoom)) NULL else full_image_data
+      view_data = if (isTRUE(zoom)) NULL else spatial$coords
     ) +
       if (is.null(fill_analysis)) {
         ggplot2::geom_polygon(
@@ -1601,8 +1603,10 @@ assignSpatialPolygons <- function(object,
 #' Assign polygon IDs to a receptor table
 #'
 #' Adds polygon-membership columns to an AIRR-style receptor table without
-#' subsetting the table. Receptor rows whose spatial ID falls outside the
-#' selected polygon(s), or does not match the spatial object, receive `NA`.
+#' subsetting the table. When `object` is supplied, receptor rows whose spatial
+#' ID falls outside the selected polygon(s), or does not match the spatial
+#' object, receive `NA`. When `object = NULL`, polygon membership is computed
+#' directly from coordinate columns in `receptors`.
 #' Receptors in spatial IDs inside overlapping polygons are assigned to the
 #' smallest polygon by area in the primary polygon column. Additional logical
 #' columns named `polygon_<ID>` record membership in each individual polygon.
@@ -1631,6 +1635,8 @@ assignSpatialPolygons <- function(object,
 #'   exists.
 #' @param x Coordinate column in `polygon`.
 #' @param y Coordinate column in `polygon`.
+#' @param receptor_x,receptor_y Coordinate columns in `receptors` used when
+#'   `object = NULL`.
 #' @param polygon_id Optional polygon grouping column in `polygon`.
 #' @param include_boundary Include Seurat spots on polygon edges.
 #' @return A tibble with `column` added.
@@ -1646,6 +1652,8 @@ assignReceptorPolygons <- function(receptors,
                                    polygon_val = NULL,
                                    x = "x",
                                    y = "y",
+                                   receptor_x = "x",
+                                   receptor_y = "y",
                                    polygon_id = "polygon",
                                    include_boundary = TRUE) {
   if (!.sirap_is_non_empty_string(column)) {
@@ -1660,6 +1668,41 @@ assignReceptorPolygons <- function(receptors,
     if (nrow(polygon) == 0L) {
       rlang::abort("The SIRAP object does not contain stored polygons.")
     }
+  }
+  if (is.null(object)) {
+    if (is.null(polygon)) {
+      rlang::abort("`polygon` must be supplied when `object = NULL`.")
+    }
+    receptors <- .as_data_frame(receptors)
+    .check_required_cols(receptors, c(receptor_x, receptor_y), "receptors")
+    receptors$.sirap_receptor_row <- seq_len(nrow(receptors))
+    coords <- data.frame(
+      cell = as.character(receptors$.sirap_receptor_row),
+      image = NA_character_,
+      x = as.numeric(receptors[[receptor_x]]),
+      y = as.numeric(receptors[[receptor_y]]),
+      stringsAsFactors = FALSE
+    )
+    membership <- .sirap_polygon_membership_from_coords(
+      coords = coords,
+      polygon = polygon,
+      polygon_val = polygon_val,
+      x = x,
+      y = y,
+      polygon_id = polygon_id,
+      include_boundary = include_boundary
+    )
+    polygon_lookup <- .sirap_polygon_lookup(membership)
+    polygon_flags <- .sirap_polygon_flag_lookup(membership)
+    out <- tibble::as_tibble(receptors)
+    out[[column]] <- unname(polygon_lookup[as.character(out$.sirap_receptor_row)])
+    out <- .sirap_append_polygon_flags(
+      out,
+      as.character(out$.sirap_receptor_row),
+      polygon_flags
+    )
+    out$.sirap_receptor_row <- NULL
+    return(out)
   }
   options <- .sirap_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
   inputs <- .sirap_resolve_inputs(object, receptors, spatial_id)
@@ -2406,6 +2449,34 @@ summarizePolygonDiversity <- function(object,
   coords <- coords[is.finite(coords$x) & is.finite(coords$y), , drop = FALSE]
   if (nrow(coords) == 0L) {
     rlang::abort("No finite spatial coordinates were found in `object`.")
+  }
+  .sirap_polygon_membership_from_coords(
+    coords = coords,
+    polygon = polygon,
+    polygon_val = polygon_val,
+    x = x,
+    y = y,
+    polygon_id = polygon_id,
+    include_boundary = include_boundary
+  )
+}
+
+.sirap_polygon_membership_from_coords <- function(coords,
+                                                  polygon,
+                                                  polygon_val,
+                                                  x,
+                                                  y,
+                                                  polygon_id,
+                                                  include_boundary) {
+  polygon <- .as_data_frame(polygon)
+  .check_required_cols(polygon, c(x, y), "polygon")
+  .check_required_cols(coords, c("cell", "x", "y"), "coords")
+  if (!"image" %in% colnames(coords)) {
+    coords$image <- NA_character_
+  }
+  coords <- coords[is.finite(coords$x) & is.finite(coords$y), , drop = FALSE]
+  if (nrow(coords) == 0L) {
+    rlang::abort("No finite coordinates were found.")
   }
   polygon_specs <- .sirap_polygon_specs(polygon, polygon_id = polygon_val, polygon_col = polygon_id)
   polygon_values <- vapply(polygon_specs, function(spec) {

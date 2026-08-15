@@ -10,6 +10,7 @@ plotSpatialCloneTreePairs(
   spatial_id = NULL,
   clone_val = NULL,
   id = "sequence_id",
+  sequence_id = id,
   clone = "clone_id",
   color_by = "identity",
   palette = NULL,
@@ -46,6 +47,11 @@ names. May be omitted when \code{object} is a SIRAP object.}
 \item{clone_val}{Optional clone IDs to plot.}
 
 \item{id}{Column in the dowser clone data matching tree tip labels.}
+
+\item{sequence_id}{Column in \code{object} receptor data used to decide which
+tree tips belong to the current spatial object. Defaults to \code{id}. This is
+only applied when \code{object} is a SIRAP object; tips absent from this receptor
+column remain in the tree panel but are not plotted in the spatial panel.}
 
 \item{clone}{Clone ID column.}
 

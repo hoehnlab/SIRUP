@@ -1032,6 +1032,31 @@ plotRipleyCrossK <- function(kcross,
   dat
 }
 
+#' Extract SIRAP spatial plotting coordinates
+#'
+#' Returns the spatial coordinate table used internally by SIRAP spatial
+#' statistics and plotting helpers. Coordinates are pulled from Seurat image
+#' coordinates when available, otherwise from coordinate columns in Seurat
+#' metadata. The `.sirap_y` column stores SIRAP's plotting y-coordinate.
+#'
+#' @param object A Seurat object.
+#' @param images Optional image names to include.
+#' @param image_scale Image scale used for Seurat image coordinates.
+#' @param swap_coords Whether to swap x/y coordinates before plotting.
+#' @return A data frame with at least `cell`, `x`, `y`, `.sirap_y`, and `image`.
+#' @export
+spatialCoordinateTable <- function(object,
+                                   images = NULL,
+                                   image_scale = NULL,
+                                   swap_coords = NULL) {
+  .sirap_spatial_coordinate_table(
+    object = object,
+    images = images,
+    image_scale = image_scale,
+    swap_coords = swap_coords
+  )
+}
+
 # Collect spatial coordinates from Seurat images when present; otherwise use
 # spatial coordinate columns stored in object metadata.
 .sirap_spatial_coordinate_table <- function(object, images = NULL, image_scale = NULL, swap_coords = NULL) {
