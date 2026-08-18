@@ -1,6 +1,6 @@
 Package: SIRAP
 Title: Spatial Immune Receptor Analysis and Processing
-Version: 0.0.0.9000
+Version: 0.0.0.9001
 Authors@R: c(
     person("Hunter J.", "Melton", role = c("aut", "cre"), email = "Hunter.J.Melton@dartmouth.edu"),
     person("Chinmay", "Vaidya", role = "aut", email = "chinmay.m.vaidya.gr@dartmouth.edu")

@@ -51,11 +51,52 @@ test_that("plotReceptorsExpression layers grouped receptors over expression", {
 
   expect_s3_class(plot, "ggplot")
   expect_length(plot$layers, 3L)
+  # spot2 carries both BCR and TCR, so it is drawn as a single combined,
+  # colour-averaged "BCR + TCR" ring rather than two overlapping rings.
   expect_identical(plot$layers[[2L]]$aes_params$colour, "blue")
-  expect_identical(plot$layers[[3L]]$aes_params$colour, "orange")
+  expect_identical(
+    plot$layers[[3L]]$aes_params$colour,
+    SIRAP:::.sirap_average_colors(c("blue", "orange"))
+  )
   expect_true(any(vapply(
     plot$scales$scales,
     function(scale) "shape" %in% scale$aesthetics,
     logical(1)
   )))
+})
+
+test_that(".sirap_combine_receptor_groups merges multi-group spots with a blended color", {
+  lookup <- data.frame(
+    barcode = c("spot1", "spot2", "spot3", "spot3"),
+    .sirap_receptor_group = c("BCR", "TCR", "BCR", "TCR"),
+    stringsAsFactors = FALSE
+  )
+  res <- SIRAP:::.sirap_combine_receptor_groups(
+    lookup, "barcode", c("BCR", "TCR"), c(BCR = "blue", TCR = "orange")
+  )
+
+  # One row per spot; the multi-group spot becomes the combined group.
+  expect_identical(nrow(res$lookup), 3L)
+  expect_identical(levels(res$lookup$.sirap_receptor_group), c("BCR", "TCR", "BCR + TCR"))
+  expect_identical(
+    as.character(res$lookup$.sirap_receptor_group[res$lookup$barcode == "spot3"]),
+    "BCR + TCR"
+  )
+  # Single groups keep their colors; the combination is the average.
+  expect_identical(res$colors[["BCR"]], "blue")
+  expect_identical(res$colors[["TCR"]], "orange")
+  expect_identical(res$colors[["BCR + TCR"]], SIRAP:::.sirap_average_colors(c("blue", "orange")))
+
+  # overlap = a fixed color colors all combined spots with that color.
+  res_fixed <- SIRAP:::.sirap_combine_receptor_groups(
+    lookup, "barcode", c("BCR", "TCR"), c(BCR = "blue", TCR = "orange"), overlap = "black"
+  )
+  expect_identical(res_fixed$colors[["BCR + TCR"]], "black")
+  expect_identical(res_fixed$colors[["BCR"]], "blue")
+  expect_error(
+    SIRAP:::.sirap_combine_receptor_groups(
+      lookup, "barcode", c("BCR", "TCR"), c(BCR = "blue", TCR = "orange"), overlap = "not_a_color"
+    ),
+    "overlap"
+  )
 })
