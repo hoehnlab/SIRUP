@@ -1265,7 +1265,7 @@ plotSpatialCloneTreePairs <- function(trees,
       legend_colors = legend_info$colors,
       show_legend = show_spatial_legend,
       legend_position = "bottom",
-      legend_ncol = min(3L, length(legend_info$colors))
+      legend_ncol = min(6L, length(legend_info$colors))
     )
     tree_legend <- if (isTRUE(show_spatial_legend)) {
       cowplot::get_legend(tree_plot)
@@ -1290,18 +1290,14 @@ plotSpatialCloneTreePairs <- function(trees,
       show_legend = FALSE,
       ...
     )
-    if (!is.null(tree_legend)) {
-      spatial_plot <- cowplot::plot_grid(
-        spatial_plot,
-        tree_legend,
-        ncol = 1,
-        rel_heights = c(1, max(0.18, 0.08 * ceiling(length(legend_info$colors) / 3)))
-      )
-    }
-
+    # Return the shared legend separately so the pair assembler can place it
+    # full-width beneath BOTH panels (avoids clipping when there are color and
+    # shape guides). legend_rel_height scales with the number of colour rows.
     list(
       tree = tree_plot,
-      spatial_clone = spatial_plot
+      spatial_clone = spatial_plot,
+      legend = tree_legend,
+      legend_rel_height = max(0.12, 0.07 * ceiling(length(legend_info$colors) / 6))
     )
   }
 
@@ -1499,11 +1495,22 @@ spatialCloneTreePairsToPDF <- function(pairs,
 }
 
 .sirap_clone_tree_pair_grid <- function(pair, rel_widths) {
-  cowplot::plot_grid(
+  top_row <- cowplot::plot_grid(
     pair$tree,
     pair$spatial_clone,
     ncol = 2,
     rel_widths = rel_widths
+  )
+  if (is.null(pair$legend)) {
+    return(top_row)
+  }
+  # Shared legend spans the full width beneath both panels so it is not clipped.
+  rel_h <- if (is.null(pair$legend_rel_height)) 0.14 else pair$legend_rel_height
+  cowplot::plot_grid(
+    top_row,
+    pair$legend,
+    ncol = 1,
+    rel_heights = c(1, rel_h)
   )
 }
 
@@ -1646,7 +1653,8 @@ spatialCloneTreePairsToPDF <- function(pairs,
         name = legend_title,
         breaks = names(legend_colors),
         limits = names(legend_colors),
-        drop = FALSE
+        drop = FALSE,
+        na.translate = FALSE
       ) +
       ggplot2::guides(
         color = ggplot2::guide_legend(
@@ -1657,12 +1665,13 @@ spatialCloneTreePairsToPDF <- function(pairs,
       )
   }
   if (!is.null(shape_col) && !is.null(shape_values)) {
-    p <- p + ggplot2::scale_shape_manual(values = shape_values, drop = FALSE)
+    p <- p + ggplot2::scale_shape_manual(values = shape_values, drop = FALSE, na.translate = FALSE)
   }
 
   p +
     ggplot2::theme(
       legend.position = if (isTRUE(show_legend)) legend_position else "none",
+      legend.box = "horizontal",
       plot.title = ggplot2::element_text(hjust = 0)
     )
 }
