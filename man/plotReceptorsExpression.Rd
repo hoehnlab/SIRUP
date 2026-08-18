@@ -13,6 +13,7 @@ plotReceptorsExpression(
   feature = NULL,
   gene = NULL,
   colors = NULL,
+  overlap = "average",
   receptor_size = 1,
   receptor_stroke = 0.7,
   receptor_alpha = 1,
@@ -56,6 +57,11 @@ Defaults to all non-missing values in \code{group}.}
 
 \item{colors}{Optional colors for receptor groups. Named colors are matched
 to \code{values}; otherwise colors are used in value order.}
+
+\item{overlap}{How to color a spot that carries more than one receptor
+group. Such a spot is drawn once as a combined group (members joined by
+\code{" + "}). \code{"average"} (default) colors it with the mean of its members'
+colors; any single color instead colors all combined spots with that color.}
 
 \item{receptor_size}{Size for receptor-positive spots.}
 

@@ -493,6 +493,10 @@ spatialExpressionMultiPlot <- function(object,
 #' @param gene Alias for `feature`.
 #' @param colors Optional colors for receptor groups. Named colors are matched
 #'   to `values`; otherwise colors are used in value order.
+#' @param overlap How to color a spot that carries more than one receptor
+#'   group. Such a spot is drawn once as a combined group (members joined by
+#'   `" + "`). `"average"` (default) colors it with the mean of its members'
+#'   colors; any single color instead colors all combined spots with that color.
 #' @param receptor_size Size for receptor-positive spots.
 #' @param receptor_stroke Stroke width for hollow receptor circles.
 #' @param receptor_alpha Alpha for receptor circles.
@@ -524,6 +528,7 @@ plotReceptorsExpression <- function(object,
                                     feature = NULL,
                                     gene = NULL,
                                     colors = NULL,
+                                    overlap = "average",
                                     receptor_size = 1,
                                     receptor_stroke = 0.7,
                                     receptor_alpha = 1,
@@ -592,11 +597,18 @@ plotReceptorsExpression <- function(object,
     receptors$.sirap_receptor_group,
     levels = group_val
   )
-  colors <- .sirap_receptor_group_colors(group_val, colors)
+  single_colors <- .sirap_receptor_group_colors(group_val, colors)
   receptor_legend_title <- receptor_legend_title %||% group
 
   receptor_lookup <- receptors[, c(spatial_id, ".sirap_receptor_group"), drop = FALSE]
   receptor_lookup <- receptor_lookup[!duplicated(receptor_lookup), , drop = FALSE]
+
+  # Spots with more than one receptor group become a combined, colour-averaged
+  # group (for example "BCR + TCR"), so each spot is drawn as a single ring.
+  combined <- .sirap_combine_receptor_groups(receptor_lookup, spatial_id, group_val, single_colors, overlap = overlap)
+  receptor_lookup <- combined$lookup
+  plot_groups <- combined$levels
+  colors <- combined$colors
 
   if (!is.null(assay)) {
     SeuratObject::DefaultAssay(object) <- assay
@@ -640,7 +652,7 @@ plotReceptorsExpression <- function(object,
     )
     receptor_data$.sirap_receptor_group <- factor(
       receptor_data$.sirap_receptor_group,
-      levels = group_val
+      levels = plot_groups
     )
 
     if (nrow(expression_data) == 0L && nrow(receptor_data) == 0L) {
@@ -668,7 +680,7 @@ plotReceptorsExpression <- function(object,
         ggplot2::scale_color_gradientn(colors = feature_colors, name = feature)
     }
 
-    for (value in group_val) {
+    for (value in plot_groups) {
       group_data <- receptor_data[
         receptor_data$.sirap_receptor_group == value,
         ,
@@ -677,7 +689,7 @@ plotReceptorsExpression <- function(object,
       if (nrow(group_data) == 0L) {
         next
       }
-      group_data$.sirap_receptor_label <- factor(value, levels = group_val)
+      group_data$.sirap_receptor_label <- factor(value, levels = plot_groups)
       p <- p + ggplot2::geom_point(
         data = group_data,
         ggplot2::aes(
@@ -699,7 +711,7 @@ plotReceptorsExpression <- function(object,
     if (nrow(receptor_data) > 0L && isTRUE(show_receptor_legend)) {
       p <- p +
         ggplot2::scale_shape_manual(
-          values = stats::setNames(rep(21, length(group_val)), group_val),
+          values = stats::setNames(rep(21, length(plot_groups)), plot_groups),
           name = receptor_legend_title,
           drop = FALSE
         ) +
@@ -735,6 +747,10 @@ plotReceptorsExpression <- function(object,
 #'   `NULL`, the first available spatial ID-like column is used.
 #' @param colors Optional colors for receptor groups. Named colors are matched
 #'   to `values`; otherwise colors are used in value order.
+#' @param overlap How to color a spot that carries more than one receptor
+#'   group. Such a spot is drawn once as a combined group (members joined by
+#'   `" + "`). `"average"` (default) colors it with the mean of its members'
+#'   colors; any single color instead colors all combined spots with that color.
 #' @param receptor_size Size for receptor points.
 #' @param receptor_alpha Alpha for receptor points.
 #' @param title Optional title.
@@ -761,6 +777,7 @@ plotReceptors <- function(object,
                           group_val = NULL,
                           spatial_id = NULL,
                           colors = NULL,
+                          overlap = "average",
                           receptor_size = 1,
                           receptor_alpha = 1,
                           title = NULL,
@@ -810,11 +827,18 @@ plotReceptors <- function(object,
   }
   receptors[[spatial_id]] <- as.character(receptors[[spatial_id]])
   receptors$.sirap_receptor_group <- factor(receptors$.sirap_receptor_group, levels = group_val)
-  colors <- .sirap_receptor_group_colors(group_val, colors)
+  single_colors <- .sirap_receptor_group_colors(group_val, colors)
   receptor_legend_title <- receptor_legend_title %||% group
 
   receptor_lookup <- receptors[, c(spatial_id, ".sirap_receptor_group"), drop = FALSE]
   receptor_lookup <- receptor_lookup[!duplicated(receptor_lookup), , drop = FALSE]
+
+  # Spots with more than one receptor group become a combined, colour-averaged
+  # group (for example "BCR + TCR"), so each spot is drawn as a single point.
+  combined <- .sirap_combine_receptor_groups(receptor_lookup, spatial_id, group_val, single_colors, overlap = overlap)
+  receptor_lookup <- combined$lookup
+  plot_groups <- combined$levels
+  colors <- combined$colors
   plots <- list()
   for (image in .sirap_spatial_images(object, images = images)) {
     spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
@@ -827,7 +851,7 @@ plotReceptors <- function(object,
     )
     receptor_data$.sirap_receptor_group <- factor(
       receptor_data$.sirap_receptor_group,
-      levels = group_val
+      levels = plot_groups
     )
     if (isTRUE(order_points)) {
       receptor_data <- receptor_data[
@@ -1371,6 +1395,61 @@ spatialCloneTreePairsToPDF <- function(pairs,
   }
 
   invisible(path)
+}
+
+# Average a set of colors in sRGB space and return one hex color.
+.sirap_average_colors <- function(colors) {
+  rgb_mat <- grDevices::col2rgb(colors)
+  avg <- round(rowMeans(rgb_mat))
+  grDevices::rgb(avg[[1]], avg[[2]], avg[[3]], maxColorValue = 255)
+}
+
+# Collapse per-spot receptor groups into one group per spot. A spot that carries
+# more than one distinct group becomes a combined group (members joined by
+# " + ", ordered as in `group_val`), coloured by the average of its members'
+# colors. Single-group spots are unchanged. Returns the per-spot lookup, the
+# ordered plot levels (single groups first, then combinations), and the colors.
+.sirap_combine_receptor_groups <- function(lookup, spatial_id, group_val, single_colors, sep = " + ", overlap = "average") {
+  if (!identical(overlap, "average")) {
+    if (length(overlap) != 1L || is.na(overlap) ||
+        inherits(try(grDevices::col2rgb(overlap), silent = TRUE), "try-error")) {
+      rlang::abort('`overlap` must be "average" or a single color.')
+    }
+  }
+  lookup[[spatial_id]] <- as.character(lookup[[spatial_id]])
+  groups <- as.character(lookup$.sirap_receptor_group)
+  by_spot <- split(groups, lookup[[spatial_id]])
+  labels <- vapply(by_spot, function(v) {
+    v <- group_val[group_val %in% unique(v)]
+    paste(v, collapse = sep)
+  }, character(1))
+
+  out <- data.frame(names(labels), unname(labels), stringsAsFactors = FALSE)
+  names(out) <- c(spatial_id, ".sirap_receptor_group")
+
+  observed <- unique(out$.sirap_receptor_group)
+  singles <- group_val[group_val %in% observed]
+  combos <- sort(setdiff(observed, singles))
+  levels_out <- c(singles, combos)
+  out$.sirap_receptor_group <- factor(out$.sirap_receptor_group, levels = levels_out)
+
+  colors <- stats::setNames(character(length(levels_out)), levels_out)
+  for (lv in levels_out) {
+    members <- strsplit(lv, sep, fixed = TRUE)[[1]]
+    member_colors <- single_colors[members]
+    member_colors <- member_colors[!is.na(member_colors)]
+    colors[[lv]] <- if (length(member_colors) == 0L) {
+      "#808080"
+    } else if (length(member_colors) == 1L) {
+      unname(member_colors[[1L]])          # keep single-group colors unchanged
+    } else if (identical(overlap, "average")) {
+      .sirap_average_colors(member_colors)   # combinations get the averaged color
+    } else {
+      overlap                                # or a single fixed overlap color
+    }
+  }
+
+  list(lookup = out, levels = levels_out, colors = colors)
 }
 
 .sirap_receptor_group_colors <- function(values, colors = NULL) {
