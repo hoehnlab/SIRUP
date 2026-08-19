@@ -746,3 +746,40 @@ test_that(".sirap_spatial_base crops to spatial barcodes by default", {
   xr <- p_empty$coordinates$limits$x
   expect_true(xr[[1]] <= 10 && xr[[2]] >= 20)
 })
+
+test_that("side-by-side pies order polygons by receptor count", {
+  # Polygon 1 = 12 receptors, polygon 2 = 70, polygon 3 = 16. The default
+  # "receptors" order shows the most-populated polygon first (2, 3, 1); each
+  # pie keeps its map label. "polygon" keeps the numbered map order (1, 2, 3).
+  pie_data <- data.frame(
+    polygon = c("GC1", "GC2", "GC3"),
+    polygon_label = c("1", "2", "3"),
+    n = c(12L, 70L, 16L),
+    stringsAsFactors = FALSE
+  )
+
+  expect_equal(
+    .sirap_pie_polygon_order(pie_data, "receptors"),
+    c("2", "3", "1")
+  )
+  expect_equal(
+    .sirap_pie_polygon_order(pie_data, "polygon"),
+    c("1", "2", "3")
+  )
+
+  # Several clones per polygon: the totals per polygon drive the order.
+  multi <- data.frame(
+    polygon_label = c("1", "1", "2", "3", "3"),
+    n = c(5L, 7L, 70L, 10L, 6L),
+    stringsAsFactors = FALSE
+  )
+  expect_equal(.sirap_pie_polygon_order(multi, "receptors"), c("2", "3", "1"))
+
+  # A tie in receptor count breaks by the polygon label, ascending.
+  tied <- data.frame(
+    polygon_label = c("1", "2", "3"),
+    n = c(20L, 20L, 5L),
+    stringsAsFactors = FALSE
+  )
+  expect_equal(.sirap_pie_polygon_order(tied, "receptors"), c("1", "2", "3"))
+})

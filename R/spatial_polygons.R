@@ -1355,6 +1355,11 @@ plotSpatialCloneDensity3D <- function(dominance,
 #' @param pies_per_page Maximum number of ordinary pie charts to show per page
 #'   when `mode = "side_by_side"`. When more polygons are present, a named list
 #'   of page plots is returned.
+#' @param pie_order Order of the pie charts when `mode = "side_by_side"`.
+#'   `"receptors"` (the default) shows the polygon with the most receptors
+#'   first, then the next most, and so on. Each pie keeps its map label, so
+#'   only the arrangement changes. `"polygon"` keeps the numbered map order
+#'   (polygon 1, 2, 3, ...). Ignored when `mode = "spatial_clipped"`.
 #' @param spatial_legend Show a shared fill legend for `spatial_clipped` pie
 #'   plots. Defaults to `FALSE`.
 #' @param zoom Zoom to the plotted polygon extents. Defaults to `FALSE`, which
@@ -1379,6 +1384,7 @@ plotSpatialPolygonPies <- function(dominance,
                                    pie_alpha = 0.9,
                                    label_size = 3,
                                    pies_per_page = 6L,
+                                   pie_order = c("receptors", "polygon"),
                                    spatial_legend = FALSE,
                                    zoom = FALSE) {
   fill_missing <- missing(fill)
@@ -1392,6 +1398,7 @@ plotSpatialPolygonPies <- function(dominance,
   }
   .require_namespace("SeuratObject")
   mode <- match.arg(mode)
+  pie_order <- match.arg(pie_order)
   if (is.null(label_top_n)) {
     label_top_n <- Inf
   }
@@ -1438,6 +1445,7 @@ plotSpatialPolygonPies <- function(dominance,
       image_alpha = image_alpha,
       label_size = label_size,
       pies_per_page = pies_per_page,
+      pie_order = pie_order,
       zoom = zoom
     )
   } else {
@@ -3611,6 +3619,19 @@ summarizePolygonDiversity <- function(object,
   out
 }
 
+# Decide the order of the side-by-side pie charts. `"receptors"` orders the
+# polygons by their total receptor count (most first); ties break by the polygon
+# map label. `"polygon"` keeps the numbered map order. Returns the polygon
+# labels in the chosen order.
+.sirap_pie_polygon_order <- function(pie_data, pie_order = c("receptors", "polygon")) {
+  pie_order <- match.arg(pie_order)
+  if (identical(pie_order, "polygon")) {
+    return(unique(pie_data$polygon_label))
+  }
+  totals <- tapply(pie_data$n, pie_data$polygon_label, sum)
+  names(totals)[order(-totals, suppressWarnings(as.integer(names(totals))))]
+}
+
 .sirap_polygon_centers <- function(polygon_plot_data, polygons) {
   centers <- lapply(split(polygon_plot_data, polygon_plot_data$polygon), function(dat) {
     dat <- dat[!duplicated(paste(dat$x, dat$y)), , drop = FALSE]
@@ -3641,7 +3662,9 @@ summarizePolygonDiversity <- function(object,
                                              image_alpha,
                                              label_size,
                                              pies_per_page,
+                                             pie_order = c("receptors", "polygon"),
                                              zoom) {
+  pie_order <- match.arg(pie_order)
   map_polygon_data <- polygon_plot_data
   polygon_labels <- stats::setNames(centers$polygon_label, centers$polygon)
   map_polygon_data$polygon_label <- unname(polygon_labels[as.character(map_polygon_data$polygon)])
@@ -3662,9 +3685,10 @@ summarizePolygonDiversity <- function(object,
   )
   map_plot <- if (is.list(map_plots)) map_plots[[1L]] else map_plots
 
+  ordered_labels <- .sirap_pie_polygon_order(pie_data, pie_order)
   pie_groups <- split(
     pie_data,
-    factor(pie_data$polygon_label, levels = unique(pie_data$polygon_label))
+    factor(pie_data$polygon_label, levels = ordered_labels)
   )
   pie_plots <- lapply(pie_groups, function(dat) {
     local_levels <- unique(as.character(dat$level))

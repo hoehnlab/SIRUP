@@ -23,6 +23,7 @@ plotSpatialPolygonPies(
   pie_alpha = 0.9,
   label_size = 3,
   pies_per_page = 6L,
+  pie_order = c("receptors", "polygon"),
   spatial_legend = FALSE,
   zoom = FALSE
 )
@@ -75,6 +76,12 @@ result.}
 \item{pies_per_page}{Maximum number of ordinary pie charts to show per page
 when \code{mode = "side_by_side"}. When more polygons are present, a named list
 of page plots is returned.}
+
+\item{pie_order}{Order of the pie charts when \code{mode = "side_by_side"}.
+\code{"receptors"} (the default) shows the polygon with the most receptors
+first, then the next most, and so on. Each pie keeps its map label, so
+only the arrangement changes. \code{"polygon"} keeps the numbered map order
+(polygon 1, 2, 3, ...). Ignored when \code{mode = "spatial_clipped"}.}
 
 \item{spatial_legend}{Show a shared fill legend for \code{spatial_clipped} pie
 plots. Defaults to \code{FALSE}.}
