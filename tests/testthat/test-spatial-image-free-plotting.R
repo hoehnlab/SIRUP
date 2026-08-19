@@ -210,3 +210,107 @@ test_that("3D clone density prepares image-free plot data", {
   expect_true(all(is.finite(plot_data$image_extent$xlim)))
   expect_true(all(is.finite(plot_data$image_extent$ylim)))
 })
+
+# Helper: count the GeomPolygon layers on a ggplot (works on the resolved plot).
+n_polygon_layers <- function(plot) {
+  sum(vapply(plot$layers, function(l) inherits(l$geom, "GeomPolygon"), logical(1)))
+}
+
+test_that("plotReceptors overlays polygons from a data frame and a CSV path", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("Matrix")
+
+  object <- make_image_free_spatial()
+  receptors <- data.frame(
+    spatial_id = c("cell1", "cell2", "cell4"),
+    receptor_type = c("BCR", "BCR", "TCR"),
+    stringsAsFactors = FALSE
+  )
+  polygon <- data.frame(
+    polygon = c(rep("left", 5), rep("right", 5)),
+    x = c(-0.5, 1.5, 1.5, -0.5, -0.5, 1.5, 3.5, 3.5, 1.5, 1.5),
+    y = c(-0.5, -0.5, 1.5, 1.5, -0.5, -0.5, -0.5, 1.5, 1.5, -0.5),
+    stringsAsFactors = FALSE
+  )
+
+  # A data frame of vertices draws one polygon fill layer plus a label layer.
+  df_plot <- plotReceptors(
+    object,
+    receptors = receptors,
+    group = "receptor_type",
+    spatial_id = "spatial_id",
+    image_scale = "hires",
+    swap_coords = FALSE,
+    polygons = polygon,
+    polygon_label = TRUE
+  )
+  expect_s3_class(df_plot, "ggplot")
+  expect_equal(n_polygon_layers(df_plot), 1L)
+
+  # A CSV path resolves to the same overlay.
+  csv_path <- withr::local_tempfile(fileext = ".csv")
+  utils::write.csv(polygon, csv_path, row.names = FALSE)
+  csv_plot <- plotReceptors(
+    object,
+    receptors = receptors,
+    group = "receptor_type",
+    spatial_id = "spatial_id",
+    image_scale = "hires",
+    swap_coords = FALSE,
+    polygons = csv_path,
+    polygon_val = "left"
+  )
+  expect_s3_class(csv_plot, "ggplot")
+  expect_equal(n_polygon_layers(csv_plot), 1L)
+
+  # Default `polygons = FALSE` draws no polygon layer.
+  none_plot <- plotReceptors(
+    object,
+    receptors = receptors,
+    group = "receptor_type",
+    spatial_id = "spatial_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+  expect_equal(n_polygon_layers(none_plot), 0L)
+})
+
+test_that("plotSpatialColorTips overlays SIRAP object polygons", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("Matrix")
+
+  object <- make_image_free_spatial()
+  receptors <- data.frame(
+    spatial_id = c("cell1", "cell2", "cell3"),
+    sequence_id = paste0("seq", 1:3),
+    stringsAsFactors = FALSE
+  )
+  polygon <- data.frame(
+    polygon_id = "region",
+    x = c(-0.5, 3.5, 3.5, -0.5, -0.5),
+    y = c(-0.5, -0.5, 1.5, 1.5, -0.5),
+    stringsAsFactors = FALSE
+  )
+  sirap <- createSIRAP(
+    spatial = object,
+    receptors = receptors,
+    spatial_id = "spatial_id",
+    locus = NULL,
+    image_scale = "hires",
+    swap_coords = FALSE,
+    polygons = polygon
+  )
+
+  tip_plot <- plotSpatialColorTips(
+    sirap,
+    tip_data = data.frame(
+      spatial_id = c("cell1", "cell3"),
+      tip_color = c("#111111", "#CC5500"),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "spatial_id",
+    polygons = TRUE
+  )
+  expect_s3_class(tip_plot, "ggplot")
+  expect_equal(n_polygon_layers(tip_plot), 1L)
+})

@@ -21,7 +21,20 @@ plotSpatialColorTips(
   images = NULL,
   image_alpha = 1,
   zoom = FALSE,
-  show_legend = FALSE
+  show_legend = FALSE,
+  polygons = FALSE,
+  polygon_x = "x",
+  polygon_y = "y",
+  polygon_id = "polygon",
+  polygon_val = NULL,
+  polygon_alpha = 0.2,
+  polygon_fill = "#0072B2",
+  polygon_color = "#0072B2",
+  polygon_linewidth = 0.6,
+  polygon_label = FALSE,
+  polygon_label_by = NULL,
+  polygon_label_size = 3,
+  polygon_label_color = "black"
 )
 }
 \arguments{
@@ -62,6 +75,41 @@ appear on top.}
 full tissue area covered by the spatial coordinates.}
 
 \item{show_legend}{Show color legend.}
+
+\item{polygons}{Draw region polygons under the tip points on each spatial
+panel. \code{FALSE} (the default) draws no polygons. \code{TRUE} uses the polygons
+stored in the SIRAP object. You can also pass a data frame of polygon
+vertices, or a path to a CSV file of polygon vertices. Vertex tables need
+\code{polygon_x} and \code{polygon_y} columns, plus \code{polygon_id} to separate
+multiple polygons.}
+
+\item{polygon_x, polygon_y}{Vertex coordinate columns in a supplied polygon
+data frame or CSV file.}
+
+\item{polygon_id}{Column that separates multiple polygons in a supplied
+polygon data frame or CSV file. When the named column is absent, a
+\code{polygon} or \code{polygon_id} column is used if present; otherwise all rows
+form one polygon.}
+
+\item{polygon_val}{Optional polygon ID value(s) to draw. When \code{NULL}, all
+polygons are drawn.}
+
+\item{polygon_alpha}{Fill opacity for polygons.}
+
+\item{polygon_fill}{Fill color for polygons.}
+
+\item{polygon_color}{Outline color for polygons.}
+
+\item{polygon_linewidth}{Outline width for polygons.}
+
+\item{polygon_label}{Label each polygon at its center.}
+
+\item{polygon_label_by}{Column used for polygon labels. When \code{NULL}, the
+polygon ID is used.}
+
+\item{polygon_label_size}{Text size for polygon labels.}
+
+\item{polygon_label_color}{Text color for polygon labels.}
 }
 \value{
 A ggplot/patchwork object.
