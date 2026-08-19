@@ -768,6 +768,29 @@ plotReceptorsExpression <- function(object,
 #' @param receptor_legend_title Legend title for receptor groups. Defaults to
 #'   `group`.
 #' @param show_receptor_legend Show the receptor group legend.
+#' @param polygons Draw region polygons under the receptor points on each
+#'   spatial panel. `FALSE` (the default) draws no polygons. `TRUE` uses the
+#'   polygons stored in the SIRAP object. You can also pass a data frame of
+#'   polygon vertices, or a path to a CSV file of polygon vertices. Vertex
+#'   tables need `polygon_x` and `polygon_y` columns, plus `polygon_id` to
+#'   separate multiple polygons.
+#' @param polygon_x,polygon_y Vertex coordinate columns in a supplied polygon
+#'   data frame or CSV file.
+#' @param polygon_id Column that separates multiple polygons in a supplied
+#'   polygon data frame or CSV file. When the named column is absent, a
+#'   `polygon` or `polygon_id` column is used if present; otherwise all rows
+#'   form one polygon.
+#' @param polygon_val Optional polygon ID value(s) to draw. When `NULL`, all
+#'   polygons are drawn.
+#' @param polygon_alpha Fill opacity for polygons.
+#' @param polygon_fill Fill color for polygons.
+#' @param polygon_color Outline color for polygons.
+#' @param polygon_linewidth Outline width for polygons.
+#' @param polygon_label Label each polygon at its center.
+#' @param polygon_label_by Column used for polygon labels. When `NULL`, the
+#'   polygon ID is used.
+#' @param polygon_label_size Text size for polygon labels.
+#' @param polygon_label_color Text color for polygon labels.
 #' @param combine Combine image panels with patchwork.
 #' @return A ggplot/patchwork object or a list when `combine = FALSE`.
 #' @export
@@ -789,10 +812,34 @@ plotReceptors <- function(object,
                           zoom = FALSE,
                           receptor_legend_title = NULL,
                           show_receptor_legend = TRUE,
+                          polygons = FALSE,
+                          polygon_x = "x",
+                          polygon_y = "y",
+                          polygon_id = "polygon",
+                          polygon_val = NULL,
+                          polygon_alpha = 0.2,
+                          polygon_fill = "#0072B2",
+                          polygon_color = "#0072B2",
+                          polygon_linewidth = 0.6,
+                          polygon_label = FALSE,
+                          polygon_label_by = NULL,
+                          polygon_label_size = 3,
+                          polygon_label_color = "black",
                           combine = TRUE) {
   options <- .sirap_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
+  # Resolve any polygon overlay while `object` may still be the SIRAP object;
+  # `.sirap_resolve_inputs()` replaces it with the plain Seurat object below.
+  polygon_overlay <- .sirap_resolve_overlay_polygons(
+    polygons = polygons,
+    object = object,
+    polygon_x = polygon_x,
+    polygon_y = polygon_y,
+    polygon_id = polygon_id,
+    polygon_val = polygon_val,
+    label_by = polygon_label_by
+  )
   inputs <- .sirap_resolve_inputs(object, receptors, spatial_id)
   object <- inputs$object
   receptors <- inputs$receptors
@@ -873,6 +920,17 @@ plotReceptors <- function(object,
       view_data = spatial$coords
     )
 
+    # Draw polygons under the receptor points so both stay visible.
+    if (!is.null(polygon_overlay)) {
+      p <- p + .sirap_polygon_fill_layer(
+        polygon_overlay,
+        polygon_alpha = polygon_alpha,
+        polygon_fill = polygon_fill,
+        polygon_color = polygon_color,
+        polygon_linewidth = polygon_linewidth
+      )
+    }
+
     p <- p +
       ggplot2::geom_point(
         data = receptor_data,
@@ -888,6 +946,20 @@ plotReceptors <- function(object,
         name = receptor_legend_title,
         drop = FALSE
       )
+
+    # Polygon labels sit on top of the points.
+    if (!is.null(polygon_overlay)) {
+      label_layer <- .sirap_polygon_label_layer(
+        polygon_overlay,
+        polygon_label = polygon_label,
+        polygon_label_by = polygon_label_by,
+        polygon_label_size = polygon_label_size,
+        polygon_label_color = polygon_label_color
+      )
+      if (!is.null(label_layer)) {
+        p <- p + label_layer
+      }
+    }
 
     plots[[image]] <- p + ggplot2::labs(title = title %||% receptor_legend_title)
   }
@@ -918,6 +990,29 @@ plotReceptors <- function(object,
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
 #' @param show_legend Show color legend.
+#' @param polygons Draw region polygons under the tip points on each spatial
+#'   panel. `FALSE` (the default) draws no polygons. `TRUE` uses the polygons
+#'   stored in the SIRAP object. You can also pass a data frame of polygon
+#'   vertices, or a path to a CSV file of polygon vertices. Vertex tables need
+#'   `polygon_x` and `polygon_y` columns, plus `polygon_id` to separate
+#'   multiple polygons.
+#' @param polygon_x,polygon_y Vertex coordinate columns in a supplied polygon
+#'   data frame or CSV file.
+#' @param polygon_id Column that separates multiple polygons in a supplied
+#'   polygon data frame or CSV file. When the named column is absent, a
+#'   `polygon` or `polygon_id` column is used if present; otherwise all rows
+#'   form one polygon.
+#' @param polygon_val Optional polygon ID value(s) to draw. When `NULL`, all
+#'   polygons are drawn.
+#' @param polygon_alpha Fill opacity for polygons.
+#' @param polygon_fill Fill color for polygons.
+#' @param polygon_color Outline color for polygons.
+#' @param polygon_linewidth Outline width for polygons.
+#' @param polygon_label Label each polygon at its center.
+#' @param polygon_label_by Column used for polygon labels. When `NULL`, the
+#'   polygon ID is used.
+#' @param polygon_label_size Text size for polygon labels.
+#' @param polygon_label_color Text color for polygon labels.
 #' @return A ggplot/patchwork object.
 #' @export
 plotSpatialColorTips <- function(object,
@@ -936,11 +1031,35 @@ plotSpatialColorTips <- function(object,
                                 images = NULL,
                                 image_alpha = 1,
                                  zoom = FALSE,
-                                 show_legend = FALSE) {
+                                 show_legend = FALSE,
+                                polygons = FALSE,
+                                polygon_x = "x",
+                                polygon_y = "y",
+                                polygon_id = "polygon",
+                                polygon_val = NULL,
+                                polygon_alpha = 0.2,
+                                polygon_fill = "#0072B2",
+                                polygon_color = "#0072B2",
+                                polygon_linewidth = 0.6,
+                                polygon_label = FALSE,
+                                polygon_label_by = NULL,
+                                polygon_label_size = 3,
+                                polygon_label_color = "black") {
   spatial_id_missing <- missing(spatial_id)
   if (isSIRAP(object) && spatial_id_missing) {
     spatial_id <- .sirap_receptor_fields(object)$spatial_id
   }
+  # Resolve any polygon overlay while `object` may still be the SIRAP object;
+  # `.sirap_spatial_context()` replaces it with the plain Seurat object below.
+  polygon_overlay <- .sirap_resolve_overlay_polygons(
+    polygons = polygons,
+    object = object,
+    polygon_x = polygon_x,
+    polygon_y = polygon_y,
+    polygon_id = polygon_id,
+    polygon_val = polygon_val,
+    label_by = polygon_label_by
+  )
   context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
   image_scale <- context$image_scale
@@ -991,7 +1110,18 @@ plotSpatialColorTips <- function(object,
       image_alpha = image_alpha,
       zoom = zoom,
       view_data = spatial$coords
-    ) +
+    )
+    # Draw polygons under the tip points so both stay visible.
+    if (!is.null(polygon_overlay)) {
+      p <- p + .sirap_polygon_fill_layer(
+        polygon_overlay,
+        polygon_alpha = polygon_alpha,
+        polygon_fill = polygon_fill,
+        polygon_color = polygon_color,
+        polygon_linewidth = polygon_linewidth
+      )
+    }
+    p <- p +
       ggplot2::geom_point(
         ggplot2::aes(color = .data$.sirap_tip_legend),
         size = point_size,
@@ -1006,6 +1136,19 @@ plotSpatialColorTips <- function(object,
         drop = FALSE
       ) +
       ggplot2::labs(title = title)
+    # Polygon labels sit on top of the points.
+    if (!is.null(polygon_overlay)) {
+      label_layer <- .sirap_polygon_label_layer(
+        polygon_overlay,
+        polygon_label = polygon_label,
+        polygon_label_by = polygon_label_by,
+        polygon_label_size = polygon_label_size,
+        polygon_label_color = polygon_label_color
+      )
+      if (!is.null(label_layer)) {
+        p <- p + label_layer
+      }
+    }
     if (!isTRUE(show_legend)) {
       p <- p + ggplot2::theme(legend.position = "none")
     }
@@ -1134,6 +1277,28 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #'   groups appear on top.
 #' @param show_spatial_legend Show a color legend based on the tree tip colors
 #'   below the spatial plot.
+#' @param polygons Draw region polygons on each spatial panel. `FALSE` (the
+#'   default) draws no polygons. `TRUE` uses the polygons stored in the SIRAP
+#'   object. You can also pass a data frame of polygon vertices, or a path to a
+#'   CSV file of polygon vertices. Vertex tables need `polygon_x` and
+#'   `polygon_y` columns, plus `polygon_id` to separate multiple polygons.
+#' @param polygon_x,polygon_y Vertex coordinate columns in a supplied polygon
+#'   data frame or CSV file.
+#' @param polygon_id Column that separates multiple polygons in a supplied
+#'   polygon data frame or CSV file. When the named column is absent, a
+#'   `polygon` or `polygon_id` column is used if present; otherwise all rows
+#'   form one polygon.
+#' @param polygon_val Optional polygon ID value(s) to draw. When `NULL`, all
+#'   polygons are drawn.
+#' @param polygon_alpha Fill opacity for polygons.
+#' @param polygon_fill Fill color for polygons.
+#' @param polygon_color Outline color for polygons.
+#' @param polygon_linewidth Outline width for polygons.
+#' @param polygon_label Label each polygon at its center.
+#' @param polygon_label_by Column used for polygon labels. When `NULL`, the
+#'   polygon ID is used.
+#' @param polygon_label_size Text size for polygon labels.
+#' @param polygon_label_color Text color for polygon labels.
 #' @param nproc Number of processes used to build clone tree/spatial plot pairs.
 #' @param ... Additional arguments passed to `plotSpatialColorTips()`.
 #' @return Named list. Each clone element contains `tree` and `spatial_clone`.
@@ -1164,6 +1329,19 @@ plotSpatialCloneTreePairs <- function(trees,
                                       spatial_tip_alpha = 1,
                                       order_points = FALSE,
                                       show_spatial_legend = FALSE,
+                                      polygons = FALSE,
+                                      polygon_x = "x",
+                                      polygon_y = "y",
+                                      polygon_id = "polygon",
+                                      polygon_val = NULL,
+                                      polygon_alpha = 0.2,
+                                      polygon_fill = "#0072B2",
+                                      polygon_color = "#0072B2",
+                                      polygon_linewidth = 0.6,
+                                      polygon_label = FALSE,
+                                      polygon_label_by = NULL,
+                                      polygon_label_size = 3,
+                                      polygon_label_color = "black",
                                       nproc = 1L,
                                       ...) {
   object_tip_ids <- NULL
@@ -1184,6 +1362,18 @@ plotSpatialCloneTreePairs <- function(trees,
       object_samples <- unique(stats::na.omit(as.character(receptor_data[[sample_field]])))
     }
   }
+  # Resolve the optional polygon overlay while `object` still holds the SIRAP
+  # object, because `polygons = TRUE` reads the stored polygon table from it.
+  # `.sirap_spatial_context()` replaces `object` with the plain Seurat object.
+  polygon_overlay <- .sirap_resolve_overlay_polygons(
+    polygons = polygons,
+    object = object,
+    polygon_x = polygon_x,
+    polygon_y = polygon_y,
+    polygon_id = polygon_id,
+    polygon_val = polygon_val,
+    label_by = polygon_label_by
+  )
   context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
   image_scale <- context$image_scale
@@ -1314,6 +1504,19 @@ plotSpatialCloneTreePairs <- function(trees,
       show_legend = FALSE,
       ...
     )
+    # Draw region polygons beneath the tip points so both stay visible.
+    spatial_plot <- .sirap_add_polygon_overlay(
+      spatial_plot,
+      polygon_overlay,
+      polygon_alpha = polygon_alpha,
+      polygon_fill = polygon_fill,
+      polygon_color = polygon_color,
+      polygon_linewidth = polygon_linewidth,
+      polygon_label = polygon_label,
+      polygon_label_by = polygon_label_by,
+      polygon_label_size = polygon_label_size,
+      polygon_label_color = polygon_label_color
+    )
     # Return the shared legend separately so the pair assembler can place it
     # full-width beneath BOTH panels (avoids clipping when there are color and
     # shape guides). legend_rel_height scales with the number of colour rows.
@@ -1330,6 +1533,152 @@ plotSpatialCloneTreePairs <- function(trees,
   out <- out[!vapply(out, is.null, logical(1))]
 
   out
+}
+
+# Resolve the `polygons` argument shared by the spatial plotting functions into
+# a plot-ready vertex table (columns `x`, `.sirap_y`, `polygon`, plus
+# `label_by`). `FALSE` returns NULL; `TRUE` reads the SIRAP object polygons; a
+# data frame or CSV path is used directly. Reuses the same helpers as
+# `plotSpatialPolygons()`.
+.sirap_resolve_overlay_polygons <- function(polygons,
+                                            object,
+                                            polygon_x = "x",
+                                            polygon_y = "y",
+                                            polygon_id = "polygon",
+                                            polygon_val = NULL,
+                                            label_by = NULL) {
+  if (is.null(polygons) || isFALSE(polygons)) {
+    return(NULL)
+  }
+  if (isTRUE(polygons)) {
+    if (!isSIRAP(object)) {
+      rlang::abort("`polygons = TRUE` needs a SIRAP object with stored polygons. Pass a data frame or CSV path instead.")
+    }
+    polygon <- .sirap_polygon_vertices_table(.sirap_polygons(object))
+    if (nrow(polygon) == 0L) {
+      rlang::abort("The SIRAP object does not contain stored polygons.")
+    }
+  } else if (is.character(polygons)) {
+    polygon <- .sirap_read_polygons_path(polygons)
+  } else if (is.data.frame(polygons)) {
+    polygon <- polygons
+  } else {
+    rlang::abort("`polygons` must be FALSE, TRUE, a data frame of polygon vertices, or a path to a CSV file.")
+  }
+  polygon <- .as_data_frame(polygon)
+  # Fall back to the common polygon-id column names when the requested one is
+  # absent, so a stored or exported polygon table works without extra arguments.
+  if (!polygon_id %in% names(polygon)) {
+    alt <- intersect(c("polygon", "polygon_id"), names(polygon))
+    if (length(alt) > 0L) {
+      polygon_id <- alt[[1L]]
+    }
+  }
+  .check_required_cols(polygon, c(polygon_x, polygon_y), "polygons")
+  keep_cols <- if (is.null(label_by)) character() else label_by
+  .sirap_polygon_plot_data(
+    polygon = polygon,
+    polygon_id = polygon_val,
+    polygon_col = polygon_id,
+    x_col = polygon_x,
+    y_col = polygon_y,
+    keep_cols = keep_cols
+  )
+}
+
+# The polygon fill/outline layer. Add this to a `.sirap_spatial_base()` plot
+# BEFORE the receptor/tip points so the points stay visible on top.
+.sirap_polygon_fill_layer <- function(polygon_data,
+                                      polygon_alpha = 0.2,
+                                      polygon_fill = "#0072B2",
+                                      polygon_color = "#0072B2",
+                                      polygon_linewidth = 0.6) {
+  ggplot2::geom_polygon(
+    data = polygon_data,
+    ggplot2::aes(x = .data$x, y = .data$.sirap_y, group = .data$polygon),
+    inherit.aes = FALSE,
+    fill = polygon_fill,
+    color = polygon_color,
+    alpha = polygon_alpha,
+    linewidth = polygon_linewidth
+  )
+}
+
+# The optional polygon center-label layer, or NULL when labels are off.
+.sirap_polygon_label_layer <- function(polygon_data,
+                                       polygon_label = FALSE,
+                                       polygon_label_by = NULL,
+                                       polygon_label_size = 3,
+                                       polygon_label_color = "black") {
+  if (!isTRUE(polygon_label)) {
+    return(NULL)
+  }
+  centers <- .sirap_polygon_centers(polygon_data, unique(polygon_data$polygon))
+  if (!is.null(polygon_label_by) && polygon_label_by %in% names(polygon_data)) {
+    lookup <- polygon_data[!duplicated(polygon_data$polygon), c("polygon", polygon_label_by), drop = FALSE]
+    centers$.sirap_label <- as.character(lookup[[polygon_label_by]][match(centers$polygon, lookup$polygon)])
+  } else {
+    centers$.sirap_label <- as.character(centers$polygon)
+  }
+  ggplot2::geom_text(
+    data = centers,
+    ggplot2::aes(x = .data$x, y = .data$.sirap_y, label = .data$.sirap_label),
+    inherit.aes = FALSE,
+    size = polygon_label_size,
+    color = polygon_label_color,
+    fontface = "bold"
+  )
+}
+
+# Add a polygon overlay to a FINISHED spatial panel (used by
+# `plotSpatialCloneTreePairs()`, which consumes `plotSpatialColorTips()`
+# output). The fill is inserted beneath the tip points (after the image raster
+# layer) so both stay visible; labels are drawn on top. Handles a single ggplot
+# and a patchwork of panels.
+.sirap_add_polygon_overlay <- function(plot,
+                                       polygon_data,
+                                       polygon_alpha = 0.2,
+                                       polygon_fill = "#0072B2",
+                                       polygon_color = "#0072B2",
+                                       polygon_linewidth = 0.6,
+                                       polygon_label = FALSE,
+                                       polygon_label_by = NULL,
+                                       polygon_label_size = 3,
+                                       polygon_label_color = "black") {
+  if (is.null(plot) || is.null(polygon_data) || nrow(polygon_data) == 0L) {
+    return(plot)
+  }
+  polygon_geom <- .sirap_polygon_fill_layer(
+    polygon_data,
+    polygon_alpha = polygon_alpha,
+    polygon_fill = polygon_fill,
+    polygon_color = polygon_color,
+    polygon_linewidth = polygon_linewidth
+  )
+  label_geom <- .sirap_polygon_label_layer(
+    polygon_data,
+    polygon_label = polygon_label,
+    polygon_label_by = polygon_label_by,
+    polygon_label_size = polygon_label_size,
+    polygon_label_color = polygon_label_color
+  )
+  if (inherits(plot, "ggplot")) {
+    # Insert the polygon fill just after the tissue-image raster so it sits
+    # below the tip points that `plotSpatialColorTips()` drew.
+    is_raster <- vapply(plot$layers, function(l) inherits(l$geom, "GeomRasterAnn"), logical(1))
+    after <- if (any(is_raster)) max(which(is_raster)) else 0L
+    plot$layers <- append(plot$layers, list(polygon_geom), after = after)
+    if (!is.null(label_geom)) {
+      plot <- plot + label_geom
+    }
+    return(plot)
+  }
+  # Patchwork of several image panels: add to every panel (drawn on top).
+  plot <- plot & polygon_geom
+  if (!is.null(label_geom)) {
+    plot <- plot & label_geom
+  }
+  plot
 }
 
 #' Save paired clone tree and spatial plots to a PDF
