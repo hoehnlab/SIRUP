@@ -2700,7 +2700,14 @@ summarizePolygonDiversity <- function(object,
                                      vx,
                                      vy,
                                      include_boundary = TRUE,
-                                     tol = sqrt(.Machine$double.eps)) {
+                                     tol = 1e-3) {
+  # `tol` is the boundary band (in the plot's pixel coordinate units). The
+  # previous default, sqrt(.Machine$double.eps) ~ 1.5e-8, was far too tight for
+  # pixel coordinates in the hundreds-thousands: spots sitting exactly on a
+  # polygon boundary/vertex could fall ~1e-6 outside when the polygon vertices
+  # come from a rounded (saved) CSV, and get dropped. 1e-3 px is sub-pixel
+  # (spot pitch is tens of px), so it absorbs coordinate round-trip error
+  # without including any genuinely-outside spot.
   px <- as.numeric(px)
   py <- as.numeric(py)
   vx <- as.numeric(vx)
