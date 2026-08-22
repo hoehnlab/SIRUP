@@ -804,6 +804,137 @@ formatSpatialPolygons <- function(object,
   out
 }
 
+#' Expand polygons outward from their centroids
+#'
+#' Grows each polygon by moving its vertices away from the polygon centroid.
+#' Each vertex moves along the line from the centroid through the vertex, by a
+#' fixed distance `delta`. The polygon keeps its shape and vertex count. The
+#' polygons are expected to be convex.
+#'
+#' @param polygons Polygons to expand. Either a flat data frame of vertices
+#'   (with `x`, `y`, and an optional polygon ID column), or a SIRAP object
+#'   whose stored polygons are expanded.
+#' @param delta Distance each vertex moves outward, in coordinate units. This
+#'   is required. A negative value moves the vertices inward and shrinks the
+#'   polygon.
+#' @param x,y Vertex coordinate columns when `polygons` is a data frame.
+#' @param polygon_id Column that separates polygons when `polygons` is a data
+#'   frame. When the named column is absent, a `polygon` or `polygon_id` column
+#'   is used if present; otherwise all rows form one polygon.
+#' @return The expanded polygons in the same form as the input: a data frame
+#'   for a data-frame input, or an updated SIRAP object for a SIRAP object
+#'   input.
+#' @export
+expandPolygons <- function(polygons,
+                           delta = NULL,
+                           x = "x",
+                           y = "y",
+                           polygon_id = "polygon") {
+  if (is.null(delta)) {
+    rlang::abort("`delta` must be supplied (a single finite number).")
+  }
+  if (isSIRAP(polygons)) {
+    object <- polygons
+    stored <- .sirap_polygons(object)
+    if (nrow(stored) == 0L) {
+      rlang::abort("The SIRAP object does not contain stored polygons.")
+    }
+    flat <- .sirap_polygon_vertices_table(stored)
+    # The stored vertices are moved coordinates, not spatial barcodes, so drop
+    # the carried spatial IDs before re-storing the expanded polygons.
+    flat$spatial_id <- NULL
+    expanded <- .sirap_expand_polygon_df(flat, delta = delta, x = "x", y = "y", polygon_id = "polygon")
+    return(addPolygons(
+      object,
+      polygons = expanded,
+      include_boundary = isTRUE(object$metadata$polygons_include_boundary %||% TRUE)
+    ))
+  }
+  polygons <- .as_data_frame(polygons)
+  .sirap_expand_polygon_df(polygons, delta = delta, x = x, y = y, polygon_id = polygon_id)
+}
+
+# Expand every polygon in a flat vertex table. Only the `x`/`y` columns change;
+# all other columns and the row order are kept. See `expandPolygons()`.
+.sirap_expand_polygon_df <- function(polygon, delta, x = "x", y = "y", polygon_id = "polygon") {
+  polygon <- .as_data_frame(polygon)
+  .check_required_cols(polygon, c(x, y), "polygons")
+  if (nrow(polygon) == 0L) {
+    rlang::abort("`polygons` must contain at least one vertex.")
+  }
+  if (!is.numeric(delta) || length(delta) != 1L || !is.finite(delta)) {
+    rlang::abort("`delta` must be a single finite number.")
+  }
+  # Resolve the polygon-id column. Fall back to the common names, or treat every
+  # row as one polygon when no id column is present.
+  if (!polygon_id %in% names(polygon)) {
+    alt <- intersect(c("polygon", "polygon_id"), names(polygon))
+    polygon_id <- if (length(alt) > 0L) alt[[1L]] else NA_character_
+  }
+  groups <- if (is.na(polygon_id)) {
+    list(seq_len(nrow(polygon)))
+  } else {
+    ids <- as.character(polygon[[polygon_id]])
+    unname(split(seq_len(nrow(polygon)), factor(ids, levels = unique(ids))))
+  }
+  out <- polygon
+  out[[x]] <- as.numeric(out[[x]])
+  out[[y]] <- as.numeric(out[[y]])
+  for (idx in groups) {
+    px <- as.numeric(polygon[[x]][idx])
+    py <- as.numeric(polygon[[y]][idx])
+    if (any(!is.finite(px) | !is.finite(py))) {
+      rlang::abort("`polygons` contains non-finite coordinates.")
+    }
+    moved <- .sirap_expand_polygon_vertices(px, py, delta = delta)
+    out[[x]][idx] <- moved$x
+    out[[y]][idx] <- moved$y
+  }
+  out
+}
+
+# Move one polygon's vertices outward from its centroid by `delta`. A repeated
+# closing vertex equals the first vertex, so it moves identically and the
+# polygon stays closed. Returns a list with the moved `x`/`y` vectors.
+.sirap_expand_polygon_vertices <- function(px, py, delta) {
+  n_all <- length(px)
+  closed <- n_all > 1L &&
+    .sirap_same_xy(
+      data.frame(x = px[[1L]], y = py[[1L]]),
+      data.frame(x = px[[n_all]], y = py[[n_all]])
+    )
+  core <- if (closed) seq_len(n_all - 1L) else seq_len(n_all)
+  if (length(core) < 3L) {
+    rlang::abort("Each polygon must contain at least three vertices.")
+  }
+  centroid <- .sirap_polygon_centroid(px[core], py[core])
+  vx <- px - centroid$x
+  vy <- py - centroid$y
+  dist <- sqrt(vx^2 + vy^2)
+  # A vertex exactly at the centroid has no direction, so leave it in place.
+  scale <- ifelse(dist > 0, delta / dist, 0)
+  list(x = px + vx * scale, y = py + vy * scale)
+}
+
+# Area (geometric) centroid of a polygon, from its ordered vertices (without a
+# repeated closing vertex). Falls back to the vertex mean for a zero-area
+# (degenerate) polygon.
+.sirap_polygon_centroid <- function(x, y) {
+  x <- as.numeric(x)
+  y <- as.numeric(y)
+  n <- length(x)
+  nxt <- c(seq_len(n)[-1L], 1L)
+  cross <- x * y[nxt] - x[nxt] * y
+  area2 <- sum(cross)
+  if (abs(area2) < .Machine$double.eps^0.5) {
+    return(list(x = mean(x), y = mean(y)))
+  }
+  list(
+    x = sum((x + x[nxt]) * cross) / (3 * area2),
+    y = sum((y + y[nxt]) * cross) / (3 * area2)
+  )
+}
+
 #' Plot spatial polygons on a tissue image
 #'
 #' Plots one or more polygon vertex tables, such as the output of

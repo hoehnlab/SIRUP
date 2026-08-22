@@ -783,3 +783,89 @@ test_that("side-by-side pies order polygons by receptor count", {
   )
   expect_equal(.sirap_pie_polygon_order(tied, "receptors"), c("1", "2", "3"))
 })
+
+test_that("expandPolygons moves vertices outward from the centroid", {
+  # Closed unit square centered at the origin. Centroid is (0, 0), so each
+  # vertex is sqrt(2) from the centroid. With delta = 1, each vertex moves to
+  # distance sqrt(2) + 1, i.e. it scales by (sqrt(2) + 1) / sqrt(2).
+  square <- data.frame(
+    polygon = "A",
+    x = c(-1, 1, 1, -1, -1),
+    y = c(-1, -1, 1, 1, -1),
+    stringsAsFactors = FALSE
+  )
+  expanded <- expandPolygons(square, delta = 1)
+
+  scale <- (sqrt(2) + 1) / sqrt(2)
+  expect_equal(expanded$x, square$x * scale)
+  expect_equal(expanded$y, square$y * scale)
+
+  # Shape is kept: same vertex count and the closing vertex still matches.
+  last <- nrow(expanded)
+  expect_equal(nrow(expanded), nrow(square))
+  expect_equal(c(expanded$x[[1]], expanded$y[[1]]), c(expanded$x[[last]], expanded$y[[last]]))
+
+  # Expanding grows the area; a negative delta shrinks it.
+  area <- function(p) .sirap_polygon_area(p$x, p$y)
+  expect_gt(area(expanded), area(square))
+  expect_lt(area(expandPolygons(square, delta = -0.2)), area(square))
+})
+
+test_that("expandPolygons uses the area centroid and needs a delta", {
+  # An L-free convex quad whose vertex mean differs from its area centroid.
+  rect <- data.frame(x = c(0, 4, 4, 0), y = c(0, 0, 2, 2), stringsAsFactors = FALSE)
+  centroid <- .sirap_polygon_centroid(rect$x, rect$y)
+  expect_equal(centroid$x, 2)
+  expect_equal(centroid$y, 1)
+
+  # `delta` is required (no default).
+  expect_error(expandPolygons(rect), "delta")
+  expect_error(expandPolygons(rect, delta = c(1, 2)), "single finite number")
+})
+
+test_that("expandPolygons handles multiple polygons and SIRAP objects", {
+  skip_if_not_installed("SeuratObject")
+
+  # Each polygon expands independently around its own centroid.
+  multi <- data.frame(
+    polygon = c("A", "A", "A", "B", "B", "B"),
+    x = c(0, 2, 1, 10, 12, 11),
+    y = c(0, 0, 2, 0, 0, 2),
+    stringsAsFactors = FALSE
+  )
+  out <- expandPolygons(multi, delta = 0.5)
+  expect_equal(nrow(out), nrow(multi))
+  expect_equal(as.character(out$polygon), as.character(multi$polygon))
+
+  # SIRAP object input returns a valid, expanded object.
+  object <- SeuratObject::CreateSeuratObject(
+    counts = matrix(1, 1, 4, dimnames = list("gene", paste0("cell", 1:4)))
+  )
+  object$x <- c(0, 1, 2, 3)
+  object$y <- c(0, 1, 2, 3)
+  receptors <- data.frame(
+    spatial_id = paste0("cell", 1:4),
+    sequence_id = paste0("seq", 1:4),
+    stringsAsFactors = FALSE
+  )
+  polygon <- data.frame(
+    polygon_id = "r",
+    x = c(0.5, 2.5, 2.5, 0.5, 0.5),
+    y = c(0.5, 0.5, 2.5, 2.5, 0.5),
+    stringsAsFactors = FALSE
+  )
+  sirap <- createSIRAP(
+    spatial = object,
+    receptors = receptors,
+    spatial_id = "spatial_id",
+    locus = NULL,
+    image_scale = "hires",
+    swap_coords = FALSE,
+    polygons = polygon
+  )
+  grown <- expandPolygons(sirap, delta = 1)
+  expect_true(isSIRAP(grown))
+  before <- getPolygons(sirap)$vertices[[1]]
+  after <- getPolygons(grown)$vertices[[1]]
+  expect_gt(diff(range(after$x)), diff(range(before$x)))
+})
