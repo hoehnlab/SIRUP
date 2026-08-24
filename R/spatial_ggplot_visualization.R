@@ -1267,7 +1267,10 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #'   The default marks tips as `"spatial"` when they have a non-missing spatial
 #'   ID and `"not_spatial"` otherwise.
 #' @param shape_values Named shape vector passed to
-#'   [ggplot2::scale_shape_manual()].
+#'   [ggplot2::scale_shape_manual()]. The default uses filled, outlined shapes
+#'   (pch 21/22): the tip colour becomes the shape fill and the outline is drawn
+#'   black. Any shape values in 21-25 get this fill + black-outline treatment;
+#'   other (solid) shapes colour the whole marker as before.
 #' @param tree_layout Backward-compatible alias for `layout`.
 #' @param tree_tip_size Backward-compatible alias for `tipsize`.
 #' @param treescale Backward-compatible alias for `scale`.
@@ -1321,7 +1324,7 @@ plotSpatialCloneTreePairs <- function(trees,
                                       layout = "rectangular",
                                       title = TRUE,
                                       shape_by = ".sirap_spatial_status",
-                                      shape_values = c(spatial = 16, not_spatial = 15),
+                                      shape_values = c(spatial = 21, not_spatial = 22),
                                       tree_layout = NULL,
                                       tree_tip_size = NULL,
                                       treescale = NULL,
@@ -2046,25 +2049,24 @@ spatialCloneTreePairsToPDF <- function(pairs,
     }
   }
   color_aes_col <- if (is.null(label_col)) color_col else label_col
+  # Filled shapes (pch 21-25) carry the colour on `fill` and draw a black
+  # outline; solid shapes keep the colour on `colour`. This lets the default
+  # tip shapes be outlined, filled markers.
+  fillable <- !is.null(shape_values) && all(shape_values %in% 21:25)
   tip_aes <- if (is.null(shape_col)) {
-    ggplot2::aes(color = .data[[color_aes_col]])
+    if (fillable) ggplot2::aes(fill = .data[[color_aes_col]]) else ggplot2::aes(color = .data[[color_aes_col]])
+  } else if (fillable) {
+    ggplot2::aes(fill = .data[[color_aes_col]], shape = .data[[shape_col]])
   } else {
     ggplot2::aes(color = .data[[color_aes_col]], shape = .data[[shape_col]])
   }
 
   tip_layer <- if (is.null(shape_col)) {
-    ggtree::geom_tippoint(
-      tip_aes,
-      size = tip_size,
-      shape = 16,
-      na.rm = TRUE
-    )
+    ggtree::geom_tippoint(tip_aes, size = tip_size, shape = 16, na.rm = TRUE)
+  } else if (fillable) {
+    ggtree::geom_tippoint(tip_aes, size = tip_size, colour = "black", stroke = 0.3, na.rm = TRUE)
   } else {
-    ggtree::geom_tippoint(
-      tip_aes,
-      size = tip_size,
-      na.rm = TRUE
-    )
+    ggtree::geom_tippoint(tip_aes, size = tip_size, na.rm = TRUE)
   }
 
   p <- p +
@@ -2073,24 +2075,27 @@ spatialCloneTreePairsToPDF <- function(pairs,
     ggplot2::ggtitle(title)
 
   if (is.null(label_col)) {
-    p <- p + ggplot2::scale_color_identity()
+    p <- p + if (fillable) ggplot2::scale_fill_identity() else ggplot2::scale_color_identity()
   } else {
-    p <- p +
-      ggplot2::scale_color_manual(
-        values = legend_colors,
-        name = legend_title,
-        breaks = names(legend_colors),
-        limits = names(legend_colors),
-        drop = FALSE,
-        na.translate = FALSE
-      ) +
-      ggplot2::guides(
-        color = ggplot2::guide_legend(
-          ncol = legend_ncol,
-          byrow = TRUE,
-          override.aes = list(size = tip_size)
-        )
+    color_scale <- if (fillable) {
+      ggplot2::scale_fill_manual(
+        values = legend_colors, name = legend_title, breaks = names(legend_colors),
+        limits = names(legend_colors), drop = FALSE, na.translate = FALSE
       )
+    } else {
+      ggplot2::scale_color_manual(
+        values = legend_colors, name = legend_title, breaks = names(legend_colors),
+        limits = names(legend_colors), drop = FALSE, na.translate = FALSE
+      )
+    }
+    legend_guide <- if (fillable) {
+      ggplot2::guides(fill = ggplot2::guide_legend(
+        ncol = legend_ncol, byrow = TRUE, override.aes = list(size = tip_size, shape = 21)))
+    } else {
+      ggplot2::guides(color = ggplot2::guide_legend(
+        ncol = legend_ncol, byrow = TRUE, override.aes = list(size = tip_size)))
+    }
+    p <- p + color_scale + legend_guide
   }
   if (!is.null(shape_col) && !is.null(shape_values)) {
     p <- p + ggplot2::scale_shape_manual(values = shape_values, drop = FALSE, na.translate = FALSE)
