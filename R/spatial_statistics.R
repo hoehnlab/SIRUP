@@ -828,7 +828,12 @@ spatialRipleyCrossK <- function(object,
         i = i,
         j = j,
         correction = "border",
-        r = r_eval
+        r = r_eval,
+        # Retain the individual simulated functions so the returned envelope
+        # objects can be combined across samples with spatstat.explore::pool().
+        # This does not change the summary (observed/simulated/lo/hi); it only
+        # keeps the per-simulation curves needed for a pooled group envelope.
+        savefuns = TRUE
       )
       plot_data[[image]] <- .sirap_kcross_df(envelopes[[image]], image = image)
     } else {
