@@ -250,10 +250,10 @@ spatialExpressionBlendPlot <- function(object,
                                                 assay = NULL,
                                                 layer = "counts",
                                                 only_blended = FALSE,
-                                                bottom_left = "#000000",
-                                                bottom_right = "#FF0000",
-                                                top_left = "#00FF00",
-                                                top_right = "#FFFF00",
+                                                bottom_left = "#FFFFFF",
+                                                bottom_right = "#0000FF",
+                                                top_left = "#FFFF00",
+                                                top_right = "#00FF00",
                                                 zero_tol = 0,
                                                 images = NULL,
                                                 image_scale = NULL,
@@ -1410,6 +1410,7 @@ plotSpatialCloneTreePairs <- function(trees,
                                       tree_layout = NULL,
                                       tree_tip_size = NULL,
                                       tree_linewidth = 0.5,
+                                      tip_stroke = 0.3, treescale_fontsize = 3.88,
                                       treescale = NULL,
                                       spatial_tip_size = 1.6,
                                       spatial_tip_alpha = 1,
@@ -1558,6 +1559,7 @@ plotSpatialCloneTreePairs <- function(trees,
       layout = layout,
       tip_size = tipsize,
       linewidth = tree_linewidth,
+      stroke = tip_stroke, treescale_fontsize = treescale_fontsize,
       treescale = scale,
       shape_col = shape_by,
       shape_values = shape_values,
@@ -2111,7 +2113,8 @@ spatialCloneTreePairsToPDF <- function(pairs,
                                      show_legend = FALSE,
                                      legend_position = "right",
                                      legend_ncol = NULL,
-                                     linewidth = 0.5) {
+                                     linewidth = 0.5,
+                                     stroke = 0.3, treescale_fontsize = 3.88) {
   p <- ggtree::ggtree(tree, layout = layout, linewidth = linewidth)
   join_cols <- c(id_col, color_col)
   if (!is.null(label_col)) {
@@ -2149,15 +2152,17 @@ spatialCloneTreePairsToPDF <- function(pairs,
   tip_layer <- if (is.null(shape_col)) {
     ggtree::geom_tippoint(tip_aes, size = tip_size, shape = 16, na.rm = TRUE)
   } else if (fillable) {
-    ggtree::geom_tippoint(tip_aes, size = tip_size, colour = "black", stroke = 0.3, na.rm = TRUE)
+    ggtree::geom_tippoint(tip_aes, size = tip_size, colour = "black", stroke = stroke, na.rm = TRUE)
   } else {
     ggtree::geom_tippoint(tip_aes, size = tip_size, na.rm = TRUE)
   }
 
   p <- p +
     tip_layer +
-    ggtree::geom_treescale(width = treescale) +
-    ggplot2::ggtitle(title)
+    ggtree::geom_treescale(width = treescale, fontsize = treescale_fontsize) +
+    ggplot2::ggtitle(title) +
+    # Do not clip tip points/labels at the panel edge (tree tops were cut off).
+    ggplot2::coord_cartesian(clip = "off")
 
   if (is.null(label_col)) {
     p <- p + if (fillable) ggplot2::scale_fill_identity() else ggplot2::scale_color_identity()
