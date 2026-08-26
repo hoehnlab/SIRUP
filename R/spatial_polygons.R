@@ -3739,9 +3739,9 @@ summarizePolygonDiversity <- function(object,
   if (nrow(out) == 0L) {
     return(out)
   }
-  polygon_levels <- unique(out$polygon)
-  polygon_labels <- stats::setNames(as.character(seq_along(polygon_levels)), polygon_levels)
-  out$polygon_label <- unname(polygon_labels[out$polygon])
+  # Label pies by the actual polygon id (not a sequential 1..N index) so pie
+  # titles match the stored polygon_id and the map labels.
+  out$polygon_label <- as.character(out$polygon)
   out <- out[order(out$polygon_label, out$.sirap_order), , drop = FALSE]
   out <- do.call(rbind, lapply(split(out, out$polygon), function(dat) {
     total <- sum(dat$n)
@@ -3784,7 +3784,9 @@ summarizePolygonDiversity <- function(object,
   })
   centers <- .sirap_bind_rows(centers)
   centers <- centers[centers$polygon %in% polygons, , drop = FALSE]
-  centers$polygon_label <- as.character(match(centers$polygon, unique(polygons)))
+  # Label polygons by their actual id, not a sequential 1..N index, so pie titles
+  # and map labels match the stored polygon_id.
+  centers$polygon_label <- as.character(centers$polygon)
   centers
 }
 

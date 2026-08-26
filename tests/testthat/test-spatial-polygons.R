@@ -372,7 +372,7 @@ test_that("polygon pie summaries group lower-frequency levels and label top leve
   expect_equal(poly1$n, c(2, 1, 1, 1))
   expect_equal(sum(poly1$proportion), 1)
   expect_equal(sum(poly1$label != ""), 1)
-  expect_equal(sort(unique(pies$polygon_label)), c("1", "2", "3"))
+  expect_equal(sort(unique(pies$polygon_label)), c("poly1", "poly2", "poly3"))
   expect_false(".sirap_order" %in% names(pies))
 
   pies_without_other <- .sirap_polygon_pie_summary(
