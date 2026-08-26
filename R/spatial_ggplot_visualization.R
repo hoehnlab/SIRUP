@@ -791,16 +791,27 @@ plotReceptorsExpression <- function(object,
 #'   polygon ID is used.
 #' @param polygon_label_size Text size for polygon labels.
 #' @param polygon_label_color Text color for polygon labels.
+#' @param count Colour each spot by the number of receptors it carries, using a
+#'   continuous gradient instead of discrete `group` colours. `group` is optional
+#'   in this mode; if supplied (with `group_val`), only matching receptors are
+#'   counted.
+#' @param count_colors Length-2 vector of low/high colours for the `count`
+#'   gradient. Defaults to white to navy.
+#' @param count_limits Limits for the `count` gradient scale (default `c(0, NA)`,
+#'   anchoring the scale at zero).
 #' @param combine Combine image panels with patchwork.
 #' @return A ggplot/patchwork object or a list when `combine = FALSE`.
 #' @export
 plotReceptors <- function(object,
                           receptors = NULL,
-                          group,
+                          group = NULL,
                           group_val = NULL,
                           spatial_id = NULL,
                           colors = NULL,
                           overlap = "average",
+                          count = FALSE,
+                          count_colors = c("#FFFFFF", "#000080"),
+                          count_limits = c(0, NA),
                           receptor_size = 1,
                           receptor_alpha = 1,
                           title = NULL,
@@ -850,6 +861,75 @@ plotReceptors <- function(object,
   .require_namespace("SeuratObject")
   receptors <- .as_data_frame(receptors)
   spatial_id <- .guess_spatial_id_col(receptors, spatial_id)
+
+  # Continuous mode: colour each spot by the number of receptors it carries.
+  if (isTRUE(count)) {
+    receptors <- receptors[!is.na(receptors[[spatial_id]]), , drop = FALSE]
+    if (!is.null(group)) {
+      .check_required_cols(receptors, group, "receptors")
+      gv <- if (is.null(group_val)) unique(stats::na.omit(as.character(receptors[[group]]))) else as.character(group_val)
+      receptors <- receptors[as.character(receptors[[group]]) %in% gv, , drop = FALSE]
+    }
+    if (nrow(receptors) == 0L) {
+      rlang::abort("No receptor rows with a spatial ID to count.")
+    }
+    counts <- as.data.frame(table(receptors[[spatial_id]]), stringsAsFactors = FALSE)
+    names(counts) <- c(spatial_id, ".sirap_count")
+    counts$.sirap_count <- as.integer(counts$.sirap_count)
+    legend_name <- receptor_legend_title %||% "Receptors/spot"
+    plots <- list()
+    for (image in .sirap_spatial_images(object, images = images)) {
+      spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
+      receptor_data <- merge(spatial$coords, counts, by.x = "cell", by.y = spatial_id, all = FALSE)
+      if (nrow(receptor_data) == 0L) {
+        next
+      }
+      # Draw high-count spots last so they sit on top.
+      if (isTRUE(order_points)) {
+        receptor_data <- receptor_data[order(receptor_data$.sirap_count), , drop = FALSE]
+      }
+      p <- .sirap_spatial_base(
+        receptor_data, spatial$image,
+        image_alpha = image_alpha, zoom = zoom, view_data = spatial$coords
+      )
+      if (!is.null(polygon_overlay)) {
+        p <- p + .sirap_polygon_fill_layer(
+          polygon_overlay, polygon_alpha = polygon_alpha,
+          polygon_fill = polygon_fill, polygon_color = polygon_color,
+          polygon_linewidth = polygon_linewidth
+        )
+      }
+      p <- p +
+        ggplot2::geom_point(
+          data = receptor_data,
+          ggplot2::aes(x = .data$x, y = .data$.sirap_y, color = .data$.sirap_count),
+          size = receptor_size, alpha = receptor_alpha,
+          inherit.aes = FALSE, na.rm = TRUE,
+          show.legend = isTRUE(show_receptor_legend)
+        ) +
+        ggplot2::scale_color_gradient(
+          low = count_colors[[1]], high = count_colors[[2]],
+          limits = count_limits, name = legend_name
+        )
+      if (!is.null(polygon_overlay)) {
+        label_layer <- .sirap_polygon_label_layer(
+          polygon_overlay, polygon_label = polygon_label,
+          polygon_label_by = polygon_label_by,
+          polygon_label_size = polygon_label_size,
+          polygon_label_color = polygon_label_color
+        )
+        if (!is.null(label_layer)) {
+          p <- p + label_layer
+        }
+      }
+      plots[[image]] <- p + ggplot2::labs(title = title %||% legend_name)
+    }
+    return(.sirap_return_spatial_plots(plots, combine = combine))
+  }
+
+  if (is.null(group)) {
+    rlang::abort("`group` is required unless `count = TRUE`.")
+  }
   .check_required_cols(receptors, c(spatial_id, group), "receptors")
 
   receptors$.sirap_receptor_group <- as.character(receptors[[group]])
@@ -1260,6 +1340,8 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #'   shows the full tissue area covered by spatial coordinates.
 #' @param layout Tree layout passed to `ggtree::ggtree()`.
 #' @param tipsize Size of tree tip points.
+#' @param tree_linewidth Line width of the tree branches, passed to
+#'   `ggtree::ggtree()`.
 #' @param scale Mutational distance shown in the tree scale bar.
 #' @param title Whether to title each tree panel with the clone ID. A character
 #'   value is used as the tree title directly.
@@ -1327,6 +1409,7 @@ plotSpatialCloneTreePairs <- function(trees,
                                       shape_values = c(spatial = 21, not_spatial = 22),
                                       tree_layout = NULL,
                                       tree_tip_size = NULL,
+                                      tree_linewidth = 0.5,
                                       treescale = NULL,
                                       spatial_tip_size = 1.6,
                                       spatial_tip_alpha = 1,
@@ -1474,6 +1557,7 @@ plotSpatialCloneTreePairs <- function(trees,
       title = tree_title,
       layout = layout,
       tip_size = tipsize,
+      linewidth = tree_linewidth,
       treescale = scale,
       shape_col = shape_by,
       shape_values = shape_values,
@@ -2026,8 +2110,9 @@ spatialCloneTreePairsToPDF <- function(pairs,
                                      legend_colors = NULL,
                                      show_legend = FALSE,
                                      legend_position = "right",
-                                     legend_ncol = NULL) {
-  p <- ggtree::ggtree(tree, layout = layout)
+                                     legend_ncol = NULL,
+                                     linewidth = 0.5) {
+  p <- ggtree::ggtree(tree, layout = layout, linewidth = linewidth)
   join_cols <- c(id_col, color_col)
   if (!is.null(label_col)) {
     join_cols <- c(join_cols, label_col)
