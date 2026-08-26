@@ -23,9 +23,10 @@ plotSpatialCloneTreePairs(
   layout = "rectangular",
   title = TRUE,
   shape_by = ".sirap_spatial_status",
-  shape_values = c(spatial = 16, not_spatial = 15),
+  shape_values = c(spatial = 21, not_spatial = 22),
   tree_layout = NULL,
   tree_tip_size = NULL,
+  tree_linewidth = 0.5,
   treescale = NULL,
   spatial_tip_size = 1.6,
   spatial_tip_alpha = 1,
@@ -101,11 +102,17 @@ The default marks tips as \code{"spatial"} when they have a non-missing spatial
 ID and \code{"not_spatial"} otherwise.}
 
 \item{shape_values}{Named shape vector passed to
-\code{\link[ggplot2:scale_shape_manual]{ggplot2::scale_shape_manual()}}.}
+\code{\link[ggplot2:scale_shape_manual]{ggplot2::scale_shape_manual()}}. The default uses filled, outlined shapes
+(pch 21/22): the tip colour becomes the shape fill and the outline is drawn
+black. Any shape values in 21-25 get this fill + black-outline treatment;
+other (solid) shapes colour the whole marker as before.}
 
 \item{tree_layout}{Backward-compatible alias for \code{layout}.}
 
 \item{tree_tip_size}{Backward-compatible alias for \code{tipsize}.}
+
+\item{tree_linewidth}{Line width of the tree branches, passed to
+\code{ggtree::ggtree()}.}
 
 \item{treescale}{Backward-compatible alias for \code{scale}.}
 

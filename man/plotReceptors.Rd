@@ -7,11 +7,14 @@
 plotReceptors(
   object,
   receptors = NULL,
-  group,
+  group = NULL,
   group_val = NULL,
   spatial_id = NULL,
   colors = NULL,
   overlap = "average",
+  count = FALSE,
+  count_colors = c("#FFFFFF", "#000080"),
+  count_limits = c(0, NA),
   receptor_size = 1,
   receptor_alpha = 1,
   title = NULL,
@@ -62,6 +65,17 @@ to \code{values}; otherwise colors are used in value order.}
 group. Such a spot is drawn once as a combined group (members joined by
 \code{" + "}). \code{"average"} (default) colors it with the mean of its members'
 colors; any single color instead colors all combined spots with that color.}
+
+\item{count}{Colour each spot by the number of receptors it carries, using a
+continuous gradient instead of discrete \code{group} colours. \code{group} is optional
+in this mode; if supplied (with \code{group_val}), only matching receptors are
+counted.}
+
+\item{count_colors}{Length-2 vector of low/high colours for the \code{count}
+gradient. Defaults to white to navy.}
+
+\item{count_limits}{Limits for the \code{count} gradient scale (default \code{c(0, NA)},
+anchoring the scale at zero).}
 
 \item{receptor_size}{Size for receptor points.}
 
