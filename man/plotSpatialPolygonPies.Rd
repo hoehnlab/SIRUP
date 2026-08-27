@@ -8,7 +8,7 @@ plotSpatialPolygonPies(
   dominance,
   object,
   fill = "clone_id",
-  mode = c("side_by_side", "spatial_clipped"),
+  mode = c("side_by_side", "spatial_clipped", "dominance_only"),
   top_n = 10,
   label_top_n = 0,
   other_label = "Other",

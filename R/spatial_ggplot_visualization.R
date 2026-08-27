@@ -36,9 +36,12 @@ plotLengthQc <- function(airr_df, bin_width = 5, title = NULL) {
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. If `NULL`, the
 #'   value must be supplied explicitly or by SIRAP object metadata.
-#' @param feature_colors Colors used, in order, for the continuous expression
-#'   scale. The first color is the low value and the last color is the high
-#'   value.
+#' @param feature_colors Optional colors used, in order, for the continuous
+#'   expression scale. The first color is the low value and the last color is
+#'   the high value. When supplied, this overrides `feature_color_palette`.
+#' @param feature_color_palette Color palette used when `feature_colors` is
+#'   `NULL`. One of `"viridis"`, `"inferno"`, `"plasma"`, `"cividis"`,
+#'   `"rocket"`, or `"mako"`.
 #' @param zero_tol Values at or below this threshold are treated as zero.
 #' @param point_size Size of plotted spots.
 #' @param point_alpha Opacity for plotted spots.
@@ -59,7 +62,8 @@ spatialExpressionPlot <- function(object,
                                       images = NULL,
                                       image_scale = NULL,
                                       swap_coords = NULL,
-                                      feature_colors = c("#D3D3D3", "#FFFF00"),
+                                      feature_colors = NULL,
+                                      feature_color_palette = "viridis",
                                       zero_tol = 0,
                                       point_size = 0.6,
                                       point_alpha = 1,
@@ -77,9 +81,10 @@ spatialExpressionPlot <- function(object,
   if (!is.null(assay)) {
     SeuratObject::DefaultAssay(object) <- assay
   }
-  if (length(feature_colors) < 2L) {
-    rlang::abort("`feature_colors` must contain at least two colors.")
-  }
+  feature_colors <- .sirap_feature_color_values(
+    feature_colors = feature_colors,
+    feature_color_palette = feature_color_palette
+  )
 
   expr <- .sirap_fetch_data(object, vars = features, layer = layer)
   plots <- list()
@@ -120,6 +125,34 @@ spatialExpressionPlot <- function(object,
     out <- out + patchwork::plot_annotation(title = title)
   }
   out
+}
+
+.sirap_feature_color_values <- function(feature_colors = NULL,
+                                        feature_color_palette = "viridis",
+                                        n = 256L) {
+  if (!is.null(feature_colors)) {
+    if (length(feature_colors) < 2L) {
+      rlang::abort("`feature_colors` must contain at least two colors.")
+    }
+    return(feature_colors)
+  }
+  palettes <- c(
+    viridis = "Viridis",
+    inferno = "Inferno",
+    plasma = "Plasma",
+    cividis = "Cividis",
+    rocket = "Rocket",
+    mako = "Mako"
+  )
+  feature_color_palette <- rlang::arg_match(
+    feature_color_palette,
+    values = names(palettes),
+    error_arg = "feature_color_palette"
+  )
+  tryCatch(
+    grDevices::hcl.colors(n, palette = palettes[[feature_color_palette]]),
+    error = function(e) grDevices::hcl.colors(n, palette = "Viridis")
+  )
 }
 
 #' Plot spatial metadata groups after excluding zero/blank spots
@@ -2216,13 +2249,55 @@ spatialCloneTreePairsToPDF <- function(pairs,
 }
 
 .sirap_fetch_data <- function(object, vars, layer = "counts") {
+  assay <- .sirap_fetch_data_assay(object)
   out <- tryCatch(
-    SeuratObject::FetchData(object, vars = vars, layer = layer),
-    error = function(e) {
-      SeuratObject::FetchData(object, vars = vars, slot = layer)
+    .sirap_fetch_data_layer(object = object, vars = vars, layer = layer),
+    error = function(layer_error) {
+      slot_out <- tryCatch(
+        .sirap_fetch_data_slot(object = object, vars = vars, slot = layer),
+        error = function(slot_error) {
+          rlang::abort(
+            paste0(
+              "Could not fetch feature data from Seurat. SIRAP tried layer = ",
+              layer, " in assay = ", assay, " first, then tried slot = ",
+              layer, " as a fall back."
+            ),
+            parent = slot_error
+          )
+        }
+      )
+      slot_out
     }
   )
   as.data.frame(out, stringsAsFactors = FALSE)
+}
+
+.sirap_fetch_data_assay <- function(object) {
+  tryCatch(
+    as.character(SeuratObject::DefaultAssay(object))[[1L]],
+    error = function(e) NA_character_
+  )
+}
+
+.sirap_fetch_data_layer <- function(object, vars, layer) {
+  SeuratObject::FetchData(object, vars = vars, layer = layer)
+}
+
+.sirap_fetch_data_slot <- function(object, vars, slot) {
+  fetch_formals <- .sirap_fetch_data_method_formals(object)
+  if (!"slot" %in% fetch_formals) {
+    rlang::abort("This SeuratObject `FetchData()` method does not support the legacy `slot` argument.")
+  }
+  SeuratObject::FetchData(object, vars = vars, slot = slot)
+}
+
+.sirap_fetch_data_method_formals <- function(object) {
+  class_name <- class(object)[[1L]]
+  method <- utils::getS3method("FetchData", class_name, optional = TRUE)
+  if (is.null(method)) {
+    method <- SeuratObject::FetchData
+  }
+  names(formals(method))
 }
 
 .sirap_spatial_data <- function(object, image, image_scale = NULL, swap_coords = NULL) {

@@ -358,7 +358,7 @@ spatialCloneDominance <- function(receptors = NULL,
 #' @param port Optional port passed to `shiny::runApp()`. This is useful when
 #'   running from an interactive HPC session through an SSH tunnel.
 #' @param quiet Suppress warnings while the app is running.
-#' @return Data frame with `spatial_id`, `x`, `y`, `polygon`, and `image` columns.
+#' @return Data frame with `spatial_id`, `x`, `y`, `num`, `polygon`, and `image` columns.
 #' @export
 selectSpatialPolygons <- function(object,
                                   feature = NULL,
@@ -389,9 +389,15 @@ selectSpatialPolygons <- function(object,
   old_shiny_useragg <- getOption("shiny.useragg")
   options(shiny.useragg = FALSE)
   on.exit(options(shiny.useragg = old_shiny_useragg), add = TRUE)
-  if (!is.null(assay)) {
-    SeuratObject::DefaultAssay(object) <- assay
+  assay_choices <- tryCatch(SeuratObject::Assays(object), error = function(e) character())
+  selected_assay <- assay %||% tryCatch(SeuratObject::DefaultAssay(object), error = function(e) NULL)
+  if (!is.null(selected_assay)) {
+    SeuratObject::DefaultAssay(object) <- selected_assay
   }
+  if (length(assay_choices) == 0L) {
+    assay_choices <- selected_assay %||% ""
+  }
+  layer_choices <- .sirap_assay_layers(object, selected_assay)
 
   coords <- .sirap_spatial_coordinate_table(object, images = images, image_scale = image_scale, swap_coords = swap_coords)
   if (nrow(coords) == 0L) {
@@ -441,7 +447,10 @@ selectSpatialPolygons <- function(object,
     shiny::titlePanel("Select Spatial Polygon Vertices"),
     shiny::sidebarLayout(
       shiny::sidebarPanel(
+        shiny::selectInput("assay", "Assay", choices = assay_choices, selected = selected_assay),
+        shiny::selectInput("layer", "Layer", choices = layer_choices, selected = layer),
         shiny::textInput("feature", "Feature", value = default_feature %||% ""),
+        shiny::textInput("polygon_name", "Polygon name", value = "1"),
         shiny::numericInput("point_size", "Point size", value = point_size, min = 0.01, max = 10),
         shiny::sliderInput("point_alpha", "Point opacity", min = 0, max = 1, value = point_alpha, step = 0.05, ticks = FALSE),
         shiny::checkboxInput("plot_image", "Show image", value = isTRUE(plot_image)),
@@ -474,14 +483,29 @@ selectSpatialPolygons <- function(object,
     }
 
     selected_points <- shiny::reactiveVal(.sirap_empty_polygon_vertices())
-    current_polygon <- shiny::reactiveVal(1L)
+    current_polygon_num <- shiny::reactiveVal(1L)
+    current_polygon_name <- shiny::reactiveVal("1")
+
+    shiny::observeEvent(input$assay, {
+      shiny::updateSelectInput(
+        session,
+        "layer",
+        choices = .sirap_assay_layers(object, input$assay),
+        selected = input$layer %||% layer
+      )
+    }, ignoreInit = TRUE)
 
     plot_data <- shiny::reactive({
       dat <- plot_coords
       feature_name <- input$feature
       if (!is.null(feature_name) && nzchar(feature_name)) {
+        assay_name <- input$assay
+        fetch_object <- object
+        if (!is.null(assay_name) && nzchar(assay_name)) {
+          SeuratObject::DefaultAssay(fetch_object) <- assay_name
+        }
         expr <- tryCatch(
-          .sirap_fetch_data(object, vars = feature_name, layer = layer),
+          .sirap_fetch_data(fetch_object, vars = feature_name, layer = input$layer %||% layer),
           error = function(e) NULL
         )
         if (!is.null(expr) && feature_name %in% colnames(expr)) {
@@ -528,7 +552,7 @@ selectSpatialPolygons <- function(object,
       selected <- selected_points()
       if (nrow(selected) > 0L) {
         selected_path <- selected[
-          stats::ave(selected$polygon, selected$polygon, FUN = length) > 1L,
+          stats::ave(selected$num, selected$num, FUN = length) > 1L,
           ,
           drop = FALSE
         ]
@@ -536,7 +560,7 @@ selectSpatialPolygons <- function(object,
           p <- p +
             ggplot2::geom_path(
               data = selected_path,
-              ggplot2::aes(x = .data$x, y = .data$.sirap_plot_y, group = .data$polygon),
+              ggplot2::aes(x = .data$x, y = .data$.sirap_plot_y, group = .data$num),
               inherit.aes = FALSE,
               linewidth = 0.5,
               color = "black"
@@ -545,7 +569,7 @@ selectSpatialPolygons <- function(object,
         p <- p +
           ggplot2::geom_point(
             data = selected,
-            ggplot2::aes(x = .data$x, y = .data$.sirap_plot_y, group = .data$polygon),
+            ggplot2::aes(x = .data$x, y = .data$.sirap_plot_y, group = .data$num),
             inherit.aes = FALSE,
             size = input$point_size * 2,
             shape = 21,
@@ -578,45 +602,83 @@ selectSpatialPolygons <- function(object,
         x = closest$x,
         y = closest$y,
         .sirap_plot_y = closest$.sirap_plot_y,
-        polygon = current_polygon(),
+        num = current_polygon_num(),
+        polygon = current_polygon_name(),
         image = closest$image,
         stringsAsFactors = FALSE
       )
       selected_points(rbind(selected_points(), closest))
     })
 
+    shiny::observeEvent(input$polygon_name, {
+      polygon_name <- trimws(input$polygon_name %||% "")
+      if (!nzchar(polygon_name)) {
+        shiny::showNotification("Polygon name cannot be empty.", type = "error")
+        return()
+      }
+      current <- selected_points()
+      used_elsewhere <- nrow(current) > 0L &&
+        any(current$num != current_polygon_num() & current$polygon == polygon_name)
+      if (isTRUE(used_elsewhere)) {
+        shiny::showNotification(
+          "That polygon name is already used. Please choose a different name.",
+          type = "error"
+        )
+        return()
+      }
+      current_polygon_name(polygon_name)
+      if (nrow(current) > 0L) {
+        current$polygon[current$num == current_polygon_num()] <- polygon_name
+        selected_points(current)
+      }
+    }, ignoreInit = TRUE)
+
     output$selected_points <- shiny::renderTable({
       current <- selected_points()
-      current <- current[current$polygon == current_polygon(), , drop = FALSE]
+      current <- current[current$num == current_polygon_num(), , drop = FALSE]
       current <- .sirap_public_polygon_vertices(current)
       current[, setdiff(colnames(current), "image"), drop = FALSE]
     })
 
     shiny::observeEvent(input$close_polygon, {
-      selected_points(.sirap_close_current_polygon(selected_points(), current_polygon()))
+      selected_points(.sirap_close_current_polygon(selected_points(), current_polygon_num()))
     })
 
     shiny::observeEvent(input$new_polygon, {
-      selected_points(.sirap_close_current_polygon(selected_points(), current_polygon()))
-      current_polygon(current_polygon() + 1L)
+      current <- selected_points()
+      if (!any(current$num == current_polygon_num())) {
+        return()
+      }
+      current <- .sirap_close_current_polygon(current, current_polygon_num())
+      selected_points(current)
+      next_num <- max(current$num, na.rm = TRUE) + 1L
+      next_name <- as.character(next_num)
+      current_polygon_num(next_num)
+      current_polygon_name(next_name)
+      shiny::updateTextInput(session, "polygon_name", value = next_name)
     })
 
     shiny::observeEvent(input$remove_last_point, {
       current <- selected_points()
       if (nrow(current) > 0L) {
-        selected_points(current[-nrow(current), , drop = FALSE])
+        remove_idx <- utils::tail(which(current$num == current_polygon_num()), 1L)
+        if (length(remove_idx) > 0L) {
+          selected_points(current[-remove_idx, , drop = FALSE])
+        }
       }
     })
 
     shiny::observeEvent(input$reset_points, {
       selected_points(.sirap_empty_polygon_vertices())
-      current_polygon(1L)
+      current_polygon_num(1L)
+      current_polygon_name("1")
+      shiny::updateTextInput(session, "polygon_name", value = "1")
     })
 
     shiny::observeEvent(input$done, {
       out <- selected_points()
-      for (polygon_id in unique(out$polygon)) {
-        out <- .sirap_close_current_polygon(out, polygon_id)
+      for (polygon_num in unique(out$num)) {
+        out <- .sirap_close_current_polygon(out, polygon_num)
       }
       out <- .sirap_public_polygon_vertices(out)
       path <- input$save_path
@@ -959,9 +1021,10 @@ expandPolygons <- function(polygons,
 #' @param polygon_fill Fill color for polygons when no analysis is mapped.
 #' @param fill_analysis Optional name of a stored SIRAP analysis containing
 #'   one row per polygon.
-#' @param fill_column Optional column in `fill_analysis` used to color polygon
-#'   interiors. The analysis must contain `polygon_id` or `polygon` as its
-#'   polygon key.
+#' @param fill_column Optional column used to color polygon interiors. When
+#'   `fill_analysis` is `NULL`, this column is read from the polygon data. When
+#'   `fill_analysis` is supplied, this column is read from that analysis, which
+#'   must contain `polygon_id` or `polygon` as its polygon key.
 #' @param analysis_fill Character vector of two colors used as the low and high
 #'   ends of the numeric analysis gradient. Defaults to
 #'   `c("#D3D3D3", "#FFFF00")`. Non-numeric analysis values use the Glasbey
@@ -1023,27 +1086,38 @@ plotSpatialPolygons <- function(object,
     rlang::abort("`polygon_alpha` must be a number between 0 and 1.")
   }
 
+  polygon_keep_cols <- label_by
+  if (!is.null(fill_column) && is.null(fill_analysis)) {
+    polygon_keep_cols <- unique(c(polygon_keep_cols, fill_column))
+  }
   polygon_data <- .sirap_polygon_plot_data(
     polygon = polygon,
     polygon_id = polygon_val,
     polygon_col = polygon_id,
     x_col = x,
     y_col = y,
-    keep_cols = label_by
+    keep_cols = polygon_keep_cols
   )
   if (!is.null(fill_analysis) || !is.null(fill_column)) {
-    if (is.null(sirap_object)) {
-      rlang::abort("`fill_analysis` and `fill_column` require a SIRAP object.")
+    if (is.null(fill_column)) {
+      rlang::abort("Supply `fill_column` when `fill_analysis` is supplied.")
     }
-    if (is.null(fill_analysis) || is.null(fill_column)) {
-      rlang::abort("Supply both `fill_analysis` and `fill_column`.")
+    if (is.null(fill_analysis)) {
+      polygon_data <- .sirap_join_polygon_column_fill_data(
+        polygon_data = polygon_data,
+        fill_column = fill_column
+      )
+    } else {
+      if (is.null(sirap_object)) {
+        rlang::abort("`fill_analysis` requires a SIRAP object.")
+      }
+      polygon_data <- .sirap_join_polygon_fill_data(
+        object = sirap_object,
+        polygon_data = polygon_data,
+        analysis_name = fill_analysis,
+        fill_column = fill_column
+      )
     }
-    polygon_data <- .sirap_join_polygon_fill_data(
-      object = sirap_object,
-      polygon_data = polygon_data,
-      analysis_name = fill_analysis,
-      fill_column = fill_column
-    )
   }
   if (!isTRUE(label) && !identical(label, FALSE)) {
     rlang::abort("`label` must be TRUE or FALSE.")
@@ -1073,7 +1147,7 @@ plotSpatialPolygons <- function(object,
       zoom = zoom,
       view_data = if (isTRUE(zoom)) NULL else spatial$coords
     ) +
-      if (is.null(fill_analysis)) {
+      if (is.null(fill_column)) {
         ggplot2::geom_polygon(
           data = polygon_data,
           ggplot2::aes(x = .data$x, y = .data$.sirap_y, group = .data$polygon),
@@ -1096,7 +1170,7 @@ plotSpatialPolygons <- function(object,
           linewidth = linewidth
         )
       }
-    if (!is.null(fill_analysis)) {
+    if (!is.null(fill_column)) {
       analysis_is_numeric <- is.numeric(polygon_data$.sirap_fill_value)
       if (analysis_is_numeric &&
           (!is.character(analysis_fill) || length(analysis_fill) != 2L ||
@@ -1500,7 +1574,7 @@ plotSpatialCloneDensity3D <- function(dominance,
 plotSpatialPolygonPies <- function(dominance,
                                    object,
                                    fill = "clone_id",
-                                   mode = c("side_by_side", "spatial_clipped"),
+                                   mode = c("side_by_side", "spatial_clipped", "dominance_only"),
                                    top_n = 10,
                                    label_top_n = 0,
                                    other_label = "Other",
@@ -1562,7 +1636,12 @@ plotSpatialPolygonPies <- function(dominance,
   )
   centers <- .sirap_polygon_centers(region$polygons, pie_data$polygon)
 
-  if (mode == "side_by_side") {
+  if (mode == "dominance_only") {
+    .sirap_dominance_only_polygon_pies(
+      pie_data = pie_data, fill_values = fill_values,
+      label_size = label_size, pie_order = pie_order
+    )
+  } else if (mode == "side_by_side") {
     .sirap_side_by_side_polygon_pies(
       object = object,
       images = images,
@@ -2897,14 +2976,35 @@ summarizePolygonDiversity <- function(object,
     x = numeric(),
     y = numeric(),
     .sirap_plot_y = numeric(),
-    polygon = integer(),
+    num = integer(),
+    polygon = character(),
     image = character(),
     stringsAsFactors = FALSE
   )
 }
 
 .sirap_public_polygon_vertices <- function(points) {
+  if (!"num" %in% colnames(points) && "polygon" %in% colnames(points)) {
+    points$num <- match(as.character(points$polygon), unique(as.character(points$polygon)))
+    points <- points[, c(setdiff(colnames(points), "polygon"), "polygon"), drop = FALSE]
+  }
   points[, setdiff(colnames(points), ".sirap_plot_y"), drop = FALSE]
+}
+
+.sirap_assay_layers <- function(object, assay = NULL) {
+  if (is.null(assay) || !nzchar(assay)) {
+    return(c("counts", "data", "scale.data"))
+  }
+  layers <- tryCatch(
+    SeuratObject::Layers(object[[assay]]),
+    error = function(e) character()
+  )
+  layers <- unique(as.character(layers))
+  layers <- layers[nzchar(layers)]
+  if (length(layers) == 0L) {
+    layers <- c("counts", "data", "scale.data")
+  }
+  layers
 }
 
 .sirap_polygon_plot_data <- function(polygon,
@@ -2934,7 +3034,7 @@ summarizePolygonDiversity <- function(object,
       "polygon_1"
     }
     for (keep_col in setdiff(keep_cols, c(x_col, y_col, "polygon"))) {
-      values <- unique(as.character(polygon_rows[[keep_col]]))
+      values <- unique(polygon_rows[[keep_col]])
       values <- values[!is.na(values)]
       vertices[[keep_col]] <- if (length(values) == 0L) NA_character_ else values[[1L]]
     }
@@ -2963,6 +3063,21 @@ summarizePolygonDiversity <- function(object,
   out <- do.call(rbind, out)
   rownames(out) <- NULL
   out
+}
+
+.sirap_join_polygon_column_fill_data <- function(polygon_data, fill_column) {
+  if (!fill_column %in% names(polygon_data)) {
+    rlang::abort(paste0(
+      "`fill_column` was not found in polygons. `plotSpatialPolygons()` looks ",
+      "for `fill_column` in the SIRAP object's polygons slot, or in the supplied ",
+      "`polygon` data frame. To color polygons by a stored analysis instead, ",
+      "specify `fill_analysis`; the selected analysis must contain a `polygon_id` ",
+      "or `polygon` column that matches the plotted polygons and a `",
+      fill_column, "` column."
+    ))
+  }
+  polygon_data$.sirap_fill_value <- polygon_data[[fill_column]]
+  polygon_data
 }
 
 .sirap_join_polygon_fill_data <- function(object,
@@ -3790,6 +3905,37 @@ summarizePolygonDiversity <- function(object,
   centers
 }
 
+.sirap_dominance_only_polygon_pies <- function(pie_data, fill_values, label_size, pie_order) {
+  ordered_labels <- .sirap_pie_polygon_order(pie_data, pie_order)
+  pie_groups <- split(pie_data, factor(pie_data$polygon_label, levels = ordered_labels))
+  pie_plots <- lapply(pie_groups, function(dat) {
+    local_levels <- unique(as.character(dat$level))
+    ggplot2::ggplot(dat, ggplot2::aes(fill = .data$level)) +
+      ggplot2::geom_rect(
+        ggplot2::aes(xmin = 0.5, xmax = 1.5, ymin = .data$ymin, ymax = .data$ymax),
+        color = "white", linewidth = 0.2
+      ) +
+      ggplot2::coord_polar(theta = "y") +
+      ggplot2::geom_text(
+        data = dat[dat$label != "", , drop = FALSE],
+        ggplot2::aes(y = (.data$ymin + .data$ymax) / 2, label = .data$label),
+        x = 1.25, inherit.aes = TRUE, size = label_size
+      ) +
+      ggplot2::scale_fill_manual(values = fill_values[local_levels], limits = local_levels, drop = TRUE) +
+      ggplot2::theme_void(base_size = 8) +
+      ggplot2::theme(
+        legend.position = "none",
+        plot.title = ggplot2::element_text(size = 8, hjust = 0.5),
+        plot.margin = ggplot2::margin(2, 2, 2, 2)
+      ) +
+      ggplot2::labs(title = paste("Polygon", unique(dat$polygon_label)))
+  })
+  if (!requireNamespace("patchwork", quietly = TRUE)) {
+    return(pie_plots)
+  }
+  patchwork::wrap_plots(pie_plots, ncol = max(1L, ceiling(sqrt(length(pie_plots)))))
+}
+
 .sirap_side_by_side_polygon_pies <- function(object,
                                              images,
                                              image_scale,
@@ -4131,8 +4277,9 @@ summarizePolygonDiversity <- function(object,
   coords[sample.int(nrow(coords), downsample_n), , drop = FALSE]
 }
 
-.sirap_close_current_polygon <- function(points, polygon_id) {
-  current <- points[points$polygon == polygon_id, , drop = FALSE]
+.sirap_close_current_polygon <- function(points, polygon_num) {
+  id_col <- if ("num" %in% colnames(points)) "num" else "polygon"
+  current <- points[points[[id_col]] == polygon_num, , drop = FALSE]
   if (nrow(current) == 0L) {
     return(points)
   }

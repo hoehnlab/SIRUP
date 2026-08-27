@@ -207,22 +207,45 @@ test_that("polygon plotting coordinates can be downsampled reproducibly", {
 
 test_that("selected polygon table displays only current polygon without image", {
   points <- data.frame(
-    barcode = c("cell1", "cell2"),
+    spatial_id = c("cell1", "cell2"),
     x = c(1, 2),
     y = c(1, 2),
     .sirap_plot_y = c(-1, -2),
-    polygon = c(1L, 2L),
+    num = c(1L, 2L),
+    polygon = c("1", "renamed"),
     image = c("slice1", "slice1"),
     stringsAsFactors = FALSE
   )
 
-  current <- points[points$polygon == 2L, , drop = FALSE]
+  current <- points[points$num == 2L, , drop = FALSE]
   shown <- .sirap_public_polygon_vertices(current)
   shown <- shown[, setdiff(colnames(shown), "image"), drop = FALSE]
 
-  expect_equal(shown$barcode, "cell2")
+  expect_equal(shown$spatial_id, "cell2")
+  expect_equal(shown$num, 2L)
+  expect_equal(shown$polygon, "renamed")
   expect_false("image" %in% names(shown))
   expect_false(".sirap_plot_y" %in% names(shown))
+})
+
+test_that("polygon closing uses num while keeping editable polygon names", {
+  points <- data.frame(
+    spatial_id = paste0("cell", 1:3),
+    x = c(0, 1, 0),
+    y = c(0, 0, 1),
+    .sirap_plot_y = c(0, 0, -1),
+    num = c(1L, 1L, 1L),
+    polygon = c("custom", "custom", "custom"),
+    image = c("slice1", "slice1", "slice1"),
+    stringsAsFactors = FALSE
+  )
+
+  out <- .sirap_close_current_polygon(points, 1L)
+
+  expect_equal(nrow(out), 4L)
+  expect_equal(out$num, c(1L, 1L, 1L, 1L))
+  expect_equal(out$polygon, rep("custom", 4L))
+  expect_equal(out$spatial_id[[4L]], "cell1")
 })
 
 test_that("polygon plotting data preserves polygon groups and flips plotting y", {
@@ -274,6 +297,7 @@ test_that("plotSpatialPolygons colors stored polygons by an analysis column", {
   )
   x <- addPolygons(x, polygons = tibble::tibble(
     polygon_id = c("left", "right"),
+    polygon_score = c(3, 9),
     vertices = list(
       tibble::tibble(x = c(0, 1, 1, 0, 0), y = c(0, 0, 1, 1, 0)),
       tibble::tibble(x = c(2, 3, 3, 2, 2), y = c(2, 2, 3, 3, 2))
@@ -324,6 +348,19 @@ test_that("plotSpatialPolygons colors stored polygons by an analysis column", {
   )
   custom_scale <- custom_plot$scales$get_scales("fill")
   expect_identical(unname(custom_scale$palette(c(0, 1))), c("#000000", "#00FFFF"))
+
+  polygon_fill_plot <- plotSpatialPolygons(
+    x,
+    fill_column = "polygon_score"
+  )
+  polygon_fill_scale <- polygon_fill_plot$scales$get_scales("fill")
+  expect_s3_class(polygon_fill_scale, "ScaleContinuous")
+  expect_identical(unname(polygon_fill_scale$palette(c(0, 1))), c("#D3D3D3", "#FFFF00"))
+
+  expect_error(
+    plotSpatialPolygons(x, fill_column = "not_in_polygons"),
+    "was not found in polygons.*fill_analysis"
+  )
 
   x <- setAnalysis(x, "gc_classes", data.frame(
     polygon_id = c("left", "right"),
