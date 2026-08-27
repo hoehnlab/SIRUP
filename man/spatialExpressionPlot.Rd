@@ -12,7 +12,8 @@ spatialExpressionPlot(
   images = NULL,
   image_scale = NULL,
   swap_coords = NULL,
-  feature_colors = c("#D3D3D3", "#FFFF00"),
+  feature_colors = NULL,
+  feature_color_palette = "viridis",
   zero_tol = 0,
   point_size = 0.6,
   point_alpha = 1,
@@ -40,9 +41,13 @@ spatialExpressionPlot(
 axes before plotting or polygon membership checks. If \code{NULL}, the
 value must be supplied explicitly or by SIRAP object metadata.}
 
-\item{feature_colors}{Colors used, in order, for the continuous expression
-scale. The first color is the low value and the last color is the high
-value.}
+\item{feature_colors}{Optional colors used, in order, for the continuous
+expression scale. The first color is the low value and the last color is
+the high value. When supplied, this overrides \code{feature_color_palette}.}
+
+\item{feature_color_palette}{Color palette used when \code{feature_colors} is
+\code{NULL}. One of \code{"viridis"}, \code{"inferno"}, \code{"plasma"}, \code{"cividis"},
+\code{"rocket"}, or \code{"mako"}.}
 
 \item{zero_tol}{Values at or below this threshold are treated as zero.}
 

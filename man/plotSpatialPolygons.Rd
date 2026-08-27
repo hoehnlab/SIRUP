@@ -62,9 +62,10 @@ exists.}
 \item{fill_analysis}{Optional name of a stored SIRAP analysis containing
 one row per polygon.}
 
-\item{fill_column}{Optional column in \code{fill_analysis} used to color polygon
-interiors. The analysis must contain \code{polygon_id} or \code{polygon} as its
-polygon key.}
+\item{fill_column}{Optional column used to color polygon interiors. When
+\code{fill_analysis} is \code{NULL}, this column is read from the polygon data. When
+\code{fill_analysis} is supplied, this column is read from that analysis, which
+must contain \code{polygon_id} or \code{polygon} as its polygon key.}
 
 \item{analysis_fill}{Character vector of two colors used as the low and high
 ends of the numeric analysis gradient. Defaults to

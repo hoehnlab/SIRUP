@@ -27,6 +27,8 @@ plotSpatialCloneTreePairs(
   tree_layout = NULL,
   tree_tip_size = NULL,
   tree_linewidth = 0.5,
+  tip_stroke = 0.3,
+  treescale_fontsize = 3.88,
   treescale = NULL,
   spatial_tip_size = 1.6,
   spatial_tip_alpha = 1,

@@ -130,6 +130,76 @@ test_that("core spatial ggplot functions work without Seurat images", {
   expect_s3_class(clone_color_plot, "ggplot")
 })
 
+test_that("spatialExpressionPlot uses feature colors or palette", {
+  expect_equal(length(.sirap_feature_color_values()), 256)
+  expect_identical(
+    .sirap_feature_color_values(feature_colors = c("black", "cyan"), feature_color_palette = "plasma"),
+    c("black", "cyan")
+  )
+  expect_error(
+    .sirap_feature_color_values(feature_color_palette = "not_a_palette"),
+    "`feature_color_palette`"
+  )
+})
+
+test_that(".sirap_fetch_data tries layer before legacy slot fallback", {
+  calls <- character()
+  testthat::local_mocked_bindings(
+    .sirap_fetch_data_layer = function(object, vars, layer) {
+      calls <<- c(calls, paste0("layer:", layer))
+      data.frame(geneA = 1, row.names = "cell1")
+    },
+    .sirap_fetch_data_slot = function(object, vars, slot) {
+      calls <<- c(calls, paste0("slot:", slot))
+      data.frame(geneA = 2, row.names = "cell1")
+    },
+    .package = "SIRAP"
+  )
+
+  out <- .sirap_fetch_data(list(), vars = "geneA", layer = "counts")
+
+  expect_equal(out$geneA, 1)
+  expect_identical(calls, "layer:counts")
+})
+
+test_that(".sirap_fetch_data falls back to slot only after layer errors", {
+  calls <- character()
+  testthat::local_mocked_bindings(
+    .sirap_fetch_data_layer = function(object, vars, layer) {
+      calls <<- c(calls, paste0("layer:", layer))
+      rlang::abort("layer failed")
+    },
+    .sirap_fetch_data_slot = function(object, vars, slot) {
+      calls <<- c(calls, paste0("slot:", slot))
+      data.frame(geneA = 2, row.names = "cell1")
+    },
+    .package = "SIRAP"
+  )
+
+  out <- .sirap_fetch_data(list(), vars = "geneA", layer = "counts")
+
+  expect_equal(out$geneA, 2)
+  expect_identical(calls, c("layer:counts", "slot:counts"))
+})
+
+test_that(".sirap_fetch_data reports ordered layer and slot failures", {
+  testthat::local_mocked_bindings(
+    .sirap_fetch_data_assay = function(object) "RNA",
+    .sirap_fetch_data_layer = function(object, vars, layer) {
+      rlang::abort("layer failed")
+    },
+    .sirap_fetch_data_slot = function(object, vars, slot) {
+      rlang::abort("slot failed")
+    },
+    .package = "SIRAP"
+  )
+
+  expect_error(
+    .sirap_fetch_data(list(), vars = "geneA", layer = "counts"),
+    "SIRAP tried layer = counts in assay = RNA first, then tried slot = counts as a fall back"
+  )
+})
+
 test_that("spatial statistic and polygon plots work without Seurat images", {
   skip_if_not_installed("SeuratObject")
   skip_if_not_installed("Matrix")

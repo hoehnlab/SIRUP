@@ -69,7 +69,7 @@ running from an interactive HPC session through an SSH tunnel.}
 \item{quiet}{Suppress warnings while the app is running.}
 }
 \value{
-Data frame with \code{spatial_id}, \code{x}, \code{y}, \code{polygon}, and \code{image} columns.
+Data frame with \code{spatial_id}, \code{x}, \code{y}, \code{num}, \code{polygon}, and \code{image} columns.
 }
 \description{
 Opens a Shiny app for clicking polygon vertices on a Seurat spatial
