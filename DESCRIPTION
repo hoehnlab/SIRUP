@@ -8,17 +8,19 @@ Authors@R: c(
 Author: Hunter J. Melton [aut, cre],
     Chinmay Vaidya [aut]
 Maintainer: Hunter J. Melton <Hunter.J.Melton@dartmouth.edu>
-Description: Spatial Immune Receptor Analysis and Processing. How sweet is
-    that? An R interface to the 'rad' command-line demultiplexer plus a
-    consolidated toolkit for long-read spatial immune receptor sequencing:
-    AIRR-style rearrangement tables with spatial IDs and coordinates,
-    Visium HD barcode mapping, pRESTO/IgBLAST shell pipeline generation,
-    clonal summaries, tree plotting, int64-packed DNA
-    primitives, and PAF parsing utilities.
+Description: Spatial Immune Receptor Analysis and Processing. A consolidated
+    toolkit for long-read spatial immune receptor sequencing. SIRAP takes
+    demultiplexed reads from the companion 'RRAD' package and runs an
+    end-to-end IgBLAST and pRESTO pipeline to produce AIRR-style
+    rearrangement tables with spatial IDs and coordinates. It also provides
+    Visium HD barcode mapping, clonal summaries, tree plotting, int64-packed
+    DNA primitives, and PAF parsing utilities.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-SystemRequirements: rad CLI (https://github.com/indianewok/rad)
+SystemRequirements: NCBI IgBLAST (igblastn), pRESTO/Change-O Python tools
+    (ClusterSets.py, ParseHeaders.py, AlignSets.py, BuildConsensus.py,
+    AssignGenes.py, MakeDb.py), vsearch, muscle
 Depends:
     R (>= 4.1.0)
 Imports:
@@ -77,6 +79,5 @@ Suggests:
     testthat (>= 3.0.0),
     withr
 Config/testthat/edition: 3
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 8.1.0
 VignetteBuilder: knitr
-RoxygenNote: 7.3.3

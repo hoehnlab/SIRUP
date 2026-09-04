@@ -139,7 +139,7 @@ and returns a list of paths to the processed output.  This function is a wrapper
 * `AssignGenes.py igblast` assigns V(D)J gene annotations using IgBLAST. Takes either `ig` or `tr` as the argument to `receptor` (for bcr/tcr respectively). Takes `organism` as the argument to specify the species (e.g., human, mouse, etc.). `igblast_base` specifies the path to the IgBLAST installation, and `igblast_exec` can be provided if the igblast executable is not located in [`igblast_base`]/bin/igblastn.
 * `MakeDb.py igblast` converts IgBLAST output to an AIRR-style TSV using the specified IMGT germline reference `germline_glob`.
 
-Note that if we have multiple samples we can use `processSpatialSamples()`, which takes vectors of `input_fastas` and `output_dirs` and then all other arguments for `processSpatialSample()` and calls `processSpatialSample()` for each sample.
+Note that if we have multiple samples we can use `processSpatialSamples()`, which takes vectors of `inputs` and `output_dirs` and then all other arguments for `processSpatialSample()` and calls `processSpatialSample()` for each sample.
 
 
 ```{r process-spatial-sample, eval=FALSE}
@@ -170,7 +170,8 @@ dowser::dfToFasta(
 )
 
 processed_paths <- processSpatialSample(
-  input_fasta = presto_input_fasta,
+  input = presto_input_fasta,
+  input_type = "spatial_fasta",
   output_dir = presto_output_dir,
   receptor = "ig",
   identity = 1.0,
@@ -183,7 +184,7 @@ processed_paths <- processSpatialSample(
   muscle_exec = "~/software/muscle3.8.31_i86linux64",
   nproc = nproc,
   cluster_field = "barcode",
-  delimiters = "'|' ':' ','",
+  delimiters = c("|", ":", ","),
   parse_fields = c("BARCODE", "CLUSTER"),
   parse_key = "BARCODECLUSTER",
   parse_act = "cat",

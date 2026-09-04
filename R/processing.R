@@ -11,6 +11,8 @@
 #' @param min_j_length Minimum accepted J gene length.
 #' @param min_junction_length Minimum accepted junction length.
 #' @param productive_only Keep only productive rearrangements.
+#' @param complete_vdj Keep only rows with a complete V(D)J. IgBLAST writes
+#'   this column as `"T"`/`"F"`. Skipped when the column is absent.
 #' @param min_consensus_count Optional minimum consensus_count.
 #' @param max_opening_gap Optional maximum opening gap in `sequence_alignment`.
 #' @param sequence_alignment Sequence alignment column for gap filtering.
@@ -31,6 +33,7 @@ filterAirr <- function(airr_df,
                        min_j_length = 10,
                        min_junction_length = 1,
                        productive_only = TRUE,
+                       complete_vdj = FALSE,
                        min_consensus_count = 2,
                        max_opening_gap = NULL,
                        sequence_alignment = "sequence_alignment",
@@ -67,7 +70,10 @@ filterAirr <- function(airr_df,
   ]
 
   if (productive_only && "productive" %in% colnames(out)) {
-    out <- out[isTRUE(out$productive) | out$productive %in% c(TRUE, "TRUE", "T"), , drop = FALSE]
+    out <- out[out$productive %in% c(TRUE, "TRUE", "T"), , drop = FALSE]
+  }
+  if (complete_vdj && "complete_vdj" %in% colnames(out)) {
+    out <- out[out$complete_vdj %in% c(TRUE, "TRUE", "T"), , drop = FALSE]
   }
   if (!is.null(min_consensus_count) && "consensus_count" %in% colnames(out)) {
     out <- out[!is.na(out$consensus_count) & out$consensus_count >= min_consensus_count, , drop = FALSE]
@@ -100,10 +106,35 @@ filterAirr <- function(airr_df,
   out
 }
 
-#' Run pRESTO/Change-O/IgBLAST processing for one spatial FASTA
+#' Process one spatial sample from raw reads to an AIRR table
 #'
-#' This function keeps the external Immcantation/pRESTO command-line workflow
-#' inside an R script. It builds and runs the following files in order:
+#' This function runs the full external processing pipeline for one sample
+#' and one receptor locus group (`ig` or `tr`). The `input` can be one of:
+#'
+#' * Raw reads: a FASTA or FASTQ file, optionally gzipped, as written by the
+#'   RRAD package. The function first annotates the reads with
+#'   [runIgblast()] (`igblastn -outfmt 19`), which needs `igblast_db_dir`
+#'   (or the per-segment database paths).
+#' * An AIRR table: a `.tsv` path or a data frame. The raw IgBLAST step is
+#'   skipped. A data frame input requires `output_dir`.
+#' * A pRESTO-ready spatial FASTA (`input_type = "spatial_fasta"`): the
+#'   IgBLAST and filter steps are both skipped and the FASTA goes straight
+#'   to the consensus pipeline below.
+#'
+#' For raw reads and AIRR input, the function then:
+#'
+#' * splits RRAD `|umi:...|barcode:...` tags out of `sequence_id` with
+#'   [parseRadSequenceIds()];
+#' * removes junk sequences with [filterAirr()]. Pipeline defaults:
+#'   `complete_vdj = TRUE`, `spatial_id = "barcode"`, and a combined header
+#'   ID keyed by `cluster_field`. Override with `filter_args`;
+#' * writes the raw and filtered AIRR tables to `output_dir` for
+#'   inspection;
+#' * writes the filtered sequences to a spatial FASTA whose headers carry
+#'   the spatial ID.
+#'
+#' The spatial FASTA then goes through the external Immcantation/pRESTO
+#' consensus workflow:
 #'
 #' * `ClusterSets.py set` groups reads within each spatial ID using `cluster_field`,
 #'   the requested identity threshold `identity`, and vsearch.
@@ -130,13 +161,37 @@ filterAirr <- function(airr_df,
 #'   germline reference `germline_glob`.
 #'
 #' Each command is printed before it is run, and any non-zero exit status stops
-#' the function with the failing command in the error message.
+#' the function with the failing command in the error message. All commands
+#' run through `system2()` without a shell. The final output is the
+#' `db_pass` AIRR TSV in the returned path list.
 #'
-#' @param input_fasta Spatial FASTA written from preprocessed receptor reads.
-#' @param output_dir Directory for pRESTO/Change-O/IgBLAST outputs. Defaults to the
-#'   input FASTA directory.
+#' @param input Raw reads (FASTA/FASTQ, optionally gzipped), an AIRR TSV
+#'   path, an AIRR data frame, or a pRESTO-ready spatial FASTA.
+#' @param output_dir Directory for all outputs. Defaults to the input file's
+#'   directory. Required when `input` is a data frame.
 #' @param receptor Either `ig` for BCR or `tr` for TCR IgBLAST loci.
 #' @param organism The organism for which to perform the analysis.
+#' @param input_type How to treat `input`. The default `"auto"` detects the
+#'   type from the object class and file extension: FASTA/FASTQ paths become
+#'   `"raw_reads"`. Pass `"spatial_fasta"` to feed a pRESTO-ready FASTA
+#'   straight to the consensus pipeline.
+#' @param igblast_db_dir Directory with the raw-step germline databases
+#'   (`IG_V`, `IG_D`, `IG_J`, `IG_C`, `TR_V`, `TR_D`, `TR_J`). See
+#'   [runIgblast()].
+#' @param aux_file Optional path passed to `igblastn -auxiliary_data`.
+#' @param germline_db_v,germline_db_d,germline_db_j,c_region_db Optional
+#'   per-segment database paths that override the `igblast_db_dir`
+#'   convention.
+#' @param filter_args Named list of [filterAirr()] overrides. Pipeline
+#'   defaults: `complete_vdj = TRUE`, `min_consensus_count = NULL`,
+#'   `spatial_id = "barcode"`, `add_spatial_sequence_id = TRUE`,
+#'   `spatial_id_key = cluster_field`.
+#' @param fasta_sequence_col AIRR column written to the spatial FASTA.
+#'   Defaults to `sequence_alignment` (the V(D)J-aligned region), which
+#'   keeps flanking read junk out of clustering and consensus calling. Use
+#'   `sequence` for the full read.
+#' @param sample_name Stem for intermediate file names. Defaults to the
+#'   input file name without extension, or `"sample"` for data frames.
 #' @param identity Cluster identity threshold passed to `ClusterSets.py`.
 #' @param consensus_freq Consensus frequency threshold passed to
 #'   `BuildConsensus.py`.
@@ -145,12 +200,14 @@ filterAirr <- function(airr_df,
 #' @param igblast_exec Optional path passed to `AssignGenes.py --exec`. When
 #'   `NULL`, defaults to `file.path(igblast_base, "bin", "igblastn")`.
 #' @param muscle_exec Path passed to `AlignSets.py --exec`.
-#' @param nproc Number of processors for pRESTO and AssignGenes steps.
-#' @param cluster_field Required FASTA header field used for within-spot
-#'   clustering. This has no default because spatial_id fields vary by platform
-#'   and preprocessing workflow.
-#' @param delimiters String of pRESTO delimiter values passed after `--delim`.
-#'   Defaults to `"'|' '=' ','"`.
+#' @param nproc Number of processors for the raw IgBLAST step, pRESTO, and
+#'   AssignGenes.
+#' @param cluster_field FASTA header field used for within-spot clustering.
+#'   The pipeline writes headers keyed by this name; the default `"barcode"`
+#'   matches RRAD output. Override it for other spatial ID fields, for
+#'   example `barcode_8um`.
+#' @param delimiters Character vector of pRESTO delimiter values passed
+#'   after `--delim`. Defaults to `c("|", "=", ",")`.
 #' @param parse_fields Header fields passed to `ParseHeaders.py merge -f`.
 #' @param parse_key Header field name created by `ParseHeaders.py merge -k`.
 #' @param parse_act Action passed to `ParseHeaders.py merge --act`.
@@ -162,12 +219,25 @@ filterAirr <- function(airr_df,
 #'   `consensus_copy_fields` is provided.
 #' @param align_log Optional log path passed to `AlignSets.py --log`.
 #' @param consensus_log Optional log path passed to `BuildConsensus.py --log`.
-#' @return A named list of output paths, invisibly.
+#' @return A named list, invisibly: `raw_airr`, `filtered_airr`,
+#'   `spatial_fasta`, `n_raw`, `n_filtered` (each `NULL` for steps that did
+#'   not run), plus the pRESTO/IgBLAST output paths. `db_pass` is the final
+#'   AIRR TSV.
 #' @export
-processSpatialSample <- function(input_fasta,
+processSpatialSample <- function(input,
                                  output_dir = NULL,
                                  receptor = c("ig", "tr"),
                                  organism = "human",
+                                 input_type = c("auto", "raw_reads", "airr", "spatial_fasta"),
+                                 igblast_db_dir = NULL,
+                                 aux_file = NULL,
+                                 germline_db_v = NULL,
+                                 germline_db_d = NULL,
+                                 germline_db_j = NULL,
+                                 c_region_db = NULL,
+                                 filter_args = list(),
+                                 fasta_sequence_col = "sequence_alignment",
+                                 sample_name = NULL,
                                  identity = 0.975,
                                  consensus_freq = 0.51,
                                  germline_glob,
@@ -175,8 +245,8 @@ processSpatialSample <- function(input_fasta,
                                  igblast_exec = NULL,
                                  muscle_exec = "~/software/muscle3.8.31_i86linux64",
                                  nproc = 8,
-                                 cluster_field,
-                                 delimiters = "'|' '=' ','",
+                                 cluster_field = "barcode",
+                                 delimiters = c("|", "=", ","),
                                  parse_fields = c(cluster_field, "cluster"),
                                  parse_key = paste0(cluster_field, "_cluster"),
                                  parse_act = "cat",
@@ -186,134 +256,219 @@ processSpatialSample <- function(input_fasta,
                                  align_log = NULL,
                                  consensus_log = NULL) {
   receptor <- match.arg(receptor)
-  if (missing(cluster_field) || length(cluster_field) != 1L || is.na(cluster_field) || !nzchar(cluster_field)) {
-    rlang::abort("`cluster_field` must name one FASTA header field, for example `barcode2um` or `barcode_8um`.")
+  input_type <- match.arg(input_type)
+  if (length(cluster_field) != 1L || is.na(cluster_field) || !nzchar(cluster_field)) {
+    rlang::abort("`cluster_field` must name one FASTA header field, for example `barcode` or `barcode_8um`.")
   }
-
-  paths <- .presto_paths(input_fasta, identity, consensus_freq, output_dir)
-  if (!dir.exists(dirname(paths$cluster))) {
-    dir.create(dirname(paths$cluster), recursive = TRUE, showWarnings = FALSE)
+  if (missing(germline_glob)) {
+    rlang::abort("`germline_glob` is required. It names the IMGT germline FASTA files for `MakeDb.py -r`.")
   }
-
-  quote_path <- function(x) shQuote(path.expand(x))
   if (is.null(igblast_exec)) {
     igblast_exec <- file.path(igblast_base, "bin", "igblastn")
   }
 
-  delim_args <- paste("--delim", delimiters)
-  align_log_args <- if (is.null(align_log)) "" else paste("--log", quote_path(align_log))
-  consensus_log_args <- if (is.null(consensus_log)) "" else paste("--log", quote_path(consensus_log))
-  consensus_copy_args <- ""
-  if (!is.null(consensus_copy_fields) && length(consensus_copy_fields) > 0L) {
-    consensus_copy_args <- sprintf(
-      "--cf %s --act %s",
-      paste(consensus_copy_fields, collapse = " "),
-      consensus_copy_action
-    )
+  if (input_type == "auto") {
+    input_type <- .sirap_detect_input_type(input)
+  } else if (input_type == "airr") {
+    input_type <- if (is.data.frame(input)) "airr_df" else "airr_tsv"
+  } else if (input_type == "spatial_fasta" && is.data.frame(input)) {
+    rlang::abort("`input_type = \"spatial_fasta\"` needs a FASTA file path, not a data frame.")
   }
 
-  # Cluster reads per spatial ID, then preserve the spatial_id-cluster
-  # grouping in the FASTA headers used by alignment and consensus calling.
-  commands <- c(
-    sprintf(
-      "ClusterSets.py set -s %s -f %s -k cluster --ident %s --cluster vsearch %s --nproc %s -o %s",
-      quote_path(paths$input),
-      cluster_field,
-      identity,
-      delim_args,
-      nproc,
-      quote_path(paths$cluster)
-    ),
-    sprintf(
-      "ParseHeaders.py merge -s %s -f %s -k %s %s --act %s",
-      quote_path(paths$cluster),
-      paste(parse_fields, collapse = " "),
-      parse_key,
-      delim_args,
-      parse_act
-    ),
-    sprintf(
-      "AlignSets.py muscle -s %s %s %s --nproc %s --bf %s --exec %s",
-      quote_path(paths$reheader),
-      align_log_args,
-      delim_args,
-      nproc,
-      parse_key,
-      quote_path(muscle_exec)
-    )
-  )
-
-  # Build consensus sequences from aligned spatial_id-cluster groups, assign
-  # V(D)J genes with IgBLAST, then make an AIRR-style database table.
-  commands <- c(
-    commands,
-    sprintf(
-      "BuildConsensus.py -s %s -o %s %s --nproc %s -n %s -q 20 --freq %s --bf %s --maxerror 0.1 --maxgap 0.3 --fasta %s %s",
-      quote_path(paths$aligned),
-      quote_path(paths$consensus),
-      consensus_log_args,
-      nproc,
-      consensus_min_count,
-      consensus_freq,
-      parse_key,
-      delim_args,
-      consensus_copy_args
-    ),
-    sprintf(
-      "AssignGenes.py igblast -s %s -b %s --organism %s --loci %s --format blast --exec %s --nproc %s",
-      quote_path(paths$consensus),
-      quote_path(igblast_base),
-      organism,
-      receptor,
-      quote_path(igblast_exec),
-      nproc
-    ),
-    sprintf(
-      "MakeDb.py igblast -i %s -s %s -r %s --extended",
-      quote_path(paths$fmt7),
-      quote_path(paths$consensus),
-      path.expand(germline_glob)
-    )
-  )
-
-  for (command in commands) {
-    message("$ ", command)
-    status <- system(command)
-    if (!identical(status, 0L)) {
-      rlang::abort(paste0("Command failed with status ", status, ": ", command))
+  if (is.data.frame(input)) {
+    if (is.null(output_dir)) {
+      rlang::abort("`output_dir` is required when `input` is a data frame.")
+    }
+  } else if (is.null(output_dir)) {
+    output_dir <- dirname(input)
+  }
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+  }
+  if (is.null(sample_name)) {
+    sample_name <- if (is.character(input)) {
+      tools::file_path_sans_ext(sub("\\.gz$", "", basename(input), ignore.case = TRUE))
+    } else {
+      "sample"
     }
   }
 
-  invisible(paths)
+  raw_airr_tsv <- NULL
+  filtered_tsv <- NULL
+  n_raw <- NULL
+  n_filtered <- NULL
+
+  if (input_type == "spatial_fasta") {
+    spatial_fasta <- input
+  } else {
+    if (input_type == "raw_reads") {
+      raw_airr_tsv <- file.path(output_dir, sprintf("%s_%s_igblast_raw.tsv", sample_name, receptor))
+      runIgblast(
+        input = input,
+        output_tsv = raw_airr_tsv,
+        receptor = receptor,
+        organism = organism,
+        igblast_db_dir = igblast_db_dir,
+        igblast_exec = igblast_exec,
+        aux_file = aux_file,
+        germline_db_v = germline_db_v,
+        germline_db_d = germline_db_d,
+        germline_db_j = germline_db_j,
+        c_region_db = c_region_db,
+        num_threads = nproc
+      )
+      airr <- .sirap_read_airr(raw_airr_tsv)
+    } else if (input_type == "airr_tsv") {
+      airr <- .sirap_read_airr(input)
+    } else {
+      airr <- .as_data_frame(input)
+    }
+    n_raw <- nrow(airr)
+
+    airr <- parseRadSequenceIds(airr)
+
+    filter_defaults <- list(
+      complete_vdj = TRUE,
+      min_consensus_count = NULL,
+      spatial_id = "barcode",
+      add_spatial_sequence_id = TRUE,
+      spatial_id_key = cluster_field
+    )
+    args <- utils::modifyList(filter_defaults, filter_args)
+    spatial_col <- args$spatial_id
+    if (!is.null(spatial_col) && spatial_col %in% colnames(airr) && all(is.na(airr[[spatial_col]]))) {
+      rlang::abort(paste0(
+        "The spatial ID column `", spatial_col, "` is all NA. ",
+        "The sequence IDs do not carry RRAD `|barcode:` tags. ",
+        "Add spatial IDs first, for example with `extractSpatialIds()`, ",
+        "and pass the AIRR table to `processSpatialSample()`."
+      ))
+    }
+    filtered <- do.call(filterAirr, c(list(airr_df = airr), args))
+    n_filtered <- nrow(filtered)
+    if (n_filtered == 0L) {
+      rlang::abort("No sequences passed `filterAirr()`. Check the input and `filter_args`.")
+    }
+    filtered_tsv <- file.path(output_dir, sprintf("%s_%s_filtered.tsv", sample_name, receptor))
+    data.table::fwrite(filtered, filtered_tsv, sep = "\t")
+
+    header_col <- args$spatial_sequence_id
+    if (is.null(header_col)) {
+      header_col <- "spatial_sequence_id"
+    }
+    .check_required_cols(filtered, c(header_col, fasta_sequence_col), "filtered AIRR table")
+    spatial_fasta <- file.path(output_dir, sprintf("%s_%s_spatial.fasta", sample_name, receptor))
+    writeFastqas(
+      data.frame(
+        id = filtered[[header_col]],
+        seq = filtered[[fasta_sequence_col]],
+        stringsAsFactors = FALSE
+      ),
+      fn = spatial_fasta,
+      type = "fa",
+      header_col = "id"
+    )
+    message("Wrote ", n_filtered, " filtered sequences to ", spatial_fasta)
+  }
+
+  germline_files <- Sys.glob(path.expand(germline_glob))
+  if (length(germline_files) == 0L) {
+    rlang::abort(paste0("`germline_glob` matched no files: ", germline_glob))
+  }
+
+  paths <- .presto_paths(spatial_fasta, identity, consensus_freq, output_dir)
+  commands <- .sirap_presto_commands(
+    paths = paths,
+    receptor = receptor,
+    organism = organism,
+    identity = identity,
+    consensus_freq = consensus_freq,
+    germline_files = germline_files,
+    igblast_base = igblast_base,
+    igblast_exec = igblast_exec,
+    muscle_exec = muscle_exec,
+    nproc = nproc,
+    cluster_field = cluster_field,
+    delimiters = delimiters,
+    parse_fields = parse_fields,
+    parse_key = parse_key,
+    parse_act = parse_act,
+    consensus_min_count = consensus_min_count,
+    consensus_copy_fields = consensus_copy_fields,
+    consensus_copy_action = consensus_copy_action,
+    align_log = align_log,
+    consensus_log = consensus_log
+  )
+
+  tool_execs <- unique(vapply(commands, function(cmd) cmd$exec, character(1)))
+  .sirap_check_tools(c(
+    stats::setNames(tool_execs, basename(tool_execs)),
+    muscle = muscle_exec,
+    igblastn = igblast_exec
+  ))
+  for (cmd in commands) {
+    .sirap_run_command(cmd$exec, cmd$args)
+  }
+
+  invisible(c(
+    list(
+      raw_airr = raw_airr_tsv,
+      filtered_airr = filtered_tsv,
+      spatial_fasta = spatial_fasta,
+      n_raw = n_raw,
+      n_filtered = n_filtered
+    ),
+    paths
+  ))
 }
 
-#' Run pRESTO/IgBLAST consensus calling for multiple spatial FASTA files
+#' Process multiple spatial samples
 #'
-#' @param input_fastas Character vector of spatial FASTA files.
-#' @param output_dirs Optional vector of output directories, one per FASTA.
+#' @param inputs List or character vector of inputs, one per sample. Each is
+#'   passed to `processSpatialSample()` and can be a reads file, an AIRR TSV
+#'   path, or an AIRR data frame.
+#' @param output_dirs Optional vector of output directories, one per input.
+#' @param sample_names Optional vector of sample names, one per input.
 #' @param ... Passed to `processSpatialSample()`.
 #' @return A list of output path lists, invisibly.
 #' @export
-processSpatialSamples <- function(input_fastas,
+processSpatialSamples <- function(inputs,
                                   output_dirs = NULL,
+                                  sample_names = NULL,
                                   ...) {
+  if (!is.list(inputs)) {
+    inputs <- as.list(inputs)
+  }
   if (is.null(output_dirs)) {
-    output_dirs <- rep(NA_character_, length(input_fastas))
+    output_dirs <- rep(NA_character_, length(inputs))
   }
-  if (length(output_dirs) != length(input_fastas)) {
-    rlang::abort("output_dirs must be NULL or the same length as input_fastas.")
+  if (length(output_dirs) != length(inputs)) {
+    rlang::abort("output_dirs must be NULL or the same length as inputs.")
   }
-  results <- vector("list", length(input_fastas))
-  names(results) <- basename(input_fastas)
-  for (i in seq_along(input_fastas)) {
+  if (!is.null(sample_names) && length(sample_names) != length(inputs)) {
+    rlang::abort("sample_names must be NULL or the same length as inputs.")
+  }
+  result_names <- vapply(seq_along(inputs), function(i) {
+    if (!is.null(sample_names)) {
+      sample_names[[i]]
+    } else if (is.character(inputs[[i]])) {
+      basename(inputs[[i]])
+    } else {
+      paste0("sample_", i)
+    }
+  }, character(1))
+  results <- vector("list", length(inputs))
+  names(results) <- result_names
+  for (i in seq_along(inputs)) {
     output_dir <- output_dirs[[i]]
     if (is.na(output_dir)) {
       output_dir <- NULL
     }
-    message("Processing spatial FASTA ", i, " of ", length(input_fastas), ": ", input_fastas[[i]])
+    message("Processing sample ", i, " of ", length(inputs), ": ", result_names[[i]])
     results[[i]] <- processSpatialSample(
-      input_fasta = input_fastas[[i]],
+      input = inputs[[i]],
       output_dir = output_dir,
+      sample_name = if (is.null(sample_names)) NULL else sample_names[[i]],
       ...
     )
   }
@@ -811,6 +966,106 @@ collapseIdenticalNeighbors <- function(object,
     consensus = consensus,
     fmt7 = fmt7,
     db_pass = db_pass
+  )
+}
+
+# Build the six pRESTO/Change-O commands for the consensus pipeline as
+# exec/args pairs for system2. Pure function: it does not run anything.
+# `germline_files` is the expanded IMGT germline file list for MakeDb.py -r
+# (globs must expand in R because the runner quotes every argument).
+.sirap_presto_commands <- function(paths,
+                                   receptor,
+                                   organism,
+                                   identity,
+                                   consensus_freq,
+                                   germline_files,
+                                   igblast_base,
+                                   igblast_exec,
+                                   muscle_exec,
+                                   nproc,
+                                   cluster_field,
+                                   delimiters,
+                                   parse_fields,
+                                   parse_key,
+                                   parse_act,
+                                   consensus_min_count,
+                                   consensus_copy_fields,
+                                   consensus_copy_action,
+                                   align_log,
+                                   consensus_log) {
+  delim_args <- c("--delim", delimiters)
+  align_log_args <- if (is.null(align_log)) NULL else c("--log", path.expand(align_log))
+  consensus_log_args <- if (is.null(consensus_log)) NULL else c("--log", path.expand(consensus_log))
+  consensus_copy_args <- NULL
+  if (!is.null(consensus_copy_fields) && length(consensus_copy_fields) > 0L) {
+    consensus_copy_args <- c("--cf", consensus_copy_fields, "--act", consensus_copy_action)
+  }
+
+  list(
+    # Cluster reads per spatial ID, then preserve the spatial_id-cluster
+    # grouping in the FASTA headers used by alignment and consensus calling.
+    list(exec = "ClusterSets.py", args = c(
+      "set",
+      "-s", path.expand(paths$input),
+      "-f", cluster_field,
+      "-k", "cluster",
+      "--ident", as.character(identity),
+      "--cluster", "vsearch",
+      delim_args,
+      "--nproc", as.character(nproc),
+      "-o", path.expand(paths$cluster)
+    )),
+    list(exec = "ParseHeaders.py", args = c(
+      "merge",
+      "-s", path.expand(paths$cluster),
+      "-f", parse_fields,
+      "-k", parse_key,
+      delim_args,
+      "--act", parse_act
+    )),
+    list(exec = "AlignSets.py", args = c(
+      "muscle",
+      "-s", path.expand(paths$reheader),
+      align_log_args,
+      delim_args,
+      "--nproc", as.character(nproc),
+      "--bf", parse_key,
+      "--exec", path.expand(muscle_exec)
+    )),
+    # Build consensus sequences from aligned spatial_id-cluster groups, assign
+    # V(D)J genes with IgBLAST, then make an AIRR-style database table.
+    list(exec = "BuildConsensus.py", args = c(
+      "-s", path.expand(paths$aligned),
+      "-o", path.expand(paths$consensus),
+      consensus_log_args,
+      "--nproc", as.character(nproc),
+      "-n", as.character(consensus_min_count),
+      "-q", "20",
+      "--freq", as.character(consensus_freq),
+      "--bf", parse_key,
+      "--maxerror", "0.1",
+      "--maxgap", "0.3",
+      "--fasta",
+      delim_args,
+      consensus_copy_args
+    )),
+    list(exec = "AssignGenes.py", args = c(
+      "igblast",
+      "-s", path.expand(paths$consensus),
+      "-b", path.expand(igblast_base),
+      "--organism", organism,
+      "--loci", receptor,
+      "--format", "blast",
+      "--exec", path.expand(igblast_exec),
+      "--nproc", as.character(nproc)
+    )),
+    list(exec = "MakeDb.py", args = c(
+      "igblast",
+      "-i", path.expand(paths$fmt7),
+      "-s", path.expand(paths$consensus),
+      "-r", germline_files,
+      "--extended"
+    ))
   )
 }
 

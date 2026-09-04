@@ -2,14 +2,18 @@
 % Please edit documentation in R/processing.R
 \name{processSpatialSamples}
 \alias{processSpatialSamples}
-\title{Run pRESTO/IgBLAST consensus calling for multiple spatial FASTA files}
+\title{Process multiple spatial samples}
 \usage{
-processSpatialSamples(input_fastas, output_dirs = NULL, ...)
+processSpatialSamples(inputs, output_dirs = NULL, sample_names = NULL, ...)
 }
 \arguments{
-\item{input_fastas}{Character vector of spatial FASTA files.}
+\item{inputs}{List or character vector of inputs, one per sample. Each is
+passed to \code{processSpatialSample()} and can be a reads file, an AIRR TSV
+path, or an AIRR data frame.}
 
-\item{output_dirs}{Optional vector of output directories, one per FASTA.}
+\item{output_dirs}{Optional vector of output directories, one per input.}
+
+\item{sample_names}{Optional vector of sample names, one per input.}
 
 \item{...}{Passed to \code{processSpatialSample()}.}
 }
@@ -17,5 +21,5 @@ processSpatialSamples(input_fastas, output_dirs = NULL, ...)
 A list of output path lists, invisibly.
 }
 \description{
-Run pRESTO/IgBLAST consensus calling for multiple spatial FASTA files
+Process multiple spatial samples
 }

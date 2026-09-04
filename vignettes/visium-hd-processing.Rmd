@@ -207,7 +207,11 @@ dowser::dfToFasta(tcrBeta, file = tcrBetaSpatialFasta, id = "spatial_sequence_id
 ## Run pRESTO and IgBLAST from R
 
 `processSpatialSample()` wraps the pRESTO/IgBLAST command-line workflow and
-prints each command and its output to the R console.
+prints each command and its output to the R console. This example feeds a
+prepared spatial FASTA (`input_type = "spatial_fasta"`). With raw RRAD reads
+(FASTA/FASTQ, optionally gzipped) plus `igblast_db_dir`, the same function
+also runs the initial IgBLAST annotation and `filterAirr()` steps in one
+call.
 
 ```{r presto-igblast}
 identityThreshold <- 0.975
@@ -217,9 +221,11 @@ igblastBase <- "~/software/igblast"
 muscleExec <- "~/software/muscle3.8.31_i86linux64"
 
 bcrPrestoPaths <- processSpatialSample(
-  input_fasta = bcrHeavySpatialFasta,
+  input = bcrHeavySpatialFasta,
+  input_type = "spatial_fasta",
   output_dir = prestoOutputDir,
   receptor = "ig",
+  cluster_field = "spatial_id",
   identity = identityThreshold,
   consensus_freq = consensusFreqThreshold,
   germline_glob = germlineGlob,
@@ -229,9 +235,11 @@ bcrPrestoPaths <- processSpatialSample(
 )
 
 tcrPrestoPaths <- processSpatialSample(
-  input_fasta = tcrBetaSpatialFasta,
+  input = tcrBetaSpatialFasta,
+  input_type = "spatial_fasta",
   output_dir = prestoOutputDir,
   receptor = "tr",
+  cluster_field = "spatial_id",
   identity = identityThreshold,
   consensus_freq = consensusFreqThreshold,
   germline_glob = germlineGlob,

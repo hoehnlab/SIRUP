@@ -2,13 +2,23 @@
 % Please edit documentation in R/processing.R
 \name{processSpatialSample}
 \alias{processSpatialSample}
-\title{Run pRESTO/Change-O/IgBLAST processing for one spatial FASTA}
+\title{Process one spatial sample from raw reads to an AIRR table}
 \usage{
 processSpatialSample(
-  input_fasta,
+  input,
   output_dir = NULL,
   receptor = c("ig", "tr"),
   organism = "human",
+  input_type = c("auto", "raw_reads", "airr", "spatial_fasta"),
+  igblast_db_dir = NULL,
+  aux_file = NULL,
+  germline_db_v = NULL,
+  germline_db_d = NULL,
+  germline_db_j = NULL,
+  c_region_db = NULL,
+  filter_args = list(),
+  fasta_sequence_col = "sequence_alignment",
+  sample_name = NULL,
   identity = 0.975,
   consensus_freq = 0.51,
   germline_glob,
@@ -16,8 +26,8 @@ processSpatialSample(
   igblast_exec = NULL,
   muscle_exec = "~/software/muscle3.8.31_i86linux64",
   nproc = 8,
-  cluster_field,
-  delimiters = "'|' '=' ','",
+  cluster_field = "barcode",
+  delimiters = c("|", "=", ","),
   parse_fields = c(cluster_field, "cluster"),
   parse_key = paste0(cluster_field, "_cluster"),
   parse_act = "cat",
@@ -29,14 +39,43 @@ processSpatialSample(
 )
 }
 \arguments{
-\item{input_fasta}{Spatial FASTA written from preprocessed receptor reads.}
+\item{input}{Raw reads (FASTA/FASTQ, optionally gzipped), an AIRR TSV
+path, an AIRR data frame, or a pRESTO-ready spatial FASTA.}
 
-\item{output_dir}{Directory for pRESTO/Change-O/IgBLAST outputs. Defaults to the
-input FASTA directory.}
+\item{output_dir}{Directory for all outputs. Defaults to the input file's
+directory. Required when \code{input} is a data frame.}
 
 \item{receptor}{Either \code{ig} for BCR or \code{tr} for TCR IgBLAST loci.}
 
 \item{organism}{The organism for which to perform the analysis.}
+
+\item{input_type}{How to treat \code{input}. The default \code{"auto"} detects the
+type from the object class and file extension: FASTA/FASTQ paths become
+\code{"raw_reads"}. Pass \code{"spatial_fasta"} to feed a pRESTO-ready FASTA
+straight to the consensus pipeline.}
+
+\item{igblast_db_dir}{Directory with the raw-step germline databases
+(\code{IG_V}, \code{IG_D}, \code{IG_J}, \code{IG_C}, \code{TR_V}, \code{TR_D}, \code{TR_J}). See
+\code{\link[=runIgblast]{runIgblast()}}.}
+
+\item{aux_file}{Optional path passed to \code{igblastn -auxiliary_data}.}
+
+\item{germline_db_v, germline_db_d, germline_db_j, c_region_db}{Optional
+per-segment database paths that override the \code{igblast_db_dir}
+convention.}
+
+\item{filter_args}{Named list of \code{\link[=filterAirr]{filterAirr()}} overrides. Pipeline
+defaults: \code{complete_vdj = TRUE}, \code{min_consensus_count = NULL},
+\code{spatial_id = "barcode"}, \code{add_spatial_sequence_id = TRUE},
+\code{spatial_id_key = cluster_field}.}
+
+\item{fasta_sequence_col}{AIRR column written to the spatial FASTA.
+Defaults to \code{sequence_alignment} (the V(D)J-aligned region), which
+keeps flanking read junk out of clustering and consensus calling. Use
+\code{sequence} for the full read.}
+
+\item{sample_name}{Stem for intermediate file names. Defaults to the
+input file name without extension, or \code{"sample"} for data frames.}
 
 \item{identity}{Cluster identity threshold passed to \code{ClusterSets.py}.}
 
@@ -52,14 +91,16 @@ input FASTA directory.}
 
 \item{muscle_exec}{Path passed to \code{AlignSets.py --exec}.}
 
-\item{nproc}{Number of processors for pRESTO and AssignGenes steps.}
+\item{nproc}{Number of processors for the raw IgBLAST step, pRESTO, and
+AssignGenes.}
 
-\item{cluster_field}{Required FASTA header field used for within-spot
-clustering. This has no default because spatial_id fields vary by platform
-and preprocessing workflow.}
+\item{cluster_field}{FASTA header field used for within-spot clustering.
+The pipeline writes headers keyed by this name; the default \code{"barcode"}
+matches RRAD output. Override it for other spatial ID fields, for
+example \code{barcode_8um}.}
 
-\item{delimiters}{String of pRESTO delimiter values passed after \code{--delim}.
-Defaults to \code{"'|' '=' ','"}.}
+\item{delimiters}{Character vector of pRESTO delimiter values passed
+after \code{--delim}. Defaults to \code{c("|", "=", ",")}.}
 
 \item{parse_fields}{Header fields passed to \verb{ParseHeaders.py merge -f}.}
 
@@ -80,13 +121,43 @@ Defaults to \code{"'|' '=' ','"}.}
 \item{consensus_log}{Optional log path passed to \code{BuildConsensus.py --log}.}
 }
 \value{
-A named list of output paths, invisibly.
+A named list, invisibly: \code{raw_airr}, \code{filtered_airr},
+\code{spatial_fasta}, \code{n_raw}, \code{n_filtered} (each \code{NULL} for steps that did
+not run), plus the pRESTO/IgBLAST output paths. \code{db_pass} is the final
+AIRR TSV.
 }
 \description{
-This function keeps the external Immcantation/pRESTO command-line workflow
-inside an R script. It builds and runs the following files in order:
+This function runs the full external processing pipeline for one sample
+and one receptor locus group (\code{ig} or \code{tr}). The \code{input} can be one of:
 }
 \details{
+\itemize{
+\item Raw reads: a FASTA or FASTQ file, optionally gzipped, as written by the
+RRAD package. The function first annotates the reads with
+\code{\link[=runIgblast]{runIgblast()}} (\verb{igblastn -outfmt 19}), which needs \code{igblast_db_dir}
+(or the per-segment database paths).
+\item An AIRR table: a \code{.tsv} path or a data frame. The raw IgBLAST step is
+skipped. A data frame input requires \code{output_dir}.
+\item A pRESTO-ready spatial FASTA (\code{input_type = "spatial_fasta"}): the
+IgBLAST and filter steps are both skipped and the FASTA goes straight
+to the consensus pipeline below.
+}
+
+For raw reads and AIRR input, the function then:
+\itemize{
+\item splits RRAD \verb{|umi:...|barcode:...} tags out of \code{sequence_id} with
+\code{\link[=parseRadSequenceIds]{parseRadSequenceIds()}};
+\item removes junk sequences with \code{\link[=filterAirr]{filterAirr()}}. Pipeline defaults:
+\code{complete_vdj = TRUE}, \code{spatial_id = "barcode"}, and a combined header
+ID keyed by \code{cluster_field}. Override with \code{filter_args};
+\item writes the raw and filtered AIRR tables to \code{output_dir} for
+inspection;
+\item writes the filtered sequences to a spatial FASTA whose headers carry
+the spatial ID.
+}
+
+The spatial FASTA then goes through the external Immcantation/pRESTO
+consensus workflow:
 \itemize{
 \item \verb{ClusterSets.py set} groups reads within each spatial ID using \code{cluster_field},
 the requested identity threshold \code{identity}, and vsearch.
@@ -114,5 +185,7 @@ germline reference \code{germline_glob}.
 }
 
 Each command is printed before it is run, and any non-zero exit status stops
-the function with the failing command in the error message.
+the function with the failing command in the error message. All commands
+run through \code{system2()} without a shell. The final output is the
+\code{db_pass} AIRR TSV in the returned path list.
 }
