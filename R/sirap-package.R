@@ -1,8 +1,7 @@
 #' SIRAP: Spatial Immune Receptor Analysis and Processing
 #'
-#' A native R interface to the RAD demultiplexer through `rrad`, with optional
-#' legacy command-line wrappers, plus a consolidated toolkit for long-read
-#' spatial immune receptor sequencing: AIRR-style
+#' An R interface to the rad command-line demultiplexer plus a consolidated
+#' toolkit for long-read spatial immune receptor sequencing: AIRR-style
 #' rearrangement tables with spatial IDs and coordinates, Visium HD
 #' spatial ID mapping, pRESTO/IgBLAST shell pipeline generation, clonal
 #' summaries, lightweight SIRAP containers pairing spatial Seurat data with

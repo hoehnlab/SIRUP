@@ -3,141 +3,37 @@
 Spatial Immune Receptor Analysis and Processing: how sweet is that?
 
 `SIRAP` is an R package-in-progress for long-read spatial immune receptor
-sequencing data. It includes the [RAD](https://github.com/indianewok/rad)
-demultiplexing engine through its required `rrad` dependency, and
+sequencing data. It is the R companion to the
+[rad](https://github.com/indianewok/rad) command-line demultiplexer, and
 collects reusable pieces from the existing thymus BCR/TCR analysis scripts
 into package functions for:
 
-- zero-setup native RAD whitelist discovery, demultiplexing, and reformatting
-  with `rad_scan_wl()`, `rad_demux()`, and `rad_reformat()`
-- optional compatibility access to the external `rad` CLI (`radPrep`,
-  `radDemux`, `radReformat`, `radList`, `radModify`, `radScanWl`)
+- driving the `rad` CLI (`radPrep`, `radDemux`, `radReformat`,
+  `radList`, `radModify`, `radScanWl`) from R
 - AIRR TSV reading/writing
 - receptor length and productivity QC
 - Visium HD 2 um to 8 um/16 um barcode mapping
 - adding tissue coordinates (`barcode`, `x`, `y`)
-- a resumable two-pass IgBLAST workflow: read-level V/D/J assignment followed
-  by spatial-barcode/sequence-cluster consensus building and consensus-level
-  V/D/J assignment
+- generating pRESTO/IgBLAST shell scripts for barcode-cluster consensus calling
 - collapsing consensus calls to top sequences per barcode
 - validated SIRAP objects pairing a spatial Seurat object with a tibble-backed
   AIRR-style receptor table
 - lightweight clone/spatial visualization helpers
 - spatial polygon selection and clonal dominance summaries
 
-## Private installation
-
-Both SIRAP and its required `rrad` dependency are currently private. Before
-installing, your GitHub account must have read access to both repositories.
-Store the credential in the system credential manager; never put a token in an
-R script, repository URL, or committed `.Renviron` file.
+## Development install
 
 ```r
-install.packages(c("gitcreds", "remotes"))
-gitcreds::gitcreds_set() # one-time interactive credential setup
-
-# Installs SIRAP and its pinned rrad v1.2.1 dependency.
-remotes::install_github("hjm2217/SIRAP", dependencies = NA)
+install.packages("remotes")
+remotes::install_local("/path/to/SIRAP")
 ```
 
-If you already have a SIRAP checkout, replace the last call with
-`remotes::install_local("/path/to/SIRAP", dependencies = NA)`. Access failures
-for a private repository commonly appear as repository-not-found or 404
-errors. The credential used by a direct GitHub installation must be able to
-read both repositories.
+The CLI wrappers require the `rad` binary on `PATH`, or pointed at
+explicitly via `options(SIRAP.radPath = "/path/to/rad")`, the
+`SIRAP_RAD_PATH` environment variable, or the `rad =` argument on each
+wrapper. See `?radPath` for the resolution order.
 
-The embedded engine currently supports macOS and Linux. Linux builds use
-OpenMP when R exposes it; current macOS builds run the demultiplexer serially
-and record one effective thread even if a larger value was requested.
-
-The native `rad_scan_wl()`, `rad_demux()`, and `rad_reformat()` paths use the
-RAD core compiled into the required `rrad` dependency; users do not install or
-configure a separate executable. Large built-in 10x whitelists are not fetched
-during package installation. The first native run that needs one downloads it
-to R's per-user cache, verifies its pinned size and SHA-256 checksum, and reuses
-it thereafter. `rad_download_whitelists()` is available only when a machine or
-cluster cache must be prepared before going offline.
-
-The older camel-case CLI wrappers remain available as a compatibility path.
-They require the `rad` binary on `PATH`, or pointed at explicitly via
-`options(SIRAP.rad_path = "/path/to/rad")`, the `SIRAP_RAD_PATH` environment
-variable, or the `rad =` argument. See `?radPath` for the resolution order.
-
-## Run RAD natively from R
-
-`rad_demux()` performs a compatibility handshake before every run and returns
-a structured result containing the upstream commit, patched-engine and
-resource digests, normalized configuration, artifacts, statistics, and SIRAP
-provenance. It recalibrates layout caches by default; opt into reuse only with
-`reuse_cache = TRUE` when the existing files belong to the same input.
-Choose either `kit` or `global_whitelist` as the reference barcode source, not
-both. Automatic whitelist discovery and `custom_whitelist` are likewise
-alternatives for the true/sample barcode set.
-
-```r
-library(SIRAP)
-
-rad_core_info()
-
-run <- rad_demux(
-  layout  = "five_prime",
-  fastq   = "reads.fq.gz",
-  output  = "demo",
-  out_dir = "run",
-  threads = 8
-)
-
-run$artifacts
-run$stats
-run$provenance$core_handshake
-```
-
-Whitelist discovery and post-demultiplexing reformatting use the same
-in-process engine and compatibility handshake:
-
-```r
-scan <- rad_scan_wl(
-  input = "reads.fq.gz",
-  output_prefix = "run/cells",
-  adapter_seq = "ACGTACGT",
-  barcode_length = 16L,
-  whitelist = "10x_3v3"
-)
-
-formatted <- rad_reformat(
-  fastq = run,
-  output_fastq = "run/demo-igblast.fasta",
-  to_fasta = TRUE,
-  header_format = "presto"
-)
-```
-
-That conversion is streamed and produces canonical identifiers such as
-`read-F|BARCODE=AACC|UMI=TGCA`; FASTQ qualities are not copied because IgBLAST
-accepts FASTA, not FASTQ.
-
-Ordinary runs need no setup call. To populate the verified cache explicitly
-before an offline batch, use `rad_download_whitelists()`; a shared cache can be
-selected with `options(rrad.cache_dir = "/shared/path")`.
-
-To deliberately use an externally installed CLI instead, select it explicitly:
-
-```r
-run <- rad_demux(
-  layout = "five_prime",
-  fastq = "reads.fq.gz",
-  backend = "cli",
-  rad = "/path/to/rad"
-)
-```
-
-The compatibility adapter accepts RAD CLI 1.0.2 only. Because that legacy
-binary does not reliably propagate every parser, gzip-writer, or cache error,
-SIRAP validates the complete input and output FASTQ streams, reports its cache
-policy as uncontrolled, and rejects CLI debug mode. These extra safety passes
-apply only when `backend = "cli"`; the native path remains the recommended one.
-
-## Drive the legacy rad CLI from R
+## Drive the rad CLI from R
 
 For an end-to-end walkthrough — locating/building `rad`, listing layouts and
 whitelists, and running `prep -> scan-wl -> demux -> reformat` on rad's public
@@ -172,49 +68,49 @@ radDemux(
 )
 ```
 
-## RAD to spatial AIRR: the two IgBLAST passes
+## Minimal preprocessing example
 
 ```r
 library(SIRAP)
 
-processed <- processSpatialSample(
-  input_fasta = run, # the rad_demux() result can be passed directly
-  output_dir = "m1/processed",
-  receptor = "ig",
-  igblast_base = "/path/to/igblast",
-  germline_glob = "/path/to/germlines/imgt/human/vdj/imgt_human_*.fasta"
+m1_bcr_heavy <- data.table::fread("igblast_bcr.tsv")
+m1_bcr_heavy <- extractSpatialIds(
+  m1_bcr_heavy,
+  id = "sequence_id",
+  spatial_id = "barcode_2um",
+  regex = "[0-9]+_[0-9]+$",
+  prefix = "s_002um_",
+  suffix = "-1"
 )
-
-processed$artifacts$read_igblast_airr # pass 1: V/D/J for each RAD read
-processed$artifacts$spatial_fasta     # filtered, pRESTO-ready reads
-processed$artifacts$consensus_fasta   # spatial barcode/sequence-cluster consensus
-processed$artifacts$final_airr        # pass 2: consensus V/D/J calls
+m1_bcr_heavy <- filterAirr(
+  m1_bcr_heavy,
+  locus_val = "IGH",
+  spatial_id = "barcode_2um",
+  add_spatial_sequence_id = TRUE
+)
 ```
 
-The first pass is not redundant: it supplies each read's V/D/J calls and
-aligned receptor sequence before spatial grouping. The second pass annotates
-the consensus sequence produced by pRESTO. Both use the same `igblast_base`
-installation and conventional germline databases. An existing read-level AIRR table
-can resume the pipeline with `input_type = "airr"`; an already prepared
-spatial FASTA uses `input_type = "spatial_fasta"` and skips pass 1. A bare
-FASTA path otherwise defaults to the full two-pass route, so pass 1 is not
-silently skipped; gzip-compressed RAD FASTA is normalized automatically.
+## Run pRESTO/IgBLAST consensus calling
 
-The read-level pass streams the FASTA into complete, approximately
-base-balanced chunks and runs up to four IgBLAST processes concurrently.
-`nproc` is the total CPU budget, so `nproc = 12` uses four processes with
-three IgBLAST threads each. Small inputs automatically retain the original
-single-process path, and chunk results are merged back in input order. Direct
-`runIgblast()` callers can set `max_processes = 1` to force monolithic
-execution or supply `chunk_bases` when benchmarking alternative chunk sizes;
-inside `processSpatialSample()`, use `igblast_max_processes` to tune or disable
-the worker pool.
+```r
+processSpatialSample(
+  input_fasta = "m1/igblast_bcr_pass_length_spatial_id.fasta",
+  output_dir = "m1/processed",
+  receptor = "ig",
+  germline_glob = "/path/to/germlines/imgt/human/vdj/imgt_human_*.fasta"
+)
+```
 
 ## Post-consensus filtering sketch
 
 ```r
 processed <- airr::read_rearrangement("processed_db-pass.tsv")
-processed$barcode_2um <- processed$barcode
+processed <- extractSpatialIds(
+  processed,
+  id = "sequence_id",
+  spatial_id = "barcode_2um",
+  regex = ",([^,]+)"
+)
 processed <- filterAirr(
   processed,
   locus_val = "IGH",

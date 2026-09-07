@@ -22,21 +22,17 @@ the cDNA — and it figures out the alignment and extraction from there. The
 [demultiplexing guide](demultiplexing-with-rad.html) drove rad on its **bundled**
 layouts (`five_prime`, `three_prime`, `sctagger`, `visium_hd`, ...). This guide
 is the other half: how to write your *own* layout for a wonky or custom format
-and run the same pipeline on it through SIRAP.
+and run the same pipeline on it, all from R through SIRAP's `rad*()` wrappers.
 
-SIRAP exposes two deliberately separate RAD interfaces. The recommended
-snake-case functions — `rad_demux()`, `rad_scan_wl()`, and `rad_reformat()` —
-delegate to the RAD core compiled into the required `rrad` package. They need no
-separately downloaded `rad` executable. The preserved camel-case functions —
-`radDemux()`, `radScanWl()`, `radReformat()`, and the CLI-only helpers
-`radList()`, `radPrep()`, `radModify()`, and `radRun()` — launch an external RAD
-CLI for compatibility with older workflows.
+As with the other rad guide, SIRAP does not reimplement rad — every wrapper here
+shells out to the same `rad` binary you would call from a terminal. The wrappers
+used below are `radList()`, `radPrep()`, `radModify()`, and `radDemux()`, with
+pointers to `radScanWl()` for building the whitelists your layout references.
 
-This guide uses the native snake-case interface for data processing. Sections
-that demonstrate a CLI-only layout inspection or registry command are labeled
-accordingly. The code is not evaluated while the guide is rendered because the
-examples need a FASTQ matching the custom structure and write processing
-artifacts; copy the chunks into a live R session against your own reads.
+This guide does not evaluate code during rendering: the layout-validation steps
+shell out to the external `rad` binary, and the demux steps need a FASTQ that
+matches your custom structure. Copy the chunks into a live R session against your
+own reads.
 
 ## When You Need a Custom Layout
 
@@ -63,15 +59,15 @@ dir.create(runDir, recursive = TRUE, showWarnings = FALSE)
 
 nproc <- 4
 
-# Confirm that SIRAP and rrad agree on the embedded RAD core and resources.
-rad_core_info()
+# Confirm R can see the rad binary (resolution order: explicit `rad =`,
+# options(SIRAP.rad_path=), $SIRAP_RAD_PATH, then `rad` on your PATH).
+radPath()
+#> "/Users/you/code/rad/build/rad"
 ```
 
-No external binary setup is needed for the native examples. Only the sections
-explicitly labeled **legacy CLI** require `radPath()` to find an executable; see
-the [demultiplexing
-guide](demultiplexing-with-rad.html#point-r-at-the-rad-binary-legacy-cli-only)
-for its resolution rules and `updateRad()` for maintaining a source checkout.
+If rad is not on your `PATH`, point SIRAP at it once per session — see the
+[demultiplexing guide](demultiplexing-with-rad.html#point-r-at-the-rad-binary)
+for the full resolution rules and `updateRad()` for building rad from source.
 
 ## The Anatomy of a Read Layout
 
@@ -128,19 +124,29 @@ documents the schema and has more worked examples.
 ## Start From a Bundled Template
 
 Hand-writing a layout from scratch is error-prone. The faster path is to copy a
-layout bundled with `rrad` that is close to yours and edit it. The installed
-layout directory can be inspected without a RAD executable:
+bundled layout that is close to yours and edit it. `radList()` prints each
+registered layout key *and the CSV it resolves to* — start there:
 
 ```{r list-layouts}
-layoutDir <- system.file("rad", "resources", "read_layout", package = "rrad")
-list.files(layoutDir)
+radList(layouts = TRUE)$stdout
+#> [layouts]
+#> five_prime          .../resources/read_layout/five_prime_read_layout.csv
+#> three_prime         .../resources/read_layout/three_prime_read_layout.csv
+#> sctagger            .../resources/read_layout/sctagger_sim_read_layout.csv
+#> splitseq            .../resources/read_layout/splitseq_read_layout.csv
+#> visium              .../resources/read_layout/visium_three_prime_read_layout.csv
+#> visium_hd           .../resources/read_layout/visium_hd_read_layout.csv
+#> nanopore_rapid_bc   .../resources/read_layout/nanopore_bulk_rapid_bc_read_layout.csv
 ```
 
-Copy the closest CSV into your scratch directory and edit the copy — change a
-barcode length, swap a primer, or add an element:
+Grab the path for the closest key, copy it into your scratch dir, and edit the
+copy — change a barcode length, swap a primer, add an element:
 
 ```{r copy-template}
-tmplPath <- file.path(layoutDir, "five_prime_read_layout.csv")
+# Pull the resolved path for `five_prime` out of the listing and copy it.
+listing  <- radList(layouts = TRUE)$stdout
+tmplPath <- sub(".*\\s", "", grep("five_prime", strsplit(listing, "\n")[[1]],
+                                  value = TRUE)[1])
 
 myLayout <- file.path(runDir, "five_prime_custom.csv")
 file.copy(tmplPath, myLayout, overwrite = TRUE)
@@ -148,22 +154,13 @@ file.copy(tmplPath, myLayout, overwrite = TRUE)
 # ...edit myLayout in your editor or with data.table::fread()/fwrite()...
 ```
 
-The built-in keys accepted by `rad_demux()` include `five_prime`,
-`three_prime`, `sctagger`, `splitseq`, `visium`, `visium_hd`, and
-`nanopore_rapid_bc`. If you already maintain the external CLI, the legacy
-`radList(layouts = TRUE)` call prints the CLI's registry, including any of its
-local overrides; native `rrad` runs intentionally use their packaged resources
-or the explicit file path you supply.
+## Validate the Layout
 
-## Validate the Layout (legacy CLI helper)
-
-Every native `rad_demux()` call validates the custom CSV before processing and
-fails before publishing output if it is malformed. There is not yet a separate
-native dry-run function that prints the parsed layout. If you have the legacy
-CLI installed, `radPrep(read_layout = TRUE)` provides that optional inspection:
-it normalizes the layout, injects its internal start/stop sentinels,
-auto-generates reverse-complement elements, and prints the ordered structure.
-Nothing is written and no FASTQ is needed.
+Before touching any reads, have rad parse the CSV and show you how it interpreted
+each element. `radPrep(read_layout = TRUE)` does exactly this — it normalizes the
+layout, injects its internal start/stop sentinels, auto-generates reverse-
+complement elements, and prints the ordered structure. Nothing is written and no
+FASTQ is needed, so it is a fast syntax check:
 
 ```{r validate-layout}
 radPrep(layout = layoutPath, read_layout = TRUE)
@@ -176,31 +173,28 @@ lengths you expected? A malformed CSV (a missing column, a `variable` row with n
 
 ## Check the Layout Against Real Reads
 
-The native demultiplexer calculates the layout and position map as part of the
-run. A bounded pilot checks how the layout lands on real data while keeping the
-same engine and result contract used for the full run:
+`read_layout` only checks the *description*. To see how the layout actually lands
+on your data, add `position_map = TRUE`. rad samples reads, estimates where each
+element falls, and reports misalignment statistics. This mode needs a FASTQ and
+an output base path; rad writes `<output>_layout.csv` and
+`<output>_position_map.csv`, which `demux` reuses on later runs to the same
+prefix.
 
 ```{r position-map}
 myFastq <- "my_reads.fq.gz"  # reads with the structure your layout describes
 
-pilot <- rad_demux(
-  layout = layoutPath,
-  fastq = myFastq,
-  out_dir = runDir,
-  output = "my_pilot",
-  max_reads = 50000L,
-  threads = nproc
+radPrep(
+  layout       = layoutPath,
+  position_map = TRUE,
+  fastq        = myFastq,
+  output       = file.path(runDir, "my_prep"),
+  threads      = nproc
 )
-
-pilot$artifacts[c("layout", "position_map")]
 ```
 
 If the position map shows your barcode or UMI consistently landing a few bases
 off, that is the signal to adjust an `expected_length` or a primer `seq` and
-re-run — cheaper to fix here than after a full demux. Native runs recalibrate
-these artifacts by default; set `reuse_cache = TRUE` only when they are known to
-belong to the same input and layout. The legacy CLI alternative is
-`radPrep(position_map = TRUE, fastq = myFastq, output = "...")`.
+re-run — cheaper to fix here than after a full demux.
 
 ## Orientation and the `direction` Column
 
@@ -234,43 +228,28 @@ leave `direction` out and let rad build the reverse complements.
 The `whitelist` column on a `barcode` row tells rad which barcode set to correct
 against. You have two options:
 
-1. **A bundled kit key.** Put a registered key (`10x_3v3`, `10x_5v1`,
-   `10x_Vis_V1`..`V5`, `splitseq_bc1/2`, `visium_hd_bc1/2`, ...) in the
-   `whitelist` column. Note the underscores — RAD expects `10x_3v3`, not
-   `10xv3`. Native calls resolve packaged resources automatically and download
-   a large built-in whitelist on first use when needed. If an external CLI is
-   installed, legacy `radList(whitelists = TRUE)` prints its registry.
+1. **A bundled kit key.** `radList(whitelists = TRUE)` prints the registered
+   kits (`10x_3v3`, `10x_5v1`, `10x_Vis_V1`..`V5`, `splitseq_bc1/2`,
+   `visium_hd_bc1/2`, ...). Put the key in the `whitelist` column. Note the
+   underscores — rad expects `10x_3v3`, not `10xv3`.
 
    ```{r list-whitelists}
-   # Optional: prepare all downloadable native whitelists for offline use.
-   rad_download_whitelists()
+   radList(whitelists = TRUE)$stdout
    ```
 
 2. **Your own whitelist.** If your barcodes aren't a known kit, build one from
-   the reads with native `rad_scan_wl()` — it scans for barcodes downstream of
-   an adapter/primer and writes the selected whitelist and scan statistics. It
-   also supports paired BC1+BC2 scans. See the [demultiplexing
-   guide](demultiplexing-with-rad.html) for a worked call. Then point the
-   layout's `whitelist` column or `rad_demux(custom_whitelist = ...)` at
-   `scan$artifacts$whitelist`.
+   the reads with `radScanWl()` — it scans for the barcodes sitting downstream of
+   an adapter/primer and writes a `.csv`/`.txt` whitelist, with a split BC1+BC2
+   mode for paired barcodes. See the [demultiplexing
+   guide](demultiplexing-with-rad.html#discover-barcodes-de-novo-optional) for a
+   worked `radScanWl()` run. Then point the layout's `whitelist` column (or
+   `radDemux(custom_whitelist = ...)`) at the file you generated.
 
-   ```{r scan-custom-whitelist}
-   scan <- rad_scan_wl(
-     input = myFastq,
-     output_prefix = file.path(runDir, "my_cells"),
-     adapter_seq = "CTACACGACGCTCTTCCGATCT",
-     barcode_length = 16L,
-     threads = nproc
-   )
-   ```
+## Register the Layout as a Reusable Key (Optional)
 
-## Register the Layout as a Reusable Key (legacy CLI only)
-
-Native runs accept an explicit layout CSV path directly and intentionally do not
-consult the external CLI's per-user registry. Keeping that path in an R variable
-or configuration file is the most reproducible approach. If you deliberately
-use the legacy CLI, `radModify()` can register a short key for its camel-case
-wrappers:
+Passing the CSV path around works everywhere, but if you reuse a layout a lot you
+can register it under a short key with `radModify()`, so `radList()` and the
+`layout =` argument accept the name:
 
 ```{r modify-register}
 radModify(layout_key = "my_kit", add = layoutPath)
@@ -281,15 +260,21 @@ radList(layouts = TRUE)$stdout   # `my_kit` now appears in the listing
 radModify(layout_key = "my_kit", remove = TRUE)  # unregister
 ```
 
+**Caveat (current build):** rad's registry edits are *process-local* — a key
+added in one `rad` invocation does not persist to the next, separate one. For
+scripts and reproducible pipelines, prefer passing the layout **CSV path**
+directly to `layout =` (as every chunk below does); treat `radModify()` as an
+interactive convenience.
+
 ## Demultiplex With Your Layout
 
-Once the layout validates, pass its CSV path to native `rad_demux()` exactly
-where the demultiplexing guide used a bundled key. The barcode element already
-names its whitelist, so a minimal run needs only the layout, a FASTQ, an output
-directory, and a prefix:
+Once the layout validates, it is a drop-in for the `layout =` argument of every
+rad wrapper — pass your CSV path exactly where the demux guide passed a bundled
+key. The barcode element already names its whitelist, so a minimal run needs only
+the layout, a FASTQ, an output directory, and a prefix:
 
 ```{r demux-custom}
-nativeRun <- rad_demux(
+radDemux(
   layout  = layoutPath,
   fastq   = myFastq,
   out_dir = runDir,
@@ -299,31 +284,12 @@ nativeRun <- rad_demux(
 ```
 
 This writes `custom.fq.gz` (corrected, `CB:Z`/`UB:Z`-tagged reads) plus the
-whitelist summaries under `runDir`, and returns their paths, run statistics, and
-the verified core identity. The native options from the [demultiplexing
-guide](demultiplexing-with-rad.html) apply unchanged, including
-`bc_correction_mode`, `joint_bc_mode = "strict"` for paired barcodes,
-`custom_whitelist`, and `write_debug = TRUE`.
-
-## Continue Natively, or Use the Legacy One-Call Wrapper
-
-Native results compose directly. For example, this streams the tagged FASTQ to
-a pRESTO/IgBLAST-ready FASTA without loading its records into a data frame:
-
-```{r native-reformat}
-igblastInput <- rad_reformat(
-  fastq = nativeRun,
-  output_fastq = file.path(runDir, "custom-igblast.fasta"),
-  to_fasta = TRUE,
-  header_format = "presto",
-  threads = nproc
-)
-```
-
-There is no native `rad_run()` convenience function: call `rad_demux()` and
-`rad_reformat()` explicitly so both structured results and their provenance stay
-available. If an existing workflow intentionally uses the external CLI,
-legacy `radRun()` chains `radPrep()` → `radDemux()` → optional `radReformat()`:
+whitelist summaries under `runDir`. From here everything in the
+[demultiplexing guide](demultiplexing-with-rad.html#demultiplex) applies
+unchanged — `bc_correction_mode`, `joint_bc_mode = "strict"` for paired
+barcodes, `custom_whitelist =`, `write_dbg = TRUE`, and the `radReformat()` /
+`radRun()` steps all take your layout the same way. To chain prep → demux →
+reformat in one call:
 
 ```{r rad-run}
 radRun(
@@ -337,24 +303,18 @@ radRun(
 
 ## seqspec YAML (Newer rad Builds)
 
-The native engine also accepts a [Pachter-lab
-seqspec](https://github.com/pachterlab/seqspec) YAML in place of the layout CSV.
-Pass the `.yaml` path directly to `rad_demux(layout = ...)`:
+Recent rad builds also accept a [Pachter-lab
+seqspec](https://github.com/pachterlab/seqspec) YAML in `prep`/`demux` in place
+of the layout CSV — hand the `.yaml` path to `layout =` and the wrappers pass it
+straight through:
 
 ```{r seqspec}
-yamlRun <- rad_demux(
-  layout = "my_assay.seqspec.yaml",
-  fastq = myFastq,
-  out_dir = runDir,
-  output = "my_assay",
-  threads = nproc
-)
+radPrep(layout = "my_assay.seqspec.yaml", read_layout = TRUE)
 ```
 
 This path is newer than the CSV schema; if you already maintain a seqspec for an
-assay it saves re-describing the structure. The legacy CLI can optionally inspect
-it with `radPrep(layout = "my_assay.seqspec.yaml", read_layout = TRUE)` when the
-installed CLI build supports seqspec.
+assay it saves re-describing the structure. Confirm your `rad` is recent enough
+(`updateRad()`), and check rad's docs for the current state of seqspec support.
 
 ## Where to Next
 

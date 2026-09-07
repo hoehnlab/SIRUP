@@ -171,7 +171,6 @@ dowser::dfToFasta(
 
 processed_paths <- processSpatialSample(
   input_fasta = presto_input_fasta,
-  input_type = "spatial_fasta",
   output_dir = presto_output_dir,
   receptor = "ig",
   identity = 1.0,

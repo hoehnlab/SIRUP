@@ -98,14 +98,9 @@ updateRad <- function(path = NULL,
   binary <- file.path(build_dir, "rad")
 
   stream <- function(label, cmd, args) {
-    if (!isTRUE(quiet)) {
-      message(
-        "[updateRad] ", label, ": ", cmd, " ",
-        paste(shQuote(args), collapse = " ")
-      )
-    }
+    if (!isTRUE(quiet)) message("[updateRad] ", label, ": ", cmd, " ", paste(args, collapse = " "))
     status <- system2(
-      cmd, shQuote(args),
+      cmd, args,
       stdout = if (isTRUE(quiet)) FALSE else "",
       stderr = if (isTRUE(quiet)) FALSE else ""
     )
@@ -116,9 +111,7 @@ updateRad <- function(path = NULL,
   }
 
   capture <- function(cmd, args) {
-    out <- suppressWarnings(
-      system2(cmd, shQuote(args), stdout = TRUE, stderr = TRUE)
-    )
+    out <- suppressWarnings(system2(cmd, args, stdout = TRUE, stderr = TRUE))
     status <- attr(out, "status")
     if (!is.null(status) && status != 0) {
       rlang::abort(paste0("[updateRad] '", cmd, " ", paste(args, collapse = " "),
@@ -285,11 +278,9 @@ radPrep <- function(layout,
   .rad_call(args, rad = rad, capture = capture)
 }
 
-#' Run the full demultiplexing pipeline through the legacy CLI (`rad demux`)
+#' Run the full demultiplexing pipeline (`rad demux`)
 #'
-#' Wraps the external `rad demux` command. New workflows should normally use
-#' [rad_demux()], which runs the packaged native core without a separate RAD
-#' installation. Required: `layout` and `fastq`.
+#' Wraps `rad demux`. Required: `layout` and `fastq`.
 #'
 #' @param layout Layout key or path to a layout CSV.
 #' @param fastq Path to input FASTQ/FASTQ.gz.
@@ -313,9 +304,7 @@ radPrep <- function(layout,
 #' @param output Filename prefix. rad default `"output"`.
 #' @param out_dir Output directory. Defaults to the working directory.
 #' @param log_file Path to a log file; rad tees stdout/stderr there.
-#' @param write_dbg Unsupported for the legacy RAD 1.0.2 CLI because its debug
-#'   path can suppress primary FASTQ records. Use [rad_demux()] with the native
-#'   backend and `write_debug = TRUE` instead.
+#' @param write_dbg Logical; write debug files (`.sig`, `.csv`, metrics).
 #' @param bc_split Logical; split reads into per-barcode FASTQs (see note in
 #'   the rad README about `rad reformat --split-bc` being the current way).
 #' @param threads Number of threads.
@@ -326,7 +315,6 @@ radPrep <- function(layout,
 #'   of streaming to the R console.
 #' @param rad Path to the rad binary. Defaults to [radPath()].
 #' @return Invisible list with `status`, `stdout`, `stderr`, `command`.
-#' @seealso [rad_demux()]
 #' @export
 radDemux <- function(layout,
                       fastq,
@@ -350,15 +338,6 @@ radDemux <- function(layout,
                       ...,
                       capture = FALSE,
                       rad = radPath()) {
-  if (!is.logical(write_dbg) || length(write_dbg) != 1L || is.na(write_dbg)) {
-    rlang::abort("`write_dbg` must be TRUE or FALSE.")
-  }
-  if (isTRUE(write_dbg)) {
-    rlang::abort(paste0(
-      "RAD CLI 1.0.2 debug mode can suppress the primary FASTQ. ",
-      "Use `rad_demux(..., write_debug = TRUE)` with the native backend."
-    ))
-  }
   args <- c(
     "demux",
     .rad_flag("--layout", layout),
@@ -375,6 +354,7 @@ radDemux <- function(layout,
     .rad_flag("--output",               output),
     .rad_flag("--dir",                  out_dir),
     .rad_flag("--log-file",             log_file),
+    if (isTRUE(write_dbg)) "--write-dbg" else character(),
     if (isTRUE(bc_split))  "--bc-split"  else character(),
     .rad_flag("--threads", threads),
     if (isTRUE(verbose))     "--verbose"     else character(),
@@ -795,13 +775,12 @@ radRun <- function(layout, fastq,
                       echo = TRUE,
                       check = TRUE) {
   args <- as.character(args)
-  exec_args <- shQuote(args)
   if (echo && !capture) {
     cat("$ ", rad, " ", paste(shQuote(args), collapse = " "), "\n", sep = "")
   }
   if (capture) {
     out <- suppressWarnings(
-      system2(rad, args = exec_args, stdout = TRUE, stderr = TRUE)
+      system2(rad, args = args, stdout = TRUE, stderr = TRUE)
     )
     status <- attr(out, "status")
     if (is.null(status)) status <- 0L
@@ -812,7 +791,7 @@ radRun <- function(layout, fastq,
       command = c(rad, args)
     )
   } else {
-    status <- system2(rad, args = exec_args)
+    status <- system2(rad, args = args)
     res <- list(
       status = as.integer(status),
       stdout = NULL,

@@ -2,7 +2,7 @@
 % Please edit documentation in R/rad_cli.R
 \name{radDemux}
 \alias{radDemux}
-\title{Run the full demultiplexing pipeline through the legacy CLI (\verb{rad demux})}
+\title{Run the full demultiplexing pipeline (\verb{rad demux})}
 \usage{
 radDemux(
   layout,
@@ -66,9 +66,7 @@ default 2.}
 
 \item{log_file}{Path to a log file; rad tees stdout/stderr there.}
 
-\item{write_dbg}{Unsupported for the legacy RAD 1.0.2 CLI because its debug
-path can suppress primary FASTQ records. Use \code{\link[=rad_demux]{rad_demux()}} with the native
-backend and \code{write_debug = TRUE} instead.}
+\item{write_dbg}{Logical; write debug files (\code{.sig}, \code{.csv}, metrics).}
 
 \item{bc_split}{Logical; split reads into per-barcode FASTQs (see note in
 the rad README about \verb{rad reformat --split-bc} being the current way).}
@@ -90,10 +88,5 @@ of streaming to the R console.}
 Invisible list with \code{status}, \code{stdout}, \code{stderr}, \code{command}.
 }
 \description{
-Wraps the external \verb{rad demux} command. New workflows should normally use
-\code{\link[=rad_demux]{rad_demux()}}, which runs the packaged native core without a separate RAD
-installation. Required: \code{layout} and \code{fastq}.
-}
-\seealso{
-\code{\link[=rad_demux]{rad_demux()}}
+Wraps \verb{rad demux}. Required: \code{layout} and \code{fastq}.
 }

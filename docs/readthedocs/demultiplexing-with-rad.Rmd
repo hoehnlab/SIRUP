@@ -15,52 +15,29 @@ knitr::opts_chunk$set(
 )
 ```
 
-SIRAP's default `rad_demux()` path runs the RAD engine packaged by `rrad`
-directly in R. It requires no separately downloaded executable and performs a
-core-API/resource compatibility handshake before processing data. This vignette
-also documents SIRAP's older `rad*()` command-line wrappers for users who
-deliberately select `backend = "cli"` or need one of the remaining CLI-only
-commands. Demultiplexing is the upstream step that produces the corrected reads
-the rest of the package builds on: the [Visium HD processing
+This vignette drives the [`rad`](https://github.com/indianewok/rad) command-line
+demultiplexer from R using SIRAP's `rad*()` wrappers. It is the upstream step
+that produces the demultiplexed, barcode-corrected reads the rest of the package
+builds on: the [Visium HD processing
 guide](visium-hd-processing.html) *starts from* RAD output, and this guide shows
 how to get there.
 
-The native entry points are `rad_core_info()`, `rad_scan_wl()`, `rad_demux()`,
-`rad_reformat()`, and `rad_download_whitelists()`. The preserved camel-case
-external-CLI wrappers are `radPath()`, `radList()`, `radPrep()`, `radScanWl()`,
-`radDemux()`, `radReformat()`, and `radRun()`, plus `radSrcPath()` and
-`updateRad()` for maintaining a source checkout.
+SIRAP does not vendor or reimplement rad — every wrapper shells out to the same
+`rad` binary you would call from a terminal, so you get rad's exact behavior with
+R-friendly argument handling, path resolution, and error reporting. The
+wrappers covered here are `radPath()`, `radList()`, `radPrep()`, `radScanWl()`,
+`radDemux()`, `radReformat()`, and the one-call `radRun()`, plus `radSrcPath()`
+and `updateRad()` for building rad from source.
 
-Unlike the other guides, this one uses rad's **public simulated test dataset**,
-so the native workflow is runnable without private data or a separately built
-`rad` binary.
+Unlike the other guides, this one uses rad's **public simulated test dataset**, so
+the whole thing is runnable on any machine that has a built `rad` binary — no
+private data required.
 
-This guide intentionally does not evaluate code during rendering because its
-examples download data and write demultiplexing artifacts.
+This guide intentionally does not evaluate code during rendering, even in the
+read-the-docs version, because every step shells out to the external `rad`
+binary, downloads data, and writes files.
 
 ## Setup
-
-SIRAP and `rrad` are currently private repositories. Your GitHub account must
-have read access to both before installation. Configure the system credential
-manager once, without placing a token in source code, a repository URL, or a
-committed `.Renviron` file:
-
-```{r private-install}
-install.packages(c("gitcreds", "remotes"))
-gitcreds::gitcreds_set()
-remotes::install_github("hjm2217/SIRAP", dependencies = NA)
-```
-
-SIRAP pins the install source for `rrad` to release `v1.2.1`. A private
-repository access problem may be reported by GitHub as a repository-not-found
-or 404 error. If installing from a local SIRAP checkout, use
-`remotes::install_local("/path/to/SIRAP", dependencies = NA)` after storing a
-credential that can read `indianewok/rrad`.
-
-The embedded engine currently supports macOS and Linux. Linux builds use
-OpenMP when R exposes it. Current macOS builds are serial: requesting more than
-one thread produces a warning, and the result records both the requested and
-effective thread counts.
 
 ```{r setup}
 library(SIRAP)
@@ -70,100 +47,9 @@ runDir <- file.path(tempdir(), "rad_demo")
 dir.create(runDir, recursive = TRUE, showWarnings = FALSE)
 
 nproc <- 4
-testFastq <- file.path(runDir, "test.fq.gz")
-download.file(
-  "https://github.com/indianewok/rad/releases/download/test-data-v1/shuffled_S_lr_synth.fq.gz",
-  destfile = testFastq,
-  mode = "wb"
-)
 ```
 
-## Native RAD (recommended)
-
-`rad_core_info()` shows the exact embedded engine and compatibility contract.
-The call fails early if SIRAP and `rrad` do not agree on the core API, resource
-schema, required features, or packaged-resource availability. Its upstream
-commit plus embedded-source and resource SHA-256 digests identify the exact
-engine material used.
-
-```{r native-rad}
-rad_core_info()
-
-nativeRun <- rad_demux(
-  layout = "sctagger",
-  fastq = testFastq,
-  out_dir = runDir,
-  output = "demo",
-  threads = nproc
-)
-
-nativeRun$artifacts
-nativeRun$stats
-nativeRun$provenance$core_handshake
-```
-
-`rad_scan_wl()` and `rad_reformat()` are native operations too; their
-camel-case counterparts remain only for legacy CLI compatibility.
-
-```{r native-scan-reformat}
-scanRun <- rad_scan_wl(
-  input = testFastq,
-  output_prefix = file.path(runDir, "cells"),
-  adapter_seq = "CTACACGACGCTCTTCCGATCT",
-  barcode_length = 16L,
-  whitelist = "10x_3v3"
-)
-
-reformatted <- rad_reformat(
-  fastq = nativeRun,
-  output_fastq = file.path(runDir, "demo-igblast.fasta"),
-  to_fasta = TRUE,
-  header_format = "presto"
-)
-```
-
-The last call is the native equivalent of `seqkit fq2fa`, but it also gives
-IgBLAST and pRESTO one unambiguous header contract:
-`read_id|BARCODE=value|UMI=value`. Conversion is streamed directly from plain
-or gzip-compressed FASTQ; quality strings never need to be loaded into R.
-
-Small resources ship inside `rrad`. Large built-in 10x whitelists stay out of
-the package tarball: the first native operation that requests one downloads it
-to R's standard per-user cache, verifies the pinned byte count and SHA-256
-digest, and then reuses it. Obtaining the private `rrad` dependency can require
-network access while installing SIRAP; loading either installed package never
-downloads a whitelist. Most users do nothing beyond naming the kit. To prepare
-a machine or shared cluster cache before an offline run, call:
-
-```{r native-resource-cache}
-rad_download_whitelists("10x_3v3")
-# Or prefetch every downloadable large whitelist:
-rad_download_whitelists()
-
-# Optional shared cache location:
-options(rrad.cache_dir = "/shared/rad-cache")
-# Refuse all downloads after the cache has been prepared:
-options(rrad.offline = TRUE)
-```
-
-Native runs recalibrate the layout and position map by default, even if the
-same output prefix already exists. Set `reuse_cache = TRUE` only when those
-files are known to belong to the same layout and input.
-
-Choose either `kit` or `global_whitelist` as the reference barcode source, not
-both. Similarly, `auto_whitelist = TRUE` and `custom_whitelist` are alternatives
-for selecting the true/sample barcode set. SIRAP rejects either conflicting
-combination before RAD starts so the recorded configuration cannot disagree
-with the data actually used.
-
-The remainder of this guide describes the explicit legacy CLI surface.
-
-That adapter is intentionally narrow: it accepts RAD CLI 1.0.2, validates the
-complete input and output FASTQ streams, reports legacy cache reuse as
-uncontrolled, and rejects CLI debug mode because RAD 1.0.2 can otherwise omit
-primary reads. These safety passes do not apply to the native backend.
-
-## Point R at the rad Binary (legacy CLI only)
+## Point R at the rad Binary
 
 Every wrapper calls `radPath()` to find the `rad` executable. The resolution
 order is: an explicit `rad =` argument, then `getOption("SIRAP.rad_path")`, then
@@ -236,9 +122,18 @@ documents the CSV schema (`id, seq, expected_length, type, class, whitelist`).
 
 ## Get the Example Reads
 
-rad publishes the simulated scTagger long-read dataset downloaded during setup:
-~98,873 reads from 50 known cells, with each read's true 16 bp barcode embedded
-in its header. It is the ideal thing to demultiplex first.
+rad publishes a small simulated scTagger long-read dataset: ~98,873 reads from 50
+known cells, with each read's true 16 bp barcode embedded in its header. It is the
+ideal thing to demultiplex first.
+
+```{r get-data}
+testFastq <- file.path(runDir, "test.fq.gz")
+download.file(
+  "https://github.com/indianewok/rad/releases/download/test-data-v1/shuffled_S_lr_synth.fq.gz",
+  destfile = testFastq,
+  mode = "wb"
+)
+```
 
 ## Check the Read Layout
 
@@ -347,9 +242,9 @@ Other knobs worth knowing (all optional arguments to `radDemux()`):
   bundled `kit`.
 - `whitelist_mutation` / `generated_mutation` — edit-distance search space
   (rad default 2 each).
-- RAD CLI 1.0.2's `write_dbg = TRUE` path can suppress primary FASTQ records,
-  so SIRAP rejects it. Use native `rad_demux(write_debug = TRUE)` to emit the
-  debug artifacts safely alongside primary output.
+- `write_dbg = TRUE` — also emit `*_dbg.sig.gz`, `*_dbg.csv.gz`,
+  `*_dbg.fq.gz`, and a `*.metrics.tsv` for inspecting why reads were kept or
+  dropped.
 - `max_reads`, `chunk_size`, `log_file` — throughput and logging controls.
 
 Every wrapper returns an invisible list with `status`, `stdout`, `stderr`, and
@@ -438,7 +333,7 @@ kept when *both* barcode halves correct cleanly:
 ```{r visium-hd-demux}
 visiumFastq <- "spatial_bcr_tcr_reads.fq.gz"  # your enriched long reads
 
-visiumRun <- rad_demux(
+radDemux(
   layout        = "visium_hd",
   fastq         = visiumFastq,
   joint_bc_mode = "strict",   # require BOTH paired-barcode halves to correct
@@ -449,59 +344,28 @@ visiumRun <- rad_demux(
 ```
 
 Then rewrite the headers in coordinate mode so the spatial ID becomes a
-tissue coordinate downstream. The returned object feeds directly into the
-two-pass workflow below. `bin_size` sets the target bin in microns (RAD's
-default is 2 µm — the finest Visium HD grid):
+tissue coordinate downstream. `coordinate = TRUE` uses rad's default mode
+(`vizHD-v1`); `bin_size` sets the target bin in microns (rad default 2 µm — the
+finest Visium HD grid):
 
 ```{r visium-hd-coordinate}
-coordinateRun <- rad_reformat(
-  fastq        = visiumRun,
-  coordinate   = "vizHD-v1",
-  bin_size     = 2,
-  output_fastq = "visium_hd_run/spatial-coordinate.fq.gz",
-  threads      = nproc
+radReformat(
+  fastq      = "visium_hd_run/spatial.fq.gz",
+  coordinate = TRUE,   # or coordinate = "vizHD-v1"
+  bin_size   = 2,
+  threads    = nproc
 )
 ```
 
 The Visium HD layout and its paired-barcode whitelists are **experimental** —
 validate on a pilot before scaling up.
 
-From here SIRAP runs two deliberately separate IgBLAST passes. The first
-assigns V/D/J calls to every RAD read and provides the aligned receptor region
-used for read-level filtering. pRESTO then groups those reads by the spatial
-barcode and builds consensuses. The second IgBLAST pass annotates those
-consensus sequences, and `MakeDb.py` carries the pRESTO `BARCODE` field into
-the final AIRR table.
-
-```{r rad-to-spatial-airr}
-processed <- processSpatialSample(
-  input_fasta = coordinateRun,
-  output_dir = file.path(runDir, "processed"),
-  receptor = "ig",
-  germline_glob = "/path/to/imgt/human/vdj/imgt_human_*.fasta",
-  igblast_base = "/path/to/igblast",
-  muscle_exec = "/path/to/muscle",
-  nproc = nproc
-)
-
-processed$artifacts$read_igblast_airr
-processed$artifacts$consensus_fasta
-processed$artifacts$final_airr
-```
-
-For the read-level pass, `nproc` is a total CPU budget rather than a
-per-process multiplier. SIRAP streams complete FASTA records into
-approximately base-balanced chunks and runs up to four IgBLAST processes at
-once. For example, `nproc = 12` uses four processes with three IgBLAST threads
-each. Small inputs stay on the single-process path, and AIRR rows are merged
-back in original input order. Direct `runIgblast()` callers can set
-`max_processes = 1` to force monolithic execution or supply `chunk_bases` when
-benchmarking alternative chunk sizes. In `processSpatialSample()`, use
-`igblast_max_processes` to tune or disable the worker pool.
-
-The [Visium HD processing guide](visium-hd-processing.html) continues from the
-final AIRR artifact to barcode-grid mapping, tissue coordinates, and spatial
-analysis.
+From here the demultiplexed reads carry their 2 µm spatial ID in the read
+header. They go through your aligner / IgBLAST step (outside rad and SIRAP) to
+produce AIRR-style rearrangement tables, at which point the [Visium HD processing
+guide](visium-hd-processing.html) takes over: `extractSpatialIds()` lifts the
+barcode back out of the `sequence_id`, `filterAirr()` does length/locus
+QC, and the 2 µm barcode is remapped to the 8 µm/16 µm grid for plotting.
 
 ## Keeping rad Up to Date
 
