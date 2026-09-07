@@ -11,6 +11,7 @@ filterAirr(
   min_j_length = 10,
   min_junction_length = 1,
   productive_only = TRUE,
+  complete_vdj = FALSE,
   min_consensus_count = 2,
   max_opening_gap = NULL,
   sequence_alignment = "sequence_alignment",
@@ -34,6 +35,10 @@ filtering.}
 \item{min_junction_length}{Minimum accepted junction length.}
 
 \item{productive_only}{Keep only productive rearrangements.}
+
+\item{complete_vdj}{Keep only rows whose IgBLAST \code{complete_vdj} field is
+true. When enabled, the field is required so a malformed first-pass table
+cannot silently bypass this filter.}
 
 \item{min_consensus_count}{Optional minimum consensus_count.}
 

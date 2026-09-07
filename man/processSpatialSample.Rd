@@ -2,26 +2,37 @@
 % Please edit documentation in R/processing.R
 \name{processSpatialSample}
 \alias{processSpatialSample}
-\title{Run pRESTO/Change-O/IgBLAST processing for one spatial FASTA}
+\title{Process RAD reads through two IgBLAST passes and spatial consensus}
 \usage{
 processSpatialSample(
   input_fasta,
   output_dir = NULL,
   receptor = c("ig", "tr"),
   organism = "human",
+  input_type = c("auto", "rad", "rad_fasta", "airr", "spatial_fasta"),
+  igblast_db_dir = NULL,
+  aux_file = NULL,
+  germline_db_v = NULL,
+  germline_db_d = NULL,
+  germline_db_j = NULL,
+  c_region_db = NULL,
+  filter_args = list(),
+  fasta_sequence_col = "sequence_alignment",
+  sample_name = NULL,
   identity = 0.975,
   consensus_freq = 0.51,
   germline_glob,
   igblast_base = "~/software/igblast",
   igblast_exec = NULL,
   muscle_exec = "~/software/muscle3.8.31_i86linux64",
-  nproc = 8,
-  cluster_field,
-  delimiters = "'|' '=' ','",
-  parse_fields = c(cluster_field, "cluster"),
-  parse_key = paste0(cluster_field, "_cluster"),
+  nproc = 8L,
+  igblast_max_processes = 4L,
+  cluster_field = "BARCODE",
+  delimiters = c("|", "=", ","),
+  parse_fields = c(cluster_field, "CLUSTER"),
+  parse_key = paste0(cluster_field, "_CLUSTER"),
   parse_act = "cat",
-  consensus_min_count = 1,
+  consensus_min_count = 1L,
   consensus_copy_fields = NULL,
   consensus_copy_action = "majority",
   align_log = NULL,
@@ -29,90 +40,99 @@ processSpatialSample(
 )
 }
 \arguments{
-\item{input_fasta}{Spatial FASTA written from preprocessed receptor reads.}
+\item{input_fasta}{A RAD demultiplex/reformat result, RAD-tagged FASTQ, RAD
+FASTA, read-level AIRR table/path, or pRESTO-ready spatial FASTA.}
 
-\item{output_dir}{Directory for pRESTO/Change-O/IgBLAST outputs. Defaults to the
-input FASTA directory.}
+\item{output_dir}{Directory for all generated artifacts.}
 
-\item{receptor}{Either \code{ig} for BCR or \code{tr} for TCR IgBLAST loci.}
+\item{receptor}{Either \code{"ig"} or \code{"tr"}.}
 
-\item{organism}{The organism for which to perform the analysis.}
+\item{organism}{IgBLAST organism name.}
 
-\item{identity}{Cluster identity threshold passed to \code{ClusterSets.py}.}
+\item{input_type}{One of \code{"auto"}, \code{"rad"}, \code{"rad_fasta"}, \code{"airr"}, or
+\code{"spatial_fasta"}.}
 
-\item{consensus_freq}{Consensus frequency threshold passed to
-\code{BuildConsensus.py}.}
+\item{igblast_db_dir}{Optional legacy directory containing first-pass
+\code{IG_V}, \code{IG_D}, and \code{IG_J} database prefixes. Normally leave this \code{NULL}
+and use the conventional databases beneath \code{igblast_base} for both passes.}
 
-\item{germline_glob}{IMGT germline glob passed to \code{MakeDb.py -r}.}
+\item{aux_file}{Optional first-pass IgBLAST auxiliary-data file. In this
+two-pass wrapper it must resolve to the conventional
+\verb{<igblast_base>/optional_file/<organism>_gl.aux}, because \code{AssignGenes.py}
+uses that same file for pass 2. \code{\link[=runIgblast]{runIgblast()}} alone permits other files.}
 
-\item{igblast_base}{Path passed to \verb{AssignGenes.py igblast -b}.}
+\item{germline_db_v, germline_db_d, germline_db_j, c_region_db}{Optional
+database overrides used for both IgBLAST passes.}
 
-\item{igblast_exec}{Optional path passed to \code{AssignGenes.py --exec}. When
-\code{NULL}, defaults to \code{file.path(igblast_base, "bin", "igblastn")}.}
+\item{filter_args}{Named \code{\link[=filterAirr]{filterAirr()}} overrides.}
 
-\item{muscle_exec}{Path passed to \code{AlignSets.py --exec}.}
+\item{fasta_sequence_col}{Read-level AIRR sequence column sent to pRESTO.}
 
-\item{nproc}{Number of processors for pRESTO and AssignGenes steps.}
+\item{sample_name}{Output filename stem.}
 
-\item{cluster_field}{Required FASTA header field used for within-spot
-clustering. This has no default because spatial_id fields vary by platform
-and preprocessing workflow.}
+\item{identity}{pRESTO clustering identity.}
 
-\item{delimiters}{String of pRESTO delimiter values passed after \code{--delim}.
-Defaults to \code{"'|' '=' ','"}.}
+\item{consensus_freq}{pRESTO consensus frequency.}
 
-\item{parse_fields}{Header fields passed to \verb{ParseHeaders.py merge -f}.}
+\item{germline_glob}{IMGT germline files for the second-pass \code{MakeDb.py}.
+These must be the same reference sequences used to build the selected
+IgBLAST V/D/J databases.}
 
-\item{parse_key}{Header field name created by \verb{ParseHeaders.py merge -k}.}
+\item{igblast_base}{IgBLAST installation shared by the direct read-level
+pass and consensus-level \code{AssignGenes.py} pass. Its conventional
+\code{database}, \code{optional_file}, \code{internal_data}, and \code{bin} directories are
+used for pass 1.}
 
-\item{parse_act}{Action passed to \verb{ParseHeaders.py merge --act}.}
+\item{igblast_exec}{IgBLAST executable used by both passes.}
 
-\item{consensus_min_count}{Minimum sequence count passed to
-\code{BuildConsensus.py -n}. Recommended to be at least 2 for non-single-cell resolution data.}
+\item{muscle_exec}{MUSCLE executable used by pRESTO.}
 
-\item{consensus_copy_fields}{Optional fields passed to \code{BuildConsensus.py --cf}.}
+\item{nproc}{Total CPU budget for each external stage. The read-level
+\code{\link[=runIgblast]{runIgblast()}} pass shares this budget across as many as four concurrent,
+base-balanced IgBLAST processes; small inputs stay single-process.}
 
-\item{consensus_copy_action}{Action passed to \code{BuildConsensus.py --act} when
-\code{consensus_copy_fields} is provided.}
+\item{igblast_max_processes}{Maximum concurrent processes for the direct
+read-level IgBLAST pass. Set to one to force monolithic execution.}
 
-\item{align_log}{Optional log path passed to \code{AlignSets.py --log}.}
+\item{cluster_field}{pRESTO spatial grouping field.}
 
-\item{consensus_log}{Optional log path passed to \code{BuildConsensus.py --log}.}
+\item{delimiters}{pRESTO field, key/value, and list delimiters.}
+
+\item{parse_fields}{Fields merged by \code{ParseHeaders.py}.}
+
+\item{parse_key}{Name of the merged spatial-cluster field.}
+
+\item{parse_act}{\code{ParseHeaders.py} merge action.}
+
+\item{consensus_min_count}{Minimum reads per consensus.}
+
+\item{consensus_copy_fields}{Fields copied into consensus headers. \code{NULL}
+copies \code{cluster_field}, keeping the spatial barcode in the final AIRR file.}
+
+\item{consensus_copy_action}{Consensus field-copy action.}
+
+\item{align_log}{Optional alignment log.}
+
+\item{consensus_log}{Optional consensus log.}
 }
 \value{
-A named list of output paths, invisibly.
+Invisibly, a \code{sirap_spatial_process_result} with explicit read-level
+and consensus-level stage artifacts.
 }
 \description{
-This function keeps the external Immcantation/pRESTO command-line workflow
-inside an R script. It builds and runs the following files in order:
+The full workflow is intentionally two-pass. RAD first demultiplexes the
+reads and \code{\link[=rad_reformat]{rad_reformat()}} streams the tagged FASTQ to a plain FASTA.
+\code{\link[=runIgblast]{runIgblast()}} then assigns V/D/J calls to every read. SIRAP restores the
+RAD barcode/UMI fields, filters the read-level AIRR table, and writes a
+canonical pRESTO FASTA. pRESTO builds spatial consensuses, after which
+\verb{AssignGenes.py igblast} and \code{MakeDb.py} perform the second V/D/J annotation
+on the consensus sequences.
 }
 \details{
-\itemize{
-\item \verb{ClusterSets.py set} groups reads within each spatial ID using \code{cluster_field},
-the requested identity threshold \code{identity}, and vsearch.
-\item \verb{ParseHeaders.py merge} is used to write a new field into the headers that combines
-the spatial ID and the cluster id (provided with parse_fields). These are
-combined using \code{parse_act} (default cat) and written to a new header field \code{parse_key}.
-Uses \code{delimiters} to specify the FASTA header delimiters.
-\item \verb{AlignSets.py muscle} aligns reads within each \code{parse_key} group created by \code{ParseHeaders}.
-Takes \code{muscle_exec} as the path to the muscle aligner (https://github.com/rcedgar/muscle).
-Optionally logs results to \code{align_log}. Uses \code{delimiters} to specify the FASTA header delimiters.
-\item \code{BuildConsensus.py} creates consensus sequences within each \code{parse_key} group. \code{consensus_min_count}
-specifies the minimum number of sequences needed to define a valid consensus sequence, and
-\code{consensus_freq} specifies the fraction of character occurrences under which an ambiguous
-character is assigned. Optionally logs results to \code{consensus_log}. If there are additional
-fields in the FASTA header that should be carried forward and copied to the consensus file,
-\code{consensus_copy_fields} specifies the field names and \code{consensus_copy_action} specifies how
-to copy them (majority, first, last, or all).
-\item \verb{AssignGenes.py igblast} assigns V(D)J gene annotations using IgBLAST. Takes either \code{ig} or \code{tr}
-as the argument to \code{receptor} (for bcr/tcr respectively). Takes \code{organism} as the argument to
-specify the species (e.g., human, mouse, etc.). \code{igblast_base} specifies the path to the IgBLAST
-installation, and \code{igblast_exec} can be provided if the igblast executable is not located in
-the \code{bin/igblastn} path beneath \code{igblast_base}.
-\item \verb{MakeDb.py igblast} converts IgBLAST output to an AIRR-style TSV using the specified IMGT
-germline reference \code{germline_glob}.
-}
-
-Each command is printed before it is run, and any non-zero exit status stops
-the function with the failing command in the error message.
+A \code{rad_demux_result} can be passed directly. Bare FASTA paths default to
+\code{input_type = "rad_fasta"} so the read-level pass is never silently skipped.
+Gzip-compressed RAD FASTA is streamed to a plain staged FASTA automatically,
+and SAM-style RAD tags are normalized to the canonical pRESTO header first.
+Existing callers resuming from an already annotated, pRESTO-ready FASTA must
+explicitly use \code{input_type = "spatial_fasta"} to bypass the first pass.
 }

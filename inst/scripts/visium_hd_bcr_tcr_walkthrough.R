@@ -214,6 +214,7 @@ if (runPrestoIgblast) {
   # This function both runs the external presto/igblast commands and returns the paths to the key output files
   bcrPrestoPaths <- processSpatialSample(
     input_fasta = bcrHeavySpatialFasta,
+    input_type = "spatial_fasta",
     output_dir = prestoOutputDir,
     receptor = "ig",
     identity = identityThreshold,
@@ -226,6 +227,7 @@ if (runPrestoIgblast) {
 
   tcrPrestoPaths <- processSpatialSample(
     input_fasta = tcrBetaSpatialFasta,
+    input_type = "spatial_fasta",
     output_dir = prestoOutputDir,
     receptor = "tr",
     identity = identityThreshold,
