@@ -27,10 +27,10 @@ into package functions for:
 
 ## Private installation
 
-Both SIRAP and its required `rrad` dependency are currently private. Before
-installing, your GitHub account must have read access to both repositories.
-Store the credential in the system credential manager; never put a token in an
-R script, repository URL, or committed `.Renviron` file.
+SIRAP is currently private, while its required `rrad` dependency is public.
+Your GitHub account therefore needs read access only to SIRAP. Store that
+credential in the system credential manager; never put a token in an R script,
+repository URL, or committed `.Renviron` file.
 
 ```r
 install.packages(c("gitcreds", "remotes"))
@@ -41,10 +41,9 @@ remotes::install_github("hjm2217/SIRAP", dependencies = NA)
 ```
 
 If you already have a SIRAP checkout, replace the last call with
-`remotes::install_local("/path/to/SIRAP", dependencies = NA)`. Access failures
-for a private repository commonly appear as repository-not-found or 404
-errors. The credential used by a direct GitHub installation must be able to
-read both repositories.
+`remotes::install_local("/path/to/SIRAP", dependencies = NA)`. No credential is
+needed for the public `rrad` dependency. Access failures for the private SIRAP
+repository commonly appear as repository-not-found or 404 errors.
 
 The embedded engine currently supports macOS and Linux. Linux builds use
 OpenMP when R exposes it; current macOS builds run the demultiplexer serially
