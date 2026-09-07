@@ -1,7 +1,7 @@
 # Helpers and exported functions for the raw-read IgBLAST step of the
-# spatial processing pipeline. Raw reads come from the RRAD package as
+# spatial processing pipeline. Prepared reads come from the rrad package as
 # FASTA/FASTQ files, optionally gzipped, with headers like
-# `id|umi:XXX|barcode:YYY`.
+# `id|BARCODE=YYY|UMI=XXX`.
 
 # Check that each external tool exists. `execs` is a named character vector;
 # names are used in the error message. A tool passes if its expanded path is
@@ -276,13 +276,19 @@ runIgblast <- function(input,
   invisible(output_tsv)
 }
 
-#' Parse RRAD tags out of AIRR sequence IDs
+#' Parse rrad tags out of AIRR sequence IDs
 #'
-#' RRAD writes read headers like `id|umi:XXX|barcode:YYY`. This function
-#' splits that format: it adds `umi` and `barcode` columns and, when
-#' `strip = TRUE`, replaces the ID column with the bare read ID. Rows
-#' without a tag get `NA` in the matching column. For other header formats,
-#' see [extractSpatialIds()].
+#' Parses `id|BARCODE=YYY|UMI=XXX`, written by
+#' `rrad::rad_reformat(..., to_fasta = TRUE, header_format = "presto")`.
+#' Legacy `|barcode:YYY|umi:XXX` tags are also accepted; field names are
+#' case-insensitive. Existing `barcode` and `umi` columns are preserved when
+#' a tag is absent. Conflicting values or repeated tags raise an error.
+#' Missing UMIs are allowed. With `strip = TRUE`, the ID column is replaced
+#' with the bare read ID. For other header formats, see [extractSpatialIds()].
+#'
+#' Metadata must be inside the identifier, before any whitespace, to survive
+#' IgBLAST. SAM-style comments from unformatted RAD output should be converted
+#' upstream with `header_format = "presto"` before annotation.
 #'
 #' @param airr_df AIRR-style data frame.
 #' @param id Column that contains the read identifiers.
@@ -293,10 +299,42 @@ parseRadSequenceIds <- function(airr_df, id = "sequence_id", strip = TRUE) {
   .check_required_cols(airr_df, id, "airr_df")
   out <- .as_data_frame(airr_df)
   ids <- as.character(out[[id]])
-  out$umi <- stringr::str_match(ids, "\\|umi:([^|]*)")[, 2]
-  out$barcode <- stringr::str_match(ids, "\\|barcode:([^|]*)")[, 2]
+  for (field in c("barcode", "umi")) {
+    matches <- stringr::str_match_all(
+      ids, stringr::regex(paste0("\\|", field, "[=:]([^|]*)"), ignore_case = TRUE)
+    )
+    repeated <- which(vapply(matches, nrow, integer(1)) > 1L)
+    if (length(repeated)) {
+      rlang::abort(paste0("Duplicate `", field, "` tag at row ", repeated[[1L]], "."))
+    }
+    value <- vapply(matches, function(match) {
+      if (nrow(match) == 0L) NA_character_ else match[1L, 2L]
+    }, character(1))
+    present <- !is.na(value) & nzchar(value)
+    invalid <- which(present & grepl("[=,[:space:]]", value))
+    if (length(invalid)) {
+      rlang::abort(paste0(
+        "The `", field, "` tag contains a delimiter or whitespace at row ",
+        invalid[[1L]], "."
+      ))
+    }
+    existing <- if (field %in% colnames(out)) {
+      as.character(out[[field]])
+    } else {
+      rep(NA_character_, nrow(out))
+    }
+    conflict <- which(present & !is.na(existing) & nzchar(existing) & value != existing)
+    if (length(conflict)) {
+      rlang::abort(paste0(
+        "Conflicting `", field, "` values in the sequence ID and AIRR column at row ",
+        conflict[[1L]], "."
+      ))
+    }
+    existing[present] <- value[present]
+    out[[field]] <- existing
+  }
   if (strip) {
-    out[[id]] <- sub("\\|.*$", "", ids)
+    out[[id]] <- sub("[|[:space:]].*$", "", ids)
   }
   out
 }

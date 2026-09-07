@@ -2,7 +2,7 @@
 % Please edit documentation in R/igblast.R
 \name{parseRadSequenceIds}
 \alias{parseRadSequenceIds}
-\title{Parse RRAD tags out of AIRR sequence IDs}
+\title{Parse rrad tags out of AIRR sequence IDs}
 \usage{
 parseRadSequenceIds(airr_df, id = "sequence_id", strip = TRUE)
 }
@@ -17,9 +17,16 @@ parseRadSequenceIds(airr_df, id = "sequence_id", strip = TRUE)
 The data frame with \code{umi} and \code{barcode} columns added.
 }
 \description{
-RRAD writes read headers like \code{id|umi:XXX|barcode:YYY}. This function
-splits that format: it adds \code{umi} and \code{barcode} columns and, when
-\code{strip = TRUE}, replaces the ID column with the bare read ID. Rows
-without a tag get \code{NA} in the matching column. For other header formats,
-see \code{\link[=extractSpatialIds]{extractSpatialIds()}}.
+Parses \code{id|BARCODE=YYY|UMI=XXX}, written by
+\code{rrad::rad_reformat(..., to_fasta = TRUE, header_format = "presto")}.
+Legacy \code{|barcode:YYY|umi:XXX} tags are also accepted; field names are
+case-insensitive. Existing \code{barcode} and \code{umi} columns are preserved when
+a tag is absent. Conflicting values or repeated tags raise an error.
+Missing UMIs are allowed. With \code{strip = TRUE}, the ID column is replaced
+with the bare read ID. For other header formats, see \code{\link[=extractSpatialIds]{extractSpatialIds()}}.
+}
+\details{
+Metadata must be inside the identifier, before any whitespace, to survive
+IgBLAST. SAM-style comments from unformatted RAD output should be converted
+upstream with \code{header_format = "presto"} before annotation.
 }

@@ -112,7 +112,9 @@ filterAirr <- function(airr_df,
 #' and one receptor locus group (`ig` or `tr`). The `input` can be one of:
 #'
 #' * Raw reads: a FASTA or FASTQ file, optionally gzipped, as written by the
-#'   RRAD package. The function first annotates the reads with
+#'   rrad package. Export rrad FASTA with `to_fasta = TRUE` and
+#'   `header_format = "presto"` so barcode/UMI tags remain in the IgBLAST
+#'   identifier. The function first annotates the reads with
 #'   [runIgblast()] (`igblastn -outfmt 19`), which needs `igblast_db_dir`
 #'   (or the per-segment database paths).
 #' * An AIRR table: a `.tsv` path or a data frame. The raw IgBLAST step is
@@ -123,7 +125,8 @@ filterAirr <- function(airr_df,
 #'
 #' For raw reads and AIRR input, the function then:
 #'
-#' * splits RRAD `|umi:...|barcode:...` tags out of `sequence_id` with
+#' * splits rrad `|BARCODE=...|UMI=...` tags (or legacy colon tags) out of
+#'   `sequence_id` with
 #'   [parseRadSequenceIds()];
 #' * removes junk sequences with [filterAirr()]. Pipeline defaults:
 #'   `complete_vdj = TRUE`, `spatial_id = "barcode"`, and a combined header
@@ -175,6 +178,8 @@ filterAirr <- function(airr_df,
 #'   type from the object class and file extension: FASTA/FASTQ paths become
 #'   `"raw_reads"`. Pass `"spatial_fasta"` to feed a pRESTO-ready FASTA
 #'   straight to the consensus pipeline.
+#'   Newly demultiplexed rrad FASTA should use `"auto"` or `"raw_reads"`:
+#'   `"spatial_fasta"` skips the first read-level V(D)J annotation and filtering.
 #' @param igblast_db_dir Directory with the raw-step germline databases
 #'   (`IG_V`, `IG_D`, `IG_J`, `IG_C`, `TR_V`, `TR_D`, `TR_J`). See
 #'   [runIgblast()].
@@ -204,7 +209,7 @@ filterAirr <- function(airr_df,
 #'   AssignGenes.
 #' @param cluster_field FASTA header field used for within-spot clustering.
 #'   The pipeline writes headers keyed by this name; the default `"barcode"`
-#'   matches RRAD output. Override it for other spatial ID fields, for
+#'   uses the parsed rrad `BARCODE` field. Override it for other spatial ID fields, for
 #'   example `barcode_8um`.
 #' @param delimiters Character vector of pRESTO delimiter values passed
 #'   after `--delim`. Defaults to `c("|", "=", ",")`.
@@ -336,18 +341,25 @@ processSpatialSample <- function(input,
     )
     args <- utils::modifyList(filter_defaults, filter_args)
     spatial_col <- args$spatial_id
-    if (!is.null(spatial_col) && spatial_col %in% colnames(airr) && all(is.na(airr[[spatial_col]]))) {
-      rlang::abort(paste0(
-        "The spatial ID column `", spatial_col, "` is all NA. ",
-        "The sequence IDs do not carry RRAD `|barcode:` tags. ",
-        "Add spatial IDs first, for example with `extractSpatialIds()`, ",
-        "and pass the AIRR table to `processSpatialSample()`."
-      ))
-    }
     filtered <- do.call(filterAirr, c(list(airr_df = airr), args))
     n_filtered <- nrow(filtered)
     if (n_filtered == 0L) {
       rlang::abort("No sequences passed `filterAirr()`. Check the input and `filter_args`.")
+    }
+    if (!is.null(spatial_col)) {
+      .check_required_cols(filtered, spatial_col, "filtered AIRR table")
+      spatial_ids <- as.character(filtered[[spatial_col]])
+      invalid <- which(is.na(spatial_ids) | !nzchar(spatial_ids) |
+                         grepl("[|=,[:space:]]", spatial_ids))
+      if (length(invalid)) {
+        rlang::abort(paste0(
+          "Missing or invalid spatial barcode in `", spatial_col,
+          "` at filtered row ", invalid[[1L]], ". ",
+          "Export rrad FASTA with `to_fasta = TRUE, header_format = \"presto\"` ",
+          "to retain `|BARCODE=...` in the IgBLAST identifier, or supply an ",
+          "AIRR table with valid spatial IDs."
+        ))
+      }
     }
     filtered_tsv <- file.path(output_dir, sprintf("%s_%s_filtered.tsv", sample_name, receptor))
     data.table::fwrite(filtered, filtered_tsv, sep = "\t")
