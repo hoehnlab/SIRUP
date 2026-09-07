@@ -28,20 +28,21 @@ its examples download data and write demultiplexing artifacts.
 
 ## Setup
 
-SIRAP is currently private, while `rrad` is public. Your GitHub account
-needs read access only to SIRAP. Configure the system credential manager
-once, without placing a token in source code, a repository URL, or a
-committed `.Renviron` file:
+SIRAP and `rrad` are currently private repositories. Your GitHub account
+must have read access to both before installation. Configure the system
+credential manager once, without placing a token in source code, a
+repository URL, or a committed `.Renviron` file:
 
     install.packages(c("gitcreds", "remotes"))
     gitcreds::gitcreds_set()
     remotes::install_github("hjm2217/SIRAP", dependencies = NA)
 
-SIRAP pins the public install source for `rrad` to release `v1.2.1`, so
-no credential is needed for that dependency. A private SIRAP access
-problem may be reported by GitHub as a repository-not-found or 404
-error. If installing from a local SIRAP checkout, use
-`remotes::install_local("/path/to/SIRAP", dependencies = NA)`.
+SIRAP pins the install source for `rrad` to release `v1.2.1`. A private
+repository access problem may be reported by GitHub as a
+repository-not-found or 404 error. If installing from a local SIRAP
+checkout, use
+`remotes::install_local("/path/to/SIRAP", dependencies = NA)` after
+storing a credential that can read `indianewok/rrad`.
 
 The embedded engine currently supports macOS and Linux. Linux builds use
 OpenMP when R exposes it. Current macOS builds are serial: requesting
@@ -111,7 +112,7 @@ into R.
 Small resources ship inside `rrad`. Large built-in 10x whitelists stay
 out of the package tarball: the first native operation that requests one
 downloads it to R’s standard per-user cache, verifies the pinned byte
-count and SHA-256 digest, and then reuses it. Installing the public
+count and SHA-256 digest, and then reuses it. Obtaining the private
 `rrad` dependency can require network access while installing SIRAP;
 loading either installed package never downloads a whitelist. Most users
 do nothing beyond naming the kit. To prepare a machine or shared cluster

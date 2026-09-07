@@ -1,9 +1,8 @@
-name: rrad integration
+name: Private rrad integration
 
 on:
   push:
     branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -28,15 +27,25 @@ jobs:
         shell: Rscript {0}
         run: stopifnot(!requireNamespace("rrad", quietly = TRUE))
 
+      - name: Require the private rrad read credential
+        env:
+          RRAD_READ_TOKEN: ${{ secrets.RRAD_READ_TOKEN }}
+        shell: bash
+        run: |
+          if [[ -z "${RRAD_READ_TOKEN}" ]]; then
+            echo "::error::Add a read-only RRAD_READ_TOKEN repository secret."
+            exit 1
+          fi
+
       - name: Install the declared dependencies
         uses: r-lib/actions/setup-r-dependencies@v2
+        env:
+          GITHUB_PAT: ${{ secrets.RRAD_READ_TOKEN }}
         with:
           cache: false
           dependencies: 'c("Depends", "Imports", "LinkingTo")'
           extra-packages: >-
             any::rcmdcheck, any::testthat, any::withr, any::pals
-          install-pandoc: false
-          install-quarto: false
 
       - name: Verify the pinned native RAD dependency
         shell: Rscript {0}
