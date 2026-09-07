@@ -1,5 +1,8 @@
 # Real 500-read equivalence check
 
+See the [recorded BCR and TCR results](rrad-equivalence-results.md) for the
+2026-09-07 real-tool runs and their scope limitations.
+
 This opt-in check compares the reviewed `processSpatialSample()` implementation
 against the manual workflow plus the old six-command pRESTO pipeline from SIRAP
 commit `bb1b912ebc97f9daadd0c338d0d30031b1d1e1b3`. It calls real IgBLAST,
