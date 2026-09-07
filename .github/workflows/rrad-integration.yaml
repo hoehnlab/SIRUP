@@ -35,6 +35,8 @@ jobs:
           dependencies: 'c("Depends", "Imports", "LinkingTo")'
           extra-packages: >-
             any::rcmdcheck, any::testthat, any::withr, any::pals
+          install-pandoc: false
+          install-quarto: false
 
       - name: Verify the pinned native RAD dependency
         shell: Rscript {0}
