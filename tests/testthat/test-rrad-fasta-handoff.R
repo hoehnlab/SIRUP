@@ -196,3 +196,35 @@ test_that("reads removed by quality filtering need no spatial barcode", {
   expect_equal(result$n_filtered, 1L)
   expect_equal(data.table::fread(result$filtered_airr)$barcode, "AACC")
 })
+
+test_that("explicit NULL count overrides keep singleton reads", {
+  work <- withr::local_tempdir()
+  germline <- file.path(work, "reference.fasta")
+  writeLines(c(">reference", strrep("ACGT", 30)), germline)
+  testthat::local_mocked_bindings(
+    .sirap_check_tools = function(...) invisible(TRUE),
+    .sirap_run_command = function(...) invisible(0L),
+    .package = "SIRAP"
+  )
+  airr <- .rrad_handoff_airr(
+    c("singleton", "pair", "larger"), c("AACC", "TTGA", "CCGG")
+  )
+  airr$consensus_count <- c(1L, 2L, 5L)
+  run_case <- function(name, overrides) {
+    result <- processSpatialSample(
+      input = airr,
+      output_dir = file.path(work, name),
+      germline_glob = germline,
+      filter_args = overrides
+    )
+    data.table::fread(result$filtered_airr)$sequence_id
+  }
+
+  default <- run_case("default", list())
+  disabled <- run_case("disabled", list(min_consensus_count = NULL))
+  enabled <- run_case("enabled", list(min_consensus_count = 2L))
+
+  expect_equal(default, c("singleton", "pair", "larger"))
+  expect_equal(disabled, default)
+  expect_equal(enabled, c("pair", "larger"))
+})

@@ -339,7 +339,8 @@ processSpatialSample <- function(input,
       add_spatial_sequence_id = TRUE,
       spatial_id_key = cluster_field
     )
-    args <- utils::modifyList(filter_defaults, filter_args)
+    # Explicit NULL disables optional filters; dropping it restores their defaults.
+    args <- utils::modifyList(filter_defaults, filter_args, keep.null = TRUE)
     spatial_col <- args$spatial_id
     filtered <- do.call(filterAirr, c(list(airr_df = airr), args))
     n_filtered <- nrow(filtered)
