@@ -174,7 +174,8 @@ bcrHeavy <- filterAirr(
   min_j_length = 10,
   min_junction_length = 1,
   spatial_id = "barcode_2um",
-  add_spatial_sequence_id = TRUE
+  add_spatial_sequence_id = TRUE,
+  spatial_id_key = "BARCODE"
 )
 
 tcrBeta <- filterAirr(
@@ -184,7 +185,8 @@ tcrBeta <- filterAirr(
   min_j_length = 10,
   min_junction_length = 1,
   spatial_id = "barcode_2um",
-  add_spatial_sequence_id = TRUE
+  add_spatial_sequence_id = TRUE,
+  spatial_id_key = "BARCODE"
 )
 
 spatialReceptorSummary(bcrHeavy, spatial_id = "barcode_2um")
@@ -218,6 +220,7 @@ muscleExec <- "~/software/muscle3.8.31_i86linux64"
 
 bcrPrestoPaths <- processSpatialSample(
   input_fasta = bcrHeavySpatialFasta,
+  input_type = "spatial_fasta",
   output_dir = prestoOutputDir,
   receptor = "ig",
   identity = identityThreshold,
@@ -230,6 +233,7 @@ bcrPrestoPaths <- processSpatialSample(
 
 tcrPrestoPaths <- processSpatialSample(
   input_fasta = tcrBetaSpatialFasta,
+  input_type = "spatial_fasta",
   output_dir = prestoOutputDir,
   receptor = "tr",
   identity = identityThreshold,
@@ -243,27 +247,17 @@ tcrPrestoPaths <- processSpatialSample(
 
 ## Final AIRR Tables with Spatial Coordinates
 
-After pRESTO and IgBLAST, read the consensus `db-pass` files, extract the
-barcode from the pRESTO sequence identifier, remap to 8 um/16 um barcodes, add
+After pRESTO and the second IgBLAST pass, read the consensus `db-pass` files.
+`MakeDb.py` has already restored the copied pRESTO `BARCODE` annotation as the
+AIRR `barcode` column. Remap it to 8 um/16 um barcodes, add
 tissue positions, and collapse obvious spatial bleedover.
 
 ```{r final-airr}
 bcrConsensus <- airr::read_rearrangement(bcrPrestoPaths$db_pass)
 tcrConsensus <- airr::read_rearrangement(tcrPrestoPaths$db_pass)
 
-bcrConsensus <- extractSpatialIds(
-  bcrConsensus,
-  id = "sequence_id",
-  spatial_id = "barcode_2um",
-  regex = ",([^,]+)"
-)
-
-tcrConsensus <- extractSpatialIds(
-  tcrConsensus,
-  id = "sequence_id",
-  spatial_id = "barcode_2um",
-  regex = ",([^,]+)"
-)
+bcrConsensus$barcode_2um <- bcrConsensus$barcode
+tcrConsensus$barcode_2um <- tcrConsensus$barcode
 
 bcrConsensusFiltered <- filterAirr(
   bcrConsensus,

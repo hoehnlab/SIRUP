@@ -9,16 +9,20 @@ Author: Hunter J. Melton [aut, cre],
     Chinmay Vaidya [aut]
 Maintainer: Hunter J. Melton <Hunter.J.Melton@dartmouth.edu>
 Description: Spatial Immune Receptor Analysis and Processing. How sweet is
-    that? An R interface to the 'rad' command-line demultiplexer plus a
+    that? A native R interface to the 'rad' demultiplexer through 'rrad', plus
+    optional compatibility wrappers for the 'rad' command-line tool and a
     consolidated toolkit for long-read spatial immune receptor sequencing:
     AIRR-style rearrangement tables with spatial IDs and coordinates,
     Visium HD barcode mapping, pRESTO/IgBLAST shell pipeline generation,
     clonal summaries, tree plotting, int64-packed DNA
     primitives, and PAF parsing utilities.
 License: MIT + file LICENSE
+OS_type: unix
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-SystemRequirements: rad CLI (https://github.com/indianewok/rad)
+SystemRequirements: C++17; IgBLAST, pRESTO/Change-O, vsearch, and MUSCLE
+    (optional receptor-processing workflow); rad CLI (optional legacy
+    fallback, https://github.com/indianewok/rad)
 Depends:
     R (>= 4.1.0)
 Imports:
@@ -34,9 +38,11 @@ Imports:
     magrittr,
     Matrix,
     methods,
+    parallel,
     pbapply,
     RANN,
     Rcpp,
+    rrad (>= 1.2.1),
     rlang,
     scales,
     stringr,
@@ -80,3 +86,5 @@ Config/testthat/edition: 3
 Config/roxygen2/version: 8.0.0
 VignetteBuilder: knitr
 RoxygenNote: 7.3.3
+Remotes:
+    github::indianewok/rrad@v1.2.1
