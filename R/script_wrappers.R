@@ -58,18 +58,36 @@ paf2csv <- function(input_paf,
     }
   }
 
-  metadata <- parseRadSequenceIds(
-    data.frame(
-      sequence_id = as.character(out$qname),
-      stringsAsFactors = FALSE
-    ),
-    require_barcode = FALSE
-  )
-  processed <- data.table::data.table(
-    id = metadata$rad_read_id,
-    umi = metadata$umi,
-    barcode = metadata$barcode
-  )
+  qname <- as.character(out$qname)
+  id <- character(length(qname))
+  umi <- character(length(qname))
+  barcode <- character(length(qname))
+
+  for (i in seq_along(qname)) {
+    token <- qname[[i]]
+    if (is.na(token) || !nzchar(token)) {
+      next
+    }
+
+    parts <- strsplit(token, split = "|", fixed = TRUE)[[1]]
+    if (length(parts) == 0) {
+      next
+    }
+
+    id[[i]] <- parts[[1]]
+
+    umi_hit <- parts[startsWith(parts, "umi:")]
+    bc_hit <- parts[startsWith(parts, "barcode:")]
+
+    if (length(umi_hit) > 0) {
+      umi[[i]] <- sub("^umi:", "", umi_hit[[1]])
+    }
+    if (length(bc_hit) > 0) {
+      barcode[[i]] <- sub("^barcode:", "", bc_hit[[1]])
+    }
+  }
+
+  processed <- data.table::data.table(id = id, umi = umi, barcode = barcode)
   processed <- cbind(processed, out)
 
   csv_output <- file.path(output_dir, "output.csv")

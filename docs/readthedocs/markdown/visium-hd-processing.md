@@ -212,7 +212,6 @@ muscleExec <- "~/software/muscle3.8.31_i86linux64"
 
 bcrPrestoPaths <- processSpatialSample(
   input_fasta = bcrHeavySpatialFasta,
-  input_type = "spatial_fasta",
   output_dir = prestoOutputDir,
   receptor = "ig",
   identity = identityThreshold,
@@ -225,7 +224,6 @@ bcrPrestoPaths <- processSpatialSample(
 
 tcrPrestoPaths <- processSpatialSample(
   input_fasta = tcrBetaSpatialFasta,
-  input_type = "spatial_fasta",
   output_dir = prestoOutputDir,
   receptor = "tr",
   identity = identityThreshold,

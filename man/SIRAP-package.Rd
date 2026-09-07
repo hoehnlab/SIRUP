@@ -6,9 +6,8 @@
 \alias{SIRAP-package}
 \title{SIRAP: Spatial Immune Receptor Analysis and Processing}
 \description{
-A native R interface to the RAD demultiplexer through \code{rrad}, with optional
-legacy command-line wrappers, plus a consolidated toolkit for long-read
-spatial immune receptor sequencing: AIRR-style
+An R interface to the rad command-line demultiplexer plus a consolidated
+toolkit for long-read spatial immune receptor sequencing: AIRR-style
 rearrangement tables with spatial IDs and coordinates, Visium HD
 spatial ID mapping, pRESTO/IgBLAST shell pipeline generation, clonal
 summaries, lightweight SIRAP containers pairing spatial Seurat data with
@@ -20,6 +19,7 @@ int64-packed DNA primitives, and PAF parsing utilities.
 
 Authors:
 \itemize{
+  \item Hunter J. Melton \email{Hunter.J.Melton@dartmouth.edu}
   \item Chinmay Vaidya \email{chinmay.m.vaidya.gr@dartmouth.edu}
 }
 
