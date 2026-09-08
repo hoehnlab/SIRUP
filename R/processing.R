@@ -15,6 +15,12 @@
 #'   this column as `"T"`/`"F"`. Skipped when the column is absent.
 #' @param min_consensus_count Optional minimum consensus_count.
 #' @param max_opening_gap Optional maximum opening gap in `sequence_alignment`.
+#' @param max_gap_length Optional maximum gap run in `sequence_alignment`. A real
+#'   somatic-hypermutation indel is a multiple of three and rarely longer than
+#'   12 nt, so a longer run points to a chimeric or truncated consensus. The
+#'   metric is measured on the IMGT-numbered alignment, where the padding is
+#'   locus-specific: IGHV is padded at 6/9/12 nt and TRBV at 18/21 nt, so a
+#'   ceiling tuned for IGH rejects every TRB sequence. Set it per locus.
 #' @param sequence_alignment Sequence alignment column for gap filtering.
 #' @param id Column containing read or consensus identifiers.
 #' @param spatial_id Optional name of a spatial ID column that is already
@@ -36,6 +42,7 @@ filterAirr <- function(airr_df,
                        complete_vdj = FALSE,
                        min_consensus_count = 2,
                        max_opening_gap = NULL,
+                       max_gap_length = NULL,
                        sequence_alignment = "sequence_alignment",
                        id = "sequence_id",
                        spatial_id = NULL,
@@ -48,6 +55,10 @@ filterAirr <- function(airr_df,
     "junction_length"
   )
   .check_required_cols(airr_df, required, "airr_df")
+  # Whether the caller asked for these, as opposed to inheriting the default.
+  asked_productive <- !missing(productive_only)
+  asked_complete <- !missing(complete_vdj)
+  asked_consensus <- !missing(min_consensus_count)
   out <- .as_data_frame(airr_df)
   n_input <- nrow(out)
   out$v_sequence_length <- out$v_sequence_end - out$v_sequence_start + 1L
@@ -69,19 +80,36 @@ filterAirr <- function(airr_df,
     drop = FALSE
   ]
 
-  if (productive_only && "productive" %in% colnames(out)) {
-    out <- out[out$productive %in% c(TRUE, "TRUE", "T"), , drop = FALSE]
+  if (productive_only) {
+    if ("productive" %in% colnames(out)) {
+      out <- out[out$productive %in% c(TRUE, "TRUE", "T"), , drop = FALSE]
+    } else {
+      if (asked_productive) .sirap_warn_missing_filter_col("productive_only", "productive")
+    }
   }
-  if (complete_vdj && "complete_vdj" %in% colnames(out)) {
-    out <- out[out$complete_vdj %in% c(TRUE, "TRUE", "T"), , drop = FALSE]
+  if (complete_vdj) {
+    if ("complete_vdj" %in% colnames(out)) {
+      out <- out[out$complete_vdj %in% c(TRUE, "TRUE", "T"), , drop = FALSE]
+    } else {
+      if (asked_complete) .sirap_warn_missing_filter_col("complete_vdj", "complete_vdj")
+    }
   }
-  if (!is.null(min_consensus_count) && "consensus_count" %in% colnames(out)) {
-    out <- out[!is.na(out$consensus_count) & out$consensus_count >= min_consensus_count, , drop = FALSE]
+  if (!is.null(min_consensus_count)) {
+    if ("consensus_count" %in% colnames(out)) {
+      out <- out[!is.na(out$consensus_count) & out$consensus_count >= min_consensus_count, , drop = FALSE]
+    } else {
+      if (asked_consensus) .sirap_warn_missing_filter_col("min_consensus_count", "consensus_count")
+    }
   }
   if (!is.null(max_opening_gap)) {
     .check_required_cols(out, sequence_alignment, "airr_df")
-    gaps <- vapply(out[[sequence_alignment]], .sirap_opening_gap_length, integer(1))
+    gaps <- .sirap_opening_gap_length(out[[sequence_alignment]])
     out <- out[gaps <= max_opening_gap, , drop = FALSE]
+  }
+  if (!is.null(max_gap_length)) {
+    .check_required_cols(out, sequence_alignment, "airr_df")
+    inner_gaps <- .sirap_max_gap_length(out[[sequence_alignment]])
+    out <- out[inner_gaps <= max_gap_length, , drop = FALSE]
   }
 
   if (!is.null(spatial_id)) {
@@ -148,7 +176,7 @@ filterAirr <- function(airr_df,
 #'   the requested identity threshold `identity`, and vsearch.
 #' * `ParseHeaders.py merge` is used to write a new field into the headers that combines
 #'   the spatial ID and the cluster id (provided with parse_fields). These are
-#'   combined using `parse_act` (default cat) and written to a new header field `parse_key`.
+#'   combined using `parse_act` (default set) and written to a new header field `parse_key`.
 #'   Uses `delimiters` to specify the FASTA header delimiters.
 #' * `AlignSets.py muscle` aligns reads within each `parse_key` group created by `ParseHeaders`.
 #'   Takes `muscle_exec` as the path to the muscle aligner (https://github.com/rcedgar/muscle).
@@ -225,13 +253,30 @@ filterAirr <- function(airr_df,
 #'   after `--delim`. Defaults to `c("|", "=", ",")`.
 #' @param parse_fields Header fields passed to `ParseHeaders.py merge -f`.
 #' @param parse_key Header field name created by `ParseHeaders.py merge -k`.
-#' @param parse_act Action passed to `ParseHeaders.py merge --act`.
+#' @param parse_act Action passed to `ParseHeaders.py merge --act`. The default
+#'   `"set"` joins the spatial ID and the cluster ID with a comma, so the spatial
+#'   ID stays recoverable from the consensus header. `"cat"` joins them with no
+#'   separator, which makes the spatial ID unrecoverable for any variable-length
+#'   barcode. Both produce the same grouping, so prefer `"set"`.
 #' @param consensus_min_count Minimum sequence count passed to
 #'   `BuildConsensus.py -n`. Recommended to be at least 2 for non-single-cell resolution data.
+#'   This gates which groups are written, not the consensus of a group that
+#'   passes, so a run at `1` can be filtered to any higher value afterwards with
+#'   `filterAirr(min_consensus_count = )`. Note `BuildConsensus.py -q` is fixed at
+#'   20 and has no effect here, because the pipeline input is FASTA and carries
+#'   no base qualities.
 #' @param consensus_copy_fields Optional fields passed to `BuildConsensus.py
 #'   --cf`.
 #' @param consensus_copy_action Action passed to `BuildConsensus.py --act` when
 #'   `consensus_copy_fields` is provided.
+#' @param consensus_max_error Maximum error rate passed to
+#'   `BuildConsensus.py --maxerror`.
+#' @param consensus_max_gap Maximum gap fraction passed to
+#'   `BuildConsensus.py --maxgap`.
+#' @param skip_existing Skip a pipeline command when its output already exists
+#'   and is not empty. Use this to restart an interrupted run, or to reuse one
+#'   clustering and alignment pass across several `consensus_freq` values,
+#'   since those steps depend only on `identity`.
 #' @param align_log Optional log path passed to `AlignSets.py --log`.
 #' @param consensus_log Optional log path passed to `BuildConsensus.py --log`.
 #' @return A named list, invisibly: `raw_airr`, `filtered_airr`,
@@ -265,10 +310,13 @@ processSpatialSample <- function(input,
                                  delimiters = c("|", "=", ","),
                                  parse_fields = c(cluster_field, "cluster"),
                                  parse_key = paste0(cluster_field, "_cluster"),
-                                 parse_act = "cat",
+                                 parse_act = "set",
                                  consensus_min_count = 1,
                                  consensus_copy_fields = NULL,
                                  consensus_copy_action = "majority",
+                                 consensus_max_error = 0.1,
+                                 consensus_max_gap = 0.3,
+                                 skip_existing = FALSE,
                                  align_log = NULL,
                                  consensus_log = NULL) {
   receptor <- match.arg(receptor)
@@ -441,7 +489,11 @@ processSpatialSample <- function(input,
     rlang::abort(paste0("`germline_glob` matched no files: ", germline_glob))
   }
 
-  paths <- .presto_paths(spatial_fasta, identity, consensus_freq, output_dir)
+  paths <- .presto_paths(
+    spatial_fasta, identity, consensus_freq, output_dir,
+    cluster_field = cluster_field,
+    consensus_min_count = consensus_min_count
+  )
   commands <- .sirap_presto_commands(
     paths = paths,
     receptor = receptor,
@@ -461,6 +513,8 @@ processSpatialSample <- function(input,
     consensus_min_count = consensus_min_count,
     consensus_copy_fields = consensus_copy_fields,
     consensus_copy_action = consensus_copy_action,
+    consensus_max_error = consensus_max_error,
+    consensus_max_gap = consensus_max_gap,
     align_log = align_log,
     consensus_log = consensus_log
   )
@@ -472,6 +526,11 @@ processSpatialSample <- function(input,
     igblastn = igblast_exec
   ))
   for (cmd in commands) {
+    if (skip_existing && !is.null(cmd$out) && file.exists(cmd$out) &&
+        file.info(cmd$out)$size > 0) {
+      message("Skipping ", cmd$exec, ": output exists (", cmd$out, ").")
+      next
+    }
     .sirap_run_command(cmd$exec, cmd$args)
   }
 
@@ -588,12 +647,40 @@ collapseTopConsensusPerSpatialId <- function(airr_df,
   }
 
   out <- out %>% dplyr::ungroup()
+  addSequenceQualityMetrics(out, sequence = sequence, alignment = alignment)
+}
+
+#' Add per-sequence quality metrics to an AIRR table
+#'
+#' Adds the columns used to judge consensus quality, without dropping any rows.
+#' Use this to inspect the metric distributions before choosing thresholds for
+#' [filterAirr()]. Previously these columns could only be obtained as a side
+#' effect of [collapseTopConsensusPerSpatialId()], which also discards rows.
+#'
+#' Added columns, when the source column is present:
+#'
+#' * `non_N_nucleotide_prop` -- the share of called bases (`A`, `C`, `G`, `T`)
+#'   in `sequence`. A low value means an ambiguous consensus. This must be taken
+#'   from the ungapped sequence; using the alignment would put IMGT gap
+#'   characters into the denominator.
+#' * `max_gap_length` -- the longest gap run in `alignment`.
+#' * `opening_gap_length` -- the leading gap run in `alignment`.
+#'
+#' @param airr_df AIRR-style data frame.
+#' @param sequence Sequence column for the called-base proportion.
+#' @param alignment Alignment column for the gap metrics.
+#' @return `airr_df` with the metric columns added.
+#' @export
+addSequenceQualityMetrics <- function(airr_df,
+                                      sequence = "sequence",
+                                      alignment = "sequence_alignment") {
+  out <- .as_data_frame(airr_df)
   if (sequence %in% colnames(out)) {
     out$non_N_nucleotide_prop <- stringr::str_count(out[[sequence]], "[ACGT]") / nchar(out[[sequence]])
   }
   if (alignment %in% colnames(out)) {
-    out$max_gap_length <- vapply(out[[alignment]], .sirap_max_gap_length, integer(1))
-    out$opening_gap_length <- vapply(out[[alignment]], .sirap_opening_gap_length, integer(1))
+    out$max_gap_length <- .sirap_max_gap_length(out[[alignment]])
+    out$opening_gap_length <- .sirap_opening_gap_length(out[[alignment]])
   }
   out
 }
@@ -1006,20 +1093,24 @@ collapseIdenticalNeighbors <- function(object,
 
 # Build the expected pRESTO/IgBLAST output filenames from the input FASTA stem
 # and the clustering/consensus thresholds.
-.presto_paths <- function(input_fasta, identity, consensus_freq, output_dir = NULL) {
+.presto_paths <- function(input_fasta, identity, consensus_freq, output_dir = NULL,
+                          cluster_field = "barcode", consensus_min_count = 1) {
   if (is.null(output_dir)) {
     output_dir <- dirname(input_fasta)
   }
   stem <- tools::file_path_sans_ext(basename(input_fasta))
   cluster <- file.path(
     output_dir,
-    sprintf("%s_ident_%s_barcode_cluster_cluster-pass.fasta", stem, identity)
+    sprintf("%s_ident_%s_%s_cluster_cluster-pass.fasta", stem, identity, cluster_field)
   )
   reheader <- sub("\\.fasta$", "_reheader.fasta", cluster)
   aligned <- sub("\\.fasta$", "_align-pass.fasta", reheader)
   consensus <- file.path(
     output_dir,
-    sprintf("%s_ident_%s_barcode_cluster_freq_%s_cluster-pass_reheader_align-pass_consensus-pass.fasta", stem, identity, consensus_freq)
+    sprintf(
+      "%s_ident_%s_%s_cluster_freq_%s_n_%s_cluster-pass_reheader_align-pass_consensus-pass.fasta",
+      stem, identity, cluster_field, consensus_freq, consensus_min_count
+    )
   )
   fmt7 <- sub("\\.fasta$", "_igblast.fmt7", consensus)
   db_pass <- sub("_igblast\\.fmt7$", "_igblast_db-pass.tsv", fmt7)
@@ -1056,6 +1147,8 @@ collapseIdenticalNeighbors <- function(object,
                                    consensus_min_count,
                                    consensus_copy_fields,
                                    consensus_copy_action,
+                                   consensus_max_error = 0.1,
+                                   consensus_max_gap = 0.3,
                                    align_log,
                                    consensus_log) {
   delim_args <- c("--delim", delimiters)
@@ -1069,7 +1162,7 @@ collapseIdenticalNeighbors <- function(object,
   list(
     # Cluster reads per spatial ID, then preserve the spatial_id-cluster
     # grouping in the FASTA headers used by alignment and consensus calling.
-    list(exec = "ClusterSets.py", args = c(
+    list(exec = "ClusterSets.py", out = paths$cluster, args = c(
       "set",
       "-s", path.expand(paths$input),
       "-f", cluster_field,
@@ -1080,7 +1173,7 @@ collapseIdenticalNeighbors <- function(object,
       "--nproc", as.character(nproc),
       "-o", path.expand(paths$cluster)
     )),
-    list(exec = "ParseHeaders.py", args = c(
+    list(exec = "ParseHeaders.py", out = paths$reheader, args = c(
       "merge",
       "-s", path.expand(paths$cluster),
       "-f", parse_fields,
@@ -1088,7 +1181,7 @@ collapseIdenticalNeighbors <- function(object,
       delim_args,
       "--act", parse_act
     )),
-    list(exec = "AlignSets.py", args = c(
+    list(exec = "AlignSets.py", out = paths$aligned, args = c(
       "muscle",
       "-s", path.expand(paths$reheader),
       align_log_args,
@@ -1099,7 +1192,7 @@ collapseIdenticalNeighbors <- function(object,
     )),
     # Build consensus sequences from aligned spatial_id-cluster groups, assign
     # V(D)J genes with IgBLAST, then make an AIRR-style database table.
-    list(exec = "BuildConsensus.py", args = c(
+    list(exec = "BuildConsensus.py", out = paths$consensus, args = c(
       "-s", path.expand(paths$aligned),
       "-o", path.expand(paths$consensus),
       consensus_log_args,
@@ -1108,13 +1201,13 @@ collapseIdenticalNeighbors <- function(object,
       "-q", "20",
       "--freq", as.character(consensus_freq),
       "--bf", parse_key,
-      "--maxerror", "0.1",
-      "--maxgap", "0.3",
+      "--maxerror", as.character(consensus_max_error),
+      "--maxgap", as.character(consensus_max_gap),
       "--fasta",
       delim_args,
       consensus_copy_args
     )),
-    list(exec = "AssignGenes.py", args = c(
+    list(exec = "AssignGenes.py", out = paths$fmt7, args = c(
       "igblast",
       "-s", path.expand(paths$consensus),
       "-b", path.expand(igblast_base),
@@ -1124,7 +1217,7 @@ collapseIdenticalNeighbors <- function(object,
       "--exec", path.expand(igblast_exec),
       "--nproc", as.character(nproc)
     )),
-    list(exec = "MakeDb.py", args = c(
+    list(exec = "MakeDb.py", out = paths$db_pass, args = c(
       "igblast",
       "-i", path.expand(paths$fmt7),
       "-s", path.expand(paths$consensus),
@@ -1134,29 +1227,48 @@ collapseIdenticalNeighbors <- function(object,
   )
 }
 
-# Return the longest internal gap run in an aligned receptor sequence.
+# Return the longest gap run in each aligned receptor sequence. Vectorised: the
+# spatial tables run to hundreds of thousands of rows, and the scalar form had
+# to be driven through vapply() by every caller. Both `.` and `-` count as gap
+# characters, so a deletion is measured as well as IMGT padding.
 .sirap_max_gap_length <- function(seq) {
   seq <- as.character(seq)
-  if (is.na(seq)) {
-    return(NA_integer_)
+  out <- integer(length(seq))
+  keep <- !is.na(seq)
+  out[!keep] <- NA_integer_
+  if (!any(keep)) {
+    return(out)
   }
-  gaps <- gregexpr("\\.+", seq)
-  matches <- regmatches(seq, gaps)[[1]]
-  if (length(matches) == 0 || identical(matches, character(0))) {
-    return(0L)
-  }
-  max(nchar(matches))
+  runs <- regmatches(seq[keep], gregexpr("[.-]+", seq[keep]))
+  out[keep] <- vapply(runs, function(x) if (length(x) == 0L) 0L else max(nchar(x)), integer(1))
+  out
+}
+
+# Warn when a filter the caller explicitly asked for cannot run because its
+# column is absent. Only explicit requests warn: the defaults would otherwise
+# fire on every pre-consensus table, where `consensus_count` cannot exist yet.
+# Skipping silently has already voided a filter in a real analysis: MakeDb.py
+# only writes `consensus_count` when the pRESTO field-value delimiter is `=`, so
+# a pipeline run with `:` delimiters made `min_consensus_count` a no-op.
+.sirap_warn_missing_filter_col <- function(arg, column) {
+  rlang::warn(paste0(
+    "`", arg, "` was requested but column `", column,
+    "` is absent. The filter did not run."
+  ))
 }
 
 # Return the length of the leading gap run in an aligned receptor sequence.
 .sirap_opening_gap_length <- function(seq) {
   seq <- as.character(seq)
-  if (is.na(seq)) {
-    return(NA_integer_)
+  out <- integer(length(seq))
+  keep <- !is.na(seq)
+  out[!keep] <- NA_integer_
+  if (!any(keep)) {
+    return(out)
   }
-  gap_match <- regexpr("^\\.+", seq)
-  if (gap_match[[1]] == -1) {
-    return(0L)
-  }
-  attr(gap_match, "match.length")
+  m <- regexpr("^[.-]+", seq[keep])
+  lens <- attr(m, "match.length")
+  lens[m == -1L] <- 0L
+  out[keep] <- as.integer(lens)
+  out
 }
