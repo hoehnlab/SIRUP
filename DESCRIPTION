@@ -50,6 +50,7 @@ LinkingTo:
 Suggests:
     alakazam,
     airr,
+    ape,
     arrow,
     cowplot,
     dowser,

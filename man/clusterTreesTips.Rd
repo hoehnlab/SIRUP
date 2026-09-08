@@ -13,7 +13,7 @@ clusterTreesTips(
   ignore_tips = "Germline",
   keep = NULL,
   keep_val = NULL,
-  method = c("split_largest_subtrees", "cut_largest_branches"),
+  method = c("split_largest_subtrees", "cut_largest_branches", "monophyletic_clades"),
   cut_terminal_edges = FALSE,
   k_range = 1:8,
   improvement_threshold = 0.1
