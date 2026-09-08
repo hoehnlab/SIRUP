@@ -208,10 +208,13 @@ dowser::dfToFasta(tcrBeta, file = tcrBetaSpatialFasta, id = "spatial_sequence_id
 
 `processSpatialSample()` wraps the pRESTO/IgBLAST command-line workflow and
 prints each command and its output to the R console. This example feeds a
-prepared spatial FASTA (`input_type = "spatial_fasta"`). With raw RRAD reads
-(FASTA/FASTQ, optionally gzipped) plus `igblast_db_dir`, the same function
-also runs the initial IgBLAST annotation and `filterAirr()` steps in one
-call.
+prepared spatial FASTA (`input_type = "spatial_fasta"`). For newly demultiplexed
+rrad FASTA, use the default input type plus `igblast_db_dir` to run the initial
+IgBLAST annotation and `filterAirr()` steps first. Export that FASTA upstream
+with `rrad::rad_reformat(..., to_fasta = TRUE, header_format = "presto")` so
+`|BARCODE=...|UMI=...` stays inside the identifier that IgBLAST preserves.
+The `spatial_fasta` shortcut is only for reads that have already passed
+read-level annotation and filtering.
 
 ```{r presto-igblast}
 identityThreshold <- 0.975

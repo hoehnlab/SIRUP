@@ -17,6 +17,7 @@ processSpatialSample(
   germline_db_j = NULL,
   c_region_db = NULL,
   filter_args = list(),
+  invalid_spatial_ids = c("abort", "drop"),
   fasta_sequence_col = "sequence_alignment",
   sample_name = NULL,
   identity = 0.975,
@@ -52,7 +53,9 @@ directory. Required when \code{input} is a data frame.}
 \item{input_type}{How to treat \code{input}. The default \code{"auto"} detects the
 type from the object class and file extension: FASTA/FASTQ paths become
 \code{"raw_reads"}. Pass \code{"spatial_fasta"} to feed a pRESTO-ready FASTA
-straight to the consensus pipeline.}
+straight to the consensus pipeline.
+Newly demultiplexed rrad FASTA should use \code{"auto"} or \code{"raw_reads"}:
+\code{"spatial_fasta"} skips the first read-level V(D)J annotation and filtering.}
 
 \item{igblast_db_dir}{Directory with the raw-step germline databases
 (\code{IG_V}, \code{IG_D}, \code{IG_J}, \code{IG_C}, \code{TR_V}, \code{TR_D}, \code{TR_J}). See
@@ -67,7 +70,13 @@ convention.}
 \item{filter_args}{Named list of \code{\link[=filterAirr]{filterAirr()}} overrides. Pipeline
 defaults: \code{complete_vdj = TRUE}, \code{min_consensus_count = NULL},
 \code{spatial_id = "barcode"}, \code{add_spatial_sequence_id = TRUE},
-\code{spatial_id_key = cluster_field}.}
+\code{spatial_id_key = cluster_field}. An explicit \code{NULL} disables an
+optional filter (\code{locus_val}, \code{min_consensus_count}, \code{max_opening_gap},
+or \code{spatial_id}); other parameters do not accept \code{NULL}.}
+
+\item{invalid_spatial_ids}{What to do with filtered rows whose spatial
+barcode is missing or contains a delimiter: \code{"abort"} (default) stops
+with a count, \code{"drop"} removes those rows with a warning.}
 
 \item{fasta_sequence_col}{AIRR column written to the spatial FASTA.
 Defaults to \code{sequence_alignment} (the V(D)J-aligned region), which
@@ -96,7 +105,7 @@ AssignGenes.}
 
 \item{cluster_field}{FASTA header field used for within-spot clustering.
 The pipeline writes headers keyed by this name; the default \code{"barcode"}
-matches RRAD output. Override it for other spatial ID fields, for
+uses the parsed rrad \code{BARCODE} field. Override it for other spatial ID fields, for
 example \code{barcode_8um}.}
 
 \item{delimiters}{Character vector of pRESTO delimiter values passed
@@ -133,7 +142,9 @@ and one receptor locus group (\code{ig} or \code{tr}). The \code{input} can be o
 \details{
 \itemize{
 \item Raw reads: a FASTA or FASTQ file, optionally gzipped, as written by the
-RRAD package. The function first annotates the reads with
+rrad package. Export rrad FASTA with \code{to_fasta = TRUE} and
+\code{header_format = "presto"} so barcode/UMI tags remain in the IgBLAST
+identifier. The function first annotates the reads with
 \code{\link[=runIgblast]{runIgblast()}} (\verb{igblastn -outfmt 19}), which needs \code{igblast_db_dir}
 (or the per-segment database paths).
 \item An AIRR table: a \code{.tsv} path or a data frame. The raw IgBLAST step is
@@ -145,7 +156,8 @@ to the consensus pipeline below.
 
 For raw reads and AIRR input, the function then:
 \itemize{
-\item splits RRAD \verb{|umi:...|barcode:...} tags out of \code{sequence_id} with
+\item splits rrad \verb{|BARCODE=...|UMI=...} tags (or legacy colon tags) out of
+\code{sequence_id} with
 \code{\link[=parseRadSequenceIds]{parseRadSequenceIds()}};
 \item removes junk sequences with \code{\link[=filterAirr]{filterAirr()}}. Pipeline defaults:
 \code{complete_vdj = TRUE}, \code{spatial_id = "barcode"}, and a combined header

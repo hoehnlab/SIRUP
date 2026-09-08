@@ -3,13 +3,13 @@
 Spatial Immune Receptor Analysis and Processing: how sweet is that?
 
 `SIRAP` is an R package-in-progress for long-read spatial immune receptor
-sequencing data. It is the R companion to the
-[rad](https://github.com/indianewok/rad) command-line demultiplexer, and
-collects reusable pieces from the existing thymus BCR/TCR analysis scripts
-into package functions for:
+sequencing data. Its processing pipeline starts from prepared, demultiplexed
+FASTA reads with barcode annotations and runs a first IgBLAST pass, read
+filtering, clustering within each barcode, consensus generation, and a second
+IgBLAST pass on the consensus sequences. It collects reusable pieces from the
+existing thymus BCR/TCR analysis scripts into package functions for:
 
-- driving the `rad` CLI (`radPrep`, `radDemux`, `radReformat`,
-  `radList`, `radModify`, `radScanWl`) from R
+- processing prepared FASTA reads through IgBLAST and pRESTO
 - AIRR TSV reading/writing
 - receptor length and productivity QC
 - Visium HD 2 um to 8 um/16 um barcode mapping
@@ -28,45 +28,55 @@ install.packages("remotes")
 remotes::install_local("/path/to/SIRAP")
 ```
 
-The CLI wrappers require the `rad` binary on `PATH`, or pointed at
-explicitly via `options(SIRAP.radPath = "/path/to/rad")`, the
-`SIRAP_RAD_PATH` environment variable, or the `rad =` argument on each
-wrapper. See `?radPath` for the resolution order.
+Processing requires IgBLAST, its reference databases, the pRESTO/Change-O tools,
+vsearch, and muscle. Configure their paths for your installation; see
+`?processSpatialSample` and `?runIgblast`.
 
-## Drive the rad CLI from R
+## Prepare FASTA, then process it in SIRAP
 
-For an end-to-end walkthrough — locating/building `rad`, listing layouts and
-whitelists, and running `prep -> scan-wl -> demux -> reformat` on rad's public
-test data (including the Visium HD spatial path) — see the
-[Demultiplexing Long Reads with RAD from R](docs/readthedocs/markdown/demultiplexing-with-rad.md)
-guide. To describe a custom or non-standard read structure of your own — the
-layout CSV schema, orientation handling, and validating it before demux — see
-[Defining Custom Read Layouts for RAD](docs/readthedocs/markdown/custom-read-layouts-with-rad.md).
+Demultiplexing and read-layout/whitelist setup happen upstream of SIRAP.
+The standalone [rrad package](https://github.com/indianewok/rrad) is one way
+to prepare those reads. It is listed in `Suggests`, with its GitHub source
+pinned to `v1.2.1`. Install it separately when using the preparation example
+below; SIRAP does not require rrad to process an existing FASTA.
 
 ```r
-library(SIRAP)
-
-# Inspect a built-in layout
-radPrep(layout = "five_prime", read_layout = TRUE)
-
-# Layout + position map from a real FASTQ
-radPrep(
-  layout       = "five_prime",
-  position_map = TRUE,
-  fastq        = "reads.fq.gz",
-  output       = "run/demo",
-  threads      = 8
+# Separate upstream preparation with rrad:
+demux <- rrad::rad_demux(
+  layout = "five_prime", # choose the layout matching your library
+  fastq = "reads.fq.gz",
+  out_dir = "prepared",
+  output = "sample"
+)
+rrad::rad_reformat(
+  demux,
+  output_fastq = "prepared/sample-igblast.fasta",
+  to_fasta = TRUE,
+  header_format = "presto"
 )
 
-# Full demux pipeline
-radDemux(
-  layout  = "five_prime",
-  fastq   = "reads.fq.gz",
-  output  = "demo",
-  out_dir = "run",
-  threads = 8
+# SIRAP begins at the prepared FASTA and runs both IgBLAST passes:
+result <- SIRAP::processSpatialSample(
+  input = "prepared/sample-igblast.fasta",
+  output_dir = "processed",
+  receptor = "ig",
+  igblast_db_dir = "/path/to/igblast/database",
+  igblast_base = "/path/to/igblast",
+  germline_glob = "/path/to/germlines/imgt/human/vdj/imgt_human_*.fasta"
 )
 ```
+
+The preparation writes headers such as `read1|BARCODE=BC01|UMI=ACGT`, keeping
+barcode information inside the identifier retained by IgBLAST. Ordinary FASTA
+input runs the first annotation pass automatically. Use
+`input_type = "spatial_fasta"` only for a FASTA already annotated, filtered,
+and formatted for within-barcode consensus; that entry point skips the first
+IgBLAST pass.
+
+See [Preparing FASTA with rrad for SIRAP](docs/readthedocs/markdown/demultiplexing-with-rad.md)
+for the input contract, whitelist downloads, and Visium HD preparation, and
+[Custom read layouts and whitelists](docs/readthedocs/markdown/custom-read-layouts-with-rad.md)
+for custom upstream preparation.
 
 ## Minimal preprocessing example
 
@@ -94,7 +104,8 @@ m1_bcr_heavy <- filterAirr(
 
 ```r
 processSpatialSample(
-  input_fasta = "m1/igblast_bcr_pass_length_spatial_id.fasta",
+  input = "m1/igblast_bcr_pass_length_spatial_id.fasta",
+  input_type = "spatial_fasta", # already annotated and filtered
   output_dir = "m1/processed",
   receptor = "ig",
   germline_glob = "/path/to/germlines/imgt/human/vdj/imgt_human_*.fasta"
