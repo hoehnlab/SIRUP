@@ -233,9 +233,6 @@ equivalence_main <- function(args = commandArgs(trailingOnly = TRUE)) {
                   "-germline_db_D", dbs$d, "-germline_db_J", dbs$j)
     if (!is.null(dbs$c)) raw_args <- c(raw_args, "-c_region_db", dbs$c)
     if (!is.null(aux)) raw_args <- c(raw_args, "-auxiliary_data", aux)
-    # Mirror the pipeline's igblastn length thresholds (filterAirr defaults),
-    # so the raw checkpoint stays comparable between arms.
-    raw_args <- c(raw_args, "-min_V_length", "100", "-min_J_length", "10")
     raw_args <- c(raw_args, "-outfmt", "19", "-num_threads", opt$threads, "-out", legacy_raw)
     manifest$legacy_raw_command <- c(tool_paths[["igblastn"]], raw_args)
     save_manifest()

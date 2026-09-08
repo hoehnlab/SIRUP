@@ -72,10 +72,7 @@ defaults: \code{complete_vdj = TRUE}, \code{min_consensus_count = NULL},
 \code{spatial_id = "barcode"}, \code{add_spatial_sequence_id = TRUE},
 \code{spatial_id_key = cluster_field}. An explicit \code{NULL} disables an
 optional filter (\code{locus_val}, \code{min_consensus_count}, \code{max_opening_gap},
-or \code{spatial_id}); other parameters do not accept \code{NULL}. The effective
-\code{min_v_length} and \code{min_j_length} also go to the raw igblastn call
-(\code{-min_V_length}/\code{-min_J_length}), so reads below the thresholds get
-no V/J call in the raw AIRR table. The final output is unchanged.}
+or \code{spatial_id}); other parameters do not accept \code{NULL}.}
 
 \item{invalid_spatial_ids}{What to do with filtered rows whose spatial
 barcode is missing or contains a delimiter: \code{"abort"} (default) stops

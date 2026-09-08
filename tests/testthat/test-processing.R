@@ -77,3 +77,26 @@ test_that("filterAirr builds spatial FASTA headers that writeFastqas round-trips
   expect_equal(lines[1], ">sequence_id=read1|barcode=BC01")
   expect_equal(lines[3], ">sequence_id=read2|barcode=BC02")
 })
+
+test_that("filterAirr builds an empty spatial sequence ID column on zero rows", {
+  airr <- data.frame(
+    sequence_id = "read",
+    v_sequence_start = 1,
+    v_sequence_end = 20,
+    j_sequence_start = 21,
+    j_sequence_end = 25,
+    junction_length = 12,
+    barcode = "AACC",
+    stringsAsFactors = FALSE
+  )
+  # min_v_length = 100 drops the only row; the ID column must still appear.
+  out <- filterAirr(
+    airr,
+    min_consensus_count = NULL,
+    spatial_id = "barcode",
+    add_spatial_sequence_id = TRUE
+  )
+  expect_equal(nrow(out), 0L)
+  expect_true("spatial_sequence_id" %in% colnames(out))
+  expect_equal(out$spatial_sequence_id, character(0))
+})
