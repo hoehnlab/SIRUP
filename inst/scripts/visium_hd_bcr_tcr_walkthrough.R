@@ -146,7 +146,7 @@ bcrHeavy <- filterAirr(
   min_j_length = 10,
   min_junction_length = 1,
   spatial_id = "barcode_2um",
-  add_full_id = TRUE
+  add_spatial_sequence_id = TRUE
 )
 cat("Kept BCR heavy chains: ", nrow(bcrHeavy), "\n")
 
@@ -157,7 +157,7 @@ tcrBeta <- filterAirr(
   min_j_length = 10,
   min_junction_length = 1,
   spatial_id = "barcode_2um",
-  add_full_id = TRUE
+  add_spatial_sequence_id = TRUE
 )
 cat("Kept TCR beta chains: ", nrow(tcrBeta), "\n")
 
@@ -171,8 +171,8 @@ tcrBetaSpatialFasta <- file.path(prestoInputDir, sprintf("%s_igblast_tcr_pass_le
 airr::write_rearrangement(bcrHeavy, bcrHeavySpatialTsv)
 airr::write_rearrangement(tcrBeta, tcrBetaSpatialTsv)
 
-dowser::dfToFasta(bcrHeavy, file = bcrHeavySpatialFasta, id = "full_id", seq = "sequence_alignment")
-dowser::dfToFasta(tcrBeta, file = tcrBetaSpatialFasta, id = "full_id", seq = "sequence_alignment")
+dowser::dfToFasta(bcrHeavy, file = bcrHeavySpatialFasta, id = "spatial_sequence_id", seq = "sequence_alignment")
+dowser::dfToFasta(tcrBeta, file = tcrBetaSpatialFasta, id = "spatial_sequence_id", seq = "sequence_alignment")
 
 # Summarize pre and post filtering
 spatialReceptorSummary(bcrRaw, spatial_id = "barcode_2um")
@@ -213,9 +213,11 @@ muscleExec <- "~/software/muscle3.8.31_i86linux64"
 if (runPrestoIgblast) {
   # This function both runs the external presto/igblast commands and returns the paths to the key output files
   bcrPrestoPaths <- processSpatialSample(
-    input_fasta = bcrHeavySpatialFasta,
+    input = bcrHeavySpatialFasta,
+    input_type = "spatial_fasta",
     output_dir = prestoOutputDir,
     receptor = "ig",
+    cluster_field = "spatial_id",
     identity = identityThreshold,
     consensus_freq = consensusFreqThreshold,
     germline_glob = germlineGlob,
@@ -225,9 +227,11 @@ if (runPrestoIgblast) {
   )
 
   tcrPrestoPaths <- processSpatialSample(
-    input_fasta = tcrBetaSpatialFasta,
+    input = tcrBetaSpatialFasta,
+    input_type = "spatial_fasta",
     output_dir = prestoOutputDir,
     receptor = "tr",
+    cluster_field = "spatial_id",
     identity = identityThreshold,
     consensus_freq = consensusFreqThreshold,
     germline_glob = germlineGlob,
