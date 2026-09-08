@@ -176,15 +176,16 @@ equivalence_main <- function(args = commandArgs(trailingOnly = TRUE)) {
   germlines <- Sys.glob(path.expand(opt[["germline-glob"]]))
   if (!length(germlines)) stop("--germline-glob matched no files.")
   germlines <- normalizePath(germlines, mustWork = TRUE)
-  db <- function(segment) {
-    key <- if (segment == "C") "c-region-db" else paste0("germline-db-", tolower(segment))
-    value <- opt[[key]]
-    if (is.null(value) && !is.null(opt[["igblast-db-dir"]])) value <- file.path(opt[["igblast-db-dir"]], paste0(toupper(opt$receptor), "_", segment))
-    if (is.null(value) && segment != "C") stop("Provide --igblast-db-dir or --", key)
-    if (is.null(value)) return(NULL)
-    path.expand(value)
-  }
-  dbs <- list(v = db("V"), d = db("D"), j = db("J"), c = if (opt$receptor == "ig") db("C") else NULL)
+  # Database-path resolution is shared configuration for both arms, so use
+  # the package's own resolver instead of a copy that could drift from it.
+  dbs <- ns$.sirap_igblast_db_paths(
+    igblast_db_dir = opt[["igblast-db-dir"]],
+    receptor = opt$receptor,
+    germline_db_v = opt[["germline-db-v"]],
+    germline_db_d = opt[["germline-db-d"]],
+    germline_db_j = opt[["germline-db-j"]],
+    c_region_db = opt[["c-region-db"]]
+  )
   aux <- if (is.null(opt[["aux-file"]])) NULL else normalizePath(path.expand(opt[["aux-file"]]), mustWork = TRUE)
   dir.create(out, recursive = TRUE)
   out <- normalizePath(out)
@@ -236,7 +237,11 @@ equivalence_main <- function(args = commandArgs(trailingOnly = TRUE)) {
     manifest$legacy_raw_command <- c(tool_paths[["igblastn"]], raw_args)
     save_manifest()
     stage <- "legacy_raw_airr"
-    message("Running independent legacy workflow on 500 reads.")
+    # Note: only the final db_pass checkpoint is a genuine old-vs-new
+    # comparison. The raw-IgBLAST, tag-parse, and filter stages of this arm
+    # are script-side reconstructions that mirror the current pipeline's
+    # defaults, because R/igblast.R did not exist at the baseline commit.
+    message("Running legacy-workflow arm on 500 reads.")
     log <- file.path(out, "legacy", "raw_igblast.log")
     status <- system2(tool_paths[["igblastn"]], shQuote(raw_args), stdout = log, stderr = log)
     if (status != 0L) stop("Legacy raw IgBLAST failed; see ", log)

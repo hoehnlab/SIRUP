@@ -51,6 +51,20 @@
   invisible(status)
 }
 
+# Build a regex character class that matches any pRESTO header delimiter or
+# whitespace. Values that contain one of these corrupt FASTA header parsing,
+# so validation must use the same `delimiters` the pipeline passes to pRESTO.
+.sirap_delims_regex_class <- function(delimiters) {
+  # POSIX classes take no backslash escapes: `]` is literal only directly
+  # after the opening `[`, and `-` only at the end. `^` cannot come first
+  # because `[:space:]` always precedes the delimiter characters.
+  delimiters <- unique(delimiters)
+  lead <- if ("]" %in% delimiters) "]" else ""
+  trail <- if ("-" %in% delimiters) "-" else ""
+  middle <- setdiff(delimiters, c("]", "-"))
+  paste0("[", lead, "[:space:]", paste(middle, collapse = ""), trail, "]")
+}
+
 # Classify a pipeline input. Returns "airr_df" for a data frame, "airr_tsv"
 # for a tabular file path, or "raw_reads" for a FASTA/FASTQ path (optionally
 # gzipped). Aborts for anything else.
@@ -292,7 +306,8 @@ runIgblast <- function(input,
 #'
 #' @param airr_df AIRR-style data frame.
 #' @param id Column that contains the read identifiers.
-#' @param strip Replace the ID column with the part before the first `|`.
+#' @param strip Replace the ID column with the part before the first `|` or
+#'   whitespace character.
 #' @return The data frame with `umi` and `barcode` columns added.
 #' @export
 parseRadSequenceIds <- function(airr_df, id = "sequence_id", strip = TRUE) {
@@ -300,16 +315,17 @@ parseRadSequenceIds <- function(airr_df, id = "sequence_id", strip = TRUE) {
   out <- .as_data_frame(airr_df)
   ids <- as.character(out[[id]])
   for (field in c("barcode", "umi")) {
-    matches <- stringr::str_match_all(
-      ids, stringr::regex(paste0("\\|", field, "[=:]([^|]*)"), ignore_case = TRUE)
+    # Tags end at the next `|` or at whitespace: a FASTA description after
+    # the identifier is not part of the tag value.
+    rx <- stringr::regex(
+      paste0("\\|", field, "[=:]([^|[:space:]]*)"),
+      ignore_case = TRUE
     )
-    repeated <- which(vapply(matches, nrow, integer(1)) > 1L)
+    repeated <- which(stringr::str_count(ids, rx) > 1L)
     if (length(repeated)) {
       rlang::abort(paste0("Duplicate `", field, "` tag at row ", repeated[[1L]], "."))
     }
-    value <- vapply(matches, function(match) {
-      if (nrow(match) == 0L) NA_character_ else match[1L, 2L]
-    }, character(1))
+    value <- stringr::str_match(ids, rx)[, 2]
     present <- !is.na(value) & nzchar(value)
     invalid <- which(present & grepl("[=,[:space:]]", value))
     if (length(invalid)) {

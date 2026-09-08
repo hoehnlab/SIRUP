@@ -11,7 +11,8 @@ parseRadSequenceIds(airr_df, id = "sequence_id", strip = TRUE)
 
 \item{id}{Column that contains the read identifiers.}
 
-\item{strip}{Replace the ID column with the part before the first \code{|}.}
+\item{strip}{Replace the ID column with the part before the first \code{|} or
+whitespace character.}
 }
 \value{
 The data frame with \code{umi} and \code{barcode} columns added.
@@ -19,7 +20,7 @@ The data frame with \code{umi} and \code{barcode} columns added.
 \description{
 Parses \code{id|BARCODE=YYY|UMI=XXX}, written by
 \code{rrad::rad_reformat(..., to_fasta = TRUE, header_format = "presto")}.
-Legacy \code{|barcode:YYY|umi:XXX} tags are also accepted; field names are
+Legacy \verb{|barcode:YYY|umi:XXX} tags are also accepted; field names are
 case-insensitive. Existing \code{barcode} and \code{umi} columns are preserved when
 a tag is absent. Conflicting values or repeated tags raise an error.
 Missing UMIs are allowed. With \code{strip = TRUE}, the ID column is replaced

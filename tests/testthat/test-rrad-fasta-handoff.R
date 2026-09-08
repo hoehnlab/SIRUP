@@ -72,13 +72,26 @@ test_that("ambiguous or malformed metadata is rejected before grouping", {
     "read|BARCODE=AACC|barcode=TTGA",
     "read|BARCODE=AACC|barcode:AACC",
     "read|BARCODE=AACC|UMI=TGCA|umi=TGCA",
-    "read|BARCODE=AA CC",
     "read|BARCODE=AA,CC",
     "read|BARCODE=AA=CC"
   )
   for (id in bad_ids) {
     expect_error(parseRadSequenceIds(data.frame(sequence_id = id)), info = id)
   }
+})
+
+test_that("tags stop at whitespace, so FASTA descriptions are not tag content", {
+  # A description after the identifier is normal FASTA; the tag value ends at
+  # the first whitespace and the description must not trip validation.
+  parsed <- parseRadSequenceIds(data.frame(
+    sequence_id = "read-1|BARCODE=AACC|UMI=TGCA length=120"
+  ))
+  expect_equal(parsed$sequence_id, "read-1")
+  expect_equal(parsed$barcode, "AACC")
+  expect_equal(parsed$umi, "TGCA")
+  # Whitespace directly after `=` yields an empty tag value, not an error.
+  empty_tag <- parseRadSequenceIds(data.frame(sequence_id = "read|BARCODE= AACC"))
+  expect_equal(empty_tag$barcode, NA_character_)
 })
 
 test_that("rrad FASTA enters the read annotation pass before all six consensus commands", {
@@ -227,4 +240,102 @@ test_that("explicit NULL count overrides keep singleton reads", {
   expect_equal(default, c("singleton", "pair", "larger"))
   expect_equal(disabled, default)
   expect_equal(enabled, c("pair", "larger"))
+})
+
+test_that("NULL is rejected for filter parameters that cannot be NULL", {
+  work <- withr::local_tempdir()
+  testthat::local_mocked_bindings(
+    .sirap_check_tools = function(...) stop("Pipeline must not start"),
+    .sirap_run_command = function(...) stop("Pipeline must not start"),
+    .package = "SIRAP"
+  )
+  airr <- .rrad_handoff_airr("read", "AACC")
+  for (bad in list(
+    list(min_v_length = NULL),
+    list(productive_only = NULL),
+    list(complete_vdj = NULL)
+  )) {
+    expect_error(
+      processSpatialSample(
+        input = airr,
+        output_dir = work,
+        germline_glob = file.path(work, "unused.fasta"),
+        filter_args = bad
+      ),
+      "cannot be NULL"
+    )
+  }
+})
+
+test_that("invalid_spatial_ids = 'drop' removes bad rows with a warning", {
+  work <- withr::local_tempdir()
+  germline <- file.path(work, "reference.fasta")
+  writeLines(c(">reference", strrep("ACGT", 30)), germline)
+  testthat::local_mocked_bindings(
+    .sirap_check_tools = function(...) invisible(TRUE),
+    .sirap_run_command = function(...) invisible(0L),
+    .package = "SIRAP"
+  )
+  airr <- .rrad_handoff_airr(
+    c("good", "missing", "also-good"), c("AACC", NA_character_, "TTGA")
+  )
+  expect_warning(
+    result <- processSpatialSample(
+      input = airr,
+      output_dir = work,
+      germline_glob = germline,
+      invalid_spatial_ids = "drop"
+    ),
+    "1 of 3"
+  )
+  expect_equal(result$n_filtered, 2L)
+  expect_equal(data.table::fread(result$filtered_airr)$barcode, c("AACC", "TTGA"))
+})
+
+test_that("the abort for invalid barcodes reports a count", {
+  work <- withr::local_tempdir()
+  testthat::local_mocked_bindings(
+    .sirap_check_tools = function(...) stop("Consensus must not start"),
+    .sirap_run_command = function(...) stop("Consensus must not start"),
+    .package = "SIRAP"
+  )
+  expect_error(
+    processSpatialSample(
+      input = .rrad_handoff_airr(
+        c("good", "bad1", "bad2"), c("AACC", NA_character_, "")
+      ),
+      output_dir = work,
+      germline_glob = file.path(work, "unused.fasta")
+    ),
+    "2 of 3"
+  )
+})
+
+test_that("duplicate spatial FASTA headers abort before writing", {
+  work <- withr::local_tempdir()
+  testthat::local_mocked_bindings(
+    .sirap_check_tools = function(...) stop("Pipeline must not start"),
+    .sirap_run_command = function(...) stop("Pipeline must not start"),
+    .package = "SIRAP"
+  )
+  # Distinct raw IDs that collapse to the same bare ID after tag stripping.
+  airr <- .rrad_handoff_airr(c("contig|BARCODE=AACC|UMI=AAAA", "contig|BARCODE=AACC|UMI=CCCC"))
+  expect_error(
+    processSpatialSample(
+      input = airr,
+      output_dir = work,
+      germline_glob = file.path(work, "unused.fasta")
+    ),
+    "[Dd]uplicate"
+  )
+})
+
+test_that("barcode validation derives its character class from delimiters", {
+  expect_equal(.sirap_delims_regex_class(c("|", "=", ",")), "[[:space:]|=,]")
+  expect_true(grepl(.sirap_delims_regex_class(c("|", "=", ";")), "AA;CC"))
+  expect_false(grepl(.sirap_delims_regex_class(c("|", "=", ";")), "AA,CC"))
+  # Characters that are special inside a regex class are escaped.
+  expect_true(grepl(.sirap_delims_regex_class(c("]", "-")), "AA-CC"))
+  expect_true(grepl(.sirap_delims_regex_class(c("]", "-")), "AA]CC"))
+  expect_false(grepl(.sirap_delims_regex_class(c("]", "-")), "AACC"))
 })

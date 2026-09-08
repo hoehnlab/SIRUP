@@ -17,6 +17,7 @@ processSpatialSample(
   germline_db_j = NULL,
   c_region_db = NULL,
   filter_args = list(),
+  invalid_spatial_ids = c("abort", "drop"),
   fasta_sequence_col = "sequence_alignment",
   sample_name = NULL,
   identity = 0.975,
@@ -69,7 +70,13 @@ convention.}
 \item{filter_args}{Named list of \code{\link[=filterAirr]{filterAirr()}} overrides. Pipeline
 defaults: \code{complete_vdj = TRUE}, \code{min_consensus_count = NULL},
 \code{spatial_id = "barcode"}, \code{add_spatial_sequence_id = TRUE},
-\code{spatial_id_key = cluster_field}.}
+\code{spatial_id_key = cluster_field}. An explicit \code{NULL} disables an
+optional filter (\code{locus_val}, \code{min_consensus_count}, \code{max_opening_gap},
+or \code{spatial_id}); other parameters do not accept \code{NULL}.}
+
+\item{invalid_spatial_ids}{What to do with filtered rows whose spatial
+barcode is missing or contains a delimiter: \code{"abort"} (default) stops
+with a count, \code{"drop"} removes those rows with a warning.}
 
 \item{fasta_sequence_col}{AIRR column written to the spatial FASTA.
 Defaults to \code{sequence_alignment} (the V(D)J-aligned region), which

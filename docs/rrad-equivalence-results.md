@@ -98,6 +98,17 @@ attempting an exact replay; the committed runner and this report persist.
 
 ## Limits
 
+The legacy arm is only partly independent. The raw-IgBLAST, tag-parse, and
+filter stages of that arm are script-side reconstructions whose filter
+arguments mirror the current pipeline's defaults, because `R/igblast.R` did
+not exist at the baseline commit; the eval'd baseline `processing.R` also
+resolves cross-file helpers from the current namespace. Only the final
+`db_pass` checkpoint compares the genuine baseline implementation against the
+current one. A regression confined to the shared front-stage defaults or to
+`parseRadSequenceIds()` would not be detected by the first three checkpoints.
+The 2026-09-04 Discovery run (Slurm job 9343679) compared the true old manual
+workflow end to end for BCR and remains the independent gate for that locus.
+
 These were alternative real contig cohorts, not a replay of the original
 Discovery engblom 500-read sample, which was not accessible in this environment.
 Every final consensus group had `consensus_count = 1`. Consequently these runs

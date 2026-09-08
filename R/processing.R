@@ -190,7 +190,12 @@ filterAirr <- function(airr_df,
 #' @param filter_args Named list of [filterAirr()] overrides. Pipeline
 #'   defaults: `complete_vdj = TRUE`, `min_consensus_count = NULL`,
 #'   `spatial_id = "barcode"`, `add_spatial_sequence_id = TRUE`,
-#'   `spatial_id_key = cluster_field`.
+#'   `spatial_id_key = cluster_field`. An explicit `NULL` disables an
+#'   optional filter (`locus_val`, `min_consensus_count`, `max_opening_gap`,
+#'   or `spatial_id`); other parameters do not accept `NULL`.
+#' @param invalid_spatial_ids What to do with filtered rows whose spatial
+#'   barcode is missing or contains a delimiter: `"abort"` (default) stops
+#'   with a count, `"drop"` removes those rows with a warning.
 #' @param fasta_sequence_col AIRR column written to the spatial FASTA.
 #'   Defaults to `sequence_alignment` (the V(D)J-aligned region), which
 #'   keeps flanking read junk out of clustering and consensus calling. Use
@@ -241,6 +246,7 @@ processSpatialSample <- function(input,
                                  germline_db_j = NULL,
                                  c_region_db = NULL,
                                  filter_args = list(),
+                                 invalid_spatial_ids = c("abort", "drop"),
                                  fasta_sequence_col = "sequence_alignment",
                                  sample_name = NULL,
                                  identity = 0.975,
@@ -262,6 +268,7 @@ processSpatialSample <- function(input,
                                  consensus_log = NULL) {
   receptor <- match.arg(receptor)
   input_type <- match.arg(input_type)
+  invalid_spatial_ids <- match.arg(invalid_spatial_ids)
   if (length(cluster_field) != 1L || is.na(cluster_field) || !nzchar(cluster_field)) {
     rlang::abort("`cluster_field` must name one FASTA header field, for example `barcode` or `barcode_8um`.")
   }
@@ -339,8 +346,21 @@ processSpatialSample <- function(input,
       add_spatial_sequence_id = TRUE,
       spatial_id_key = cluster_field
     )
-    # Explicit NULL disables optional filters; dropping it restores their defaults.
+    # Explicit NULL disables an optional filter; other filterAirr parameters
+    # cannot accept NULL, so reject those instead of passing them through.
     args <- utils::modifyList(filter_defaults, filter_args, keep.null = TRUE)
+    nullable <- c("locus_val", "min_consensus_count", "max_opening_gap", "spatial_id")
+    null_args <- names(args)[vapply(args, is.null, logical(1))]
+    bad_nulls <- setdiff(null_args, nullable)
+    if (length(bad_nulls)) {
+      rlang::abort(paste0(
+        "`filter_args` sets NULL for parameter",
+        if (length(bad_nulls) == 1L) "" else "s", " that cannot be NULL: ",
+        paste0("`", bad_nulls, "`", collapse = ", "),
+        ". Only ", paste0("`", nullable, "`", collapse = ", "),
+        " accept NULL. Omit the entry to use the default."
+      ))
+    }
     spatial_col <- args$spatial_id
     filtered <- do.call(filterAirr, c(list(airr_df = airr), args))
     n_filtered <- nrow(filtered)
@@ -350,16 +370,33 @@ processSpatialSample <- function(input,
     if (!is.null(spatial_col)) {
       .check_required_cols(filtered, spatial_col, "filtered AIRR table")
       spatial_ids <- as.character(filtered[[spatial_col]])
+      # A barcode that contains a pRESTO delimiter or whitespace corrupts the
+      # FASTA header fields, so validate against the same `delimiters` the
+      # pipeline passes to pRESTO.
       invalid <- which(is.na(spatial_ids) | !nzchar(spatial_ids) |
-                         grepl("[|=,[:space:]]", spatial_ids))
+                         grepl(.sirap_delims_regex_class(delimiters), spatial_ids))
       if (length(invalid)) {
-        rlang::abort(paste0(
-          "Missing or invalid spatial barcode in `", spatial_col,
-          "` at filtered row ", invalid[[1L]], ". ",
-          "Export rrad FASTA with `to_fasta = TRUE, header_format = \"presto\"` ",
-          "to retain `|BARCODE=...` in the IgBLAST identifier, or supply an ",
-          "AIRR table with valid spatial IDs."
-        ))
+        detail <- paste0(
+          length(invalid), " of ", n_filtered, " filtered rows have a missing ",
+          "or invalid spatial barcode in `", spatial_col, "` (first at row ",
+          invalid[[1L]], ")."
+        )
+        if (identical(invalid_spatial_ids, "drop")) {
+          rlang::warn(paste0(detail, " Dropping those rows."))
+          filtered <- filtered[-invalid, , drop = FALSE]
+          n_filtered <- nrow(filtered)
+          if (n_filtered == 0L) {
+            rlang::abort("No filtered rows have a valid spatial barcode.")
+          }
+        } else {
+          rlang::abort(paste0(
+            detail,
+            " For rrad reads, export FASTA with `to_fasta = TRUE, ",
+            "header_format = \"presto\"` so `|BARCODE=...` survives IgBLAST. ",
+            "For AIRR tables, add spatial IDs first (see `extractSpatialIds()`), ",
+            "or set `invalid_spatial_ids = \"drop\"` to remove those rows."
+          ))
+        }
       }
     }
     filtered_tsv <- file.path(output_dir, sprintf("%s_%s_filtered.tsv", sample_name, receptor))
@@ -370,6 +407,16 @@ processSpatialSample <- function(input,
       header_col <- "spatial_sequence_id"
     }
     .check_required_cols(filtered, c(header_col, fasta_sequence_col), "filtered AIRR table")
+    dup <- duplicated(filtered[[header_col]])
+    if (any(dup)) {
+      rlang::abort(paste0(
+        sum(dup), " duplicate spatial FASTA header",
+        if (sum(dup) == 1L) "" else "s", " in `", header_col, "` (first: '",
+        filtered[[header_col]][dup][[1L]], "'). Sequence IDs must be unique ",
+        "after tag stripping; IDs that differ only after a `|` or whitespace ",
+        "collapse together."
+      ))
+    }
     spatial_fasta <- file.path(output_dir, sprintf("%s_%s_spatial.fasta", sample_name, receptor))
     writeFastqas(
       data.frame(
