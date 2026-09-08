@@ -37,6 +37,32 @@
 #' 9. Label the final connected components as `tree_cluster_1`,
 #'    `tree_cluster_2`, and so on.
 #'
+#' With `method = "monophyletic_clades"`, the function guarantees that every
+#' returned group is a single clade (the complete set of descendants of one
+#' node), so no group is a paraphyletic remainder. Instead of cutting arbitrary
+#' branches, it splits a clade into its own child clades. This is the method to
+#' use when each cluster must correspond to a real clade on the tree, for example
+#' when tip colours in a figure should each mark one monophyletic group.
+#'
+#' More explicitly, `method = "monophyletic_clades"` works as follows:
+#' 1. Start with the whole tree as one clade (every tip descends from the root).
+#' 2. Repeat until `k` clades exist, or no clade can be split further.
+#' 3. Calculate the genetic span of each current clade as the largest patristic
+#'    distance between any two tips in that clade.
+#' 4. Choose the clade with the largest genetic span, using tip count as a
+#'    tie-breaker; it must contain at least two tips.
+#' 5. Replace that clade with ALL of its child clades (the subtrees rooted at the
+#'    children of that clade's root node), then repeat.
+#' 6. Label the final clades as `tree_cluster_1`, `tree_cluster_2`, and so on.
+#'
+#' Because a clade is only ever replaced by its own children, every group stays
+#' monophyletic and the groups always cover all tips. `cut_terminal_edges` has no
+#' effect for this method. For a bifurcating tree this returns exactly `k`
+#' clades; at a multifurcation one step adds all children at once, so the result
+#' can have more than `k` clades. Ignored tips (for example the germline) may
+#' occupy a clade of their own that is then removed, which can leave fewer than
+#' `k` returned groups.
+#'
 #' @param tree A phylogenetic tree object with `edge`, `edge.length`, and
 #'   `tip.label` fields.
 #' @param k Number of connected tree components to form before ignored tips are
@@ -44,12 +70,19 @@
 #'   raised and `k` is set to the number of tips for that tree.
 #' @param id Name of the returned tip identifier column.
 #' @param cluster Name of the returned cluster column.
-#' @param ignore_tips Optional tip labels to drop from the returned data frame,
-#'   for example `"Germline"`.
+#' @param ignore_tips Optional tip labels to exclude **before** clustering, so
+#'   they neither form nor consume a cluster and are absent from the returned
+#'   data frame (for example `"Germline"`). A tip named `"Germline"` (any case)
+#'   is always excluded. Pruning uses `ape::drop.tip()`; if `ape` is unavailable
+#'   the tips are instead dropped from the returned table after clustering.
 #' @param prefix Prefix used for cluster labels.
 #' @param method Tree clustering method. `"cut_largest_branches"` removes the
 #'   `k - 1` longest eligible branches globally. `"split_largest_subtrees"`
 #'   repeatedly splits the largest remaining tip-containing subtree.
+#'   `"monophyletic_clades"` repeatedly replaces the largest-span clade by all of
+#'   its child clades, so every returned group is strictly monophyletic (the full
+#'   descendant set of a single node) with no paraphyletic remainder; for a
+#'   bifurcating tree this yields exactly `k` clades.
 #' @param cut_terminal_edges Cut terminal branches when choosing the longest
 #'   branches to remove. Defaults to `TRUE`; set to `FALSE` to prioritize
 #'   internal branches that split larger clades.
@@ -61,7 +94,7 @@ clusterTreeTips <- function(tree,
                             cluster = "tree_cluster",
                             ignore_tips = "Germline",
                             prefix = "tree_cluster_",
-                            method = c("split_largest_subtrees", "cut_largest_branches"),
+                            method = c("split_largest_subtrees", "cut_largest_branches", "monophyletic_clades"),
                             cut_terminal_edges = TRUE) {
   method <- match.arg(method)
   if (!is.list(tree) || !all(c("edge", "edge.length", "tip.label") %in% names(tree))) {
@@ -71,6 +104,31 @@ clusterTreeTips <- function(tree,
     rlang::abort("`k` must be a positive integer.")
   }
   k <- as.integer(k)
+
+  # Exclude the germline (and any explicitly ignored tips) BEFORE clustering, so
+  # it never forms or consumes a cluster. It is absent from the returned table
+  # and therefore stays uncoloured (grey) downstream. Matches a tip named
+  # "Germline"/"germline" (any case) as well as anything in `ignore_tips`.
+  drop_now <- union(
+    if (!is.null(ignore_tips)) intersect(ignore_tips, tree$tip.label) else character(0),
+    tree$tip.label[grepl("^germline$", tree$tip.label, ignore.case = TRUE)]
+  )
+  if (length(drop_now) > 0L &&
+      (length(tree$tip.label) - length(drop_now)) >= 1L &&
+      requireNamespace("ape", quietly = TRUE)) {
+    # `ape::drop.tip()` is an S3 generic for `phylo`, but this function accepts a
+    # bare edge/tip list (the documented input). Coerce to a minimal valid
+    # `phylo` (supplying `Nnode` if missing) before pruning; the rest of the
+    # function stays class-agnostic.
+    if (!inherits(tree, "phylo")) {
+      if (is.null(tree$Nnode)) {
+        tree$Nnode <- length(unique(as.integer(tree$edge))) - length(tree$tip.label)
+      }
+      class(tree) <- "phylo"
+    }
+    tree <- ape::drop.tip(tree, drop_now)
+  }
+
   n_tips <- length(tree$tip.label)
   if (n_tips == 0L) {
     rlang::abort("`tree` has no tips.")
@@ -182,7 +240,7 @@ chooseTreeTipK <- function(tree,
                            k_range = 1:10,
                            improvement_threshold = 0.10,
                            ignore_tips = "Germline",
-                           method = c("cut_largest_branches", "split_largest_subtrees"),
+                           method = c("cut_largest_branches", "split_largest_subtrees", "monophyletic_clades"),
                            cut_terminal_edges = TRUE) {
   method <- match.arg(method)
   retained_tips <- setdiff(tree$tip.label, ignore_tips)
@@ -273,7 +331,7 @@ clusterTreesTips <- function(trees,
                              ignore_tips = "Germline",
                              keep = NULL,
                              keep_val = NULL,
-                             method = c("split_largest_subtrees", "cut_largest_branches"),
+                             method = c("split_largest_subtrees", "cut_largest_branches", "monophyletic_clades"),
                              cut_terminal_edges = FALSE,
                              k_range = 1:8,
                              improvement_threshold = 0.10) {
@@ -709,6 +767,15 @@ assignTipColors <- function(clones,
     ))
   }
 
+  if (identical(method, "monophyletic_clades")) {
+    return(.sirap_tree_split_clades(
+      edge = edge,
+      edge_length = edge_length,
+      n_tips = n_tips,
+      n_cut = n_cut
+    ))
+  }
+
   .sirap_tree_split_largest_subtrees(
     edge = edge,
     edge_length = edge_length,
@@ -818,6 +885,87 @@ assignTipColors <- function(clones,
 }
 
 # Score candidate branch cuts and choose the most balanced split.
+# Partition tips into strictly monophyletic clades. Unlike the branch-cutting
+# methods, this never leaves a paraphyletic remainder: it starts from the root
+# clade and repeatedly replaces the clade with the largest genetic span by ALL of
+# its child clades, so every returned group is the complete descendant set of a
+# single node. The cut set is the parent edges of the final clade roots; the
+# tip-free backbone above the clades drops out during component labelling. For a
+# bifurcating tree this cuts exactly `n_cut` edges (k = n_cut + 1 clades); at a
+# multifurcation a split adds all children at once, so the result can have more
+# than `n_cut + 1` clades.
+.sirap_tree_split_clades <- function(edge, edge_length, n_tips, n_cut) {
+  k_target <- n_cut + 1L
+  nodes <- sort(unique(as.integer(edge)))
+
+  children <- stats::setNames(vector("list", length(nodes)), as.character(nodes))
+  parent_edge <- stats::setNames(rep(NA_integer_, length(nodes)), as.character(nodes))
+  for (i in seq_len(nrow(edge))) {
+    parent <- as.character(edge[i, 1])
+    child <- as.character(edge[i, 2])
+    children[[parent]] <- c(children[[parent]], as.integer(edge[i, 2]))
+    parent_edge[[child]] <- i
+  }
+  root <- setdiff(as.integer(edge[, 1]), as.integer(edge[, 2]))[[1]]
+
+  # Descendant node set (self + all nodes below) for every node, in post-order so
+  # each node is filled after its children.
+  descendants <- stats::setNames(vector("list", length(nodes)), as.character(nodes))
+  for (nd in .sirap_tree_postorder(root, children)) {
+    kids <- children[[as.character(nd)]]
+    if (is.null(kids)) {
+      descendants[[as.character(nd)]] <- nd
+    } else {
+      desc <- nd
+      for (kid in kids) desc <- c(desc, descendants[[as.character(kid)]])
+      descendants[[as.character(nd)]] <- desc
+    }
+  }
+  n_desc_tips <- function(nd) sum(descendants[[as.character(nd)]] <= n_tips)
+
+  weighted_adjacency <- .sirap_tree_weighted_adjacency(
+    edge, edge_length, rep(TRUE, nrow(edge)), nodes
+  )
+  clade_diameter <- function(nd) {
+    .sirap_tree_component_diameter(descendants[[as.character(nd)]], n_tips, weighted_adjacency)
+  }
+
+  frontier <- root
+  while (length(frontier) < k_target) {
+    splittable <- frontier[vapply(frontier, function(nd) {
+      length(children[[as.character(nd)]]) > 0L && n_desc_tips(nd) >= 2L
+    }, logical(1))]
+    if (length(splittable) == 0L) {
+      break
+    }
+    diams <- vapply(splittable, clade_diameter, numeric(1))
+    tip_counts <- vapply(splittable, n_desc_tips, integer(1))
+    best <- splittable[[order(diams, tip_counts, decreasing = TRUE)[[1]]]]
+    frontier <- c(setdiff(frontier, best), children[[as.character(best)]])
+  }
+
+  cut_nodes <- frontier[frontier != root]
+  cut_edges <- unname(parent_edge[as.character(cut_nodes)])
+  cut_edges[!is.na(cut_edges)]
+}
+
+# Iterative post-order node ordering (descendants before ancestors) for a rooted
+# tree given a parent -> children list.
+.sirap_tree_postorder <- function(root, children) {
+  out <- integer()
+  stack <- root
+  while (length(stack) > 0L) {
+    nd <- stack[[length(stack)]]
+    stack <- stack[-length(stack)]
+    out <- c(nd, out)
+    kids <- children[[as.character(nd)]]
+    if (!is.null(kids)) {
+      stack <- c(stack, kids)
+    }
+  }
+  out
+}
+
 .sirap_best_tree_cut_edge <- function(candidate_edges,
                                       edge,
                                       edge_length,

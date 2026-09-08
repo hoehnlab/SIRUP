@@ -11,7 +11,7 @@ clusterTreeTips(
   cluster = "tree_cluster",
   ignore_tips = "Germline",
   prefix = "tree_cluster_",
-  method = c("split_largest_subtrees", "cut_largest_branches"),
+  method = c("split_largest_subtrees", "cut_largest_branches", "monophyletic_clades"),
   cut_terminal_edges = TRUE
 )
 }
@@ -27,14 +27,21 @@ raised and \code{k} is set to the number of tips for that tree.}
 
 \item{cluster}{Name of the returned cluster column.}
 
-\item{ignore_tips}{Optional tip labels to drop from the returned data frame,
-for example \code{"Germline"}.}
+\item{ignore_tips}{Optional tip labels to exclude \strong{before} clustering, so
+they neither form nor consume a cluster and are absent from the returned
+data frame (for example \code{"Germline"}). A tip named \code{"Germline"} (any case)
+is always excluded. Pruning uses \code{ape::drop.tip()}; if \code{ape} is unavailable
+the tips are instead dropped from the returned table after clustering.}
 
 \item{prefix}{Prefix used for cluster labels.}
 
 \item{method}{Tree clustering method. \code{"cut_largest_branches"} removes the
 \code{k - 1} longest eligible branches globally. \code{"split_largest_subtrees"}
-repeatedly splits the largest remaining tip-containing subtree.}
+repeatedly splits the largest remaining tip-containing subtree.
+\code{"monophyletic_clades"} repeatedly replaces the largest-span clade by all of
+its child clades, so every returned group is strictly monophyletic (the full
+descendant set of a single node) with no paraphyletic remainder; for a
+bifurcating tree this yields exactly \code{k} clades.}
 
 \item{cut_terminal_edges}{Cut terminal branches when choosing the longest
 branches to remove. Defaults to \code{TRUE}; set to \code{FALSE} to prioritize
@@ -83,4 +90,32 @@ component, using branch length as the tie-breaker.
 \item Label the final connected components as \code{tree_cluster_1},
 \code{tree_cluster_2}, and so on.
 }
+
+With \code{method = "monophyletic_clades"}, the function guarantees that every
+returned group is a single clade (the complete set of descendants of one
+node), so no group is a paraphyletic remainder. Instead of cutting arbitrary
+branches, it splits a clade into its own child clades. This is the method to
+use when each cluster must correspond to a real clade on the tree, for example
+when tip colours in a figure should each mark one monophyletic group.
+
+More explicitly, \code{method = "monophyletic_clades"} works as follows:
+\enumerate{
+\item Start with the whole tree as one clade (every tip descends from the root).
+\item Repeat until \code{k} clades exist, or no clade can be split further.
+\item Calculate the genetic span of each current clade as the largest patristic
+distance between any two tips in that clade.
+\item Choose the clade with the largest genetic span, using tip count as a
+tie-breaker; it must contain at least two tips.
+\item Replace that clade with ALL of its child clades (the subtrees rooted at the
+children of that clade's root node), then repeat.
+\item Label the final clades as \code{tree_cluster_1}, \code{tree_cluster_2}, and so on.
+}
+
+Because a clade is only ever replaced by its own children, every group stays
+monophyletic and the groups always cover all tips. \code{cut_terminal_edges} has no
+effect for this method. For a bifurcating tree this returns exactly \code{k}
+clades; at a multifurcation one step adds all children at once, so the result
+can have more than \code{k} clades. Ignored tips (for example the germline) may
+occupy a clade of their own that is then removed, which can leave fewer than
+\code{k} returned groups.
 }
