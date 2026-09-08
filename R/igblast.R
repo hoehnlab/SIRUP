@@ -149,6 +149,8 @@
                                 dbs,
                                 aux_file = NULL,
                                 num_threads = 8,
+                                min_v_length = NULL,
+                                min_j_length = NULL,
                                 extra_args = NULL) {
   receptor <- match.arg(receptor)
   seqtype <- if (receptor == "ig") "Ig" else "TCR"
@@ -165,6 +167,15 @@
   }
   if (!is.null(aux_file)) {
     args <- c(args, "-auxiliary_data", path.expand(aux_file))
+  }
+  # igblastn requires -min_V_length >= 9 and -min_J_length >= 0. A hit
+  # below the threshold is not reported: the AIRR row keeps its query but
+  # gets no V/J call, so downstream length filters drop it.
+  if (!is.null(min_v_length)) {
+    args <- c(args, "-min_V_length", as.character(max(9L, as.integer(min_v_length))))
+  }
+  if (!is.null(min_j_length)) {
+    args <- c(args, "-min_J_length", as.character(max(0L, as.integer(min_j_length))))
   }
   args <- c(
     args,
@@ -242,6 +253,11 @@
 #'   database paths. Each overrides the `igblast_db_dir` convention.
 #' @param c_region_db Optional C-region database path (`ig` only).
 #' @param num_threads Threads passed to `-num_threads`.
+#' @param min_v_length,min_j_length Optional minimum V and J alignment
+#'   lengths passed to `-min_V_length`/`-min_J_length`. A hit below the
+#'   threshold is not reported: the read keeps its AIRR row but gets no
+#'   V/J call. igblastn requires `min_v_length >= 9`; smaller values are
+#'   raised to 9.
 #' @param extra_args Optional character vector of extra igblastn arguments.
 #' @return The path to `output_tsv`, invisibly.
 #' @export
@@ -257,6 +273,8 @@ runIgblast <- function(input,
                        germline_db_j = NULL,
                        c_region_db = NULL,
                        num_threads = 8,
+                       min_v_length = NULL,
+                       min_j_length = NULL,
                        extra_args = NULL) {
   receptor <- match.arg(receptor)
   .sirap_check_tools(c(igblastn = igblast_exec))
@@ -283,6 +301,8 @@ runIgblast <- function(input,
     dbs = dbs,
     aux_file = aux_file,
     num_threads = num_threads,
+    min_v_length = min_v_length,
+    min_j_length = min_j_length,
     extra_args = extra_args
   )
   log <- paste0(tools::file_path_sans_ext(output_tsv), ".log")

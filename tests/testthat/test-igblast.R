@@ -64,6 +64,41 @@ test_that(".sirap_igblast_args builds the igblastn argument vector", {
   expect_equal(utils::tail(args_tr, 2L), c("-word_size", "9"))
 })
 
+test_that(".sirap_igblast_args passes and clamps the length thresholds", {
+  dbs <- .sirap_igblast_db_paths("/db", receptor = "ig")
+  args <- .sirap_igblast_args(
+    query_fasta = "in.fasta",
+    output_tsv = "out.tsv",
+    receptor = "ig",
+    dbs = dbs,
+    min_v_length = 100,
+    min_j_length = 10
+  )
+  expect_equal(args[which(args == "-min_V_length") + 1L], "100")
+  expect_equal(args[which(args == "-min_J_length") + 1L], "10")
+
+  # igblastn rejects -min_V_length below 9; small values are raised.
+  clamped <- .sirap_igblast_args(
+    query_fasta = "in.fasta",
+    output_tsv = "out.tsv",
+    receptor = "ig",
+    dbs = dbs,
+    min_v_length = 1
+  )
+  expect_equal(clamped[which(clamped == "-min_V_length") + 1L], "9")
+  expect_false("-min_J_length" %in% clamped)
+
+  # NULL omits the flags entirely (igblastn defaults apply).
+  omitted <- .sirap_igblast_args(
+    query_fasta = "in.fasta",
+    output_tsv = "out.tsv",
+    receptor = "ig",
+    dbs = dbs
+  )
+  expect_false("-min_V_length" %in% omitted)
+  expect_false("-min_J_length" %in% omitted)
+})
+
 test_that(".sirap_prepare_query_fasta streams fastq.gz to a plain fasta", {
   skip_on_os("windows")
   dir <- withr::local_tempdir()

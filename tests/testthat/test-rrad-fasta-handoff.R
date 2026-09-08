@@ -330,6 +330,47 @@ test_that("duplicate spatial FASTA headers abort before writing", {
   )
 })
 
+test_that("the raw igblast call receives the effective length thresholds", {
+  fixture <- test_path("fixtures", "rrad-handoff", "canonical.fasta")
+  work <- withr::local_tempdir()
+  germline <- file.path(work, "reference.fasta")
+  writeLines(c(">reference", strrep("ACGT", 30)), germline)
+  captured <- new.env(parent = emptyenv())
+  testthat::local_mocked_bindings(
+    runIgblast = function(input, output_tsv, ...) {
+      dots <- list(...)
+      captured$min_v <- dots$min_v_length
+      captured$min_j <- dots$min_j_length
+      lines <- readLines(input)
+      ids <- sub("^>", "", lines[startsWith(lines, ">")])
+      data.table::fwrite(.rrad_handoff_airr(ids), output_tsv, sep = "\t")
+      invisible(output_tsv)
+    },
+    .sirap_check_tools = function(...) invisible(TRUE),
+    .sirap_run_command = function(...) invisible(0L),
+    .package = "SIRAP"
+  )
+  processSpatialSample(
+    input = fixture,
+    output_dir = file.path(work, "defaults"),
+    igblast_db_dir = work,
+    germline_glob = germline
+  )
+  # filterAirr defaults are forwarded when filter_args does not override.
+  expect_equal(captured$min_v, formals(filterAirr)$min_v_length)
+  expect_equal(captured$min_j, formals(filterAirr)$min_j_length)
+
+  processSpatialSample(
+    input = fixture,
+    output_dir = file.path(work, "override"),
+    igblast_db_dir = work,
+    germline_glob = germline,
+    filter_args = list(min_v_length = 90, min_j_length = 15)
+  )
+  expect_equal(captured$min_v, 90)
+  expect_equal(captured$min_j, 15)
+})
+
 test_that("barcode validation derives its character class from delimiters", {
   expect_equal(.sirap_delims_regex_class(c("|", "=", ",")), "[[:space:]|=,]")
   expect_true(grepl(.sirap_delims_regex_class(c("|", "=", ";")), "AA;CC"))

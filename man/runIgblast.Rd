@@ -17,6 +17,8 @@ runIgblast(
   germline_db_j = NULL,
   c_region_db = NULL,
   num_threads = 8,
+  min_v_length = NULL,
+  min_j_length = NULL,
   extra_args = NULL
 )
 }
@@ -42,6 +44,12 @@ database paths. Each overrides the \code{igblast_db_dir} convention.}
 \item{c_region_db}{Optional C-region database path (\code{ig} only).}
 
 \item{num_threads}{Threads passed to \code{-num_threads}.}
+
+\item{min_v_length, min_j_length}{Optional minimum V and J alignment
+lengths passed to \code{-min_V_length}/\code{-min_J_length}. A hit below the
+threshold is not reported: the read keeps its AIRR row but gets no
+V/J call. igblastn requires \code{min_v_length >= 9}; smaller values are
+raised to 9.}
 
 \item{extra_args}{Optional character vector of extra igblastn arguments.}
 }

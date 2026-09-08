@@ -93,10 +93,15 @@ filterAirr <- function(airr_df,
       rlang::abort("`spatial_id` is required when `add_spatial_sequence_id` is TRUE.")
     }
     .check_required_cols(out, c(id, spatial_id), "airr_df")
-    out[[spatial_sequence_id]] <- paste0(
-      "sequence_id=", out[[id]],
-      "|", spatial_id_key, "=", out[[spatial_id]]
-    )
+    # paste0() treats zero-length inputs as "", so guard the 0-row case.
+    out[[spatial_sequence_id]] <- if (nrow(out) == 0L) {
+      character(0)
+    } else {
+      paste0(
+        "sequence_id=", out[[id]],
+        "|", spatial_id_key, "=", out[[spatial_id]]
+      )
+    }
   }
 
   message(
@@ -192,7 +197,10 @@ filterAirr <- function(airr_df,
 #'   `spatial_id = "barcode"`, `add_spatial_sequence_id = TRUE`,
 #'   `spatial_id_key = cluster_field`. An explicit `NULL` disables an
 #'   optional filter (`locus_val`, `min_consensus_count`, `max_opening_gap`,
-#'   or `spatial_id`); other parameters do not accept `NULL`.
+#'   or `spatial_id`); other parameters do not accept `NULL`. The effective
+#'   `min_v_length` and `min_j_length` also go to the raw igblastn call
+#'   (`-min_V_length`/`-min_J_length`), so reads below the thresholds get
+#'   no V/J call in the raw AIRR table. The final output is unchanged.
 #' @param invalid_spatial_ids What to do with filtered rows whose spatial
 #'   barcode is missing or contains a delimiter: `"abort"` (default) stops
 #'   with a count, `"drop"` removes those rows with a warning.
@@ -313,32 +321,6 @@ processSpatialSample <- function(input,
   if (input_type == "spatial_fasta") {
     spatial_fasta <- input
   } else {
-    if (input_type == "raw_reads") {
-      raw_airr_tsv <- file.path(output_dir, sprintf("%s_%s_igblast_raw.tsv", sample_name, receptor))
-      runIgblast(
-        input = input,
-        output_tsv = raw_airr_tsv,
-        receptor = receptor,
-        organism = organism,
-        igblast_db_dir = igblast_db_dir,
-        igblast_exec = igblast_exec,
-        aux_file = aux_file,
-        germline_db_v = germline_db_v,
-        germline_db_d = germline_db_d,
-        germline_db_j = germline_db_j,
-        c_region_db = c_region_db,
-        num_threads = nproc
-      )
-      airr <- .sirap_read_airr(raw_airr_tsv)
-    } else if (input_type == "airr_tsv") {
-      airr <- .sirap_read_airr(input)
-    } else {
-      airr <- .as_data_frame(input)
-    }
-    n_raw <- nrow(airr)
-
-    airr <- parseRadSequenceIds(airr)
-
     filter_defaults <- list(
       complete_vdj = TRUE,
       min_consensus_count = NULL,
@@ -361,6 +343,50 @@ processSpatialSample <- function(input,
         " accept NULL. Omit the entry to use the default."
       ))
     }
+    # The V/J length thresholds also go to igblastn (-min_V_length and
+    # -min_J_length): a hit below the threshold gets no V/J call, and the
+    # same filterAirr length checks then drop it. Verified equivalent to
+    # post-hoc filtering alone; junk reads carry no misleading annotations
+    # in the raw AIRR table.
+    effective_min_v <- if (!is.null(args[["min_v_length"]])) {
+      args[["min_v_length"]]
+    } else {
+      formals(filterAirr)$min_v_length
+    }
+    effective_min_j <- if (!is.null(args[["min_j_length"]])) {
+      args[["min_j_length"]]
+    } else {
+      formals(filterAirr)$min_j_length
+    }
+
+    if (input_type == "raw_reads") {
+      raw_airr_tsv <- file.path(output_dir, sprintf("%s_%s_igblast_raw.tsv", sample_name, receptor))
+      runIgblast(
+        input = input,
+        output_tsv = raw_airr_tsv,
+        receptor = receptor,
+        organism = organism,
+        igblast_db_dir = igblast_db_dir,
+        igblast_exec = igblast_exec,
+        aux_file = aux_file,
+        germline_db_v = germline_db_v,
+        germline_db_d = germline_db_d,
+        germline_db_j = germline_db_j,
+        c_region_db = c_region_db,
+        num_threads = nproc,
+        min_v_length = effective_min_v,
+        min_j_length = effective_min_j
+      )
+      airr <- .sirap_read_airr(raw_airr_tsv)
+    } else if (input_type == "airr_tsv") {
+      airr <- .sirap_read_airr(input)
+    } else {
+      airr <- .as_data_frame(input)
+    }
+    n_raw <- nrow(airr)
+
+    airr <- parseRadSequenceIds(airr)
+
     spatial_col <- args$spatial_id
     filtered <- do.call(filterAirr, c(list(airr_df = airr), args))
     n_filtered <- nrow(filtered)
