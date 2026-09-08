@@ -31,10 +31,13 @@ processSpatialSample(
   delimiters = c("|", "=", ","),
   parse_fields = c(cluster_field, "cluster"),
   parse_key = paste0(cluster_field, "_cluster"),
-  parse_act = "cat",
+  parse_act = "set",
   consensus_min_count = 1,
   consensus_copy_fields = NULL,
   consensus_copy_action = "majority",
+  consensus_max_error = 0.1,
+  consensus_max_gap = 0.3,
+  skip_existing = FALSE,
   align_log = NULL,
   consensus_log = NULL
 )
@@ -115,15 +118,35 @@ after \code{--delim}. Defaults to \code{c("|", "=", ",")}.}
 
 \item{parse_key}{Header field name created by \verb{ParseHeaders.py merge -k}.}
 
-\item{parse_act}{Action passed to \verb{ParseHeaders.py merge --act}.}
+\item{parse_act}{Action passed to \verb{ParseHeaders.py merge --act}. The default
+\code{"set"} joins the spatial ID and the cluster ID with a comma, so the spatial
+ID stays recoverable from the consensus header. \code{"cat"} joins them with no
+separator, which makes the spatial ID unrecoverable for any variable-length
+barcode. Both produce the same grouping, so prefer \code{"set"}.}
 
 \item{consensus_min_count}{Minimum sequence count passed to
-\code{BuildConsensus.py -n}. Recommended to be at least 2 for non-single-cell resolution data.}
+\code{BuildConsensus.py -n}. Recommended to be at least 2 for non-single-cell resolution data.
+This gates which groups are written, not the consensus of a group that
+passes, so a run at \code{1} can be filtered to any higher value afterwards with
+\code{filterAirr(min_consensus_count = )}. Note \code{BuildConsensus.py -q} is fixed at
+20 and has no effect here, because the pipeline input is FASTA and carries
+no base qualities.}
 
 \item{consensus_copy_fields}{Optional fields passed to \code{BuildConsensus.py --cf}.}
 
 \item{consensus_copy_action}{Action passed to \code{BuildConsensus.py --act} when
 \code{consensus_copy_fields} is provided.}
+
+\item{consensus_max_error}{Maximum error rate passed to
+\code{BuildConsensus.py --maxerror}.}
+
+\item{consensus_max_gap}{Maximum gap fraction passed to
+\code{BuildConsensus.py --maxgap}.}
+
+\item{skip_existing}{Skip a pipeline command when its output already exists
+and is not empty. Use this to restart an interrupted run, or to reuse one
+clustering and alignment pass across several \code{consensus_freq} values,
+since those steps depend only on \code{identity}.}
 
 \item{align_log}{Optional log path passed to \code{AlignSets.py --log}.}
 
@@ -175,7 +198,7 @@ consensus workflow:
 the requested identity threshold \code{identity}, and vsearch.
 \item \verb{ParseHeaders.py merge} is used to write a new field into the headers that combines
 the spatial ID and the cluster id (provided with parse_fields). These are
-combined using \code{parse_act} (default cat) and written to a new header field \code{parse_key}.
+combined using \code{parse_act} (default set) and written to a new header field \code{parse_key}.
 Uses \code{delimiters} to specify the FASTA header delimiters.
 \item \verb{AlignSets.py muscle} aligns reads within each \code{parse_key} group created by \code{ParseHeaders}.
 Takes \code{muscle_exec} as the path to the muscle aligner (https://github.com/rcedgar/muscle).

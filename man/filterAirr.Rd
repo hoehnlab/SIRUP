@@ -14,6 +14,7 @@ filterAirr(
   complete_vdj = FALSE,
   min_consensus_count = 2,
   max_opening_gap = NULL,
+  max_gap_length = NULL,
   sequence_alignment = "sequence_alignment",
   id = "sequence_id",
   spatial_id = NULL,
@@ -42,6 +43,13 @@ this column as \code{"T"}/\code{"F"}. Skipped when the column is absent.}
 \item{min_consensus_count}{Optional minimum consensus_count.}
 
 \item{max_opening_gap}{Optional maximum opening gap in \code{sequence_alignment}.}
+
+\item{max_gap_length}{Optional maximum gap run in \code{sequence_alignment}. A real
+somatic-hypermutation indel is a multiple of three and rarely longer than
+12 nt, so a longer run points to a chimeric or truncated consensus. The
+metric is measured on the IMGT-numbered alignment, where the padding is
+locus-specific: IGHV is padded at 6/9/12 nt and TRBV at 18/21 nt, so a
+ceiling tuned for IGH rejects every TRB sequence. Set it per locus.}
 
 \item{sequence_alignment}{Sequence alignment column for gap filtering.}
 
