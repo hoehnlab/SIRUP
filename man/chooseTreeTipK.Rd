@@ -9,7 +9,7 @@ chooseTreeTipK(
   k_range = 1:10,
   improvement_threshold = 0.1,
   ignore_tips = "Germline",
-  method = c("cut_largest_branches", "split_largest_subtrees"),
+  method = c("cut_largest_branches", "split_largest_subtrees", "monophyletic_clades"),
   cut_terminal_edges = TRUE
 )
 }
