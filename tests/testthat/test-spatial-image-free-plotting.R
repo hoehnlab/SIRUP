@@ -384,3 +384,41 @@ test_that("plotSpatialColorTips overlays SIRAP object polygons", {
   expect_s3_class(tip_plot, "ggplot")
   expect_equal(n_polygon_layers(tip_plot), 1L)
 })
+
+test_that("spatialExpressionBlendPlot forwards assay and layer to per-feature panels", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("Matrix")
+  skip_if_not_installed("patchwork")
+
+  object <- make_image_free_spatial()
+
+  # A data-only assay, as produced by ALRA imputation: no counts layer.
+  imputed <- Matrix::Matrix(
+    c(
+      0.5, 1.5, 0.2, 2.5,
+      0.1, 0.9, 1.2, 3.5
+    ),
+    nrow = 2,
+    ncol = 4,
+    sparse = TRUE
+  )
+  dimnames(imputed) <- list(c("geneA", "geneB"), paste0("cell", 1:4))
+  object[["alra"]] <- SeuratObject::CreateAssay5Object(data = imputed)
+
+  # only_blended = FALSE builds the two per-feature panels. Those calls used to
+  # drop `assay`/`layer` and fall back to spatialExpressionPlot's default
+  # layer = "counts", which does not exist in a data-only assay. The existing
+  # blend test only covers only_blended = TRUE, which skips this branch.
+  expect_error(
+    spatialExpressionBlendPlot(
+      object,
+      features = c("geneA", "geneB"),
+      assay = "alra",
+      layer = "data",
+      only_blended = FALSE,
+      image_scale = "hires",
+      swap_coords = FALSE
+    ),
+    NA
+  )
+})

@@ -361,6 +361,8 @@ spatialExpressionBlendPlot <- function(object,
       f1 <- spatialExpressionPlot(
         object,
         features[[1]],
+        assay = assay,
+        layer = layer,
         images = image,
         image_scale = image_scale,
         swap_coords = swap_coords,
@@ -376,6 +378,8 @@ spatialExpressionBlendPlot <- function(object,
       f2 <- spatialExpressionPlot(
         object,
         features[[2]],
+        assay = assay,
+        layer = layer,
         images = image,
         image_scale = image_scale,
         swap_coords = swap_coords,
@@ -2256,13 +2260,19 @@ spatialCloneTreePairsToPDF <- function(pairs,
       slot_out <- tryCatch(
         .sirap_fetch_data_slot(object = object, vars = vars, slot = layer),
         error = function(slot_error) {
+          # Report the LAYER error as the parent, not the slot error. The slot
+          # fall back only exists for SeuratObject < 5.0; from 5.0 on,
+          # FetchData(slot =) is defunct and always fails the same way, so
+          # attaching the slot error hid the real cause (for example a layer
+          # that is genuinely absent from the assay) behind a generic
+          # "deprecated slot argument" message.
           rlang::abort(
             paste0(
               "Could not fetch feature data from Seurat. SIRAP tried layer = ",
               layer, " in assay = ", assay, " first, then tried slot = ",
               layer, " as a fall back."
             ),
-            parent = slot_error
+            parent = layer_error
           )
         }
       )
