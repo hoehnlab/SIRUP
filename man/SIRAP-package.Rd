@@ -12,7 +12,7 @@ an end-to-end IgBLAST and pRESTO pipeline to produce AIRR-style
 rearrangement tables with spatial IDs and coordinates. It also provides
 Visium HD spatial ID mapping, clonal summaries, lightweight SIRAP
 containers pairing spatial Seurat data with tibble-backed receptor tables,
-tree plotting, int64-packed DNA primitives, and PAF parsing utilities.
+tree plotting, polygon annotation, and spatial statistics.
 }
 \author{
 \strong{Maintainer}: Hunter J. Melton \email{Hunter.J.Melton@dartmouth.edu}
