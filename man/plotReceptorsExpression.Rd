@@ -7,13 +7,17 @@
 plotReceptorsExpression(
   object,
   receptors = NULL,
-  group,
+  group = NULL,
   group_val = NULL,
   spatial_id = NULL,
   feature = NULL,
   gene = NULL,
   colors = NULL,
   overlap = "average",
+  value = NULL,
+  value_colors = c("#FFFFFF", "#000080"),
+  value_limits = c(0, NA),
+  value_combine = c("mean", "median", "mode", "max", "min", "sum"),
   receptor_size = 1,
   receptor_stroke = 0.7,
   receptor_alpha = 1,
@@ -43,7 +47,9 @@ receptor data.}
 grouping column. May be omitted when \code{object} is a SIRAP object.}
 
 \item{group}{Column in \code{receptors} defining receptor groups, for example
-\code{"receptor_type"} with values \code{"BCR"} and \code{"TCR"}.}
+\code{"receptor_type"} with values \code{"BCR"} and \code{"TCR"}. Optional when \code{value}
+is given; if both are given, \code{group} and \code{group_val} only select which
+receptors to draw.}
 
 \item{group_val}{Optional group values to plot and their display order.
 Defaults to all non-missing values in \code{group}.}
@@ -62,6 +68,21 @@ to \code{values}; otherwise colors are used in value order.}
 group. Such a spot is drawn once as a combined group (members joined by
 \code{" + "}). \code{"average"} (default) colors it with the mean of its members'
 colors; any single color instead colors all combined spots with that color.}
+
+\item{value}{Fill each receptor spot on a continuous gradient instead of
+giving each \code{group} its own colour. Give the name of a numeric column in
+\code{receptors}, or \code{"count"} for the number of receptors on the spot. The
+receptors use the fill scale, because the expression layer already uses
+the colour scale.}
+
+\item{value_colors}{Colours for the \code{value} gradient. Two colours give a
+low-to-high gradient; more give a multi-stop gradient.}
+
+\item{value_limits}{Limits for the \code{value} gradient scale.}
+
+\item{value_combine}{How to combine \code{value} when a spot carries more than
+one receptor. One of \code{"mean"} (default), \code{"median"}, \code{"mode"}, \code{"max"},
+\code{"min"} or \code{"sum"}. Ignored when \code{value = "count"}.}
 
 \item{receptor_size}{Size for receptor-positive spots.}
 
@@ -109,6 +130,11 @@ A ggplot/patchwork object, or a list when \code{combine = FALSE}.
 \description{
 Plot one gene-expression feature together with one or more receptor groups.
 Expression-positive spots are drawn with a continuous color ramp, while
-receptor groups are drawn as independently colored hollow circles. This is
-useful for displaying BCR- and TCR-positive spots on the same expression map.
+receptors are drawn as hollow circles. This is useful for displaying BCR- and
+TCR-positive spots on the same expression map.
+}
+\details{
+Expression always uses the fill scale and receptors always use the colour
+scale. The receptor circles therefore look the same whether you colour them
+by \code{group} or by a continuous \code{value}.
 }

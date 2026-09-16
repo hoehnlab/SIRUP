@@ -513,15 +513,21 @@ spatialExpressionMultiPlot <- function(object,
 #'
 #' Plot one gene-expression feature together with one or more receptor groups.
 #' Expression-positive spots are drawn with a continuous color ramp, while
-#' receptor groups are drawn as independently colored hollow circles. This is
-#' useful for displaying BCR- and TCR-positive spots on the same expression map.
+#' receptors are drawn as hollow circles. This is useful for displaying BCR- and
+#' TCR-positive spots on the same expression map.
+#'
+#' Expression always uses the fill scale and receptors always use the colour
+#' scale. The receptor circles therefore look the same whether you colour them
+#' by `group` or by a continuous `value`.
 #'
 #' @param object Seurat object, or a SIRAP object containing both spatial and
 #'   receptor data.
 #' @param receptors AIRR-style receptor table containing a spatial ID and
 #'   grouping column. May be omitted when `object` is a SIRAP object.
 #' @param group Column in `receptors` defining receptor groups, for example
-#'   `"receptor_type"` with values `"BCR"` and `"TCR"`.
+#'   `"receptor_type"` with values `"BCR"` and `"TCR"`. Optional when `value`
+#'   is given; if both are given, `group` and `group_val` only select which
+#'   receptors to draw.
 #' @param group_val Optional group values to plot and their display order.
 #'   Defaults to all non-missing values in `group`.
 #' @param spatial_id Column in `receptors` matching Seurat spot names. If
@@ -537,6 +543,17 @@ spatialExpressionMultiPlot <- function(object,
 #' @param receptor_size Size for receptor-positive spots.
 #' @param receptor_stroke Stroke width for hollow receptor circles.
 #' @param receptor_alpha Alpha for receptor circles.
+#' @param value Fill each receptor spot on a continuous gradient instead of
+#'   giving each `group` its own colour. Give the name of a numeric column in
+#'   `receptors`, or `"count"` for the number of receptors on the spot. The
+#'   receptors use the fill scale, because the expression layer already uses
+#'   the colour scale.
+#' @param value_colors Colours for the `value` gradient. Two colours give a
+#'   low-to-high gradient; more give a multi-stop gradient.
+#' @param value_limits Limits for the `value` gradient scale.
+#' @param value_combine How to combine `value` when a spot carries more than
+#'   one receptor. One of `"mean"` (default), `"median"`, `"mode"`, `"max"`,
+#'   `"min"` or `"sum"`. Ignored when `value = "count"`.
 #' @param feature_colors Colors used to build the continuous expression ramp.
 #' @param feature_size Size for gene-expression points.
 #' @param feature_alpha Alpha for gene-expression points.
@@ -559,13 +576,17 @@ spatialExpressionMultiPlot <- function(object,
 #' @export
 plotReceptorsExpression <- function(object,
                                     receptors = NULL,
-                                    group,
+                                    group = NULL,
                                     group_val = NULL,
                                     spatial_id = NULL,
                                     feature = NULL,
                                     gene = NULL,
                                     colors = NULL,
                                     overlap = "average",
+                                    value = NULL,
+                                    value_colors = c("#FFFFFF", "#000080"),
+                                    value_limits = c(0, NA),
+                                    value_combine = c("mean", "median", "mode", "max", "min", "sum"),
                                     receptor_size = 1,
                                     receptor_stroke = 0.7,
                                     receptor_alpha = 1,
@@ -607,7 +628,27 @@ plotReceptorsExpression <- function(object,
   .require_namespace("SeuratObject")
   receptors <- .as_data_frame(receptors)
   spatial_id <- .guess_spatial_id_col(receptors, spatial_id)
+  if (is.null(group) && is.null(value)) {
+    rlang::abort("`group` is required unless `value` is set.")
+  }
   .check_required_cols(receptors, c(spatial_id, group), "receptors")
+
+  # Continuous mode: one fill value per spot, so `group` only filters.
+  use_value <- !is.null(value)
+  if (use_value) {
+    value_combine <- match.arg(value_combine)
+    receptors <- receptors[!is.na(receptors[[spatial_id]]), , drop = FALSE]
+    if (!is.null(group)) {
+      gv <- if (is.null(group_val)) unique(stats::na.omit(as.character(receptors[[group]]))) else as.character(group_val)
+      receptors <- receptors[as.character(receptors[[group]]) %in% gv, , drop = FALSE]
+    }
+    if (nrow(receptors) == 0L) {
+      rlang::abort("No receptor rows with a spatial ID to summarise.")
+    }
+    summarised <- .sirap_receptor_spot_values(receptors, spatial_id, value, value_combine)
+    receptor_lookup <- summarised$data
+    receptor_legend_title <- receptor_legend_title %||% summarised$legend
+  } else {
 
   receptors$.sirap_receptor_group <- as.character(receptors[[group]])
   if (is.null(group_val)) {
@@ -646,6 +687,7 @@ plotReceptorsExpression <- function(object,
   receptor_lookup <- combined$lookup
   plot_groups <- combined$levels
   colors <- combined$colors
+  }
 
   if (!is.null(assay)) {
     SeuratObject::DefaultAssay(object) <- assay
@@ -687,10 +729,12 @@ plotReceptorsExpression <- function(object,
       by.y = spatial_id,
       all = FALSE
     )
-    receptor_data$.sirap_receptor_group <- factor(
-      receptor_data$.sirap_receptor_group,
-      levels = plot_groups
-    )
+    if (!use_value) {
+      receptor_data$.sirap_receptor_group <- factor(
+        receptor_data$.sirap_receptor_group,
+        levels = plot_groups
+      )
+    }
 
     if (nrow(expression_data) == 0L && nrow(receptor_data) == 0L) {
       next
@@ -705,28 +749,61 @@ plotReceptorsExpression <- function(object,
     )
 
     if (nrow(expression_data) > 0L) {
+      # Expression always uses the fill scale and receptors always use the
+      # colour scale, in both grouped and continuous mode. One plot carries only
+      # one scale per aesthetic, so this keeps the receptor marks identical
+      # whichever mode is in use. Shape 21 with no border still reads as a spot.
       p <- p +
         ggplot2::geom_point(
           data = expression_data,
-          ggplot2::aes(x = .data$x, y = .data$.sirap_y, color = .data[[feature]]),
+          ggplot2::aes(x = .data$x, y = .data$.sirap_y, fill = .data[[feature]]),
+          shape = 21,
+          # "transparent", not NA: colour = NA makes geom_point drop the rows,
+          # so every expression spot silently disappears.
+          color = "transparent",
+          stroke = 0,
           size = feature_size,
           alpha = feature_alpha,
           inherit.aes = FALSE,
           na.rm = TRUE
         ) +
-        ggplot2::scale_color_gradientn(colors = feature_colors, name = feature)
+        ggplot2::scale_fill_gradientn(colors = feature_colors, name = feature)
     }
 
-    for (value in plot_groups) {
+    if (use_value) {
+      if (nrow(receptor_data) > 0L) {
+        if (isTRUE(order_points)) {
+          receptor_data <- receptor_data[order(receptor_data$.sirap_count), , drop = FALSE]
+        }
+        # Hollow rings, same as grouped mode, with the ring colour carrying the
+        # value. The expression layer uses the fill scale, so colour is free.
+        p <- p +
+          ggplot2::geom_point(
+            data = receptor_data,
+            ggplot2::aes(x = .data$x, y = .data$.sirap_y, color = .data$.sirap_count),
+            shape = 21,
+            fill = NA,
+            size = receptor_size,
+            stroke = receptor_stroke,
+            alpha = receptor_alpha,
+            inherit.aes = FALSE,
+            na.rm = TRUE,
+            show.legend = isTRUE(show_receptor_legend)
+          ) +
+          .sirap_value_color_scale(value_colors, value_limits, receptor_legend_title,
+                                   aesthetic = "colour")
+      }
+    } else {
+    for (grp in plot_groups) {
       group_data <- receptor_data[
-        receptor_data$.sirap_receptor_group == value,
+        receptor_data$.sirap_receptor_group == grp,
         ,
         drop = FALSE
       ]
       if (nrow(group_data) == 0L) {
         next
       }
-      group_data$.sirap_receptor_label <- factor(value, levels = plot_groups)
+      group_data$.sirap_receptor_label <- factor(grp, levels = plot_groups)
       p <- p + ggplot2::geom_point(
         data = group_data,
         ggplot2::aes(
@@ -734,7 +811,7 @@ plotReceptorsExpression <- function(object,
           y = .data$.sirap_y,
           shape = .data$.sirap_receptor_label
         ),
-        color = unname(colors[[value]]),
+        color = unname(colors[[grp]]),
         fill = NA,
         size = receptor_size,
         stroke = receptor_stroke,
@@ -762,6 +839,7 @@ plotReceptorsExpression <- function(object,
             )
           )
         )
+    }
     }
 
     plots[[image]] <- p + ggplot2::labs(title = title %||% feature)
@@ -828,14 +906,19 @@ plotReceptorsExpression <- function(object,
 #'   polygon ID is used.
 #' @param polygon_label_size Text size for polygon labels.
 #' @param polygon_label_color Text color for polygon labels.
-#' @param count Colour each spot by the number of receptors it carries, using a
-#'   continuous gradient instead of discrete `group` colours. `group` is optional
-#'   in this mode; if supplied (with `group_val`), only matching receptors are
-#'   counted.
-#' @param count_colors Length-2 vector of low/high colours for the `count`
-#'   gradient. Defaults to white to navy.
-#' @param count_limits Limits for the `count` gradient scale (default `c(0, NA)`,
-#'   anchoring the scale at zero).
+#' @param value Colour each spot on a continuous gradient instead of discrete
+#'   `group` colours. Give the name of a numeric column in `receptors`, or the
+#'   special value `"count"` to colour by the number of receptors on the spot.
+#'   `group` is optional in this mode; if supplied (with `group_val`), only
+#'   matching receptors are used.
+#' @param value_colors Colours for the `value` gradient. Two colours give a
+#'   low-to-high gradient. More than two give a multi-stop gradient, so you can
+#'   pass a palette such as `viridisLite::viridis(9)`. Defaults to white to navy.
+#' @param value_limits Limits for the `value` gradient scale (default
+#'   `c(0, NA)`, anchoring the scale at zero).
+#' @param value_combine How to combine `value` when a spot carries more than one
+#'   receptor. One of `"mean"` (default), `"median"`, `"mode"`, `"max"`,
+#'   `"min"` or `"sum"`. Ignored when `value = "count"`.
 #' @param combine Combine image panels with patchwork.
 #' @return A ggplot/patchwork object or a list when `combine = FALSE`.
 #' @export
@@ -846,9 +929,10 @@ plotReceptors <- function(object,
                           spatial_id = NULL,
                           colors = NULL,
                           overlap = "average",
-                          count = FALSE,
-                          count_colors = c("#FFFFFF", "#000080"),
-                          count_limits = c(0, NA),
+                          value = NULL,
+                          value_colors = c("#FFFFFF", "#000080"),
+                          value_limits = c(0, NA),
+                          value_combine = c("mean", "median", "mode", "max", "min", "sum"),
                           receptor_size = 1,
                           receptor_alpha = 1,
                           title = NULL,
@@ -899,8 +983,10 @@ plotReceptors <- function(object,
   receptors <- .as_data_frame(receptors)
   spatial_id <- .guess_spatial_id_col(receptors, spatial_id)
 
-  # Continuous mode: colour each spot by the number of receptors it carries.
-  if (isTRUE(count)) {
+  # Continuous mode: colour each spot on a gradient, either by the number of
+  # receptors it carries (value = "count") or by a numeric receptor column.
+  if (!is.null(value)) {
+    value_combine <- match.arg(value_combine)
     receptors <- receptors[!is.na(receptors[[spatial_id]]), , drop = FALSE]
     if (!is.null(group)) {
       .check_required_cols(receptors, group, "receptors")
@@ -908,12 +994,13 @@ plotReceptors <- function(object,
       receptors <- receptors[as.character(receptors[[group]]) %in% gv, , drop = FALSE]
     }
     if (nrow(receptors) == 0L) {
-      rlang::abort("No receptor rows with a spatial ID to count.")
+      rlang::abort("No receptor rows with a spatial ID to summarise.")
     }
-    counts <- as.data.frame(table(receptors[[spatial_id]]), stringsAsFactors = FALSE)
-    names(counts) <- c(spatial_id, ".sirap_count")
-    counts$.sirap_count <- as.integer(counts$.sirap_count)
-    legend_name <- receptor_legend_title %||% "Receptors/spot"
+    # A spot is drawn once, so several receptors on one spot are reduced to a
+    # single number first.
+    summarised <- .sirap_receptor_spot_values(receptors, spatial_id, value, value_combine)
+    counts <- summarised$data
+    legend_name <- receptor_legend_title %||% summarised$legend
     plots <- list()
     for (image in .sirap_spatial_images(object, images = images)) {
       spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
@@ -944,10 +1031,7 @@ plotReceptors <- function(object,
           inherit.aes = FALSE, na.rm = TRUE,
           show.legend = isTRUE(show_receptor_legend)
         ) +
-        ggplot2::scale_color_gradient(
-          low = count_colors[[1]], high = count_colors[[2]],
-          limits = count_limits, name = legend_name
-        )
+        .sirap_value_color_scale(value_colors, value_limits, legend_name)
       if (!is.null(polygon_overlay)) {
         label_layer <- .sirap_polygon_label_layer(
           polygon_overlay, polygon_label = polygon_label,
@@ -965,7 +1049,7 @@ plotReceptors <- function(object,
   }
 
   if (is.null(group)) {
-    rlang::abort("`group` is required unless `count = TRUE`.")
+    rlang::abort("`group` is required unless `value` is set.")
   }
   .check_required_cols(receptors, c(spatial_id, group), "receptors")
 
@@ -2669,4 +2753,93 @@ spatialCloneTreePairsToPDF <- function(pairs,
     ) +
     ggplot2::xlab(xlab) +
     ggplot2::ylab(ylab)
+}
+
+# Reduce several receptor values on one spot to a single number.
+.sirap_value_combine_fun <- function(value_combine) {
+  switch(value_combine,
+    mean = function(x) mean(x, na.rm = TRUE),
+    median = function(x) stats::median(x, na.rm = TRUE),
+    max = function(x) max(x, na.rm = TRUE),
+    min = function(x) min(x, na.rm = TRUE),
+    sum = function(x) sum(x, na.rm = TRUE),
+    mode = .sirap_mode,
+    rlang::abort(paste0("Unknown `value_combine`: ", value_combine))
+  )
+}
+
+# Most frequent value. Ties take the smallest value, so the result is stable.
+.sirap_mode <- function(x) {
+  x <- x[!is.na(x)]
+  if (!length(x)) {
+    return(NA_real_)
+  }
+  tab <- table(x)
+  as.numeric(names(tab)[tab == max(tab)][[1]])
+}
+
+# Two colours give a low-to-high gradient; more give a multi-stop gradient.
+# `aesthetic` is "colour" or "fill": plotReceptorsExpression needs the fill
+# scale, because its expression layer already uses the colour scale.
+.sirap_value_color_scale <- function(value_colors, value_limits, legend_name,
+                                     aesthetic = c("colour", "fill")) {
+  aesthetic <- match.arg(aesthetic)
+  if (length(value_colors) < 2L) {
+    rlang::abort("`value_colors` needs at least two colours.")
+  }
+  if (identical(aesthetic, "fill")) {
+    if (length(value_colors) == 2L) {
+      ggplot2::scale_fill_gradient(
+        low = value_colors[[1]], high = value_colors[[2]],
+        limits = value_limits, name = legend_name
+      )
+    } else {
+      ggplot2::scale_fill_gradientn(
+        colours = value_colors, limits = value_limits, name = legend_name
+      )
+    }
+  } else if (length(value_colors) == 2L) {
+    ggplot2::scale_color_gradient(
+      low = value_colors[[1]], high = value_colors[[2]],
+      limits = value_limits, name = legend_name
+    )
+  } else {
+    ggplot2::scale_color_gradientn(
+      colours = value_colors, limits = value_limits, name = legend_name
+    )
+  }
+}
+
+# One row per spot with the receptor value reduced to a single number. Shared by
+# plotReceptors and plotReceptorsExpression.
+.sirap_receptor_spot_values <- function(receptors, spatial_id, value, value_combine) {
+  if (length(value) != 1L || !is.character(value)) {
+    rlang::abort("`value` must be a single column name, or \"count\".")
+  }
+  is_count <- identical(value, "count")
+  if (is_count && "count" %in% names(receptors)) {
+    rlang::warn('value = "count" counts receptors per spot; the `count` column is ignored.')
+  }
+  if (is_count) {
+    out <- as.data.frame(table(receptors[[spatial_id]]), stringsAsFactors = FALSE)
+    names(out) <- c(spatial_id, ".sirap_count")
+    out$.sirap_count <- as.integer(out$.sirap_count)
+    return(list(data = out, legend = "Receptors/spot"))
+  }
+  .check_required_cols(receptors, value, "receptors")
+  if (!is.numeric(receptors[[value]])) {
+    rlang::abort(paste0("`value` column \"", value, "\" must be numeric."))
+  }
+  keep <- !is.na(receptors[[value]])
+  if (!any(keep)) {
+    rlang::abort(paste0("`value` column \"", value, "\" has no non-missing values."))
+  }
+  receptors <- receptors[keep, , drop = FALSE]
+  out <- stats::aggregate(
+    receptors[[value]],
+    by = list(as.character(receptors[[spatial_id]])),
+    FUN = .sirap_value_combine_fun(value_combine)
+  )
+  names(out) <- c(spatial_id, ".sirap_count")
+  list(data = out, legend = value)
 }

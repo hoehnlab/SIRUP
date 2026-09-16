@@ -12,9 +12,10 @@ plotReceptors(
   spatial_id = NULL,
   colors = NULL,
   overlap = "average",
-  count = FALSE,
-  count_colors = c("#FFFFFF", "#000080"),
-  count_limits = c(0, NA),
+  value = NULL,
+  value_colors = c("#FFFFFF", "#000080"),
+  value_limits = c(0, NA),
+  value_combine = c("mean", "median", "mode", "max", "min", "sum"),
   receptor_size = 1,
   receptor_alpha = 1,
   title = NULL,
@@ -66,16 +67,22 @@ group. Such a spot is drawn once as a combined group (members joined by
 \code{" + "}). \code{"average"} (default) colors it with the mean of its members'
 colors; any single color instead colors all combined spots with that color.}
 
-\item{count}{Colour each spot by the number of receptors it carries, using a
-continuous gradient instead of discrete \code{group} colours. \code{group} is optional
-in this mode; if supplied (with \code{group_val}), only matching receptors are
-counted.}
+\item{value}{Colour each spot on a continuous gradient instead of discrete
+\code{group} colours. Give the name of a numeric column in \code{receptors}, or the
+special value \code{"count"} to colour by the number of receptors on the spot.
+\code{group} is optional in this mode; if supplied (with \code{group_val}), only
+matching receptors are used.}
 
-\item{count_colors}{Length-2 vector of low/high colours for the \code{count}
-gradient. Defaults to white to navy.}
+\item{value_colors}{Colours for the \code{value} gradient. Two colours give a
+low-to-high gradient. More than two give a multi-stop gradient, so you can
+pass a palette such as \code{viridisLite::viridis(9)}. Defaults to white to navy.}
 
-\item{count_limits}{Limits for the \code{count} gradient scale (default \code{c(0, NA)},
-anchoring the scale at zero).}
+\item{value_limits}{Limits for the \code{value} gradient scale (default
+\code{c(0, NA)}, anchoring the scale at zero).}
+
+\item{value_combine}{How to combine \code{value} when a spot carries more than one
+receptor. One of \code{"mean"} (default), \code{"median"}, \code{"mode"}, \code{"max"},
+\code{"min"} or \code{"sum"}. Ignored when \code{value = "count"}.}
 
 \item{receptor_size}{Size for receptor points.}
 
