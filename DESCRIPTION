@@ -13,8 +13,8 @@ Description: Spatial Immune Receptor Analysis and Processing. A consolidated
     demultiplexed reads from the companion 'RRAD' package and runs an
     end-to-end IgBLAST and pRESTO pipeline to produce AIRR-style
     rearrangement tables with spatial IDs and coordinates. It also provides
-    Visium HD barcode mapping, clonal summaries, tree plotting, int64-packed
-    DNA primitives, and PAF parsing utilities.
+    Visium HD barcode mapping, clonal summaries, tree plotting, polygon
+    annotation, and spatial statistics.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -24,11 +24,9 @@ SystemRequirements: NCBI IgBLAST (igblastn), pRESTO/Change-O Python tools
 Depends:
     R (>= 4.1.0)
 Imports:
-    bit64,
     cli,
     data.table,
     dplyr,
-    ggalign,
     ggplot2,
     igraph,
     kedd,
@@ -38,15 +36,11 @@ Imports:
     methods,
     pbapply,
     RANN,
-    Rcpp,
     rlang,
     scales,
     stringr,
     tibble,
     tidyr
-LinkingTo:
-    BH,
-    Rcpp
 Suggests:
     alakazam,
     airr,
