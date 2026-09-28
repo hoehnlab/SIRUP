@@ -134,6 +134,41 @@ test_that("spatialMoran can test a particular clone from a SIRAP object", {
   expect_true(all(c("local_i", "p_value") %in% names(local)))
 })
 
+test_that("spatialLee tests bivariate feature association", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("spdep")
+
+  object <- SeuratObject::CreateSeuratObject(
+    counts = matrix(
+      c(
+        1, 2, 3, 4, 5, 6, 7, 8,
+        2, 3, 4, 5, 6, 7, 8, 9
+      ),
+      nrow = 2,
+      byrow = TRUE,
+      dimnames = list(c("gene-x", "gene-y"), paste0("cell", 1:8))
+    )
+  )
+  object$x <- seq(0, 7)
+  object$y <- rep(0, 8)
+
+  out <- spatialLee(
+    object,
+    x = "gene-x",
+    y = "gene-y",
+    k = 2,
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+
+  expect_s3_class(out$test, "htest")
+  expect_equal(out$x, "gene-x")
+  expect_equal(out$y, "gene-y")
+  expect_equal(out$data$value_x, seq(1, 8))
+  expect_equal(out$data$value_y, seq(2, 9))
+  expect_true("Lee's L statistic" %in% names(out$test$estimate))
+})
+
 test_that("spatialCloneJoinCount tests clone marks from receptor IDs", {
   skip_if_not_installed("SeuratObject")
   skip_if_not_installed("spdep")
@@ -244,4 +279,73 @@ test_that("plotSpatialCloneJoinCount requires stored mark data", {
     "return_data = TRUE",
     fixed = TRUE
   )
+})
+
+test_that("spatialLee can use the Monte Carlo method", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("spdep")
+
+  object <- SeuratObject::CreateSeuratObject(
+    counts = matrix(
+      c(
+        1, 2, 3, 4, 5, 6, 7, 8,
+        2, 3, 4, 5, 6, 7, 8, 9
+      ),
+      nrow = 2,
+      byrow = TRUE,
+      dimnames = list(c("gene-x", "gene-y"), paste0("cell", 1:8))
+    )
+  )
+  object$x <- seq(0, 7)
+  object$y <- rep(0, 8)
+
+  # spdep::lee.test() densifies the weights matrix, so it cannot run on
+  # Visium HD. The mc method permutes labels instead and keeps the weights
+  # sparse; both must return the same observed L.
+  analytical <- spatialLee(
+    object, x = "gene-x", y = "gene-y", k = 2,
+    image_scale = "hires", swap_coords = FALSE
+  )
+  mc <- spatialLee(
+    object, x = "gene-x", y = "gene-y", k = 2,
+    image_scale = "hires", swap_coords = FALSE,
+    method = "mc", nsim = 99
+  )
+
+  expect_s3_class(mc$test, "htest")
+  expect_equal(mc$method, "mc")
+  expect_equal(analytical$method, "analytical")
+  expect_equal(mc$L, analytical$L, tolerance = 1e-8)
+  expect_true(mc$test$p.value >= 0 && mc$test$p.value <= 1)
+})
+
+test_that("spatialLee mc matches spdep::lee.mc under the same seed", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("spdep")
+
+  set.seed(42)
+  counts <- matrix(rpois(2 * 40, lambda = 5), nrow = 2,
+                   dimnames = list(c("gene-x", "gene-y"), paste0("cell", 1:40)))
+  object <- SeuratObject::CreateSeuratObject(counts = counts)
+  object$x <- rep(0:7, each = 5)
+  object$y <- rep(0:4, times = 8)
+
+  # spatialLee runs the permutation loop itself so it can report progress.
+  # It must still reproduce spdep::lee.mc exactly: same RNG draws, same L,
+  # same rank and p-value.
+  set.seed(7)
+  ours <- spatialLee(object, x = "gene-x", y = "gene-y", k = 4,
+                     image_scale = "hires", swap_coords = FALSE,
+                     method = "mc", nsim = 99)
+
+  dat <- ours$data
+  listw <- ours$weights
+  set.seed(7)
+  theirs <- spdep::lee.mc(dat$value_x, dat$value_y, listw, nsim = 99,
+                          zero.policy = TRUE, alternative = "greater")
+
+  expect_equal(ours$L, unname(theirs$statistic))
+  expect_equal(ours$test$p.value, theirs$p.value)
+  expect_equal(unname(ours$test$parameter), unname(theirs$parameter))
+  expect_equal(ours$test$res, theirs$res)
 })
