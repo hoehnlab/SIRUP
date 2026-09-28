@@ -319,6 +319,49 @@ spatialCloneDominance <- function(receptors = NULL,
   out
 }
 
+# Fetch one feature for the polygon selector and say where it came from.
+#
+# SeuratObject::FetchData() already resolves object metadata as well as assay
+# features, so a numeric module score (AddModuleScore, UCell, or any numeric
+# per-cell column) does plot. Two things still needed fixing:
+#
+#   * the app reported no provenance, so a typo'd gene name that happened to
+#     match a metadata column looked identical to a real assay hit;
+#   * a FACTOR or CHARACTER metadata column came back as a data.frame and was
+#     handed to a continuous colour scale, which errors inside the reactive
+#     and leaves the app blank with no message.
+#
+# Returns a one-column numeric data.frame indexed by cell, with a "source"
+# attribute of "assay" or "metadata", or NULL when the feature is missing or
+# not numeric.
+.sirap_polygon_feature_values <- function(object, feature, assay = NULL, layer = "counts") {
+  if (is.null(feature) || !nzchar(feature)) {
+    return(NULL)
+  }
+  meta_names <- tryCatch(colnames(object[[]]), error = function(e) character())
+  source <- if (feature %in% meta_names) "metadata" else "assay"
+
+  fetch_object <- object
+  if (!is.null(assay) && nzchar(assay)) {
+    SeuratObject::DefaultAssay(fetch_object) <- assay
+  }
+  expr <- tryCatch(
+    .sirap_fetch_data(fetch_object, vars = feature, layer = layer),
+    error = function(e) NULL
+  )
+  if (is.null(expr) || !feature %in% colnames(expr)) {
+    return(NULL)
+  }
+  values <- expr[[feature]]
+  if (!is.numeric(values) && !is.logical(values)) {
+    return(NULL)
+  }
+  out <- data.frame(as.numeric(values), row.names = rownames(expr))
+  names(out) <- feature
+  attr(out, "source") <- source
+  out
+}
+
 #' Select spatial polygon vertices interactively
 #'
 #' Opens a Shiny app for clicking polygon vertices on a Seurat spatial
@@ -334,7 +377,10 @@ spatialCloneDominance <- function(receptors = NULL,
 #'
 #' @param object Seurat object with spatial coordinates, or a SIRAP object.
 #' @param feature Optional feature shown as a color scale under the clicked
-#'   vertices. The app also lets you change this interactively.
+#'   vertices. The app also lets you change this interactively. Looked up in
+#'   the assay first; if it is not there, the object metadata is checked, so
+#'   module scores (`AddModuleScore()`, `UCell`, or any numeric per-cell
+#'   column) can be displayed without adding them to an assay.
 #' @param assay Optional assay to set before fetching feature values.
 #' @param layer Expression layer/slot used for `feature`.
 #' @param images Optional Seurat image names to show.
@@ -352,6 +398,12 @@ spatialCloneDominance <- function(receptors = NULL,
 #' @param downsample_seed Random seed used when `downsample_n` is not `NULL`.
 #' @param point_size Size of spatial points in the plot.
 #' @param point_alpha Initial opacity for spatial points.
+#' @param show_zeros Show points whose `feature` value is zero or `NA`.
+#'   Defaults to `TRUE`. Set to `FALSE`, or untick "Show zero points" in the
+#'   app, to plot only feature-positive points -- on sparse Visium HD bins the
+#'   zeros can bury the signal. This affects the DISPLAY only; clicks still
+#'   snap against the full coordinate table, so a hidden point can still be
+#'   chosen as a vertex.
 #' @param launch_browser Passed to `shiny::runApp()`.
 #' @param host Optional host passed to `shiny::runApp()`. This is useful when
 #'   running from an interactive HPC session through an SSH tunnel.
@@ -373,6 +425,7 @@ selectSpatialPolygons <- function(object,
                                   downsample_seed = 1L,
                                   point_size = 0.8,
                                   point_alpha = 0.9,
+                                  show_zeros = TRUE,
                                   launch_browser = TRUE,
                                   host = getOption("shiny.host", "127.0.0.1"),
   port = getOption("shiny.port", NULL),
@@ -454,6 +507,8 @@ selectSpatialPolygons <- function(object,
         shiny::numericInput("point_size", "Point size", value = point_size, min = 0.01, max = 10),
         shiny::sliderInput("point_alpha", "Point opacity", min = 0, max = 1, value = point_alpha, step = 0.05, ticks = FALSE),
         shiny::checkboxInput("plot_image", "Show image", value = isTRUE(plot_image)),
+        shiny::checkboxInput("show_zeros", "Show zero points", value = isTRUE(show_zeros)),
+        shiny::textOutput("feature_source"),
         shiny::textInput("save_path", "CSV path", value = save_default),
         shiny::actionButton("close_polygon", "Close polygon"),
         shiny::actionButton("new_polygon", "New polygon"),
@@ -495,26 +550,38 @@ selectSpatialPolygons <- function(object,
       )
     }, ignoreInit = TRUE)
 
+    feature_source <- shiny::reactiveVal("")
+
     plot_data <- shiny::reactive({
       dat <- plot_coords
       feature_name <- input$feature
-      if (!is.null(feature_name) && nzchar(feature_name)) {
-        assay_name <- input$assay
-        fetch_object <- object
-        if (!is.null(assay_name) && nzchar(assay_name)) {
-          SeuratObject::DefaultAssay(fetch_object) <- assay_name
-        }
-        expr <- tryCatch(
-          .sirap_fetch_data(fetch_object, vars = feature_name, layer = input$layer %||% layer),
-          error = function(e) NULL
-        )
-        if (!is.null(expr) && feature_name %in% colnames(expr)) {
-          dat <- merge(dat, expr[, feature_name, drop = FALSE], by.x = "cell", by.y = 0, all.x = TRUE)
-          dat <- dat[order(dat[[feature_name]], na.last = TRUE), , drop = FALSE]
+      if (is.null(feature_name) || !nzchar(feature_name)) {
+        feature_source("")
+        return(dat)
+      }
+      expr <- .sirap_polygon_feature_values(
+        object = object,
+        feature = feature_name,
+        assay = input$assay,
+        layer = input$layer %||% layer
+      )
+      if (is.null(expr)) {
+        feature_source(paste0("'", feature_name, "' not found in assay or metadata"))
+        return(dat)
+      }
+      feature_source(paste0("'", feature_name, "' from ", attr(expr, "source")))
+      dat <- merge(dat, expr, by.x = "cell", by.y = 0, all.x = TRUE)
+      if (!isTRUE(input$show_zeros)) {
+        # display filter only -- `coords`, which clicks snap against, is untouched
+        keep <- !is.na(dat[[feature_name]]) & dat[[feature_name]] > 0
+        if (any(keep)) {
+          dat <- dat[keep, , drop = FALSE]
         }
       }
-      dat
+      dat[order(dat[[feature_name]], na.last = TRUE), , drop = FALSE]
     })
+
+    output$feature_source <- shiny::renderText(feature_source())
 
     output$spatial_plot <- shiny::renderPlot({
       dat <- plot_data()

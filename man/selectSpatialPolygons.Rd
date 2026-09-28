@@ -18,6 +18,7 @@ selectSpatialPolygons(
   downsample_seed = 1L,
   point_size = 0.8,
   point_alpha = 0.9,
+  show_zeros = TRUE,
   launch_browser = TRUE,
   host = getOption("shiny.host", "127.0.0.1"),
   port = getOption("shiny.port", NULL),
@@ -28,7 +29,10 @@ selectSpatialPolygons(
 \item{object}{Seurat object with spatial coordinates, or a SIRAP object.}
 
 \item{feature}{Optional feature shown as a color scale under the clicked
-vertices. The app also lets you change this interactively.}
+vertices. The app also lets you change this interactively. Looked up in
+the assay first; if it is not there, the object metadata is checked, so
+module scores (\code{AddModuleScore()}, \code{UCell}, or any numeric per-cell
+column) can be displayed without adding them to an assay.}
 
 \item{assay}{Optional assay to set before fetching feature values.}
 
@@ -57,6 +61,13 @@ spatial_id in the full coordinate table.}
 \item{point_size}{Size of spatial points in the plot.}
 
 \item{point_alpha}{Initial opacity for spatial points.}
+
+\item{show_zeros}{Show points whose \code{feature} value is zero or \code{NA}.
+Defaults to \code{TRUE}. Set to \code{FALSE}, or untick "Show zero points" in the
+app, to plot only feature-positive points -- on sparse Visium HD bins the
+zeros can bury the signal. This affects the DISPLAY only; clicks still
+snap against the full coordinate table, so a hidden point can still be
+chosen as a vertex.}
 
 \item{launch_browser}{Passed to \code{shiny::runApp()}.}
 
