@@ -906,3 +906,40 @@ test_that("expandPolygons handles multiple polygons and SIRAP objects", {
   after <- getPolygons(grown)$vertices[[1]]
   expect_gt(diff(range(after$x)), diff(range(before$x)))
 })
+
+test_that(".sirap_polygon_feature_values labels source and guards non-numeric", {
+  skip_if_not_installed("SeuratObject")
+  counts <- matrix(c(0, 1, 2, 3, 4, 5, 6, 7),
+                   nrow = 2,
+                   dimnames = list(c("GeneA", "GeneB"), paste0("cell", 1:4)))
+  obj <- SeuratObject::CreateSeuratObject(counts = counts)
+  gene <- "GeneA"
+
+  # assay hit keeps its source label
+  from_assay <- .sirap_polygon_feature_values(obj, gene, layer = "counts")
+  expect_false(is.null(from_assay))
+  expect_identical(attr(from_assay, "source"), "assay")
+  expect_identical(colnames(from_assay), gene)
+
+  # a numeric metadata column (a module score) is reported as metadata, not
+  # as an assay hit -- FetchData resolves both, so only the label distinguishes
+  # a real gene from a same-named metadata column
+  obj$my_module_score <- seq_len(ncol(obj)) / ncol(obj)
+  from_meta <- .sirap_polygon_feature_values(obj, "my_module_score", layer = "counts")
+  expect_false(is.null(from_meta))
+  expect_identical(attr(from_meta, "source"), "metadata")
+  expect_identical(rownames(from_meta), colnames(obj))
+  expect_equal(from_meta[["my_module_score"]], seq_len(ncol(obj)) / ncol(obj))
+
+  # a factor/character column would break the continuous colour scale, so it
+  # is refused here rather than erroring inside the Shiny reactive
+  obj$a_label <- rep("x", ncol(obj))
+  expect_null(.sirap_polygon_feature_values(obj, "a_label", layer = "counts"))
+  expect_null(.sirap_polygon_feature_values(obj, "not_a_real_feature", layer = "counts"))
+  expect_null(.sirap_polygon_feature_values(obj, "", layer = "counts"))
+})
+
+test_that("selectSpatialPolygons gains a show_zeros argument", {
+  expect_true("show_zeros" %in% names(formals(selectSpatialPolygons)))
+  expect_true(isTRUE(eval(formals(selectSpatialPolygons)$show_zeros)))
+})
