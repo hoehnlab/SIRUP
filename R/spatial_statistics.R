@@ -73,6 +73,175 @@ spatialMoran <- function(object,
   )
 }
 
+#' Calculate global Lee's L for two spatial variables
+#'
+#' Tests bivariate spatial association between two continuous variables using
+#' `spdep::lee.test()`. For example, use two feature names to test whether
+#' expression of one gene is associated with the neighboring expression of a
+#' second gene.
+#'
+#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param x First feature or numeric metadata column to analyze.
+#' @param y Second feature or numeric metadata column to analyze.
+#' @param x_type Type of `x`: either `feature` or `metadata`.
+#' @param y_type Type of `y`: either `feature` or `metadata`.
+#' @param layer Seurat expression layer to fetch for features.
+#' @param images Optional Seurat image names.
+#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
+#'   axes before calculating neighborhoods. If `NULL`, the value must be
+#'   supplied explicitly or by SIRAP object metadata.
+#' @param radius Optional distance radius defining neighborhoods.
+#' @param k Number of nearest neighbors when `radius` is `NULL`. Use `k = 8`
+#'   for Visium HD, whose bins form a square grid, and `k = 6` for the
+#'   hexagonal spot layout of standard Visium.
+#' @param alternative Alternative hypothesis passed to the significance test.
+#' @param method How to test significance. `analytical` uses
+#'   `spdep::lee.test()`. `mc` uses `spdep::lee.mc()`, which permutes the
+#'   labels instead.
+#'
+#'   `spdep::lee.test()` builds a DENSE n by n weights matrix to get the
+#'   analytical moments, so its memory cost grows with the square of the number
+#'   of spots: about 206 GB at 166,000 bins and 808 GB at 329,000. Use
+#'   `method = "mc"` for Visium HD. It keeps the weights sparse and stays
+#'   within a few GB.
+#' @param nsim Number of permutations when `method = "mc"`.
+#' @param progress Logical; show a progress bar over the permutations when
+#'   `method = "mc"`. Each permutation re-lags both variables over every spot,
+#'   so a large `nsim` on Visium HD takes minutes per pair.
+#' @return List containing the test, the observed Lee's L, the aligned input
+#'   data, neighbors, and weights.
+#' @export
+spatialLee <- function(object,
+                       x,
+                       y,
+                       x_type = c("feature", "metadata"),
+                       y_type = c("feature", "metadata"),
+                       layer = "counts",
+                       images = NULL,
+                       image_scale = NULL,
+                       swap_coords = NULL,
+                       radius = NULL,
+                       k = 6,
+                       alternative = "greater",
+                       method = c("analytical", "mc"),
+                       nsim = 999,
+                       progress = FALSE) {
+  .require_namespace("spdep")
+  x_type <- match.arg(x_type)
+  y_type <- match.arg(y_type)
+  method <- match.arg(method)
+
+  x_dat <- .sirap_spatial_variable_values(
+    object = object,
+    variable = x,
+    variable_type = x_type,
+    value = NULL,
+    receptors = NULL,
+    spatial_id_col = NULL,
+    clone_col = NULL,
+    layer = layer,
+    images = images,
+    image_scale = image_scale,
+    swap_coords = swap_coords
+  )
+  y_dat <- .sirap_spatial_variable_values(
+    object = object,
+    variable = y,
+    variable_type = y_type,
+    value = NULL,
+    receptors = NULL,
+    spatial_id_col = NULL,
+    clone_col = NULL,
+    layer = layer,
+    images = images,
+    image_scale = image_scale,
+    swap_coords = swap_coords
+  )
+
+  dat <- merge(
+    x_dat[, c("cell", "x", ".sirap_y", "image", "value"), drop = FALSE],
+    y_dat[, c("cell", "x", ".sirap_y", "image", "value"), drop = FALSE],
+    by = c("cell", "x", ".sirap_y", "image"),
+    suffixes = c("_x", "_y")
+  )
+  dat <- dat[is.finite(dat$value_x) & is.finite(dat$value_y), , drop = FALSE]
+  .check_spatial_values(dat$value_x)
+  .check_spatial_values(dat$value_y)
+
+  nb <- .sirap_spatial_neighbors(dat, radius = radius, k = k)
+  listw <- spdep::nb2listw(nb, style = "W", zero.policy = TRUE)
+  if (method == "mc") {
+    # Permute the labels and recompute L, keeping the weights sparse. This is
+    # the loop from spdep::lee.mc(), run here so the permutations can report
+    # progress -- spdep gives no hook into its own loop. test-spatial-
+    # statistics.R checks this returns results identical to spdep::lee.mc()
+    # under the same seed.
+    n_obs <- length(listw$neighbours)
+    S2 <- sum((unlist(lapply(listw$weights, sum)))^2)
+    res <- numeric(nsim + 1L)
+    if (progress) {
+      cli::cli_progress_bar("Lee permutations", total = nsim, .envir = environment())
+    }
+    for (i in seq_len(nsim)) {
+      idx <- sample(1:n_obs)
+      res[i] <- spdep::lee(dat$value_x[idx], dat$value_y[idx], listw,
+                           n_obs, S2, zero.policy = TRUE)$L
+      if (progress) cli::cli_progress_update(.envir = environment())
+    }
+    if (progress) cli::cli_progress_done(.envir = environment())
+    res[nsim + 1L] <- spdep::lee(dat$value_x, dat$value_y, listw,
+                                 n_obs, S2, zero.policy = TRUE)$L
+
+    xrank <- rank(res)[length(res)]
+    diff <- max(nsim - xrank, 0)
+    pval <- switch(
+      alternative,
+      less = stats::punif((diff + 1) / (nsim + 1), lower.tail = FALSE),
+      greater = stats::punif((diff + 1) / (nsim + 1)),
+      stats::punif(abs(xrank - (nsim + 1) / 2) / (nsim + 1), 0, 0.5,
+                   lower.tail = FALSE)
+    )
+    statistic <- stats::setNames(res[nsim + 1L], "statistic")
+    test <- structure(
+      list(statistic = statistic,
+           parameter = stats::setNames(xrank, "observed rank"),
+           p.value = pval,
+           alternative = alternative,
+           method = "Monte-Carlo simulation of Lee's L",
+           data.name = paste0(x, ", ", y, "\nnumber of simulations + 1: ",
+                              nsim + 1, "\n"),
+           res = res),
+      class = c("htest", "mc.sim")
+    )
+    lee_l <- unname(statistic)
+  } else {
+    test <- spdep::lee.test(
+      dat$value_x,
+      dat$value_y,
+      listw,
+      zero.policy = TRUE,
+      alternative = alternative
+    )
+    lee_l <- unname(test$estimate[["Lee's L statistic"]])
+  }
+
+  list(
+    test = test,
+    L = lee_l,
+    method = method,
+    data = dat,
+    neighbors = nb,
+    weights = listw,
+    radius = radius,
+    k = k,
+    x = x,
+    y = y,
+    x_type = x_type,
+    y_type = y_type
+  )
+}
+
 #' Calculate local Moran's I/LISA for a spatial variable
 #'
 #' @param object Seurat object with spatial images, or a SIRAP object.
