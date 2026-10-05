@@ -362,6 +362,75 @@ spatialCloneDominance <- function(receptors = NULL,
   out
 }
 
+# Build a nearest-neighbour index ONCE for the polygon selector.
+#
+# The click handler used to call RANN::nn2() on the full coordinate table for
+# every click. nn2 has no persistent tree, so each click paid an O(n log n)
+# BUILD for a single k = 1 query -- at 180k-420k Visium HD bins that is the
+# bulk of the lag between clicking and the app accepting the next click.
+# The index below is built once when the app starts and queried per click.
+#
+# Deliberately not a grid lookup: Visium is hexagonal and single-cell data
+# (Xenium, MERFISH) has no lattice at all, so nothing here may assume regular
+# spacing.
+#
+# Backends, in order. Each is probed with a real query before being accepted,
+# because an installed package is not the same as a working one -- nabor
+# 0.5.0 built under R 4.5.1 constructs a WKNNF object whose Rcpp module
+# exposes no methods, so $new() succeeds and $query() then fails.
+#
+#   nabor::WKNNF     persistent k-d tree, exact
+#   BiocNeighbors    persistent KMKNN index, exact
+#   vectorised scan  no build at all; O(n) per query but only a few
+#                    arithmetic passes, which is competitive for single
+#                    queries and always available
+#
+# Returns a list with `backend` and a `query(x, y)` closure giving the row
+# index of the nearest point.
+.sirap_nn_index <- function(xy) {
+  probe <- function(fun) {
+    ok <- tryCatch({
+      hit <- fun(xy[1L, 1L], xy[1L, 2L])
+      is.numeric(hit) && length(hit) == 1L && !is.na(hit)
+    }, error = function(e) FALSE)
+    isTRUE(ok)
+  }
+
+  if (requireNamespace("nabor", quietly = TRUE)) {
+    tree <- tryCatch(nabor::WKNNF$new(xy), error = function(e) NULL)
+    if (!is.null(tree)) {
+      query <- function(x, y) {
+        tree$query(matrix(c(x, y), nrow = 1L), k = 1L, eps = 0)$nn.idx[[1L]]
+      }
+      if (probe(query)) {
+        return(list(backend = "nabor::WKNNF", query = query))
+      }
+    }
+  }
+
+  if (requireNamespace("BiocNeighbors", quietly = TRUE)) {
+    built <- tryCatch(BiocNeighbors::buildIndex(xy), error = function(e) NULL)
+    if (!is.null(built)) {
+      query <- function(x, y) {
+        BiocNeighbors::queryKNN(built, query = matrix(c(x, y), nrow = 1L),
+                                k = 1L)$index[[1L]]
+      }
+      if (probe(query)) {
+        return(list(backend = "BiocNeighbors", query = query))
+      }
+    }
+  }
+
+  # Columns are pulled out as plain vectors so the per-click path does no
+  # data.frame subsetting or matrix copying.
+  xs <- xy[, 1L]
+  ys <- xy[, 2L]
+  list(
+    backend = "scan",
+    query = function(x, y) which.min((xs - x)^2 + (ys - y)^2)
+  )
+}
+
 #' Select spatial polygon vertices interactively
 #'
 #' Opens a Shiny app for clicking polygon vertices on a Seurat spatial
@@ -479,6 +548,10 @@ selectSpatialPolygons <- function(object,
       height = image_dim[[1]]
     )
   }
+  # One index for the whole session. Built here, not in the click observer.
+  nn_index <- .sirap_nn_index(cbind(coords$x, coords$.sirap_plot_y))
+  rlang::inform(paste0("Polygon selector nearest-neighbour backend: ", nn_index$backend))
+
   x_range <- diff(range(plot_coords$x, na.rm = TRUE))
   y_range <- diff(range(plot_coords$.sirap_plot_y, na.rm = TRUE))
   plot_height <- if (!is.finite(x_range) || !is.finite(y_range) || x_range <= 0 || y_range <= 0) {
@@ -653,16 +726,7 @@ selectSpatialPolygons <- function(object,
       if (is.null(click_data)) {
         return()
       }
-      if (requireNamespace("RANN", quietly = TRUE)) {
-        closest_idx <- RANN::nn2(
-          data = as.matrix(coords[, c("x", ".sirap_plot_y"), drop = FALSE]),
-          query = matrix(c(click_data$x, click_data$y), nrow = 1),
-          k = 1
-        )$nn.idx[[1]]
-      } else {
-        click_dist <- (coords$x - click_data$x)^2 + (coords$.sirap_plot_y - click_data$y)^2
-        closest_idx <- which.min(click_dist)
-      }
+      closest_idx <- nn_index$query(click_data$x, click_data$y)
       closest <- coords[closest_idx, , drop = FALSE]
       closest <- data.frame(
         spatial_id = closest$cell,
@@ -1103,6 +1167,17 @@ expandPolygons <- function(polygons,
 #' @param label_by Column in the polygon data to use for labels.
 #' @param label_size Text size for polygon labels.
 #' @param label_color Text color for polygon labels.
+#' @param label_outside Place each label OUTSIDE its polygon instead of at the
+#'   center. The label is pushed radially away from the centroid of all plotted
+#'   polygons (so labels fan outward from a cluster of small polygons, e.g.
+#'   crowded thymic eGCs), clearing the polygon by `label_offset`. A thin leader
+#'   line links each label to its polygon unless `label_leader = FALSE`.
+#' @param label_offset When `label_outside = TRUE`, the gap between the polygon
+#'   edge and its label, as a fraction of the plotted coordinate span
+#'   (default 0.08).
+#' @param label_leader When `label_outside = TRUE`, draw a leader segment from
+#'   each polygon to its displaced label.
+#' @param label_leader_color Color of the leader segments.
 #' @param zoom Zoom to the polygon extents instead of the full tissue.
 #' @param combine Combine plots with patchwork when possible.
 #' @return A ggplot/patchwork object or a named list of ggplots when
@@ -1129,6 +1204,10 @@ plotSpatialPolygons <- function(object,
                                 label_by = "polygon",
                                 label_size = 3,
                                 label_color = "black",
+                                label_outside = FALSE,
+                                label_offset = 0.08,
+                                label_leader = TRUE,
+                                label_leader_color = "grey40",
                                 zoom = FALSE,
                                 combine = TRUE) {
   sirap_object <- if (isSIRAP(object)) object else NULL
@@ -1189,6 +1268,12 @@ plotSpatialPolygons <- function(object,
   if (!isTRUE(label) && !identical(label, FALSE)) {
     rlang::abort("`label` must be TRUE or FALSE.")
   }
+  if (!isTRUE(label_outside) && !identical(label_outside, FALSE)) {
+    rlang::abort("`label_outside` must be TRUE or FALSE.")
+  }
+  if (!isTRUE(label_leader) && !identical(label_leader, FALSE)) {
+    rlang::abort("`label_leader` must be TRUE or FALSE.")
+  }
   if (isTRUE(label)) {
     .check_required_cols(polygon_data, label_by, "polygon")
     label_idx <- !duplicated(polygon_data$polygon)
@@ -1199,6 +1284,84 @@ plotSpatialPolygons <- function(object,
     )
     label_data <- .sirap_polygon_centers(polygon_data, unique(polygon_data$polygon))
     label_data <- merge(label_data, label_lookup, by = "polygon", all.x = TRUE, sort = FALSE)
+    if (isTRUE(label_outside)) {
+      if (!is.numeric(label_offset) || length(label_offset) != 1L || is.na(label_offset) || label_offset < 0) {
+        rlang::abort("`label_offset` must be a non-negative number.")
+      }
+      # Push each label outside its polygon, away from the centroid of all
+      # polygons, then DODGE: search increasing distances and a few angle offsets
+      # for the nearest spot that clears EVERY polygon (not just its own), so a
+      # displaced label does not land on a neighbouring polygon.
+      span <- max(
+        diff(range(polygon_data$x, na.rm = TRUE)),
+        diff(range(polygon_data$.sirap_y, na.rm = TRUE)),
+        na.rm = TRUE
+      )
+      gx <- mean(label_data$x, na.rm = TRUE)
+      gy <- mean(label_data$.sirap_y, na.rm = TRUE)
+      poly_ids <- unique(polygon_data$polygon)
+      poly_verts <- lapply(poly_ids, function(pg) polygon_data[polygon_data$polygon == pg, , drop = FALSE])
+      # Clear the label FOOTPRINT, not just its anchor: test the anchor plus a
+      # ring of points at `clearance` so a rendered digit cannot overlap a
+      # neighbouring polygon even when its anchor sits just outside the edge.
+      clearance <- 0.03 * span
+      ring <- seq(0, 2 * pi, length.out = 13)[-13]
+      in_any_poly <- function(px, py) {
+        txs <- c(px, px + clearance * cos(ring))
+        tys <- c(py, py + clearance * sin(ring))
+        for (v in poly_verts) {
+          if (nrow(v) < 4L) next
+          hit <- tryCatch(
+            .sirap_points_in_polygon(txs, tys, v$x, v$.sirap_y, include_boundary = TRUE),
+            error = function(e) rep(FALSE, length(txs))
+          )
+          if (any(hit)) return(TRUE)
+        }
+        FALSE
+      }
+      rot <- function(v, deg) {
+        th <- deg * pi / 180
+        c(v[1] * cos(th) - v[2] * sin(th), v[1] * sin(th) + v[2] * cos(th))
+      }
+      angles <- c(0, 20, -20, 40, -40, 60, -60, 90, -90)
+      dists <- (label_offset * span) * c(1, 1.6, 2.4, 3.4, 4.6, 6)
+      lx <- numeric(nrow(label_data))
+      ly <- numeric(nrow(label_data))
+      ex <- numeric(nrow(label_data))
+      ey <- numeric(nrow(label_data))
+      for (i in seq_len(nrow(label_data))) {
+        cx <- label_data$x[i]
+        cy <- label_data$.sirap_y[i]
+        v <- polygon_data[polygon_data$polygon == label_data$polygon[i], , drop = FALSE]
+        radius <- max(sqrt((v$x - cx)^2 + (v$.sirap_y - cy)^2), na.rm = TRUE)
+        dir0 <- c(cx - gx, cy - gy)
+        n <- sqrt(sum(dir0^2))
+        dir0 <- if (is.finite(n) && n > .Machine$double.eps) dir0 / n else c(0, 1)
+        best <- NULL
+        for (d in dists) {
+          for (a in angles) {
+            dd <- rot(dir0, a)
+            px <- cx + dd[1] * (radius + d)
+            py <- cy + dd[2] * (radius + d)
+            if (!in_any_poly(px, py)) { best <- list(dd = dd, px = px, py = py); break }
+          }
+          if (!is.null(best)) break
+        }
+        if (is.null(best)) {  # nothing clear -> furthest radial position
+          best <- list(dd = dir0,
+                       px = cx + dir0[1] * (radius + max(dists)),
+                       py = cy + dir0[2] * (radius + max(dists)))
+        }
+        ex[i] <- cx + best$dd[1] * radius
+        ey[i] <- cy + best$dd[2] * radius
+        lx[i] <- best$px
+        ly[i] <- best$py
+      }
+      label_data$.sirap_lx <- lx
+      label_data$.sirap_ly <- ly
+      label_data$.sirap_ex <- ex
+      label_data$.sirap_ey <- ey
+    }
   }
 
   plots <- list()
@@ -1260,15 +1423,38 @@ plotSpatialPolygons <- function(object,
         ggplot2::labs(fill = fill_column)
     }
     if (isTRUE(label)) {
-      plots[[image]] <- plots[[image]] +
-        ggplot2::geom_text(
-          data = label_data,
-          ggplot2::aes(x = .data$x, y = .data$.sirap_y, label = .data$.sirap_label),
-          inherit.aes = FALSE,
-          size = label_size,
-          color = label_color,
-          fontface = "bold"
-        )
+      if (isTRUE(label_outside)) {
+        if (isTRUE(label_leader)) {
+          plots[[image]] <- plots[[image]] +
+            ggplot2::geom_segment(
+              data = label_data,
+              ggplot2::aes(x = .data$.sirap_ex, y = .data$.sirap_ey,
+                           xend = .data$.sirap_lx, yend = .data$.sirap_ly),
+              inherit.aes = FALSE,
+              color = label_leader_color,
+              linewidth = 0.25
+            )
+        }
+        plots[[image]] <- plots[[image]] +
+          ggplot2::geom_text(
+            data = label_data,
+            ggplot2::aes(x = .data$.sirap_lx, y = .data$.sirap_ly, label = .data$.sirap_label),
+            inherit.aes = FALSE,
+            size = label_size,
+            color = label_color,
+            fontface = "bold"
+          )
+      } else {
+        plots[[image]] <- plots[[image]] +
+          ggplot2::geom_text(
+            data = label_data,
+            ggplot2::aes(x = .data$x, y = .data$.sirap_y, label = .data$.sirap_label),
+            inherit.aes = FALSE,
+            size = label_size,
+            color = label_color,
+            fontface = "bold"
+          )
+      }
     }
   }
 
