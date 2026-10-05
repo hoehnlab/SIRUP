@@ -26,6 +26,10 @@ plotSpatialPolygons(
   label_by = "polygon",
   label_size = 3,
   label_color = "black",
+  label_outside = FALSE,
+  label_offset = 0.08,
+  label_leader = TRUE,
+  label_leader_color = "grey40",
   zoom = FALSE,
   combine = TRUE
 )
@@ -85,6 +89,21 @@ palette.}
 \item{label_size}{Text size for polygon labels.}
 
 \item{label_color}{Text color for polygon labels.}
+
+\item{label_outside}{Place each label OUTSIDE its polygon instead of at the
+center. The label is pushed radially away from the centroid of all plotted
+polygons (so labels fan outward from a cluster of small polygons, e.g.
+crowded thymic eGCs), clearing the polygon by \code{label_offset}. A thin leader
+line links each label to its polygon unless \code{label_leader = FALSE}.}
+
+\item{label_offset}{When \code{label_outside = TRUE}, the gap between the polygon
+edge and its label, as a fraction of the plotted coordinate span
+(default 0.08).}
+
+\item{label_leader}{When \code{label_outside = TRUE}, draw a leader segment from
+each polygon to its displaced label.}
+
+\item{label_leader_color}{Color of the leader segments.}
 
 \item{zoom}{Zoom to the polygon extents instead of the full tissue.}
 

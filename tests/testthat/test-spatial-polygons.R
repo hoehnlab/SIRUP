@@ -378,6 +378,67 @@ test_that("plotSpatialPolygons colors stored polygons by an analysis column", {
   )
 })
 
+test_that("plotSpatialPolygons can place labels outside polygons", {
+  skip_if_not_installed("SeuratObject")
+  spatial <- SeuratObject::CreateSeuratObject(
+    counts = matrix(
+      1,
+      nrow = 1,
+      ncol = 4,
+      dimnames = list("gene", paste0("cell", 1:4))
+    )
+  )
+  spatial$x <- 0:3
+  spatial$y <- 0:3
+  x <- createSIRAP(
+    spatial = spatial,
+    receptors = data.frame(spatial_id = paste0("cell", 1:4)),
+    spatial_id = "spatial_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+  x <- addPolygons(x, polygons = tibble::tibble(
+    polygon_id = c("left", "right"),
+    vertices = list(
+      tibble::tibble(x = c(0, 1, 1, 0, 0), y = c(0, 0, 1, 1, 0)),
+      tibble::tibble(x = c(4, 5, 5, 4, 4), y = c(0, 0, 1, 1, 0))
+    )
+  ))
+
+  ns <- environment(plotSpatialPolygons)
+  old_images <- get(".sirap_spatial_images", envir = ns)
+  old_data <- get(".sirap_spatial_data", envir = ns)
+  old_base <- get(".sirap_spatial_base", envir = ns)
+  locked <- vapply(c(".sirap_spatial_images", ".sirap_spatial_data", ".sirap_spatial_base"),
+                   bindingIsLocked, logical(1), env = ns)
+  for (name in names(locked)[locked]) unlockBinding(name, ns)
+  assign(".sirap_spatial_images", function(object, images = NULL) "metadata", envir = ns)
+  assign(".sirap_spatial_data", function(object, image, image_scale = NULL, swap_coords = NULL) {
+    list(coords = data.frame(cell = paste0("cell", 1:4), x = 0:3, y = 0:3, .sirap_y = 0:-3), image = NULL)
+  }, envir = ns)
+  assign(".sirap_spatial_base", function(plot_data, image, image_alpha = 1, zoom = FALSE, view_data = NULL) {
+    ggplot2::ggplot()
+  }, envir = ns)
+  withr::defer({
+    assign(".sirap_spatial_images", old_images, envir = ns)
+    assign(".sirap_spatial_data", old_data, envir = ns)
+    assign(".sirap_spatial_base", old_base, envir = ns)
+    for (name in names(locked)[locked]) lockBinding(name, ns)
+  })
+
+  plot <- plotSpatialPolygons(x, label_outside = TRUE, label_offset = 0.1)
+
+  expect_s3_class(plot, "ggplot")
+  expect_s3_class(plot$layers[[2]]$geom, "GeomSegment")
+  expect_s3_class(plot$layers[[3]]$geom, "GeomText")
+  label_data <- plot$layers[[3]]$data
+  expect_true(all(c(".sirap_lx", ".sirap_ly", ".sirap_ex", ".sirap_ey") %in% names(label_data)))
+  expect_false(isTRUE(all.equal(label_data$x, label_data$.sirap_lx)))
+  expect_error(plotSpatialPolygons(x, label_outside = NA), "`label_outside` must be TRUE or FALSE")
+  expect_error(plotSpatialPolygons(x, label_leader = NA), "`label_leader` must be TRUE or FALSE")
+  expect_error(plotSpatialPolygons(x, label_outside = TRUE, label_offset = -0.1), "`label_offset` must be a non-negative number")
+})
+
 test_that("V gene helpers retain alleles and extract families and superfamilies", {
   genes <- .sirap_v_genes(c("IGHV3-23*01", "IGHV3-30*02,IGHV3-23*01"))
   families <- .sirap_v_gene_family(c(genes, "IGKV1D-39*01"))
@@ -942,4 +1003,37 @@ test_that(".sirap_polygon_feature_values labels source and guards non-numeric", 
 test_that("selectSpatialPolygons gains a show_zeros argument", {
   expect_true("show_zeros" %in% names(formals(selectSpatialPolygons)))
   expect_true(isTRUE(eval(formals(selectSpatialPolygons)$show_zeros)))
+})
+
+test_that(".sirap_nn_index returns the true nearest point on irregular data", {
+  # Irregular on purpose: the index must not assume a lattice, since Visium is
+  # hexagonal and single-cell data has no grid at all.
+  set.seed(42)
+  xy <- cbind(runif(500, 0, 100), runif(500, -100, 0))
+  idx <- .sirap_nn_index(xy)
+  expect_true(is.character(idx$backend) && nzchar(idx$backend))
+  expect_true(is.function(idx$query))
+
+  set.seed(7)
+  queries <- cbind(runif(25, 0, 100), runif(25, -100, 0))
+  for (i in seq_len(nrow(queries))) {
+    qx <- queries[i, 1]; qy <- queries[i, 2]
+    expected <- which.min((xy[, 1] - qx)^2 + (xy[, 2] - qy)^2)
+    expect_identical(as.integer(idx$query(qx, qy)), as.integer(expected))
+  }
+
+  # an exact hit on a data point returns that point
+  expect_identical(as.integer(idx$query(xy[13, 1], xy[13, 2])), 13L)
+})
+
+test_that(".sirap_nn_index scan backend agrees with whichever backend is chosen", {
+  set.seed(1)
+  xy <- cbind(runif(200), runif(200))
+  chosen <- .sirap_nn_index(xy)
+  xs <- xy[, 1]; ys <- xy[, 2]
+  scan_query <- function(x, y) which.min((xs - x)^2 + (ys - y)^2)
+  for (i in seq_len(20)) {
+    qx <- runif(1); qy <- runif(1)
+    expect_identical(as.integer(chosen$query(qx, qy)), as.integer(scan_query(qx, qy)))
+  }
 })
