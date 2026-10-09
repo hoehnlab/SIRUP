@@ -9,11 +9,13 @@ spatialExpressionMultiPlot(
   features,
   feat_order = NULL,
   combine = TRUE,
+  combine_sample_plots = FALSE,
   assay = NULL,
   layer = "counts",
   colors = NULL,
   breadth_metric = c("n_expressing"),
   images = NULL,
+  sample_id = NULL,
   image_scale = NULL,
   swap_coords = NULL,
   point_size = 0.6,
@@ -34,6 +36,10 @@ rare/high priority last.}
 
 \item{combine}{Combine spatial panels and legends with patchwork.}
 
+\item{combine_sample_plots}{For multi-sample SIRAP objects, combine plots
+from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
+multi-sample calls return a named list of per-sample plots.}
+
 \item{assay}{Optional assay to set before plotting.}
 
 \item{layer}{Seurat expression layer to fetch.}
@@ -43,6 +49,9 @@ rare/high priority last.}
 \item{breadth_metric}{Metric used to choose default feature order.}
 
 \item{images}{Optional Seurat image names.}
+
+\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
+SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
 
 \item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 

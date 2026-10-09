@@ -23,6 +23,7 @@ plotReceptors(
   image_scale = NULL,
   swap_coords = NULL,
   images = NULL,
+  sample_id = NULL,
   image_alpha = 1,
   zoom = FALSE,
   receptor_legend_title = NULL,
@@ -40,7 +41,8 @@ plotReceptors(
   polygon_label_by = NULL,
   polygon_label_size = 3,
   polygon_label_color = "black",
-  combine = TRUE
+  combine = TRUE,
+  combine_sample_plots = FALSE
 )
 }
 \arguments{
@@ -102,6 +104,9 @@ value must be supplied explicitly or by SIRAP object metadata.}
 
 \item{images}{Optional Seurat image names.}
 
+\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
+SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
+
 \item{image_alpha}{Tissue image opacity.}
 
 \item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
@@ -148,6 +153,10 @@ polygon ID is used.}
 \item{polygon_label_color}{Text color for polygon labels.}
 
 \item{combine}{Combine image panels with patchwork.}
+
+\item{combine_sample_plots}{For multi-sample SIRAP objects, combine plots
+from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
+multi-sample calls return a named list of per-sample plots.}
 }
 \value{
 A ggplot/patchwork object or a list when \code{combine = FALSE}.

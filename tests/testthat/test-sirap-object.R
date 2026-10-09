@@ -1,6 +1,6 @@
 make_test_sirap <- function(spatial_id = "spatial_id", clone = "clone_id") {
   skip_if_not_installed("SeuratObject")
-  spatial <- SeuratObject::CreateSeuratObject(
+  spatial <- sirap_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -37,7 +37,7 @@ make_collapse_test_sirap <- function() {
   skip_if_not_installed("SeuratObject")
   coords <- expand.grid(x = seq_len(5), y = seq_len(5))
   cells <- paste0("cell", seq_len(nrow(coords)))
-  spatial <- SeuratObject::CreateSeuratObject(
+  spatial <- sirap_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -85,6 +85,380 @@ test_that("createSIRAP creates a validated tibble-backed container", {
   expect_identical(SIRAP:::.sirap_spatial_input(x), x$spatial)
   expect_identical(SIRAP:::.sirap_receptor_input(x)$receptors, x$receptors)
   expect_invisible(validateSIRAP(x))
+})
+
+test_that("createSIRAP supports named spatial lists keyed by receptor sample", {
+  skip_if_not_installed("SeuratObject")
+  make_spatial <- function(prefix) {
+    spatial <- sirap_test_seurat(
+      counts = matrix(
+        1,
+        nrow = 1,
+        ncol = 2,
+        dimnames = list("gene", c("cell1", "cell2"))
+      )
+    )
+    spatial$x <- c(0, 1)
+    spatial$y <- c(0, 1)
+    spatial$section <- prefix
+    spatial
+  }
+  spatial <- list(
+    section_a = make_spatial("section_a"),
+    section_b = make_spatial("section_b")
+  )
+  receptors <- data.frame(
+    barcode = c("cell1", "cell1", "bulk1"),
+    sample = c("section_a", "section_b", "blood"),
+    clone_id = c("A", "A", "A"),
+    locus = "IGH",
+    stringsAsFactors = FALSE
+  )
+
+  x <- createSIRAP(
+    spatial = spatial,
+    receptors = receptors,
+    spatial_id = "barcode",
+    sample = "sample",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+
+  expect_s3_class(x, "sirap")
+  expect_equal(spatialSamples(x), c("section_a", "section_b"))
+  expect_equal(x$metadata$sample_names, c("section_a", "section_b"))
+  section_a <- spatial$section_a
+  section_a$sample <- "section_a"
+  expect_identical(getSpatial(x, sample = "section_a"), section_a)
+  expect_identical(getReceptors(x), x$receptors)
+  expect_equal(summary(x)$n_spatial_ids, 4)
+  expect_equal(summary(x)$n_receptor_ids, 3)
+  expect_equal(summary(x)$n_matched_ids, 2)
+  expect_equal(summary(x)$n_matched_records, 2)
+
+  coords <- spatialCoordinateTable(x)
+  expect_true("sample" %in% names(coords))
+  expect_equal(sort(unique(coords$sample)), c("section_a", "section_b"))
+  expect_equal(sum(coords$cell == "cell1"), 2)
+})
+
+test_that("mergeSIRAP combines single-sample objects into a multisample object", {
+  skip_if_not_installed("SeuratObject")
+
+  make_object <- function(cells, clones) {
+    spatial <- sirap_test_seurat(
+      counts = matrix(1, nrow = 1, ncol = length(cells), dimnames = list("gene", cells))
+    )
+    spatial$x <- seq_along(cells) - 1
+    spatial$y <- seq_along(cells) - 1
+    createSIRAP(
+      spatial = spatial,
+      receptors = data.frame(
+        barcode = cells,
+        clone_id = clones,
+        locus = "IGH",
+        stringsAsFactors = FALSE
+      ),
+      spatial_id = "barcode",
+      clone = "clone_id",
+      locus = "locus",
+      image_scale = "hires",
+      swap_coords = FALSE
+    )
+  }
+  obj1 <- setAnalysis(make_object(c("cell1", "cell2"), c("A", "B")), "score", data.frame(x = 1))
+  obj2 <- setAnalysis(make_object(c("cell1", "cell3"), c("C", "D")), "score", data.frame(x = 2))
+
+  merged <- mergeSIRAP(obj1, obj2, samples = c("samp1", "samp2"))
+
+  expect_s3_class(merged, "sirap")
+  expect_equal(spatialSamples(merged), c("samp1", "samp2"))
+  expect_equal(merged$metadata$sample_names, c("samp1", "samp2"))
+  expect_equal(getReceptors(merged)$sample_id, c("samp1", "samp1", "samp2", "samp2"))
+  expect_equal(getReceptors(merged, sample = "samp2")$clone_id, c("C", "D"))
+  expect_identical(getAnalysis(merged, "score", sample = "samp1"), data.frame(x = 1))
+  expect_identical(getAnalysis(merged, "score", sample = "samp2"), data.frame(x = 2))
+  expect_equal(merged$metadata$receptor_fields$sample, "sample_id")
+  expect_invisible(validateSIRAP(merged))
+})
+
+test_that("mergeSIRAP validates existing sample fields", {
+  skip_if_not_installed("SeuratObject")
+
+  spatial <- sirap_test_seurat(
+    counts = matrix(1, nrow = 1, ncol = 1, dimnames = list("gene", "cell1"))
+  )
+  spatial$x <- 0
+  spatial$y <- 0
+  make_object <- function(sample_id) {
+    createSIRAP(
+      spatial = spatial,
+      receptors = data.frame(
+        barcode = "cell1",
+        sample_id = sample_id,
+        clone_id = "A",
+        stringsAsFactors = FALSE
+      ),
+      spatial_id = "barcode",
+      clone = "clone_id",
+      image_scale = "hires",
+      swap_coords = FALSE
+    )
+  }
+
+  expect_error(
+    mergeSIRAP(make_object("wrong"), make_object("samp2"), samples = c("samp1", "samp2")),
+    "do not match the requested sample"
+  )
+  merged <- mergeSIRAP(make_object("samp1"), make_object("samp2"), samples = c("samp1", "samp2"))
+  expect_equal(getReceptors(merged)$sample_id, c("samp1", "samp2"))
+})
+
+test_that("mergeSIRAP preserves sample-tagged polygons when inputs differ", {
+  skip_if_not_installed("SeuratObject")
+
+  make_object <- function(cell) {
+    spatial <- sirap_test_seurat(
+      counts = matrix(1, nrow = 1, ncol = 1, dimnames = list("gene", cell))
+    )
+    spatial$x <- 0
+    spatial$y <- 0
+    createSIRAP(
+      spatial = spatial,
+      receptors = data.frame(barcode = cell, clone_id = "A", stringsAsFactors = FALSE),
+      spatial_id = "barcode",
+      clone = "clone_id",
+      image_scale = "hires",
+      swap_coords = FALSE
+    )
+  }
+  obj1 <- addPolygons(
+    make_object("cell1"),
+    polygons = data.frame(polygon = "GC1", x = c(-1, 1, 0, -1), y = c(-1, -1, 1, -1))
+  )
+  obj2 <- make_object("cell1")
+
+  merged <- mergeSIRAP(obj1, obj2, samples = c("samp1", "samp2"))
+
+  expect_equal(getPolygons(merged)$sample, "samp1")
+  expect_equal(getPolygons(merged)$polygon_id, "samp1::GC1")
+  expect_equal(getPolygons(merged, sample = "samp1")$polygon_id, "GC1")
+  expect_equal(getSpatial(merged, "samp1")[[]]["cell1", "polygon_id"], "samp1::GC1")
+  expect_true(is.na(getSpatial(merged, "samp2")[[]]["cell1", "polygon_id"]))
+  expect_equal(getReceptors(merged)$polygon_id, c("samp1::GC1", NA))
+})
+
+test_that("spatial list coordinate options resolve per sample", {
+  skip_if_not_installed("SeuratObject")
+
+  make_spatial <- function(x, y) {
+    spatial <- sirap_test_seurat(
+      counts = matrix(1, nrow = 1, ncol = 1, dimnames = list("gene", "cell1"))
+    )
+    spatial$x <- x
+    spatial$y <- y
+    spatial
+  }
+  x <- createSIRAP(
+    spatial = list(
+      section_a = make_spatial(x = 1, y = 10),
+      section_b = make_spatial(x = 2, y = 20)
+    ),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1"),
+      sample = c("section_a", "section_b"),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    image_scale = list(section_a = "hires", section_b = "hires"),
+    swap_coords = c(section_a = FALSE, section_b = TRUE)
+  )
+
+  coords <- spatialCoordinateTable(x)
+  coords <- coords[order(coords$sample), ]
+
+  expect_equal(coords$sample, c("section_a", "section_b"))
+  expect_equal(coords$x, c(1, 20))
+  expect_equal(coords$y, c(10, 2))
+  expect_equal(coords$.sirap_y, c(-10, -2))
+})
+
+test_that("spatial list SIRAP objects require a sample receptor field", {
+  skip_if_not_installed("SeuratObject")
+  spatial <- sirap_test_seurat(
+    counts = matrix(1, nrow = 1, ncol = 1, dimnames = list("gene", "cell1"))
+  )
+  receptors <- data.frame(barcode = "cell1", stringsAsFactors = FALSE)
+
+  expect_error(
+    createSIRAP(
+      spatial = list(section_a = spatial),
+      receptors = receptors,
+      spatial_id = "barcode",
+      image_scale = "hires",
+      swap_coords = FALSE
+    ),
+    "`sample` is required"
+  )
+})
+
+test_that("stored polygons annotate spatial list SIRAP objects by sample", {
+  skip_if_not_installed("SeuratObject")
+  make_spatial <- function() {
+    spatial <- sirap_test_seurat(
+      counts = matrix(
+        1,
+        nrow = 1,
+        ncol = 2,
+        dimnames = list("gene", c("cell1", "cell2"))
+      )
+    )
+    spatial$x <- c(0, 10)
+    spatial$y <- c(0, 10)
+    spatial
+  }
+  x <- createSIRAP(
+    spatial = list(section_a = make_spatial(), section_b = make_spatial()),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1", "bulk1"),
+      sample = c("section_a", "section_b", "blood"),
+      clone_id = c("A", "B", "C"),
+      locus = "IGH",
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+  polygons <- data.frame(
+    polygon = rep(c("a_gc", "b_gc"), each = 4),
+    sample = rep(c("section_a", "section_b"), each = 4),
+    x = rep(c(-1, 1, 0, -1), 2),
+    y = rep(c(-1, -1, 1, -1), 2),
+    stringsAsFactors = FALSE
+  )
+
+  x <- addPolygons(x, polygons = polygons)
+
+  expect_equal(getSpatial(x, "section_a")[[]]["cell1", "polygon_id"], "a_gc")
+  expect_equal(getSpatial(x, "section_b")[[]]["cell1", "polygon_id"], "b_gc")
+  expect_equal(x$receptors$polygon_id, c("a_gc", "b_gc", NA))
+  expect_true(x$receptors$polygon_a_gc[[1]])
+  expect_false(x$receptors$polygon_b_gc[[1]])
+  expect_true(x$receptors$polygon_b_gc[[2]])
+  dominance <- spatialCloneDominance(x, locus_val = "IGH")
+  expect_equal(sort(unique(dominance$region_receptors$polygon)), c("a_gc", "b_gc"))
+  expect_equal(sort(dominance$dominance$clone_id), c("A", "B"))
+  expect_invisible(validateSIRAP(x))
+})
+
+test_that("direct polygon dominance honors polygon sample columns", {
+  skip_if_not_installed("SeuratObject")
+
+  make_spatial <- function() {
+    spatial <- sirap_test_seurat(
+      counts = matrix(
+        1,
+        nrow = 1,
+        ncol = 2,
+        dimnames = list("gene", c("cell1", "cell2"))
+      )
+    )
+    spatial$x <- c(0, 10)
+    spatial$y <- c(0, 10)
+    spatial
+  }
+  x <- createSIRAP(
+    spatial = list(section_a = make_spatial(), section_b = make_spatial()),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1"),
+      sample = c("section_a", "section_b"),
+      clone_id = c("A", "B"),
+      locus = "IGH",
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+  polygons <- data.frame(
+    polygon = rep(c("a_gc", "b_gc"), each = 4),
+    sample = rep(c("section_a", "section_b"), each = 4),
+    x = rep(c(-1, 1, 0, -1), 2),
+    y = rep(c(-1, -1, 1, -1), 2),
+    stringsAsFactors = FALSE
+  )
+
+  dominance <- spatialCloneDominance(x, polygon = polygons)
+
+  expect_equal(
+    dominance$region_receptors[, c("sample", "clone_id", "polygon")],
+    data.frame(
+      sample = c("section_a", "section_b"),
+      clone_id = c("A", "B"),
+      polygon = c("a_gc", "b_gc"),
+      stringsAsFactors = FALSE
+    )
+  )
+  expect_equal(sort(unique(dominance$polygons$sample)), c("section_a", "section_b"))
+})
+
+test_that("addPolygons can tag multisample polygons from named paths", {
+  skip_if_not_installed("SeuratObject")
+
+  make_spatial <- function() {
+    spatial <- sirap_test_seurat(
+      counts = matrix(1, nrow = 1, ncol = 2, dimnames = list("gene", c("cell1", "cell2")))
+    )
+    spatial$x <- c(0, 10)
+    spatial$y <- c(0, 10)
+    spatial
+  }
+  x <- createSIRAP(
+    spatial = list(section_a = make_spatial(), section_b = make_spatial()),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1"),
+      sample = c("section_a", "section_b"),
+      clone_id = c("A", "B"),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+  poly_a <- data.frame(
+    polygon = rep(c("gc", "empty"), each = 4),
+    x = c(-1, 1, 0, -1, 100, 101, 100.5, 100),
+    y = c(-1, -1, 1, -1, 100, 100, 101, 100),
+    stringsAsFactors = FALSE
+  )
+  poly_b <- data.frame(polygon = "gc", x = c(-1, 1, 0, -1), y = c(-1, -1, 1, -1))
+  path_a <- tempfile(fileext = ".csv")
+  path_b <- tempfile(fileext = ".csv")
+  utils::write.csv(poly_a, path_a, row.names = FALSE)
+  utils::write.csv(poly_b, path_b, row.names = FALSE)
+
+  out <- addPolygons(x, polygons_path = c(section_a = path_a, section_b = path_b))
+
+  expect_equal(getSpatial(out, "section_a")[[]]["cell1", "polygon_id"], "section_a::gc")
+  expect_equal(getSpatial(out, "section_b")[[]]["cell1", "polygon_id"], "section_b::gc")
+  expect_equal(out$receptors$polygon_id, c("section_a::gc", "section_b::gc"))
+  one <- filterSample(out, "section_a")
+  expect_equal(sort(getPolygons(one)$polygon_id), c("empty", "gc"))
+  expect_equal(getSpatial(one)[[]]["cell1", "polygon_id"], "gc")
+  expect_equal(getReceptors(one)$polygon_id, "gc")
+  dominance <- spatialCloneDominance(one)
+  expect_equal(unique(dominance$region_spatial_ids$polygon), "gc")
+  expect_equal(unique(dominance$region_receptors$polygon), "gc")
+  expect_error(addPolygons(x, polygons = poly_a), "must include `sample` or `spatial_sample`")
 })
 
 test_that("SIRAP objects store canonical polygon geometry", {
@@ -439,6 +813,59 @@ test_that("update spatial functions operate on the Seurat object", {
   expect_error(updateSpatial(x, function(spatial) data.frame()), "must return a Seurat")
 })
 
+test_that("accessor and update methods can target one spatial sample", {
+  skip_if_not_installed("SeuratObject")
+
+  make_section <- function() {
+    spatial <- sirap_test_seurat(
+      counts = matrix(1, nrow = 1, ncol = 2, dimnames = list("gene", c("cell1", "cell2")))
+    )
+    spatial$x <- c(0, 1)
+    spatial$y <- c(0, 1)
+    spatial
+  }
+  x <- createSIRAP(
+    spatial = list(section_a = make_section(), section_b = make_section()),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1", "cell2"),
+      sample = c("section_a", "section_b", "section_b"),
+      clone_id = c("A", "B", "C"),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+
+  expect_equal(getReceptors(x, "section_a")$clone_id, "A")
+  expect_equal(getReceptors(x, "section_b")$clone_id, c("B", "C"))
+
+  x <- updateReceptors(x, function(receptors) {
+    receptors$sample_only <- "yes"
+    receptors$clone_id <- paste0(receptors$clone_id, "_updated")
+    receptors
+  }, sample = "section_b")
+  expect_true(all(is.na(getReceptors(x, "section_a")$sample_only)))
+  expect_true(all(getReceptors(x, "section_b")$sample_only == "yes"))
+  expect_equal(getReceptors(x, "section_b")$clone_id, c("B_updated", "C_updated"))
+
+  x <- updateSpatial(x, function(spatial) {
+    spatial$updated <- TRUE
+    spatial
+  }, sample = "section_a")
+  expect_true(all(getSpatial(x, "section_a")$updated))
+  expect_false("updated" %in% colnames(getSpatial(x, "section_b")[[]]))
+
+  x <- updateSpatial(x, function(spatial) {
+    spatial$all_updated <- TRUE
+    spatial
+  })
+  expect_true(all(getSpatial(x, "section_a")$all_updated))
+  expect_true(all(getSpatial(x, "section_b")$all_updated))
+})
+
 test_that("update analysis functions operate on one named result", {
   x <- setAnalysis(make_test_sirap(), "scores", c(3, 1, 2))
 
@@ -470,6 +897,37 @@ test_that("receptor summaries and QC plots accept SIRAP objects", {
   expect_equal(receptor_summary$n_loci, 1)
 
   expect_s3_class(plotLengthQc(x), "ggplot")
+})
+
+test_that("spatialReceptorSummary counts sample and spatial ID pairs", {
+  skip_if_not_installed("SeuratObject")
+
+  make_section <- function() {
+    spatial <- sirap_test_seurat(
+      counts = matrix(1, nrow = 1, ncol = 2, dimnames = list("gene", c("cell1", "cell2")))
+    )
+    spatial$x <- c(0, 1)
+    spatial$y <- c(0, 1)
+    spatial
+  }
+  x <- createSIRAP(
+    spatial = list(section_a = make_section(), section_b = make_section()),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1", "cell2"),
+      sample = c("section_a", "section_b", "section_b"),
+      clone_id = c("A", "B", "C"),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+
+  receptor_summary <- spatialReceptorSummary(x)
+  expect_equal(receptor_summary$n_sequences, 3)
+  expect_equal(receptor_summary$n_spatial_ids, 3)
 })
 
 test_that("collapseIdenticalNeighbors updates SIRAP objects", {
@@ -522,7 +980,7 @@ test_that("collapseIdenticalNeighbors accepts receptor tables with a Seurat obje
 
 test_that("default optional receptor fields are NULL when absent", {
   skip_if_not_installed("SeuratObject")
-  spatial <- SeuratObject::CreateSeuratObject(
+  spatial <- sirap_test_seurat(
     counts = matrix(1, nrow = 1, ncol = 1, dimnames = list("gene", "cell1"))
   )
   x <- createSIRAP(spatial, data.frame(spatial_id = "cell1"))
@@ -539,7 +997,7 @@ test_that("default optional receptor fields are NULL when absent", {
 
 test_that("createSIRAP rejects receptor tables without spatial overlap", {
   skip_if_not_installed("SeuratObject")
-  spatial <- SeuratObject::CreateSeuratObject(
+  spatial <- sirap_test_seurat(
     counts = matrix(1, nrow = 1, ncol = 1, dimnames = list("gene", "cell1"))
   )
 
@@ -563,7 +1021,7 @@ test_that("createSIRAP rejects receptor tables without spatial overlap", {
 
 test_that("spatial options require explicit values without SIRAP metadata", {
   skip_if_not_installed("SeuratObject")
-  spatial <- SeuratObject::CreateSeuratObject(
+  spatial <- sirap_test_seurat(
     counts = matrix(1, nrow = 1, ncol = 1, dimnames = list("gene", "cell1"))
   )
   x <- createSIRAP(spatial, data.frame(spatial_id = "cell1"))
@@ -613,7 +1071,7 @@ test_that("spatialLocalMoran uses the receptor ID stored in SIRAP metadata", {
 
 test_that("spatialCloneJoinCount uses receptor fields stored in SIRAP metadata", {
   skip_if_not_installed("spdep")
-  spatial <- SeuratObject::CreateSeuratObject(
+  spatial <- sirap_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -664,7 +1122,7 @@ test_that("SIRAP print reports spatial and receptor dimensions", {
       "Receptor data:   tibble, 3 receptor sequences x 8 columns\\n",
       "Spatial overlap: 2/3 receptor IDs in spatial data \\(66.7%\\)\\n",
       "Spatial ID field: spatial_id\\n",
-      "Clone field:     clone_id\\n",
+      "Clone ID field:  clone_id\\n",
       "Analyses:        0"
     )
   )
@@ -691,6 +1149,45 @@ test_that("SIRAP summaries align values and report stored polygons", {
     "(?s)  Spatial IDs:\\s+4.*  Receptor records:\\s+3.*  Polygons:\\s+2",
     perl = TRUE
   )
+})
+
+test_that("multi-sample SIRAP summaries include per-sample counts", {
+  skip_if_not_installed("SeuratObject")
+
+  make_section <- function() {
+    spatial <- sirap_test_seurat(
+      counts = matrix(1, nrow = 1, ncol = 2, dimnames = list("gene", c("cell1", "cell2")))
+    )
+    spatial$x <- c(0, 1)
+    spatial$y <- c(0, 1)
+    spatial
+  }
+  x <- createSIRAP(
+    spatial = list(section_a = make_section(), section_b = make_section()),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1", "cell2"),
+      sample = c("section_a", "section_b", "section_b"),
+      clone_id = c("A", "B", "C"),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+
+  out <- summary(x)
+  expect_equal(out$samples$sample, c("section_a", "section_b"))
+  expect_equal(out$samples$n_receptor_records, c(1, 2))
+  expect_equal(out$samples$n_receptor_ids, c(1, 2))
+  expect_equal(out$samples$n_matched_ids, c(1, 2))
+  expect_output(
+    print(x),
+    "(?s)Samples:\\s+2\\nSpatial ID field: barcode\\nSample ID field: sample\\nClone ID field:\\s+clone_id",
+    perl = TRUE
+  )
+  expect_output(print(out), "Per-sample summary")
 })
 
 test_that("legacy top-level schema objects are rejected", {

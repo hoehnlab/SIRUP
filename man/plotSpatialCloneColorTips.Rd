@@ -12,6 +12,7 @@ plotSpatialCloneColorTips(
   spatial_id = "spatial_id_8um",
   image_scale = NULL,
   swap_coords = NULL,
+  sample_id = NULL,
   ...
 )
 }
@@ -31,6 +32,9 @@ object. May be omitted when \code{colored_clones} is a SIRAP object.}
 \item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate axes.}
+
+\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
+SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
 
 \item{...}{Additional arguments passed to \code{plotSpatialColorTips()}.}
 }

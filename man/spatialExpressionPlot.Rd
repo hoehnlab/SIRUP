@@ -10,6 +10,7 @@ spatialExpressionPlot(
   assay = NULL,
   layer = "counts",
   images = NULL,
+  sample_id = NULL,
   image_scale = NULL,
   swap_coords = NULL,
   feature_colors = NULL,
@@ -21,7 +22,8 @@ spatialExpressionPlot(
   title = NULL,
   image_alpha = 1,
   zoom = FALSE,
-  combine = TRUE
+  combine = TRUE,
+  combine_sample_plots = FALSE
 )
 }
 \arguments{
@@ -34,6 +36,9 @@ spatialExpressionPlot(
 \item{layer}{Seurat expression layer to fetch.}
 
 \item{images}{Optional Seurat image names.}
+
+\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
+SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
 
 \item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 
@@ -67,6 +72,10 @@ overall patchwork title and individual panels keep their feature titles.}
 full tissue area covered by the spatial coordinates.}
 
 \item{combine}{Combine plots into one figure with patchwork if multiple images/features.}
+
+\item{combine_sample_plots}{For multi-sample SIRAP objects, combine plots
+from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
+multi-sample calls return a named list of per-sample plots.}
 }
 \value{
 A ggplot/patchwork object, list, or \code{NULL} when all spots are zero.

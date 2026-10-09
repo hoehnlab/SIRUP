@@ -9,7 +9,7 @@ make_image_free_spatial <- function() {
     sparse = TRUE
   )
   dimnames(counts) <- list(c("geneA", "geneB"), paste0("cell", 1:4))
-  object <- SeuratObject::CreateSeuratObject(
+  object <- sirap_test_seurat(
     counts = counts
   )
   object$x <- c(0, 1, 2, 3)
@@ -128,6 +128,49 @@ test_that("core spatial ggplot functions work without Seurat images", {
   expect_s3_class(multi_plot, "ggplot")
   expect_s3_class(color_tip_plot, "ggplot")
   expect_s3_class(clone_color_plot, "ggplot")
+})
+
+test_that("spatialDiscretePlot reads multisample metadata without barcode bleed", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("Matrix")
+
+  make_section <- function(cell_type) {
+    object <- make_image_free_spatial()
+    object$cell_type <- cell_type
+    object
+  }
+  sirap <- createSIRAP(
+    spatial = list(
+      section_a = make_section(c("B", "B", "T", "T")),
+      section_b = make_section(c("T", "T", "B", "B"))
+    ),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1"),
+      sample = c("section_a", "section_b"),
+      clone_id = c("A", "B"),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+
+  plots <- spatialDiscretePlot(sirap, meta_col = "cell_type", combine = FALSE)
+
+  expect_equal(sort(names(plots)), c("section_a", "section_b"))
+  expect_equal(as.character(unique(plots[["section_a"]]$data$cell_type)), c("B", "T"))
+  expect_equal(as.character(unique(plots[["section_b"]]$data$cell_type)), c("T", "B"))
+
+  section_b_plot <- spatialDiscretePlot(
+    sirap,
+    meta_col = "cell_type",
+    sample_id = "section_b",
+    combine = FALSE
+  )
+  expect_equal(names(section_b_plot), "section_b")
+  expect_equal(as.character(unique(section_b_plot[["section_b"]]$data$cell_type)), c("T", "B"))
 })
 
 test_that("spatialExpressionPlot uses feature colors or palette", {
@@ -286,6 +329,11 @@ n_polygon_layers <- function(plot) {
   sum(vapply(plot$layers, function(l) inherits(l$geom, "GeomPolygon"), logical(1)))
 }
 
+polygon_layer_data <- function(plot) {
+  polygon_layers <- which(vapply(plot$layers, function(l) inherits(l$geom, "GeomPolygon"), logical(1)))
+  plot$layers[[polygon_layers[[1L]]]]$data
+}
+
 test_that("plotReceptors overlays polygons from a data frame and a CSV path", {
   skip_if_not_installed("SeuratObject")
   skip_if_not_installed("Matrix")
@@ -385,6 +433,70 @@ test_that("plotSpatialColorTips overlays SIRAP object polygons", {
   expect_equal(n_polygon_layers(tip_plot), 1L)
 })
 
+test_that("stored polygon overlays are filtered per spatial sample", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("Matrix")
+
+  make_section <- function() {
+    make_image_free_spatial()
+  }
+  sirap <- createSIRAP(
+    spatial = list(section_a = make_section(), section_b = make_section()),
+    receptors = data.frame(
+      spatial_id = c("cell1", "cell1"),
+      sample = c("section_a", "section_b"),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "spatial_id",
+    sample = "sample",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+  polygons <- data.frame(
+    polygon = rep(c("a_gc", "b_gc"), each = 5),
+    sample = rep(c("section_a", "section_b"), each = 5),
+    x = rep(c(-0.5, 1.5, 1.5, -0.5, -0.5), 2),
+    y = rep(c(-0.5, -0.5, 1.5, 1.5, -0.5), 2),
+    stringsAsFactors = FALSE
+  )
+  sirap <- addPolygons(sirap, polygons = polygons)
+
+  plots <- plotSpatialColorTips(
+    sirap,
+    tip_data = data.frame(
+      spatial_id = c("cell1", "cell1"),
+      sample = c("section_a", "section_b"),
+      tip_color = c("#111111", "#CC5500"),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "spatial_id",
+    sample = "sample",
+    polygons = TRUE,
+    combine = FALSE
+  )
+
+  expect_equal(names(plots), c("section_a", "section_b"))
+  expect_equal(unique(as.character(polygon_layer_data(plots[["section_a"]])$polygon)), "a_gc")
+  expect_equal(unique(as.character(polygon_layer_data(plots[["section_b"]])$polygon)), "b_gc")
+
+  base_plots <- list(
+    section_a = ggplot2::ggplot() + ggplot2::geom_point(data = data.frame(x = 0, y = 0), ggplot2::aes(.data$x, .data$y)),
+    section_b = ggplot2::ggplot() + ggplot2::geom_point(data = data.frame(x = 0, y = 0), ggplot2::aes(.data$x, .data$y))
+  )
+  overlay <- SIRAP:::.sirap_resolve_overlay_polygons(
+    polygons = TRUE,
+    object = sirap,
+    polygon_id = "polygon",
+    polygon_val = NULL
+  )
+  finished <- SIRAP:::.sirap_add_polygon_overlay(base_plots, overlay)
+  expect_equal(unique(as.character(polygon_layer_data(finished[["section_a"]])$polygon)), "a_gc")
+  expect_equal(unique(as.character(polygon_layer_data(finished[["section_b"]])$polygon)), "b_gc")
+
+  single_finished <- SIRAP:::.sirap_add_polygon_overlay(base_plots[["section_b"]], overlay, image = "section_b")
+  expect_equal(unique(as.character(polygon_layer_data(single_finished)$polygon)), "b_gc")
+})
+
 test_that("spatialExpressionBlendPlot forwards assay and layer to per-feature panels", {
   skip_if_not_installed("SeuratObject")
   skip_if_not_installed("Matrix")
@@ -403,7 +515,7 @@ test_that("spatialExpressionBlendPlot forwards assay and layer to per-feature pa
     sparse = TRUE
   )
   dimnames(imputed) <- list(c("geneA", "geneB"), paste0("cell", 1:4))
-  object[["alra"]] <- SeuratObject::CreateAssay5Object(data = imputed)
+  suppressWarnings(object[["alra"]] <- SeuratObject::CreateAssay5Object(data = imputed))
 
   # only_blended = FALSE builds the two per-feature panels. Those calls used to
   # drop `assay`/`layer` and fall back to spatialExpressionPlot's default

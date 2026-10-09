@@ -7,11 +7,18 @@
 \alias{updateAnalysis}
 \title{Update data stored in a SIRAP object}
 \usage{
-updateReceptors(x, fun, ..., receptor_fields = NULL, validate = TRUE)
+updateReceptors(
+  x,
+  fun,
+  ...,
+  sample = NULL,
+  receptor_fields = NULL,
+  validate = TRUE
+)
 
-updateSpatial(x, fun, ..., validate = TRUE)
+updateSpatial(x, fun, ..., sample = NULL, validate = TRUE)
 
-updateAnalysis(x, name, fun, ..., validate = TRUE)
+updateAnalysis(x, name, fun, ..., sample = NULL, validate = TRUE)
 }
 \arguments{
 \item{x}{A SIRAP object.}
@@ -20,6 +27,9 @@ updateAnalysis(x, name, fun, ..., validate = TRUE)
 SIRAP component is supplied as its first argument.}
 
 \item{...}{Additional arguments passed to \code{fun}.}
+
+\item{sample}{Optional spatial sample to update for multi-spatial SIRAP
+objects.}
 
 \item{receptor_fields}{Optional named list updating one or more receptor
 field mappings: \code{spatial_id}, \code{image}, \code{sample}, \code{clone}, \code{locus}, or \code{count}.
@@ -43,7 +53,11 @@ before clone calling, a newly returned conventional \code{clone_id} column is
 automatically recorded as the clone field. Use \code{receptor_fields} to set or
 clear mappings explicitly after a transformation.
 
-\code{updateSpatial()} requires the function to return a Seurat object.
+\code{updateSpatial()} requires the function to return a Seurat object. For
+multi-spatial objects, \code{sample = NULL} applies \code{fun} to every Seurat object
+in the spatial list; a specific \code{sample} updates only that spatial object.
+\code{updateReceptors()} similarly updates either the full receptor table or only
+the rows for one sample, replacing that sample's rows in the combined table.
 \code{updateAnalysis()} operates on one result selected by \code{name}; use
 \code{setAnalysis()} to store a new result.
 }

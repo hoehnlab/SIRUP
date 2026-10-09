@@ -37,8 +37,13 @@ test_that("filterAirr handles character productive and complete_vdj", {
   expect_equal(nrow(out), 1L)
   expect_equal(out$complete_vdj, "T")
 
-  # complete_vdj = TRUE is a no-op when the column is absent.
-  out <- filterAirr(airr[, setdiff(colnames(airr), "complete_vdj")], complete_vdj = TRUE)
+  # complete_vdj = TRUE is a no-op when the column is absent, with an
+  # explicit warning that the requested filter was skipped.
+  expect_warning(
+    out <- filterAirr(airr[, setdiff(colnames(airr), "complete_vdj")], complete_vdj = TRUE),
+    "`complete_vdj` was requested",
+    fixed = TRUE
+  )
   expect_equal(nrow(out), 3L)
 })
 

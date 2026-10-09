@@ -24,6 +24,7 @@ spatialCloneJoinCount(
   k = 6,
   alternative = "greater",
   other_label = "Other",
+  use_stored_polygons = NULL,
   return_data = FALSE
 )
 }
@@ -82,6 +83,12 @@ that clone to be tested.}
 
 \item{other_label}{Label used for non-target clone spatial IDs in each binary
 test.}
+
+\item{use_stored_polygons}{Whether to run one join-count test per stored polygon
+(e.g. per GC) in a SIRAP object. \code{NULL} (default) auto-detects: \code{TRUE} when a
+SIRAP object has stored polygons and \code{polygon} is not supplied, otherwise
+\code{FALSE}. Set \code{FALSE} to force one tissue-wide neighbor graph per spatial
+sample (ignoring any stored polygons); set \code{TRUE} to require stored-polygon tests.}
 
 \item{return_data}{Return the spatial_id-level mark data used for each test.}
 }

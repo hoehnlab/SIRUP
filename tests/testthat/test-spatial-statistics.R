@@ -14,7 +14,7 @@ test_that("kcross data frame conversion uses theoretical fallback", {
 test_that("spatial coordinate table falls back to metadata coordinates", {
   skip_if_not_installed("SeuratObject")
 
-  object <- SeuratObject::CreateSeuratObject(
+  object <- sirap_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -42,7 +42,7 @@ test_that("spatialRipleyCrossK keeps all non-missing marks in the point pattern"
   skip_if_not_installed("spatstat.geom")
   skip_if_not_installed("spatstat.explore")
 
-  object <- SeuratObject::CreateSeuratObject(
+  object <- sirap_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -90,7 +90,7 @@ test_that("spatialMoran can test a particular clone from a SIRAP object", {
   skip_if_not_installed("SeuratObject")
   skip_if_not_installed("spdep")
 
-  object <- SeuratObject::CreateSeuratObject(
+  object <- sirap_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -98,7 +98,7 @@ test_that("spatialMoran can test a particular clone from a SIRAP object", {
       dimnames = list("gene", paste0("cell", 1:6))
     )
   )
-  object$x <- c(0, 1, 2, 10, 11, 12)
+  object$x <- seq(0, 5)
   object$y <- c(0, 0, 0, 0, 0, 0)
   receptors <- data.frame(
     spot = paste0("cell", 1:6),
@@ -118,13 +118,13 @@ test_that("spatialMoran can test a particular clone from a SIRAP object", {
     sirap,
     variable = "A",
     variable_type = "clone",
-    k = 1
+    k = 2
   )
   local <- spatialLocalMoran(
     sirap,
     variable = "A",
     variable_type = "clone",
-    k = 1
+    k = 2
   )
 
   expect_equal(out$variable, "clone_A")
@@ -138,7 +138,7 @@ test_that("spatialLee tests bivariate feature association", {
   skip_if_not_installed("SeuratObject")
   skip_if_not_installed("spdep")
 
-  object <- SeuratObject::CreateSeuratObject(
+  object <- sirap_test_seurat(
     counts = matrix(
       c(
         1, 2, 3, 4, 5, 6, 7, 8,
@@ -173,7 +173,7 @@ test_that("spatialCloneJoinCount tests clone marks from receptor IDs", {
   skip_if_not_installed("SeuratObject")
   skip_if_not_installed("spdep")
 
-  object <- SeuratObject::CreateSeuratObject(
+  object <- sirap_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -181,7 +181,7 @@ test_that("spatialCloneJoinCount tests clone marks from receptor IDs", {
       dimnames = list("gene", paste0("cell", 1:6))
     )
   )
-  object$x <- c(0, 1, 2, 10, 11, 12)
+  object$x <- seq(0, 5)
   object$y <- c(0, 0, 0, 0, 0, 0)
   receptors <- data.frame(
     barcode_8um = paste0("cell", 1:6),
@@ -195,7 +195,7 @@ test_that("spatialCloneJoinCount tests clone marks from receptor IDs", {
     clone = "clone_id",
     spatial_id = "barcode_8um",
     clone_val = "A",
-    k = 1,
+    k = 2,
     min_spatial_ids = 2,
     return_data = TRUE,
     image_scale = "hires",
@@ -212,7 +212,7 @@ test_that("plotSpatialCloneJoinCount returns one combined plot", {
   skip_if_not_installed("spdep")
   skip_if_not_installed("cowplot")
 
-  object <- SeuratObject::CreateSeuratObject(
+  object <- sirap_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -220,7 +220,7 @@ test_that("plotSpatialCloneJoinCount returns one combined plot", {
       dimnames = list("gene", paste0("cell", 1:6))
     )
   )
-  object$x <- c(0, 1, 2, 10, 11, 12)
+  object$x <- seq(0, 5)
   object$y <- c(0, 0, 0, 0, 0, 0)
   receptors <- data.frame(
     barcode_8um = paste0("cell", 1:6),
@@ -233,7 +233,7 @@ test_that("plotSpatialCloneJoinCount returns one combined plot", {
     clone = "clone_id",
     spatial_id = "barcode_8um",
     clone_val = "A",
-    k = 1,
+    k = 2,
     min_spatial_ids = 2,
     return_data = TRUE,
     image_scale = "hires",
@@ -261,7 +261,7 @@ test_that("plotSpatialCloneJoinCount requires stored mark data", {
   skip_if_not_installed("SeuratObject")
   skip_if_not_installed("cowplot")
 
-  object <- SeuratObject::CreateSeuratObject(
+  object <- sirap_test_seurat(
     counts = matrix(1, nrow = 1, ncol = 2, dimnames = list("gene", c("cell1", "cell2")))
   )
   object$x <- c(0, 1)
@@ -285,7 +285,7 @@ test_that("spatialLee can use the Monte Carlo method", {
   skip_if_not_installed("SeuratObject")
   skip_if_not_installed("spdep")
 
-  object <- SeuratObject::CreateSeuratObject(
+  object <- sirap_test_seurat(
     counts = matrix(
       c(
         1, 2, 3, 4, 5, 6, 7, 8,
@@ -326,7 +326,7 @@ test_that("spatialLee mc matches spdep::lee.mc under the same seed", {
   set.seed(42)
   counts <- matrix(rpois(2 * 40, lambda = 5), nrow = 2,
                    dimnames = list(c("gene-x", "gene-y"), paste0("cell", 1:40)))
-  object <- SeuratObject::CreateSeuratObject(counts = counts)
+  object <- sirap_test_seurat(counts = counts)
   object$x <- rep(0:7, each = 5)
   object$y <- rep(0:4, times = 8)
 
@@ -348,4 +348,243 @@ test_that("spatialLee mc matches spdep::lee.mc under the same seed", {
   expect_equal(ours$test$p.value, theirs$p.value)
   expect_equal(unname(ours$test$parameter), unname(theirs$parameter))
   expect_equal(ours$test$res, theirs$res)
+})
+
+test_that("clone spatial statistics distinguish duplicate barcodes across spatial samples", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("spdep")
+
+  make_section <- function() {
+    object <- sirap_test_seurat(
+      counts = matrix(
+        1,
+        nrow = 1,
+        ncol = 4,
+        dimnames = list("gene", paste0("cell", 1:4))
+      )
+    )
+    object$x <- 0:3
+    object$y <- c(0, 0, 0, 0)
+    object
+  }
+  sirap <- createSIRAP(
+    spatial = list(section_a = make_section(), section_b = make_section()),
+    receptors = data.frame(
+      barcode = c("cell1", "cell2", "cell3", "cell4", "cell1", "cell2", "cell3", "cell4"),
+      sample = c("section_a", "section_a", "section_a", "section_a", "section_b", "section_b", "section_b", "section_b"),
+      clone_id = c("A", "A", "B", "C", "B", "B", "A", "C"),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+
+  values <- SIRAP:::.sirap_spatial_variable_values(
+    sirap,
+    variable = "A",
+    variable_type = "clone",
+    value = NULL,
+    receptors = NULL,
+    spatial_id_col = NULL,
+    clone_col = NULL,
+    layer = "counts",
+    images = NULL,
+    image_scale = NULL,
+    swap_coords = NULL
+  )
+  by_key <- stats::setNames(values$value, paste(values$sample, values$cell, sep = ":"))
+  expect_equal(unname(by_key[c("section_a:cell1", "section_a:cell2")]), c(1, 1))
+  expect_equal(unname(by_key[c("section_b:cell1", "section_b:cell2")]), c(0, 0))
+
+  moran <- spatialMoran(sirap, variable = "A", variable_type = "clone", k = 1)
+  expect_true(all(c("section_a::metadata", "section_b::metadata") %in% moran$summary$image))
+  expect_equal(
+    unname(stats::setNames(moran$data$value, paste(moran$data$sample, moran$data$cell, sep = ":"))[
+      c("section_a:cell1", "section_b:cell1")
+    ]),
+    c(1, 0)
+  )
+})
+
+test_that("spatialLee builds independent neighbor graphs per spatial sample", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("spdep")
+
+  make_section <- function(offset = 0) {
+    object <- sirap_test_seurat(
+      counts = matrix(
+        c(1, 2, 3, 4, 4, 3, 2, 1),
+        nrow = 2,
+        dimnames = list(c("geneA", "geneB"), paste0("cell", 1:4))
+      )
+    )
+    object$x <- offset + 0:3
+    object$y <- c(0, 0, 0, 0)
+    object
+  }
+  sirap <- createSIRAP(
+    spatial = list(section_a = make_section(), section_b = make_section(offset = 1000)),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1"),
+      sample = c("section_a", "section_b"),
+      clone_id = c("A", "B"),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+
+  out <- spatialLee(sirap, x = "geneA", y = "geneB", k = 1)
+
+  expect_equal(sort(names(out$tests)), c("section_a::metadata", "section_b::metadata"))
+  expect_equal(out$summary$image, c("section_a::metadata", "section_b::metadata"))
+  expect_true(all(table(out$data$image) == 4))
+})
+
+test_that("spatialRipleyCrossK reads marks from multisample spatial metadata", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("spatstat.geom")
+  skip_if_not_installed("spatstat.explore")
+
+  make_section <- function(mark) {
+    object <- sirap_test_seurat(
+      counts = matrix(1, nrow = 1, ncol = 4, dimnames = list("gene", paste0("cell", 1:4)))
+    )
+    object$x <- c(0, 1, 0, 1)
+    object$y <- c(0, 0, 1, 1)
+    object$mark <- mark
+    object
+  }
+  sirap <- createSIRAP(
+    spatial = list(
+      section_a = make_section(c("A", "B", "A", "B")),
+      section_b = make_section(c("B", "A", "B", "A"))
+    ),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1"),
+      sample = c("section_a", "section_b"),
+      clone_id = c("A", "B"),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+
+  out <- spatialRipleyCrossK(sirap, mark_col = "mark", i = "A", j = "B")
+
+  expect_equal(sort(unique(out$points$sample)), c("section_a", "section_b"))
+  expect_equal(sort(names(out$observed)), c("section_a::metadata", "section_b::metadata"))
+  expect_equal(as.integer(table(out$points$sample)), c(4, 4))
+})
+
+test_that("spatialCloneJoinCount uses sample-aware receptor coordinate joins", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("spdep")
+
+  make_section <- function() {
+    object <- sirap_test_seurat(
+      counts = matrix(
+        1,
+        nrow = 1,
+        ncol = 4,
+        dimnames = list("gene", paste0("cell", 1:4))
+      )
+    )
+    object$x <- 0:3
+    object$y <- c(0, 0, 0, 0)
+    object
+  }
+  sirap <- createSIRAP(
+    spatial = list(section_a = make_section(), section_b = make_section()),
+    receptors = data.frame(
+      barcode = c("cell1", "cell2", "cell3", "cell4", "cell1", "cell2", "cell3", "cell4"),
+      sample = c("section_a", "section_a", "section_a", "section_a", "section_b", "section_b", "section_b", "section_b"),
+      clone_id = c("A", "A", "B", "C", "B", "B", "A", "C"),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+
+  out <- spatialCloneJoinCount(
+    sirap,
+    clone_val = c("A", "B"),
+    k = 1,
+    min_spatial_ids = 2,
+    return_data = TRUE
+  )
+
+  expect_true(all(c("section_a::metadata", "section_b::metadata") %in% out$summary$image))
+  clone_a <- out$data[out$data$clone_id == "A", , drop = FALSE]
+  clone_b <- out$data[out$data$clone_id == "B", , drop = FALSE]
+  expect_true(all(as.character(clone_a$join_count_mark[clone_a$.sirap_sample == "section_a" & clone_a$cell %in% c("cell1", "cell2")]) == "A"))
+  expect_false(any(clone_a$.sirap_sample == "section_b" & clone_a$cell %in% c("cell1", "cell2") & as.character(clone_a$join_count_mark) == "A"))
+  expect_true(all(as.character(clone_b$join_count_mark[clone_b$.sirap_sample == "section_b" & clone_b$cell %in% c("cell1", "cell2")]) == "B"))
+  expect_false(any(clone_b$.sirap_sample == "section_a" & clone_b$cell %in% c("cell1", "cell2") & as.character(clone_b$join_count_mark) == "B"))
+})
+
+test_that("spatialCloneJoinCount honors use_stored_polygons for multisample objects", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("spdep")
+
+  make_section <- function() {
+    object <- sirap_test_seurat(
+      counts = matrix(1, nrow = 1, ncol = 4, dimnames = list("gene", paste0("cell", 1:4)))
+    )
+    object$x <- 0:3
+    object$y <- c(0, 0, 0, 0)
+    object
+  }
+  # One GC per section covering cells 1-3 (x 0,1,2); cell 4 is outside.
+  gc <- function(samp) data.frame(
+    polygon = "gc1", sample = samp,
+    x = c(-0.5, 2.5, 2.5, -0.5), y = c(-0.5, -0.5, 0.5, 0.5),
+    stringsAsFactors = FALSE
+  )
+  make_object <- function(with_polygons) {
+    obj <- createSIRAP(
+      spatial = list(section_a = make_section(), section_b = make_section()),
+      receptors = data.frame(
+        barcode = rep(paste0("cell", 1:4), 2),
+        sample = rep(c("section_a", "section_b"), each = 4),
+        clone_id = rep(c("A", "A", "C", "C"), 2),
+        stringsAsFactors = FALSE
+      ),
+      spatial_id = "barcode", sample = "sample", clone = "clone_id",
+      image_scale = "hires", swap_coords = FALSE
+    )
+    if (with_polygons) obj <- addPolygons(obj, polygons = rbind(gc("section_a"), gc("section_b")))
+    obj
+  }
+  sirap <- make_object(with_polygons = TRUE)
+
+  # Default (NULL) auto-detects stored polygons -> one graph PER GC (3 spots each).
+  per_gc <- spatialCloneJoinCount(sirap, clone_val = "A", k = 1, min_spatial_ids = 2)
+  expect_true(all(per_gc$summary$n_spatial_ids == 3))
+
+  # use_stored_polygons = FALSE -> one tissue-wide graph PER SECTION (4 spots each).
+  tissue_wide <- spatialCloneJoinCount(
+    sirap, clone_val = "A", k = 1, min_spatial_ids = 2, use_stored_polygons = FALSE
+  )
+  expect_true(all(tissue_wide$summary$n_spatial_ids == 4))
+  expect_true(all(c("section_a::metadata", "section_b::metadata") %in% tissue_wide$summary$image))
+
+  # Explicit TRUE requires a SIRAP object with stored polygons.
+  expect_error(
+    spatialCloneJoinCount(make_object(with_polygons = FALSE), clone_val = "A", k = 1,
+                          use_stored_polygons = TRUE),
+    "stored polygons"
+  )
 })

@@ -9,12 +9,12 @@ test_that("plotReceptorsExpression layers grouped receptors over expression", {
     .check_required_cols = function(x, cols, label) {
       stopifnot(all(cols %in% colnames(x)))
     },
-    .sirap_fetch_data = function(object, vars, layer) {
+    .sirap_fetch_data = function(object, vars, layer, assay = NULL) {
       out <- data.frame(GENE = c(1, 2, 0), row.names = c("spot1", "spot2", "spot3"))
       colnames(out) <- vars
       out
     },
-    .sirap_spatial_images = function(object, images = NULL) "image1",
+    .sirap_spatial_images = function(object, images = NULL, sample_id = NULL) "image1",
     .sirap_spatial_data = function(object, image, image_scale, swap_coords) {
       list(
         coords = data.frame(
@@ -26,7 +26,7 @@ test_that("plotReceptorsExpression layers grouped receptors over expression", {
       )
     },
     .sirap_spatial_base = function(...) ggplot2::ggplot(),
-    .sirap_return_spatial_plots = function(plots, combine = TRUE) {
+    .sirap_return_spatial_plots = function(plots, combine = TRUE, combine_sample_plots = FALSE) {
       if (combine) plots[[1L]] else plots
     },
     .package = "SIRAP"
@@ -120,7 +120,7 @@ test_that("plotReceptorsExpression colours receptors by a continuous value", {
     nrow = 2, ncol = 4, sparse = TRUE
   )
   dimnames(counts) <- list(c("AICDA", "geneB"), paste0("cell", 1:4))
-  object <- SeuratObject::CreateSeuratObject(counts = counts)
+  object <- sirap_test_seurat(counts = counts)
   object$x <- c(0, 1, 2, 3)
   object$y <- c(0, 1, 1, 0)
 
@@ -181,4 +181,72 @@ test_that("plotReceptorsExpression colours receptors by a continuous value", {
   # And the grouped path still behaves.
   grouped_only <- do.call(plotReceptorsExpression, c(common, list(group = "receptor_type")))
   expect_s3_class(grouped_only, "ggplot")
+})
+
+test_that("receptor spatial plots keep duplicate barcodes separated by sample", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("Matrix")
+
+  make_section <- function() {
+    object <- sirap_test_seurat(
+      counts = matrix(
+        c(1, 2, 3, 4),
+        nrow = 1,
+        dimnames = list("AICDA", paste0("cell", 1:4))
+      )
+    )
+    object$x <- 0:3
+    object$y <- c(0, 0, 0, 0)
+    object
+  }
+  sirap <- createSIRAP(
+    spatial = list(section_a = make_section(), section_b = make_section()),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1"),
+      sample = c("section_a", "section_b"),
+      receptor_type = c("BCR", "TCR"),
+      shm = c(2, 8),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+
+  grouped <- plotReceptors(
+    sirap,
+    group = "receptor_type",
+    group_val = c("BCR", "TCR"),
+    colors = c(BCR = "blue", TCR = "orange"),
+    combine = FALSE
+  )
+  expect_equal(names(grouped), c("section_a", "section_b"))
+  grouped_data <- lapply(grouped, function(plot) plot$layers[[1L]]$data)
+  expect_equal(as.character(grouped_data[["section_a"]]$.sirap_receptor_group), "BCR")
+  expect_equal(as.character(grouped_data[["section_b"]]$.sirap_receptor_group), "TCR")
+
+  grouped_section_b <- plotReceptors(
+    sirap,
+    group = "receptor_type",
+    group_val = c("BCR", "TCR"),
+    colors = c(BCR = "blue", TCR = "orange"),
+    sample_id = "section_b",
+    combine = FALSE
+  )
+  expect_equal(names(grouped_section_b), "section_b")
+  expect_equal(
+    as.character(grouped_section_b[["section_b"]]$layers[[1L]]$data$.sirap_receptor_group),
+    "TCR"
+  )
+
+  counted <- plotReceptorsExpression(
+    sirap,
+    feature = "AICDA",
+    value = "count",
+    combine = FALSE
+  )
+  counted_values <- lapply(counted, expression_receptor_fill_values)
+  expect_equal(counted_values[["section_a"]], 1)
+  expect_equal(counted_values[["section_b"]], 1)
 })

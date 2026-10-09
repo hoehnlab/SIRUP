@@ -33,6 +33,10 @@ processSpatialSample(
   parse_key = paste0(cluster_field, "_cluster"),
   parse_act = "set",
   consensus_min_count = 1,
+  umi_support = FALSE,
+  umi_field = "umi",
+  umi_identity = 0.95,
+  min_umi_support = 2,
   consensus_copy_fields = NULL,
   consensus_copy_action = "majority",
   consensus_max_error = 0.1,
@@ -132,7 +136,28 @@ passes, so a run at \code{1} can be filtered to any higher value afterwards with
 20 and has no effect here, because the pipeline input is FASTA and carries
 no base qualities.}
 
-\item{consensus_copy_fields}{Optional fields passed to \code{BuildConsensus.py --cf}.}
+\item{umi_support}{Group reads by spatial barcode AND UMI before the barcode
+step. Reads of one molecule that differ by a sequencing error cluster apart
+at \code{identity = 1.0} and are then dropped as singletons; this stage joins
+them first, at \code{umi_identity}, so they support each other. Each
+barcode-UMI cluster yields one consensus carrying \code{cc_bc_umi} (its reads,
+counted before the productive subset) and \code{n_productive_reads} (the reads
+the consensus was built from; a cluster with none is discarded). The
+barcode step then runs with \verb{BuildConsensus -n 1} and sums both fields, and
+\code{min_umi_support} replaces the read floor. Needs an AIRR table with \code{umi}
+and \code{productive} columns.}
+
+\item{umi_field}{Column holding the UMI, used with \code{umi_support}.}
+
+\item{umi_identity}{Cluster identity for the barcode-UMI step. Looser than
+the barcode step on purpose, so error-bearing reads of one molecule group.}
+
+\item{min_umi_support}{Lowest summed \code{cc_bc_umi} a barcode consensus needs.
+Applied after \code{MakeDb.py}, writing a filtered copy beside \code{db_pass}, so a
+run can be re-thresholded without reprocessing.}
+
+\item{consensus_copy_fields}{Optional fields passed to \code{BuildConsensus.py --cf}. With \code{umi_support}, \code{CC_BC_UMI} and \code{N_PRODUCTIVE_READS} are
+prepended and summed.}
 
 \item{consensus_copy_action}{Action passed to \code{BuildConsensus.py --act} when
 \code{consensus_copy_fields} is provided.}
@@ -156,7 +181,8 @@ since those steps depend only on \code{identity}.}
 A named list, invisibly: \code{raw_airr}, \code{filtered_airr},
 \code{spatial_fasta}, \code{n_raw}, \code{n_filtered} (each \code{NULL} for steps that did
 not run), plus the pRESTO/IgBLAST output paths. \code{db_pass} is the final
-AIRR TSV.
+AIRR TSV. With \code{umi_support}, \code{db_pass_umi} is that table filtered to
+\code{min_umi_support}.
 }
 \description{
 This function runs the full external processing pipeline for one sample

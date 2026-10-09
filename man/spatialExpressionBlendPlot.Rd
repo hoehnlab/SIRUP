@@ -8,6 +8,7 @@ spatialExpressionBlendPlot(
   object,
   features,
   combine = TRUE,
+  combine_sample_plots = FALSE,
   feature_1_alt_name = NULL,
   feature_2_alt_name = NULL,
   assay = NULL,
@@ -19,6 +20,7 @@ spatialExpressionBlendPlot(
   top_right = "#00FF00",
   zero_tol = 0,
   images = NULL,
+  sample_id = NULL,
   image_scale = NULL,
   swap_coords = NULL,
   point_size = 0.6,
@@ -34,6 +36,10 @@ spatialExpressionBlendPlot(
 \item{features}{Two feature names.}
 
 \item{combine}{Combine plots with patchwork.}
+
+\item{combine_sample_plots}{For multi-sample SIRAP objects, combine plots
+from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
+multi-sample calls return a named list of per-sample plots.}
 
 \item{feature_1_alt_name}{Optional axis label for the first feature in the
 blend legend.}
@@ -58,6 +64,9 @@ blend legend.}
 \item{zero_tol}{Values at or below this threshold are treated as zero.}
 
 \item{images}{Optional Seurat image names.}
+
+\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
+SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
 
 \item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
 

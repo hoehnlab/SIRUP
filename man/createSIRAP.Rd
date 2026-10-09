@@ -24,7 +24,8 @@ createSIRAP(
 )
 }
 \arguments{
-\item{spatial}{A Seurat object containing spatial expression data.}
+\item{spatial}{A Seurat object containing spatial expression data, or a named
+list of Seurat objects representing multiple spatial contexts.}
 
 \item{receptors}{A data-frame-like AIRR-style receptor table.}
 
@@ -34,9 +35,12 @@ in the object metadata.}
 
 \item{image}{Optional receptor column identifying the Seurat image.}
 
-\item{sample}{Optional sample column present in both \code{receptors} and the
-Seurat metadata. It is recorded for sample-aware analyses and validation;
-Seurat cell or spot names must still be unique within \code{spatial}.}
+\item{sample}{Optional sample column present in \code{receptors}. It is recorded
+for sample-aware analyses and validation. When \code{spatial} is a named list,
+this field is required and maps receptor rows to spatial object names;
+values that do not match any spatial object are retained as nonspatial
+receptor records. If this metadata column is absent from a Seurat section,
+it is auto-populated from the spatial-list name.}
 
 \item{clone}{Optional clone-assignment column. The default is recorded
 when present and otherwise stored as \code{NULL}.}
@@ -49,11 +53,15 @@ counts. Default is \code{NULL}.}
 
 \item{image_scale}{Optional default Seurat image scale used by spatial
 plotting and spatial-statistic functions when they receive this SIRAP
-object and their own \code{image_scale} argument is \code{NULL}.}
+object and their own \code{image_scale} argument is \code{NULL}. For multi-spatial
+objects, may be a named character vector/list keyed by spatial sample; an
+unnamed value is used as the global fallback.}
 
 \item{swap_coords}{Optional default coordinate-orientation flag used by
 spatial plotting and spatial-statistic functions when they receive this
-SIRAP object and their own \code{swap_coords} argument is \code{NULL}.}
+SIRAP object and their own \code{swap_coords} argument is \code{NULL}. For
+multi-spatial objects, may be a named logical vector/list keyed by spatial
+sample; an unnamed value is used as the global fallback.}
 
 \item{metadata}{Optional named list of dataset-level metadata.}
 
@@ -80,11 +88,15 @@ be annotated as polygon members when polygons are attached.}
 A SIRAP object with S3 class \code{sirap}.
 }
 \description{
-A SIRAP object keeps a spatial Seurat object and an AIRR-style receptor
-table together with receptor field mappings needed to join and interpret
-them. Field mappings are stored in \code{metadata$receptor_fields}. Derived
-results can be kept in the optional named \code{analyses} list so that the data
-and the analyses made from them can travel together.
+A SIRAP object keeps spatial Seurat data and an AIRR-style receptor table
+together with receptor field mappings needed to join and interpret them.
+\code{spatial} may be one Seurat object or a named list of Seurat objects. When a
+list is supplied, the receptor \code{sample} field maps receptor rows to the
+corresponding spatial object name; receptor rows whose sample does not match
+a spatial object are retained as nonspatial receptor records. Field mappings
+are stored in \code{metadata$receptor_fields}. Derived results can be kept in the
+optional named \code{analyses} list so that the data and the analyses made from
+them can travel together.
 The receptor table is stored as a \code{\link[tibble:tibble]{tibble::tibble()}}. Unmatched receptor
 rows are retained, which allows a table to contain bulk or other
 nonspatial receptor records alongside spatial records.

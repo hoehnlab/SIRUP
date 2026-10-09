@@ -10,6 +10,7 @@ spatialLee(
   y,
   x_type = c("feature", "metadata"),
   y_type = c("feature", "metadata"),
+  assay = NULL,
   layer = "counts",
   images = NULL,
   image_scale = NULL,
@@ -32,6 +33,8 @@ spatialLee(
 \item{x_type}{Type of \code{x}: either \code{feature} or \code{metadata}.}
 
 \item{y_type}{Type of \code{y}: either \code{feature} or \code{metadata}.}
+
+\item{assay}{Optional assay to use when \code{x_type} or \code{y_type} is \code{"feature"}.}
 
 \item{layer}{Seurat expression layer to fetch for features.}
 

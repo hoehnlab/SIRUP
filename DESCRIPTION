@@ -54,15 +54,12 @@ Suggests:
     ggtext,
     ggtree,
     knitr,
-    mallinfo,
     nabor,
     pals,
     patchwork,
     pheatmap,
     qpdf,
-    rgl,
     rmarkdown,
-    rrad (>= 1.2.1),
     scoper,
     seqinr,
     Seurat,
@@ -76,8 +73,6 @@ Suggests:
     stats,
     testthat (>= 3.0.0),
     withr
-Remotes:
-    github::indianewok/rrad@v1.2.1
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.1.0
 VignetteBuilder: knitr

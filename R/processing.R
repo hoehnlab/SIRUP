@@ -265,8 +265,25 @@ filterAirr <- function(airr_df,
 #'   `filterAirr(min_consensus_count = )`. Note `BuildConsensus.py -q` is fixed at
 #'   20 and has no effect here, because the pipeline input is FASTA and carries
 #'   no base qualities.
+#' @param umi_support Group reads by spatial barcode AND UMI before the barcode
+#'   step. Reads of one molecule that differ by a sequencing error cluster apart
+#'   at `identity = 1.0` and are then dropped as singletons; this stage joins
+#'   them first, at `umi_identity`, so they support each other. Each
+#'   barcode-UMI cluster yields one consensus carrying `cc_bc_umi` (its reads,
+#'   counted before the productive subset) and `n_productive_reads` (the reads
+#'   the consensus was built from; a cluster with none is discarded). The
+#'   barcode step then runs with `BuildConsensus -n 1` and sums both fields, and
+#'   `min_umi_support` replaces the read floor. Needs an AIRR table with `umi`
+#'   and `productive` columns.
+#' @param umi_field Column holding the UMI, used with `umi_support`.
+#' @param umi_identity Cluster identity for the barcode-UMI step. Looser than
+#'   the barcode step on purpose, so error-bearing reads of one molecule group.
+#' @param min_umi_support Lowest summed `cc_bc_umi` a barcode consensus needs.
+#'   Applied after `MakeDb.py`, writing a filtered copy beside `db_pass`, so a
+#'   run can be re-thresholded without reprocessing.
 #' @param consensus_copy_fields Optional fields passed to `BuildConsensus.py
-#'   --cf`.
+#'   --cf`. With `umi_support`, `CC_BC_UMI` and `N_PRODUCTIVE_READS` are
+#'   prepended and summed.
 #' @param consensus_copy_action Action passed to `BuildConsensus.py --act` when
 #'   `consensus_copy_fields` is provided.
 #' @param consensus_max_error Maximum error rate passed to
@@ -282,7 +299,8 @@ filterAirr <- function(airr_df,
 #' @return A named list, invisibly: `raw_airr`, `filtered_airr`,
 #'   `spatial_fasta`, `n_raw`, `n_filtered` (each `NULL` for steps that did
 #'   not run), plus the pRESTO/IgBLAST output paths. `db_pass` is the final
-#'   AIRR TSV.
+#'   AIRR TSV. With `umi_support`, `db_pass_umi` is that table filtered to
+#'   `min_umi_support`.
 #' @export
 processSpatialSample <- function(input,
                                  output_dir = NULL,
@@ -312,6 +330,10 @@ processSpatialSample <- function(input,
                                  parse_key = paste0(cluster_field, "_cluster"),
                                  parse_act = "set",
                                  consensus_min_count = 1,
+                                 umi_support = FALSE,
+                                 umi_field = "umi",
+                                 umi_identity = 0.95,
+                                 min_umi_support = 2,
                                  consensus_copy_fields = NULL,
                                  consensus_copy_action = "majority",
                                  consensus_max_error = 0.1,
@@ -330,6 +352,10 @@ processSpatialSample <- function(input,
   }
   if (is.null(igblast_exec)) {
     igblast_exec <- file.path(igblast_base, "bin", "igblastn")
+  }
+
+  if (isTRUE(umi_support) && identical(input_type, "spatial_fasta")) {
+    rlang::abort("`umi_support = TRUE` needs an AIRR table, because the UMI and productive columns are read from it.")
   }
 
   if (input_type == "auto") {
@@ -470,18 +496,45 @@ processSpatialSample <- function(input,
         "collapse together."
       ))
     }
-    spatial_fasta <- file.path(output_dir, sprintf("%s_%s_spatial.fasta", sample_name, receptor))
-    writeFastqas(
-      data.frame(
-        id = filtered[[header_col]],
-        seq = filtered[[fasta_sequence_col]],
-        stringsAsFactors = FALSE
-      ),
-      fn = spatial_fasta,
-      type = "fa",
-      header_col = "id"
-    )
-    message("Wrote ", n_filtered, " filtered sequences to ", spatial_fasta)
+    if (isTRUE(umi_support)) {
+      # One consensus per barcode-UMI cluster, carrying its read support, so the
+      # barcode stage below weighs molecules rather than reads.
+      umi_out <- .sirap_umi_consensus(
+        df = filtered,
+        output_dir = output_dir,
+        sample_name = sample_name,
+        receptor = receptor,
+        cluster_field = cluster_field,
+        umi_field = umi_field,
+        umi_identity = umi_identity,
+        consensus_freq = consensus_freq,
+        consensus_min_count = consensus_min_count,
+        consensus_max_error = consensus_max_error,
+        consensus_max_gap = consensus_max_gap,
+        delimiters = delimiters,
+        muscle_exec = muscle_exec,
+        nproc = nproc,
+        fasta_sequence_col = fasta_sequence_col,
+        # filterAirr's `id` default, unless the caller overrode it.
+        id_col = if (is.null(args$id)) "sequence_id" else args$id,
+        align_log = if (is.null(align_log)) NULL else sub("\\.log$", "_umi.log", align_log),
+        consensus_log = if (is.null(consensus_log)) NULL else sub("\\.log$", "_umi.log", consensus_log)
+      )
+      spatial_fasta <- umi_out$spatial_fasta
+    } else {
+      spatial_fasta <- file.path(output_dir, sprintf("%s_%s_spatial.fasta", sample_name, receptor))
+      writeFastqas(
+        data.frame(
+          id = filtered[[header_col]],
+          seq = filtered[[fasta_sequence_col]],
+          stringsAsFactors = FALSE
+        ),
+        fn = spatial_fasta,
+        type = "fa",
+        header_col = "id"
+      )
+      message("Wrote ", n_filtered, " filtered sequences to ", spatial_fasta)
+    }
   }
 
   germline_files <- Sys.glob(path.expand(germline_glob))
@@ -489,10 +542,23 @@ processSpatialSample <- function(input,
     rlang::abort(paste0("`germline_glob` matched no files: ", germline_glob))
   }
 
+  # With UMI support the read floor moves off BuildConsensus: every molecule
+  # consensus is kept (-n 1) and the summed `cc_bc_umi` decides afterwards.
+  barcode_min_count <- consensus_min_count
+  if (isTRUE(umi_support)) {
+    barcode_min_count <- 1
+    support_fields <- c("CC_BC_UMI", "N_PRODUCTIVE_READS")
+    consensus_copy_action <- c(
+      rep("sum", length(support_fields)),
+      rep(consensus_copy_action, length.out = length(consensus_copy_fields))
+    )
+    consensus_copy_fields <- c(support_fields, consensus_copy_fields)
+  }
+
   paths <- .presto_paths(
     spatial_fasta, identity, consensus_freq, output_dir,
     cluster_field = cluster_field,
-    consensus_min_count = consensus_min_count
+    consensus_min_count = barcode_min_count
   )
   commands <- .sirap_presto_commands(
     paths = paths,
@@ -510,7 +576,7 @@ processSpatialSample <- function(input,
     parse_fields = parse_fields,
     parse_key = parse_key,
     parse_act = parse_act,
-    consensus_min_count = consensus_min_count,
+    consensus_min_count = barcode_min_count,
     consensus_copy_fields = consensus_copy_fields,
     consensus_copy_action = consensus_copy_action,
     consensus_max_error = consensus_max_error,
@@ -534,11 +600,28 @@ processSpatialSample <- function(input,
     .sirap_run_command(cmd$exec, cmd$args)
   }
 
+  db_pass_umi <- NULL
+  if (isTRUE(umi_support) && file.exists(paths$db_pass)) {
+    db <- .sirap_read_airr(paths$db_pass)
+    sup_col <- intersect(c("cc_bc_umi", "CC_BC_UMI"), colnames(db))
+    if (length(sup_col) == 0L) {
+      rlang::warn("MakeDb wrote no `cc_bc_umi` column, so the `min_umi_support` floor was not applied.")
+    } else {
+      support <- suppressWarnings(as.numeric(db[[sup_col[[1L]]]]))
+      keep <- !is.na(support) & support >= min_umi_support
+      db_pass_umi <- sub("\\.tsv$", sprintf("_umi_support_%s.tsv", min_umi_support), paths$db_pass)
+      data.table::fwrite(db[keep, , drop = FALSE], db_pass_umi, sep = "\t", quote = FALSE, na = "")
+      message("UMI support floor (>= ", min_umi_support, "): kept ", sum(keep),
+              " of ", nrow(db), " consensus sequences -> ", db_pass_umi)
+    }
+  }
+
   invisible(c(
     list(
       raw_airr = raw_airr_tsv,
       filtered_airr = filtered_tsv,
       spatial_fasta = spatial_fasta,
+      db_pass_umi = db_pass_umi,
       n_raw = n_raw,
       n_filtered = n_filtered
     ),
@@ -701,9 +784,19 @@ spatialReceptorSummary <- function(airr_df, spatial_id = "spatial_id_2um") {
   airr_df <- inputs$receptors
   spatial_id <- inputs$spatial_id_col %||% "spatial_id_2um"
   .check_required_cols(airr_df, spatial_id, "airr_df")
+  sample_col <- if (is.list(inputs$receptor_fields)) inputs$receptor_fields$sample else NULL
+  n_spatial_ids <- if (!is.null(sample_col) && sample_col %in% colnames(airr_df)) {
+    sample_values <- as.character(airr_df[[sample_col]])
+    spatial_values <- as.character(airr_df[[spatial_id]])
+    keep <- !is.na(sample_values) & nzchar(sample_values) &
+      !is.na(spatial_values) & nzchar(spatial_values)
+    length(unique(paste(sample_values[keep], spatial_values[keep], sep = "\r")))
+  } else {
+    dplyr::n_distinct(airr_df[[spatial_id]], na.rm = TRUE)
+  }
   tibble::tibble(
     n_sequences = nrow(airr_df),
-    n_spatial_ids = dplyr::n_distinct(airr_df[[spatial_id]], na.rm = TRUE),
+    n_spatial_ids = n_spatial_ids,
     n_loci = if ("locus" %in% colnames(airr_df)) dplyr::n_distinct(airr_df$locus, na.rm = TRUE) else NA_integer_,
     n_productive = if ("productive" %in% colnames(airr_df)) sum(airr_df$productive %in% c(TRUE, "TRUE", "T"), na.rm = TRUE) else NA_integer_
   )
@@ -765,6 +858,7 @@ collapseIdenticalNeighbors <- function(object,
     receptor_fields <- .sirap_receptor_fields(object)
     receptors <- object$receptors
     spatial_id <- spatial_id %||% receptor_fields$spatial_id
+    sample_col <- .sirap_receptor_sample_col(receptors, receptor_fields, object$spatial)
     seurat_object <- object$spatial
   } else {
     if (is.null(seurat_object)) {
@@ -772,6 +866,7 @@ collapseIdenticalNeighbors <- function(object,
     }
     receptors <- .as_data_frame(object)
     spatial_id <- .guess_spatial_id_col(receptors, spatial_id)
+    sample_col <- .sirap_receptor_sample_col(receptors, spatial = seurat_object)
   }
   options <- .sirap_spatial_options(
     object = if (is_sirap) object else seurat_object,
@@ -791,6 +886,7 @@ collapseIdenticalNeighbors <- function(object,
     receptors = receptors,
     tissue_positions = coords,
     spatial_id_col = spatial_id,
+    sample_col = sample_col,
     sequence_col = sequence,
     consensus_count_col = consensus_count,
     num_neighbors_non_boundary = num_neighbors_non_boundary
@@ -812,6 +908,7 @@ collapseIdenticalNeighbors <- function(object,
 .collapse_identical_neighbors_table <- function(receptors,
                                                 tissue_positions,
                                                 spatial_id_col,
+                                                sample_col = NULL,
                                                 sequence_col,
                                                 consensus_count_col,
                                                 num_neighbors_non_boundary) {
@@ -819,20 +916,58 @@ collapseIdenticalNeighbors <- function(object,
   .check_required_cols(data, c(spatial_id_col, sequence_col, consensus_count_col), "receptors")
   .check_required_cols(tissue_positions, c("cell", "x", "y"), "spatial coordinates")
 
+  if (!is.null(sample_col) && sample_col %in% colnames(data) && "sample" %in% colnames(tissue_positions)) {
+    samples <- intersect(
+      unique(stats::na.omit(as.character(data[[sample_col]]))),
+      unique(stats::na.omit(as.character(tissue_positions$sample)))
+    )
+    if (length(samples) == 0L) {
+      rlang::abort("No receptor sample values matched names in the spatial coordinate table.")
+    }
+    out <- lapply(samples, function(sample) {
+      sample_data <- data[as.character(data[[sample_col]]) == sample, , drop = FALSE]
+      sample_tissue <- tissue_positions[as.character(tissue_positions$sample) == sample, , drop = FALSE]
+      sample_tissue$sample <- NULL
+      .collapse_identical_neighbors_table(
+        receptors = sample_data,
+        tissue_positions = sample_tissue,
+        spatial_id_col = spatial_id_col,
+        sample_col = NULL,
+        sequence_col = sequence_col,
+        consensus_count_col = consensus_count_col,
+        num_neighbors_non_boundary = num_neighbors_non_boundary
+      )
+    })
+    return(dplyr::bind_rows(out))
+  }
+
   temp <- .collapse_identical_neighbors_temp_cols(data)
   data[[temp$spatial_id]] <- as.character(data[[spatial_id_col]])
+  if (!is.null(sample_col) && sample_col %in% colnames(data) && "sample" %in% colnames(tissue_positions)) {
+    data[[temp$sample]] <- as.character(data[[sample_col]])
+  }
   data[[temp$sequence]] <- as.character(data[[sequence_col]])
   data[[temp$row]] <- seq_len(nrow(data))
 
   tissue_positions <- .as_data_frame(tissue_positions)
   tissue_positions <- tissue_positions[is.finite(tissue_positions$x) & is.finite(tissue_positions$y), , drop = FALSE]
-  tissue_positions <- tissue_positions[!duplicated(tissue_positions$cell), c("cell", "x", "y"), drop = FALSE]
-  colnames(tissue_positions) <- c(temp$spatial_id, temp$x, temp$y)
+  sample_keep <- if (temp$sample %in% colnames(data)) "sample" else character()
+  tissue_keep <- unique(c(intersect(sample_keep, colnames(tissue_positions)), "cell", "x", "y"))
+  tissue_positions <- tissue_positions[!duplicated(tissue_positions[, intersect(c("sample", "cell"), tissue_keep), drop = FALSE]), tissue_keep, drop = FALSE]
+  colnames(tissue_positions)[colnames(tissue_positions) == "cell"] <- temp$spatial_id
+  colnames(tissue_positions)[colnames(tissue_positions) == "sample"] <- temp$sample
+  colnames(tissue_positions)[colnames(tissue_positions) == "x"] <- temp$x
+  colnames(tissue_positions)[colnames(tissue_positions) == "y"] <- temp$y
 
+  merge_by <- if (temp$sample %in% colnames(data) && temp$sample %in% colnames(tissue_positions)) {
+    c(temp$sample, temp$spatial_id)
+  } else {
+    temp$spatial_id
+  }
   data <- merge(
     data,
     tissue_positions,
-    by = temp$spatial_id,
+    by = merge_by,
     all.x = FALSE,
     all.y = FALSE,
     sort = FALSE
@@ -844,8 +979,9 @@ collapseIdenticalNeighbors <- function(object,
   # A spatial_id can contain duplicate rows for the same sequence. Collapse those
   # first so the spatial graph only has one observation per spatial_id/sequence.
   cli::cli_progress_step("Ensuring one row per spatial_id/sequence...")
+  group_cols <- c(intersect(temp$sample, colnames(data)), temp$spatial_id, temp$sequence)
   data <- data %>%
-    dplyr::group_by(dplyr::across(dplyr::all_of(c(temp$spatial_id, temp$sequence)))) %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(group_cols))) %>%
     dplyr::summarise(
       dplyr::across(dplyr::all_of(consensus_count_col), sum),
       dplyr::across(dplyr::all_of(c(temp$x, temp$y)), mean),
@@ -916,10 +1052,12 @@ collapseIdenticalNeighbors <- function(object,
   # Build the graph only on spots with receptor observations, but keep the
   # threshold learned from all tissue positions so boundary spots are not
   # over-connected.
-  spatial_ids <- unique(data[[temp$spatial_id]])
-  tissue_data <- tissue_positions[tissue_positions[[temp$spatial_id]] %in% spatial_ids, ]
+  spatial_keys <- unique(data[, merge_by, drop = FALSE])
+  tissue_key <- .sirap_key_vector(.sirap_collapse_key_table(tissue_positions, temp))
+  observed_key <- .sirap_key_vector(.sirap_collapse_key_table(spatial_keys, temp))
+  tissue_data <- tissue_positions[tissue_key %in% observed_key, ]
   coords <- as.matrix(tissue_data[, c(temp$x, temp$y)])
-  spatial_ids_ordered <- tissue_data[[temp$spatial_id]]
+  spatial_ids_ordered <- .sirap_key_vector(.sirap_collapse_key_table(tissue_data, temp))
   n <- nrow(tissue_data)
   n_pretty <- scales::comma(n)
   n_all_pretty <- scales::comma(n_all)
@@ -977,7 +1115,8 @@ collapseIdenticalNeighbors <- function(object,
 
   for (si in seq_len(n_seqs)) {
     seq_i <- unique_sequences[[si]]
-    seq_spatial_ids <- data[[temp$spatial_id]][data[[temp$sequence]] == seq_i]
+    seq_rows <- data[data[[temp$sequence]] == seq_i, , drop = FALSE]
+    seq_spatial_ids <- .sirap_key_vector(.sirap_collapse_key_table(seq_rows, temp))
     seq_idx <- spatial_id_to_idx[seq_spatial_ids]
 
     # For each exact sequence, connected components identify spatially
@@ -1010,15 +1149,16 @@ collapseIdenticalNeighbors <- function(object,
   cli::cli_progress_step("Collapsing components to representative spots...")
 
   coords_df <- data.frame(spatial_ids_ordered, cx = coords[, 1], cy = coords[, 2])
-  colnames(coords_df)[1] <- temp$spatial_id
+  colnames(coords_df)[1] <- ".sirap_collapse_key"
 
-  colnames(component_df)[colnames(component_df) == ".sirap_spatial_id"] <- temp$spatial_id
+  colnames(component_df)[colnames(component_df) == ".sirap_spatial_id"] <- ".sirap_collapse_key"
   colnames(component_df)[colnames(component_df) == ".sirap_sequence"] <- temp$sequence
-  component_df <- merge(component_df, coords_df, by = temp$spatial_id)
+  component_df <- merge(component_df, coords_df, by = ".sirap_collapse_key")
+  data$.sirap_collapse_key <- .sirap_key_vector(.sirap_collapse_key_table(data, temp))
   component_df <- merge(
     component_df,
-    data[, c(temp$spatial_id, temp$sequence, consensus_count_col)],
-    by = c(temp$spatial_id, temp$sequence)
+    data[, c(".sirap_collapse_key", temp$sequence, consensus_count_col)],
+    by = c(".sirap_collapse_key", temp$sequence)
   )
 
   representative_rows <- lapply(
@@ -1053,10 +1193,10 @@ collapseIdenticalNeighbors <- function(object,
 
   cli::cli_progress_step("Filtering data to representative spots...")
 
-  keep_keys <- paste(representative_df[[temp$spatial_id]], representative_df[[temp$sequence]], sep = "___")
-  all_keys <- paste(data[[temp$spatial_id]], data[[temp$sequence]], sep = "___")
+  keep_keys <- paste(representative_df$.sirap_collapse_key, representative_df[[temp$sequence]], sep = "___")
+  all_keys <- paste(data$.sirap_collapse_key, data[[temp$sequence]], sep = "___")
   result <- data[all_keys %in% keep_keys, ]
-  result <- result[, setdiff(colnames(result), unlist(temp, use.names = FALSE)), drop = FALSE]
+  result <- result[, setdiff(colnames(result), c(unlist(temp, use.names = FALSE), ".sirap_collapse_key")), drop = FALSE]
   n_result_pretty <- scales::comma(nrow(result))
   n_data_pretty <- scales::comma(nrow(data))
   n_removed_pretty <- scales::comma(nrow(data) - nrow(result))
@@ -1074,6 +1214,7 @@ collapseIdenticalNeighbors <- function(object,
 .collapse_identical_neighbors_temp_cols <- function(data) {
   temp <- c(
     spatial_id = ".sirap_collapse_barcode",
+    sample = ".sirap_collapse_sample",
     sequence = ".sirap_collapse_sequence",
     row = ".sirap_collapse_row",
     x = ".sirap_collapse_x",
@@ -1089,6 +1230,14 @@ collapseIdenticalNeighbors <- function(object,
     ))
   }
   as.list(temp)
+}
+
+.sirap_collapse_key_table <- function(dat, temp) {
+  out <- data.frame(.sirap_spatial_id = as.character(dat[[temp$spatial_id]]), stringsAsFactors = FALSE)
+  if (temp$sample %in% colnames(dat)) {
+    out$.sirap_sample <- as.character(dat[[temp$sample]])
+  }
+  out
 }
 
 # Build the expected pRESTO/IgBLAST output filenames from the input FASTA stem
