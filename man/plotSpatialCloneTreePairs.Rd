@@ -17,6 +17,8 @@ plotSpatialCloneTreePairs(
   image_scale = NULL,
   swap_coords = NULL,
   images = NULL,
+  sample = NULL,
+  sample_id = NULL,
   zoom = FALSE,
   tipsize = NULL,
   scale = 0.01,
@@ -34,6 +36,7 @@ plotSpatialCloneTreePairs(
   spatial_tip_alpha = 1,
   order_points = FALSE,
   show_spatial_legend = FALSE,
+  combine_sample_plots = FALSE,
   polygons = FALSE,
   polygon_x = "x",
   polygon_y = "y",
@@ -87,6 +90,13 @@ value must be supplied explicitly or by SIRAP object metadata.}
 
 \item{images}{Optional Seurat image names.}
 
+\item{sample}{Optional spatial sample name(s) to show for multi-spatial
+SIRAP objects.}
+
+\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
+SIRAP objects. Defaults to \code{NULL}, which plots all samples. This is a
+clearer alias for \code{sample} when selecting spatial samples.}
+
 \item{zoom}{Zoom spatial plots to the clone. Defaults to \code{FALSE}, which
 shows the full tissue area covered by spatial coordinates.}
 
@@ -116,6 +126,10 @@ other (solid) shapes colour the whole marker as before.}
 \item{tree_linewidth}{Line width of the tree branches, passed to
 \code{ggtree::ggtree()}.}
 
+\item{tip_stroke}{Stroke width for filled tree tip shapes.}
+
+\item{treescale_fontsize}{Font size for the tree scale bar label.}
+
 \item{treescale}{Backward-compatible alias for \code{scale}.}
 
 \item{spatial_tip_size}{Size of spatial tip points.}
@@ -127,6 +141,10 @@ groups appear on top.}
 
 \item{show_spatial_legend}{Show a color legend based on the tree tip colors
 below the spatial plot.}
+
+\item{combine_sample_plots}{For multi-sample SIRAP objects, combine spatial
+plots from different samples into one patchwork. Defaults to \code{FALSE}, so
+multi-sample calls return one tree/spatial pair per sample.}
 
 \item{polygons}{Draw region polygons on each spatial panel. \code{FALSE} (the
 default) draws no polygons. \code{TRUE} uses the polygons stored in the SIRAP

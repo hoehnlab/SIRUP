@@ -9,6 +9,7 @@ plotSpatialRegionReceptors(
   object,
   color = "clone_id",
   images = NULL,
+  sample_id = NULL,
   image_scale = NULL,
   swap_coords = NULL,
   polygon_val = NULL,
@@ -23,7 +24,8 @@ plotSpatialRegionReceptors(
   other_color = "#D3D3D3",
   plot_other = TRUE,
   zoom = FALSE,
-  combine = TRUE
+  combine = TRUE,
+  combine_sample_plots = FALSE
 )
 }
 \arguments{
@@ -36,6 +38,9 @@ points. When omitted, the clone column recorded by
 \code{spatialCloneDominance()} is used.}
 
 \item{images}{Optional Seurat image names to show.}
+
+\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
+SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
 
 \item{image_scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
@@ -72,6 +77,10 @@ before grouping remaining levels as \code{other_label}.}
 shows the full tissue image.}
 
 \item{combine}{Combine plots with patchwork when possible.}
+
+\item{combine_sample_plots}{For multi-sample SIRAP objects, combine plots
+from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
+multi-sample calls return a named list of per-sample plots.}
 }
 \value{
 A ggplot/patchwork object or a named list of ggplots when

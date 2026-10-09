@@ -8,9 +8,9 @@
 \alias{removeAnalysis}
 \title{Store and retrieve analyses in a SIRAP object}
 \usage{
-getAnalysis(x, name)
+getAnalysis(x, name, sample = NULL)
 
-setAnalysis(x, name, value, validate = TRUE)
+setAnalysis(x, name, value, sample = NULL, validate = TRUE)
 
 listAnalyses(x)
 
@@ -20,6 +20,9 @@ removeAnalysis(x, name, validate = TRUE)
 \item{x}{A SIRAP object.}
 
 \item{name}{A single non-empty analysis name.}
+
+\item{sample}{Optional spatial sample name for per-sample analysis storage
+or retrieval.}
 
 \item{value}{Any R object to store, including \code{NULL}.}
 

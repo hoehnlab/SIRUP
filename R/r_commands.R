@@ -41,19 +41,32 @@ writeFastqas <- function(df, fn, type = "fq", header_col = "id",
   invisible(fn)
 }
 
+#' Run garbage collection and request OS memory cleanup
+#'
+#' Calls [gc()] and, on macOS, requests memory cleanup with the system `purge`
+#' command when it is available.
+#'
+#' @return Invisibly returns `NULL`.
 #' @export
 aggc <- function() {
   gc()
   sysname <- Sys.info()[["sysname"]]
-  if (sysname == "Linux") {
-    mallinfo::malloc.trim()
-  } 
   if (sysname == "Darwin") {  
     # macOS
     system("purge", ignore.stdout = TRUE, ignore.stderr = TRUE)
   }
+  invisible(NULL)
 }
 
+#' Probability of observing a subsequence by chance
+#'
+#' Calculates the chance of seeing at least one exact subsequence of length
+#' `subsequence_length` in a random nucleotide sequence of length
+#' `sequence_length`, assuming independent bases with equal probability.
+#'
+#' @param subsequence_length Length of the queried subsequence.
+#' @param sequence_length Length of the sequence being searched.
+#' @return Numeric vector of probabilities.
 #' @export
 substringOdds<-function(subsequence_length, sequence_length){
   return((mapply(sequence_length, subsequence_length, FUN = 

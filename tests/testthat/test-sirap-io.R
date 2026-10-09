@@ -1,6 +1,6 @@
 make_io_test_sirap <- function() {
   skip_if_not_installed("SeuratObject")
-  spatial <- SeuratObject::CreateSeuratObject(
+  spatial <- sirap_test_seurat(
     counts = matrix(
       1,
       nrow = 1,

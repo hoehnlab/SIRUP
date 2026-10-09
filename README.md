@@ -36,9 +36,8 @@ vsearch, and muscle. Configure their paths for your installation; see
 
 Demultiplexing and read-layout/whitelist setup happen upstream of SIRAP.
 The standalone [rrad package](https://github.com/indianewok/rrad) is one way
-to prepare those reads. It is listed in `Suggests`, with its GitHub source
-pinned to `v1.2.1`. Install it separately when using the preparation example
-below; SIRAP does not require rrad to process an existing FASTA.
+to prepare those reads. Install it separately when using the preparation
+example below; SIRAP does not require rrad to process an existing FASTA.
 
 ```r
 # Separate upstream preparation with rrad:

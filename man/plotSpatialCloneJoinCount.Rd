@@ -9,6 +9,7 @@ plotSpatialCloneJoinCount(
   object,
   clone_val,
   images = NULL,
+  sample_id = NULL,
   polygon_val = NULL,
   polygon = NULL,
   image_scale = NULL,
@@ -24,7 +25,8 @@ plotSpatialCloneJoinCount(
   polygon_linewidth = 0.6,
   image_alpha = 1,
   zoom = FALSE,
-  title = NULL
+  title = NULL,
+  combine_sample_plots = FALSE
 )
 }
 \arguments{
@@ -36,6 +38,9 @@ plotSpatialCloneJoinCount(
 \item{clone_val}{Clone ID to plot.}
 
 \item{images}{Optional image names to include.}
+
+\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
+SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
 
 \item{polygon_val}{Optional polygon IDs to include.}
 
@@ -70,9 +75,14 @@ the selected clone.}
 \item{zoom}{Zoom the spatial panel to the spots used in the test.}
 
 \item{title}{Optional title for the combined plot.}
+
+\item{combine_sample_plots}{For multi-sample SIRAP objects, combine plots
+from different spatial samples into one figure. Defaults to \code{FALSE}, so
+multi-sample calls return a named list of per-sample plots.}
 }
 \value{
-One combined ggplot object.
+One combined ggplot object, or a named list of plots for
+multi-sample objects when \code{combine_sample_plots = FALSE}.
 }
 \description{
 Combines a tissue map of one tested clone with its observed and expected

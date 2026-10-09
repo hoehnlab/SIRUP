@@ -8,13 +8,14 @@ plotSpatialPolygonPies(
   dominance,
   object,
   fill = "clone_id",
-  mode = c("side_by_side", "spatial_clipped", "dominance_only"),
+  mode = c("side_by_side", "spatial_clipped", "dominance_only", "stacked_bar"),
   top_n = 10,
   label_top_n = 0,
   other_label = "Other",
   other_color = "#D3D3D3",
   plot_other = TRUE,
   images = NULL,
+  sample_id = NULL,
   image_scale = NULL,
   swap_coords = NULL,
   polygon_val = NULL,
@@ -25,7 +26,8 @@ plotSpatialPolygonPies(
   pies_per_page = 6L,
   pie_order = c("receptors", "polygon"),
   spatial_legend = FALSE,
-  zoom = FALSE
+  zoom = FALSE,
+  combine_sample_plots = FALSE
 )
 }
 \arguments{
@@ -38,7 +40,11 @@ chart. When omitted, the clone column recorded by
 \code{spatialCloneDominance()} is used.}
 
 \item{mode}{Plot style. \code{side_by_side} shows ordinary pies beside a polygon
-map. \code{spatial_clipped} clips pies to polygon boundaries on the tissue.}
+map. \code{spatial_clipped} clips pies to polygon boundaries on the tissue.
+\code{dominance_only} draws just the per-polygon pies (no map). \code{stacked_bar}
+draws one stacked bar per polygon in a single panel (no map), each bar
+stacked by \code{fill} level in dominance order -- the bar analogue of
+\code{dominance_only}.}
 
 \item{top_n}{Number of most frequent \code{fill} levels to identify within each
 polygon. The union of these polygon-level top levels is shown individually
@@ -54,6 +60,9 @@ everywhere; remaining levels are grouped as \code{other_label}.}
 \item{plot_other}{Plot grouped lower-frequency BCRs as \code{other_label}.}
 
 \item{images}{Optional Seurat image names to show.}
+
+\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
+SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
 
 \item{image_scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
@@ -88,6 +97,10 @@ plots. Defaults to \code{FALSE}.}
 
 \item{zoom}{Zoom to the plotted polygon extents. Defaults to \code{FALSE}, which
 shows the full tissue image.}
+
+\item{combine_sample_plots}{For multi-sample SIRAP objects, combine plots
+from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
+multi-sample calls return a named list of per-sample plots.}
 }
 \value{
 A ggplot, patchwork object, or named list of ggplots.

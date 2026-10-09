@@ -6,12 +6,13 @@
 \alias{addPolygons}
 \title{Add or retrieve polygon geometry from a SIRAP object}
 \usage{
-getPolygons(x)
+getPolygons(x, sample = NULL)
 
 addPolygons(
   x,
   polygons = NULL,
   polygons_path = NULL,
+  sample = NULL,
   include_boundary = TRUE,
   validate = TRUE
 )
@@ -19,9 +20,13 @@ addPolygons(
 \arguments{
 \item{x}{A SIRAP object.}
 
+\item{sample}{Optional sample name(s) used to tag polygons loaded from
+\code{polygons_path} when the path vector is not named.}
+
 \item{polygons}{Optional polygon table.}
 
-\item{polygons_path}{Optional path to a flat polygon vertex CSV.}
+\item{polygons_path}{Optional path to a flat polygon vertex CSV, or a named
+vector/list of CSV paths keyed by spatial sample for multi-spatial objects.}
 
 \item{include_boundary}{Whether spots exactly on polygon edges should be
 annotated as polygon members.}

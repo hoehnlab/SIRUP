@@ -10,6 +10,7 @@ plotSpatialCloneDensity3D(
   clone = "clone_id",
   weight = NULL,
   images = NULL,
+  sample_id = NULL,
   image_scale = NULL,
   swap_coords = NULL,
   polygon_val = NULL,
@@ -55,6 +56,9 @@ groups. When omitted, the clone column recorded by
 \code{NULL}, each receptor row contributes one count.}
 
 \item{images}{Optional Seurat image names to show.}
+
+\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
+SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
 
 \item{image_scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
@@ -129,18 +133,18 @@ surfaces.}
 \item{texture_dir}{Optional directory where the tissue texture PNG should be
 written. Use a persistent directory when saving an HTML widget.}
 
-\item{as_widget}{Return an \code{rgl} htmlwidget. When \code{FALSE}, the scene is drawn
+\item{as_widget}{Return an rgl htmlwidget. When \code{FALSE}, the scene is drawn
 and the current rgl device ID is returned.}
 
-\item{return_data}{Return the computed density data instead of drawing an rgl
-scene. This does not require \code{rgl}.}
+\item{return_data}{Return the computed density data instead of drawing an
+interactive scene. This does not require rgl.}
 }
 \value{
-An \code{rgl} widget/device ID, or a list of computed plot data when
+An rgl widget/device ID, or a list of computed plot data when
 \code{return_data = TRUE}.
 }
 \description{
 Uses the regional receptor rows returned by \code{spatialCloneDominance()} to draw
 smoothed clone-abundance density surfaces above the original tissue image in
-an interactive \code{rgl} scene.
+an interactive rgl scene.
 }

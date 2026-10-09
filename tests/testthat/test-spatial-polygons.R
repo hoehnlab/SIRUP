@@ -25,7 +25,7 @@ test_that("point-in-polygon includes boundary points when requested", {
 
 test_that("polygon assignment annotates spatial metadata and receptor tables", {
   skip_if_not_installed("SeuratObject")
-  spatial <- SeuratObject::CreateSeuratObject(
+  spatial <- sirap_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -97,7 +97,7 @@ test_that("polygon assignment can use receptor coordinate columns directly", {
 
 test_that("overlapping polygon assignment keeps flags and chooses smallest polygon", {
   skip_if_not_installed("SeuratObject")
-  spatial <- SeuratObject::CreateSeuratObject(
+  spatial <- sirap_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -278,7 +278,7 @@ test_that("polygon plotting data preserves polygon groups and flips plotting y",
 
 test_that("plotSpatialPolygons colors stored polygons by an analysis column", {
   skip_if_not_installed("SeuratObject")
-  spatial <- SeuratObject::CreateSeuratObject(
+  spatial <- sirap_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -315,7 +315,7 @@ test_that("plotSpatialPolygons colors stored polygons by an analysis column", {
   locked <- vapply(c(".sirap_spatial_images", ".sirap_spatial_data", ".sirap_spatial_base"),
                    bindingIsLocked, logical(1), env = ns)
   for (name in names(locked)[locked]) unlockBinding(name, ns)
-  assign(".sirap_spatial_images", function(object, images = NULL) "metadata", envir = ns)
+  assign(".sirap_spatial_images", function(object, images = NULL, sample_id = NULL) "metadata", envir = ns)
   assign(".sirap_spatial_data", function(object, image, image_scale = NULL, swap_coords = NULL) {
     list(coords = data.frame(cell = paste0("cell", 1:4), x = 0:3, y = 0:3, .sirap_y = 0:-3), image = NULL)
   }, envir = ns)
@@ -380,7 +380,7 @@ test_that("plotSpatialPolygons colors stored polygons by an analysis column", {
 
 test_that("plotSpatialPolygons can place labels outside polygons", {
   skip_if_not_installed("SeuratObject")
-  spatial <- SeuratObject::CreateSeuratObject(
+  spatial <- sirap_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -412,7 +412,7 @@ test_that("plotSpatialPolygons can place labels outside polygons", {
   locked <- vapply(c(".sirap_spatial_images", ".sirap_spatial_data", ".sirap_spatial_base"),
                    bindingIsLocked, logical(1), env = ns)
   for (name in names(locked)[locked]) unlockBinding(name, ns)
-  assign(".sirap_spatial_images", function(object, images = NULL) "metadata", envir = ns)
+  assign(".sirap_spatial_images", function(object, images = NULL, sample_id = NULL) "metadata", envir = ns)
   assign(".sirap_spatial_data", function(object, image, image_scale = NULL, swap_coords = NULL) {
     list(coords = data.frame(cell = paste0("cell", 1:4), x = 0:3, y = 0:3, .sirap_y = 0:-3), image = NULL)
   }, envir = ns)
@@ -588,6 +588,96 @@ test_that("3D clone density data groups clones and builds surfaces", {
   expect_equal(unname(out$colors["Other"]), "#EEEEEE")
   expect_true(all(out$image_extent$xlim >= 0 & out$image_extent$xlim <= 100))
   expect_true(all(out$image_extent$ylim >= -100 & out$image_extent$ylim <= 0))
+})
+
+test_that("polygon plots filter tagged polygons per spatial sample", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("ggplot2")
+
+  make_spatial <- function() {
+    spatial <- sirap_test_seurat(
+      counts = matrix(1, nrow = 1, ncol = 2, dimnames = list("gene", c("cell1", "cell2")))
+    )
+    spatial$x <- c(0, 10)
+    spatial$y <- c(0, 10)
+    spatial
+  }
+  x <- createSIRAP(
+    spatial = list(section_a = make_spatial(), section_b = make_spatial()),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1"),
+      sample = c("section_a", "section_b"),
+      clone_id = c("A", "B"),
+      locus = "IGH",
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+  polygons <- data.frame(
+    polygon = rep(c("a_gc", "b_gc"), each = 4),
+    sample = rep(c("section_a", "section_b"), each = 4),
+    x = rep(c(-1, 1, 0, -1), 2),
+    y = rep(c(-1, -1, 1, -1), 2),
+    stringsAsFactors = FALSE
+  )
+  x <- addPolygons(x, polygons = polygons)
+
+  plots <- plotSpatialPolygons(x, combine = FALSE)
+
+  expect_equal(unique(as.character(plots[["section_a"]]$data$polygon)), "a_gc")
+  expect_equal(unique(as.character(plots[["section_b"]]$data$polygon)), "b_gc")
+
+  section_b_plot <- plotSpatialPolygons(x, sample_id = "section_b", combine = FALSE)
+  expect_equal(names(section_b_plot), "section_b")
+  expect_equal(unique(as.character(section_b_plot[["section_b"]]$data$polygon)), "b_gc")
+})
+
+test_that("spatial clipped polygon pies filter tagged polygons per spatial sample", {
+  skip_if_not_installed("SeuratObject")
+  skip_if_not_installed("ggplot2")
+  skip_if_not_installed("sf")
+
+  make_spatial <- function() {
+    spatial <- sirap_test_seurat(
+      counts = matrix(1, nrow = 1, ncol = 2, dimnames = list("gene", c("cell1", "cell2")))
+    )
+    spatial$x <- c(0, 10)
+    spatial$y <- c(0, 10)
+    spatial
+  }
+  x <- createSIRAP(
+    spatial = list(section_a = make_spatial(), section_b = make_spatial()),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1"),
+      sample = c("section_a", "section_b"),
+      clone_id = c("A", "B"),
+      locus = "IGH",
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+  polygons <- data.frame(
+    polygon = rep(c("a_gc", "b_gc"), each = 4),
+    sample = rep(c("section_a", "section_b"), each = 4),
+    x = rep(c(-1, 1, 0, -1), 2),
+    y = rep(c(-1, -1, 1, -1), 2),
+    stringsAsFactors = FALSE
+  )
+  dominance <- spatialCloneDominance(x, polygon = polygons)
+
+  plot_a <- plotSpatialPolygonPies(dominance, x, mode = "spatial_clipped", images = "section_a")
+  plot_b <- plotSpatialPolygonPies(dominance, x, mode = "spatial_clipped", images = "section_b")
+
+  expect_equal(unique(as.character(plot_a$layers[[1]]$data$polygon)), "a_gc")
+  expect_equal(unique(as.character(plot_b$layers[[1]]$data$polygon)), "b_gc")
 })
 
 test_that("spatialCloneDominance counts clone proportions inside a polygon", {
@@ -882,6 +972,35 @@ test_that("side-by-side pies order polygons by receptor count", {
   expect_equal(.sirap_pie_polygon_order(tied, "receptors"), c("1", "2", "3"))
 })
 
+test_that("stacked polygon dominance bars use clean polygon labels", {
+  skip_if_not_installed("ggplot2")
+
+  region_bcrs <- data.frame(
+    polygon = c("section_a::1", "section_a::1", "section_a::2"),
+    polygon_label = c("1", "1", "2"),
+    clone_id = c("A", "B", "A"),
+    stringsAsFactors = FALSE
+  )
+
+  pie_data <- .sirap_polygon_pie_summary(
+    region_bcrs,
+    fill = "clone_id",
+    top_n = NULL,
+    label_top_n = 1L,
+    other_label = "Other"
+  )
+  expect_equal(unique(pie_data$polygon), c("section_a::1", "section_a::2"))
+  expect_equal(unique(pie_data$polygon_label), c("1", "2"))
+
+  p <- .sirap_stacked_bar_polygon_dominance(
+    pie_data,
+    fill_values = c(A = "#111111", B = "#222222"),
+    label_size = 3,
+    pie_order = "polygon"
+  )
+  expect_equal(p$scales$get_scales("x")$labels, c("1", "2"))
+})
+
 test_that("expandPolygons moves vertices outward from the centroid", {
   # Closed unit square centered at the origin. Centroid is (0, 0), so each
   # vertex is sqrt(2) from the centroid. With delta = 1, each vertex moves to
@@ -936,7 +1055,7 @@ test_that("expandPolygons handles multiple polygons and SIRAP objects", {
   expect_equal(as.character(out$polygon), as.character(multi$polygon))
 
   # SIRAP object input returns a valid, expanded object.
-  object <- SeuratObject::CreateSeuratObject(
+  object <- sirap_test_seurat(
     counts = matrix(1, 1, 4, dimnames = list("gene", paste0("cell", 1:4)))
   )
   object$x <- c(0, 1, 2, 3)
@@ -973,7 +1092,7 @@ test_that(".sirap_polygon_feature_values labels source and guards non-numeric", 
   counts <- matrix(c(0, 1, 2, 3, 4, 5, 6, 7),
                    nrow = 2,
                    dimnames = list(c("GeneA", "GeneB"), paste0("cell", 1:4)))
-  obj <- SeuratObject::CreateSeuratObject(counts = counts)
+  obj <- sirap_test_seurat(counts = counts)
   gene <- "GeneA"
 
   # assay hit keeps its source label
@@ -1036,4 +1155,47 @@ test_that(".sirap_nn_index scan backend agrees with whichever backend is chosen"
     qx <- runif(1); qy <- runif(1)
     expect_identical(as.integer(chosen$query(qx, qy)), as.integer(scan_query(qx, qy)))
   }
+})
+
+test_that(".sirap_region_from_dominance selects by polygon_id or polygon label", {
+  skip_if_not_installed("SeuratObject")
+
+  make_spatial <- function() {
+    s <- sirap_test_seurat(
+      counts = matrix(1, nrow = 1, ncol = 2, dimnames = list("gene", c("cell1", "cell2")))
+    )
+    s$x <- c(0, 10); s$y <- c(0, 10); s
+  }
+  x <- createSIRAP(
+    spatial = list(section_a = make_spatial(), section_b = make_spatial()),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1"),
+      sample = c("section_a", "section_b"),
+      clone_id = c("A", "B"),
+      locus = "IGH",
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode", sample = "sample", clone = "clone_id",
+    image_scale = "hires", swap_coords = FALSE
+  )
+  # Same polygon label "gc1" in BOTH sections -> composite, section-unique ids
+  # (section_a::gc1 / section_b::gc1) with a shared clean `polygon` label "gc1".
+  polygons <- data.frame(
+    polygon = rep("gc1", 8),
+    sample = rep(c("section_a", "section_b"), each = 4),
+    x = rep(c(-1, 1, 0, -1), 2),
+    y = rep(c(-1, -1, 1, -1), 2),
+    stringsAsFactors = FALSE
+  )
+  x <- addPolygons(x, polygons = polygons)
+  dom <- spatialCloneDominance(x, locus_val = "IGH")
+
+  # Composite polygon_id selects ONE section only.
+  r_a <- SIRAP:::.sirap_region_from_dominance(dom, polygon_val = "section_a::gc1")
+  expect_equal(nrow(r_a$receptors), 1L)
+  expect_equal(as.character(r_a$receptors$sample), "section_a")
+
+  # Clean label "gc1" matches both sections (backwards compatible).
+  r_all <- SIRAP:::.sirap_region_from_dominance(dom, polygon_val = "gc1")
+  expect_equal(nrow(r_all$receptors), 2L)
 })

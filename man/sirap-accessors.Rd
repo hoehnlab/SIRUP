@@ -3,19 +3,27 @@
 \name{sirap-accessors}
 \alias{sirap-accessors}
 \alias{getSpatial}
+\alias{spatialSamples}
 \alias{getReceptors}
 \title{Extract data from a SIRAP object}
 \usage{
-getSpatial(x)
+getSpatial(x, sample = NULL)
 
-getReceptors(x)
+spatialSamples(x)
+
+getReceptors(x, sample = NULL)
 }
 \arguments{
 \item{x}{A SIRAP object.}
+
+\item{sample}{Optional spatial sample name to retrieve when the SIRAP object
+contains a named spatial list.}
 }
 \value{
-\code{getSpatial()} returns the Seurat object. \code{getReceptors()}
-returns the receptor tibble.
+\code{getSpatial()} returns the Seurat object, or the named list of
+Seurat objects for multi-spatial SIRAP objects. \code{spatialSamples()} returns
+spatial sample names. \code{getReceptors()} returns the receptor tibble, or the
+receptor rows for one spatial sample when \code{sample} is supplied.
 }
 \description{
 Extract data from a SIRAP object

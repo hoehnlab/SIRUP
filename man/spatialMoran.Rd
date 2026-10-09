@@ -12,6 +12,7 @@ spatialMoran(
   receptors = NULL,
   spatial_id = NULL,
   clone = NULL,
+  assay = NULL,
   layer = "counts",
   images = NULL,
   image_scale = NULL,
@@ -43,6 +44,8 @@ Pass this explicitly when using separate Seurat and receptor objects.}
 \item{clone}{Clone column in \code{receptors}; used only when
 \code{variable_type = "clone"}. Defaults to \code{NULL}; when \code{object} is a SIRAP
 object, the stored receptor clone field is used when available.}
+
+\item{assay}{Optional assay to use when \code{variable_type = "feature"}.}
 
 \item{layer}{Seurat expression layer to fetch for features.}
 

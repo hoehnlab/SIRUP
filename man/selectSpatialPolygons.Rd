@@ -78,6 +78,9 @@ running from an interactive HPC session through an SSH tunnel.}
 running from an interactive HPC session through an SSH tunnel.}
 
 \item{quiet}{Suppress warnings while the app is running.}
+
+\item{sample}{Optional spatial sample name(s) to show for multi-spatial
+SIRAP objects.}
 }
 \value{
 Data frame with \code{spatial_id}, \code{x}, \code{y}, \code{num}, \code{polygon}, and \code{image} columns.

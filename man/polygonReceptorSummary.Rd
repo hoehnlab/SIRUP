@@ -13,6 +13,7 @@ polygonReceptorSummary(
   weight = NULL,
   summary_columns = NULL,
   summary_operations = NULL,
+  include_total_spots = FALSE,
   analysis_name = "polygon_receptor_summary",
   validate = TRUE
 )
@@ -42,6 +43,10 @@ weighted by this column.}
 length 1 or the same length as \code{summary_columns}. Supported operations are
 \code{count}, \code{sum}, \code{mean}, \code{median}, \code{variance}, \code{var}, \code{sd}, \code{min}, \code{max},
 \code{any}, \code{all}, and \code{cat}.}
+
+\item{include_total_spots}{For SIRAP objects, include \code{n_total_spatial_ids},
+the number of all spatial spots assigned to each polygon, including spots
+without receptor rows.}
 
 \item{analysis_name}{Name used when storing the summary in a SIRAP object.}
 
