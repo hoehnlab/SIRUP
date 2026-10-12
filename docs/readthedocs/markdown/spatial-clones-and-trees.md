@@ -1,0 +1,248 @@
+Spatial Clones and BCR Trees
+================
+
+This vignette shows how to call clones, visualize BCR/TCR clone
+locations over tissue, build BCR lineage trees with `dowser`, and pair
+each tree with the spatial locations of its colored tips.
+
+For now, this vignette uses the full local thymus dataset from the
+walkthrough. We should replace this with a small packaged toy dataset
+later.
+
+This read-the-docs version can be rendered in two modes. By default,
+code is shown but not evaluated. To generate plots from the full
+dataset, render on the cluster with `SIRUP_RENDER_PLOTS=true`.
+
+## Setup
+
+## Call BCR and TCR Clones
+
+SIRUP does not wrap `scoper` clone calling. Use `scoper` directly, then
+pass the resulting data frames to SIRUP plotting functions.
+
+``` r
+bcrClones <- scoper::hierarchicalClones(
+  filter(bcrTopBarcode, productive),
+  threshold = 0.1,
+  summarize_clones = FALSE,
+  nproc = nproc
+)
+
+tcrClones <- scoper::identicalClones(
+  filter(tcrTopBarcode, productive),
+  summarize_clones = FALSE,
+  nproc = nproc
+)
+
+saveRDS(bcrClones, bcrClonesPath)
+saveRDS(tcrClones, tcrClonesPath)
+```
+
+If clone calling has already been run, load the saved RDS files instead.
+
+``` r
+bcrClones <- readRDS(bcrClonesPath)
+tcrClones <- readRDS(tcrClonesPath)
+```
+
+## Choose Clones to Plot
+
+For a first pass, choose a couple of clones with enough tips to be
+interesting but not so many that the tree becomes hard to read.
+
+``` r
+bcrCloneCounts <- bcrClones %>%
+  filter(!is.na(clone_id)) %>%
+  count(clone_id, sort = TRUE)
+
+tcrCloneCounts <- tcrClones %>%
+  filter(!is.na(clone_id)) %>%
+  count(clone_id, sort = TRUE)
+
+bcrCloneIds <- bcrCloneCounts %>%
+  filter(n >= 30, n <= 50) %>%
+  slice_head(n = 2) %>%
+  pull(clone_id)
+
+tcrCloneIds <- tcrCloneCounts %>%
+  filter(n >= 30, n <= 50) %>%
+  slice_head(n = 2) %>%
+  pull(clone_id)
+
+bcrCloneCounts %>% filter(clone_id %in% bcrCloneIds)
+tcrCloneCounts %>% filter(clone_id %in% tcrCloneIds)
+```
+
+## Plot Clone Locations Over Tissue
+
+`plotReceptors()` can plot any receptor table, including a subset of one
+clone.
+
+``` r
+bcrClonePlots <- lapply(
+  bcrCloneIds,
+  function(cloneId) {
+    plotReceptors(
+      object = thymus,
+      receptors = filter(bcrClones, .data$clone_val == .env$cloneId),
+      group = "clone_id",
+      group_val = cloneId,
+      barcode = "barcode_8um",
+      colors = "#2c7fb8",
+      receptor_size = 1.7,
+      title = paste("BCR clone", cloneId)
+    )
+  }
+)
+
+tcrClonePlots <- lapply(
+  tcrCloneIds,
+  function(cloneId) {
+    plotReceptors(
+      object = thymus,
+      receptors = filter(tcrClones, .data$clone_val == .env$cloneId),
+      group = "clone_id",
+      group_val = cloneId,
+      barcode = "barcode_8um",
+      colors = "#d95f02",
+      receptor_size = 1.7,
+      title = paste("TCR clone", cloneId)
+    )
+  }
+)
+
+cowplot::plot_grid(plotlist = bcrClonePlots, ncol = 2)
+cowplot::plot_grid(plotlist = tcrClonePlots, ncol = 2)
+```
+
+## Build BCR Trees with Dowser
+
+SIRUP keeps tree building in `dowser`, then focuses on coloring and
+pairing trees with spatial plots.
+
+``` r
+germlineDir <- path.expand("~/software/germlines/imgt/human/vdj")
+refs <- dowser::readIMGT(germlineDir)
+
+bcrTreeInput <- bcrClones %>%
+  filter(clone_id %in% bcrCloneIds, !is.na(clone_id))
+
+bcrTreeInput <- dowser::createGermlines(bcrTreeInput, refs, id = "sequence_id")
+
+bcrFormattedClones <- dowser::formatClones(
+  bcrTreeInput,
+  id = "sequence_id",
+  germ = "germline_alignment",
+  traits = c("barcode_8um"),
+  columns = c("x", "y", "barcode_8um"),
+  filterstop = FALSE,
+  collapse = TRUE,
+  add_count = "consensus_count" %in% colnames(bcrTreeInput),
+  num_fields = if ("consensus_count" %in% colnames(bcrTreeInput)) "consensus_count" else NULL
+)
+
+bcrTrees <- dowser::getTrees(
+  bcrFormattedClones,
+  nproc = nproc
+)
+
+saveRDS(bcrTrees, bcrTreesPath)
+```
+
+If trees have already been built, load them from disk.
+
+``` r
+bcrTrees <- readRDS(bcrTreesPath)
+```
+
+## Pair BCR Trees with Spatial Tip Locations
+
+`plotSpatialCloneTreePairs()` assigns tip colors, draws the BCR tree
+with `ggtree`, and creates a matching spatial plot over the tissue. By
+default, each tip gets its own color.
+
+``` r
+pairedTreeSpatialPlots <- plotSpatialCloneTreePairs(
+  bcrTrees,
+  object = thymus,
+  barcode = "barcode_8um",
+  clone_val = bcrCloneIds,
+  id = "sequence_id",
+  image_scale = "hires",
+  swap_coords = FALSE,
+  treescale = 0.01,
+  zoom = FALSE
+)
+
+firstCloneId <- names(pairedTreeSpatialPlots)[1]
+cowplot::plot_grid(
+  pairedTreeSpatialPlots[[firstCloneId]]$tree,
+  pairedTreeSpatialPlots[[firstCloneId]]$spatial_clone,
+  ncol = 2,
+  rel_widths = c(1.2, 1)
+)
+```
+
+For larger clones, coloring every tip can be hard to read.
+`clusterTreesTips()` cuts the `k - 1` longest branches in each tree,
+creating `k` connected subtrees. Passing that new column to
+`plotSpatialCloneTreePairs()` colors the tree and spatial plot by
+genetically similar tip groups.
+
+``` r
+bcrTreesClustered <- clusterTreesTips(
+  bcrTrees,
+  k = 6,
+  id = "sequence_id",
+  cluster = "tree_cluster"
+)
+
+pairedTreeSpatialClusterPlots <- plotSpatialCloneTreePairs(
+  bcrTreesClustered,
+  object = thymus,
+  barcode = "barcode_8um",
+  clone_val = bcrCloneIds,
+  id = "sequence_id",
+  image_scale = "hires",
+  swap_coords = FALSE,
+  color_by = "tree_cluster",
+  treescale = 0.01,
+  zoom = FALSE
+)
+
+firstCloneId <- names(pairedTreeSpatialClusterPlots)[1]
+cowplot::plot_grid(
+  pairedTreeSpatialClusterPlots[[firstCloneId]]$tree,
+  pairedTreeSpatialClusterPlots[[firstCloneId]]$spatial_clone,
+  ncol = 2,
+  rel_widths = c(1.2, 1)
+)
+```
+
+If you want SIRUP to choose a separate cluster number for each tree, set
+`k = "auto"` and adjust `k_range` or `improvement_threshold` as needed.
+
+``` r
+bcrTreesAutoClustered <- clusterTreesTips(
+  bcrTrees,
+  k = "auto",
+  id = "sequence_id",
+  cluster = "tree_cluster",
+  k_range = 1:8,
+  improvement_threshold = 0.10
+)
+
+bcrTreesAutoClustered$tree_cluster_k
+attr(bcrTreesAutoClustered, "tree_cluster_scores")
+```
+
+Export all paired tree/spatial plots to a single PDF.
+
+``` r
+spatialCloneTreePairsToPDF(
+  pairedTreeSpatialPlots,
+  file.path(plotDir, sprintf("%s_bcr_tree_spatial_pairs.pdf", sampleLower)),
+  width = 12,
+  height = 6
+)
+```
