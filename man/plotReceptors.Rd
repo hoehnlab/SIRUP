@@ -46,11 +46,11 @@ plotReceptors(
 )
 }
 \arguments{
-\item{object}{Seurat object, or a SIRAP object containing both spatial and
+\item{object}{Seurat object, or a SIRUP object containing both spatial and
 receptor data.}
 
 \item{receptors}{AIRR-style receptor table containing a spatial ID and
-grouping column. May be omitted when \code{object} is a SIRAP object.}
+grouping column. May be omitted when \code{object} is a SIRUP object.}
 
 \item{group}{Column in \code{receptors} used to select and color receptor
 groups, for example \code{"clone_id"}.}
@@ -100,12 +100,12 @@ on top.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRAP object metadata.}
+value must be supplied explicitly or by SIRUP object metadata.}
 
 \item{images}{Optional Seurat image names.}
 
 \item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
+SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
 
 \item{image_alpha}{Tissue image opacity.}
 
@@ -119,7 +119,7 @@ full tissue area covered by the spatial coordinates.}
 
 \item{polygons}{Draw region polygons under the receptor points on each
 spatial panel. \code{FALSE} (the default) draws no polygons. \code{TRUE} uses the
-polygons stored in the SIRAP object. You can also pass a data frame of
+polygons stored in the SIRUP object. You can also pass a data frame of
 polygon vertices, or a path to a CSV file of polygon vertices. Vertex
 tables need \code{polygon_x} and \code{polygon_y} columns, plus \code{polygon_id} to
 separate multiple polygons.}
@@ -154,7 +154,7 @@ polygon ID is used.}
 
 \item{combine}{Combine image panels with patchwork.}
 
-\item{combine_sample_plots}{For multi-sample SIRAP objects, combine plots
+\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
 from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
 multi-sample calls return a named list of per-sample plots.}
 }

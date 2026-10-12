@@ -19,11 +19,11 @@ assignSpatialPolygons(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial coordinates, or a SIRAP object.}
+\item{object}{Seurat object with spatial coordinates, or a SIRUP object.}
 
 \item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
 \code{y} columns by default. If a \code{polygon} column is present, each polygon is
-evaluated independently. If \code{object} is a SIRAP object and \code{polygon} is
+evaluated independently. If \code{object} is a SIRUP object and \code{polygon} is
 omitted, the object's stored polygons are used.}
 
 \item{images}{Optional Seurat image names to use for spatial coordinates.}
@@ -33,7 +33,7 @@ omitted, the object's stored polygons are used.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRAP object metadata.}
+value must be supplied explicitly or by SIRUP object metadata.}
 
 \item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
 exists.}
@@ -59,6 +59,6 @@ subsetting the object. Spatial IDs outside the selected polygon(s) receive
 \code{NA} in the primary metadata column. Spatial IDs inside overlapping polygons
 are assigned to the smallest polygon by area in the primary metadata column.
 Additional logical columns named \verb{polygon_<ID>} record membership in each
-individual polygon. When \code{object} is a SIRAP object and \code{polygon} is omitted,
-the stored polygons in the SIRAP object are used.
+individual polygon. When \code{object} is a SIRUP object and \code{polygon} is omitted,
+the stored polygons in the SIRUP object are used.
 }

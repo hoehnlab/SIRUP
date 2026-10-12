@@ -24,10 +24,10 @@ polygonAbundance(
 )
 }
 \arguments{
-\item{receptors}{A SIRAP object or an AIRR-style receptor data frame.}
+\item{receptors}{A SIRUP object or an AIRR-style receptor data frame.}
 
 \item{polygons}{Optional polygon table used to define the output polygon
-order. When \code{NULL}, polygon IDs are taken from the SIRAP object or from
+order. When \code{NULL}, polygon IDs are taken from the SIRUP object or from
 \code{polygon_id} values already present in \code{receptors}.}
 
 \item{polygon_id}{Primary polygon assignment column in \code{receptors}.}
@@ -35,7 +35,7 @@ order. When \code{NULL}, polygon IDs are taken from the SIRAP object or from
 \item{mode}{\code{"by_polygon"} runs the abundance calculation once per polygon;
 \code{"all_polygons"} runs it once on all receptors in any polygon.}
 
-\item{analysis_name}{Name used when storing the abundance result in a SIRAP
+\item{analysis_name}{Name used when storing the abundance result in a SIRUP
 object.}
 
 \item{clone}{alakazam: name of the data column containing clone identifiers.}
@@ -70,14 +70,14 @@ If cell_id=NULL then the function will assume bulk data.}
 
 \item{progress}{alakazam: if TRUE show a progress bar.}
 
-\item{validate}{Whether to validate an updated SIRAP object.}
+\item{validate}{Whether to validate an updated SIRUP object.}
 }
 \value{
-An updated SIRAP object for SIRAP input, otherwise abundance result(s).
+An updated SIRUP object for SIRUP input, otherwise abundance result(s).
 }
 \description{
 Runs \code{\link[alakazam:estimateAbundance]{alakazam::estimateAbundance()}} on receptor rows in each polygon, or on
 all receptors that fall in any polygon. Polygons with fewer than \code{min_n}
-receptor rows return \code{NULL}. SIRAP input stores the result as an analysis and
+receptor rows return \code{NULL}. SIRUP input stores the result as an analysis and
 returns the updated object.
 }

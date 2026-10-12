@@ -218,8 +218,8 @@ test_that("checkSpacedRepair accepts REPAIR that exports a model matrix", {
   writeLines(
     c(
       "#!/bin/sh",
-      "echo SIRAP_REPAIR_ANALYZE_PATH=/tmp/repair/analyze.py",
-      "echo SIRAP_REPAIR_EXPORTS_MODEL_MATRIX=True"
+      "echo SIRUP_REPAIR_ANALYZE_PATH=/tmp/repair/analyze.py",
+      "echo SIRUP_REPAIR_EXPORTS_MODEL_MATRIX=True"
     ),
     fake_conda
   )
@@ -237,8 +237,8 @@ test_that("checkSpacedRepair rejects REPAIR without a model matrix export", {
   writeLines(
     c(
       "#!/bin/sh",
-      "echo SIRAP_REPAIR_ANALYZE_PATH=/tmp/repair/analyze.py",
-      "echo SIRAP_REPAIR_EXPORTS_MODEL_MATRIX=False"
+      "echo SIRUP_REPAIR_ANALYZE_PATH=/tmp/repair/analyze.py",
+      "echo SIRUP_REPAIR_EXPORTS_MODEL_MATRIX=False"
     ),
     fake_conda
   )

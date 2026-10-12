@@ -1,4 +1,4 @@
-sirap_test_seurat <- function(counts, ...) {
+sirup_test_seurat <- function(counts, ...) {
   testthat::skip_if_not_installed("SeuratObject")
   testthat::skip_if_not_installed("Matrix")
   if (!inherits(counts, "Matrix")) {

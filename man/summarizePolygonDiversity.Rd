@@ -14,7 +14,7 @@ summarizePolygonDiversity(
 )
 }
 \arguments{
-\item{object}{A SIRAP object.}
+\item{object}{A SIRUP object.}
 
 \item{q}{Diversity order to extract, such as \code{2} for Simpson diversity.}
 
@@ -25,13 +25,13 @@ summarizePolygonDiversity(
 
 \item{tolerance}{Numeric tolerance used when matching \code{q}.}
 
-\item{validate}{Whether to validate the updated SIRAP object.}
+\item{validate}{Whether to validate the updated SIRUP object.}
 }
 \value{
-An updated SIRAP object containing the diversity summary analysis.
+An updated SIRUP object containing the diversity summary analysis.
 }
 \description{
 Extracts the diversity estimate for a specific diversity order from a stored
 polygon diversity analysis, producing one table row per polygon and saving
-that table as a new SIRAP analysis.
+that table as a new SIRUP analysis.
 }

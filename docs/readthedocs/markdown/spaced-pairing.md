@@ -1,7 +1,7 @@
 SPaCeD Heavy-Light Chain Pairing
 ================
 
-SIRAP includes SPaCeD-style heavy-light chain pairing helpers for
+SIRUP includes SPaCeD-style heavy-light chain pairing helpers for
 spatial BCR data. The implementation follows the SPaCeD idea of
 combining spatial evidence with a REPAIR model matrix, then reporting
 the top light-chain candidates for each heavy clone across omega
@@ -14,7 +14,7 @@ exports the fitted model matrix needed for downstream pairing.
 
 By default, this page shows runnable code but does not execute it. To
 run the toy REPAIR command while rendering, set
-`SIRAP_RUN_SPACED_EXAMPLES=true` in an environment with the modified
+`SIRUP_RUN_SPACED_EXAMPLES=true` in an environment with the modified
 REPAIR conda environment available.
 
 ## Method Overview
@@ -23,7 +23,7 @@ Let `H` be a heavy-clone by spatial-bin count matrix and `L` be a
 light-clone by spatial-bin count matrix. For Visium HD, use Space Ranger
 8um barcodes as the native spatial bins.
 
-SIRAP’s scalable default builds a sparse Gaussian spatial kernel `K`
+SIRUP’s scalable default builds a sparse Gaussian spatial kernel `K`
 over the 8um barcode coordinates:
 
 ``` text
@@ -39,16 +39,16 @@ S_ij = (h_i^T K l_j) / sqrt((h_i^T K h_i) * (l_j^T K l_j))
 ```
 
 Rows are normalized before combining with REPAIR. For each omega weight
-`w`, SIRAP forms:
+`w`, SIRUP forms:
 
 ``` text
 O_ij(w) = w * S_ij + (1 - w) * R_ij
 ```
 
-where `R` is the row-normalized REPAIR model matrix. SIRAP then reports
+where `R` is the row-normalized REPAIR model matrix. SIRUP then reports
 the top light-chain candidates for each heavy clone. A light clone can
 be reported for multiple heavy clones, which is useful when public light
-chains are plausible. For each candidate pair, SIRAP also reports:
+chains are plausible. For each candidate pair, SIRUP also reports:
 
 ``` text
 light_specificity_score_ij = O_ij / sum_i' O_i'j
@@ -61,18 +61,18 @@ clones.
 
 By default, both REPAIR and `spacedSpatialAffinity()` keep clones
 observed in at least two spatial features with count at least one (`mxo
-= 2`, `x = 1` in REPAIR; `min_x_obs = 2`, `filter_x = 1` in SIRAP). Use
+= 2`, `x = 1` in REPAIR; `min_x_obs = 2`, `filter_x = 1` in SIRUP). Use
 matching thresholds in both steps so the REPAIR model matrix and spatial
 affinity matrix describe the same clone universe.
 
-SIRAP also keeps a faithful `method = "ot"` option that computes
+SIRUP also keeps a faithful `method = "ot"` option that computes
 SPaCeD-style point-pattern distances with `spatstat::pppdist()`. This is
 much slower but can be parallelized with `nproc`.
 
 ## Setup
 
 ``` r
-library(SIRAP)
+library(SIRUP)
 
 repair_conda_env <- Sys.getenv("REPAIR_CONDA_ENV", "repair")
 repair_conda_bin <- Sys.getenv("CONDA_EXE", "conda")
@@ -222,7 +222,7 @@ if (length(toyRepairModelFiles) != 1L) {
 }
 ```
 
-If the model matrix is unnamed, SIRAP follows the current SPaCeD
+If the model matrix is unnamed, SIRUP follows the current SPaCeD
 convention and aligns it positionally to the spatial affinity matrix.
 This assumes REPAIR rows follow the heavy-clone order in the input
 matrix and columns follow the light-clone order. Prefer named model
@@ -287,6 +287,6 @@ spatial_affinity <- spacedSpatialAffinity(
 )
 ```
 
-With `kernel_sigma = NULL`, SIRAP estimates the median nearest-neighbor
+With `kernel_sigma = NULL`, SIRUP estimates the median nearest-neighbor
 spacing among spatial features and uses twice that value.
 `kernel_radius` defaults to `3 * kernel_sigma`.

@@ -26,7 +26,7 @@ selectSpatialPolygons(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial coordinates, or a SIRAP object.}
+\item{object}{Seurat object with spatial coordinates, or a SIRUP object.}
 
 \item{feature}{Optional feature shown as a color scale under the clicked
 vertices. The app also lets you change this interactively. Looked up in
@@ -45,7 +45,7 @@ column) can be displayed without adding them to an assay.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRAP object metadata.}
+value must be supplied explicitly or by SIRUP object metadata.}
 
 \item{save_path}{Optional CSV path for saved vertices.}
 
@@ -80,7 +80,7 @@ running from an interactive HPC session through an SSH tunnel.}
 \item{quiet}{Suppress warnings while the app is running.}
 
 \item{sample}{Optional spatial sample name(s) to show for multi-spatial
-SIRAP objects.}
+SIRUP objects.}
 }
 \value{
 Data frame with \code{spatial_id}, \code{x}, \code{y}, \code{num}, \code{polygon}, and \code{image} columns.
@@ -92,7 +92,7 @@ coordinate plot. Each click snaps to the nearest spatial ID. Use
 at the end of each polygon.
 The returned vertices may describe overlapping or nested polygons. Polygon
 membership is resolved when these vertices are passed to
-\code{\link[=assignSpatialPolygons]{assignSpatialPolygons()}}, \code{\link[=assignReceptorPolygons]{assignReceptorPolygons()}}, \code{\link[=createSIRAP]{createSIRAP()}}, or
+\code{\link[=assignSpatialPolygons]{assignSpatialPolygons()}}, \code{\link[=assignReceptorPolygons]{assignReceptorPolygons()}}, \code{\link[=createSIRUP]{createSIRUP()}}, or
 \code{\link[=addPolygons]{addPolygons()}}: the primary \code{polygon_id} uses the smallest matching polygon
 by area, while logical \verb{polygon_<ID>} columns retain membership in each
 individual polygon.

@@ -12,12 +12,12 @@ later.
 
 This read-the-docs version can be rendered in two modes. By default,
 code is shown but not evaluated. To generate plots from the full
-dataset, render on the cluster with `SIRAP_RENDER_PLOTS=true`.
+dataset, render on the cluster with `SIRUP_RENDER_PLOTS=true`.
 
 ## Setup
 
 ``` r
-library(SIRAP)
+library(SIRUP)
 library(dplyr)
 library(ggplot2)
 library(cowplot)
@@ -29,7 +29,7 @@ sampleId <- "M5"
 sampleLower <- tolower(sampleId)
 
 thymusDir <- normalizePath("/dartfs/rc/lab/H/HoehnK/Hunter/Thymus_VisiumHD", mustWork = TRUE)
-outDir <- file.path(thymusDir, "SIRAP_walkthrough", sampleId)
+outDir <- file.path(thymusDir, "SIRUP_walkthrough", sampleId)
 finalAirrDir <- file.path(outDir, "03_final_spatial_airr")
 plotDir <- file.path(outDir, "plots")
 dir.create(plotDir, recursive = TRUE, showWarnings = FALSE)
@@ -50,7 +50,7 @@ use the same object for plotting and spatial statistics.
 bcr_spots <- unique(bcrTopBarcode$barcode_8um)
 tcr_spots <- unique(tcrTopBarcode$barcode_8um)
 
-thymus[["sirap_receptor_type"]] <- dplyr::case_when(
+thymus[["sirup_receptor_type"]] <- dplyr::case_when(
   colnames(thymus) %in% bcr_spots & colnames(thymus) %in% tcr_spots ~ "BCR + TCR",
   colnames(thymus) %in% bcr_spots ~ "BCR",
   colnames(thymus) %in% tcr_spots ~ "TCR",
@@ -224,13 +224,13 @@ MS4A1-positive spots.
 cd3e_counts <- Seurat::FetchData(thymus, vars = "CD3E", layer = "counts")
 ms4a1_counts <- Seurat::FetchData(thymus, vars = "MS4A1", layer = "counts")
 
-thymus[["sirap_cd3e_tcr_mark"]] <- dplyr::case_when(
+thymus[["sirup_cd3e_tcr_mark"]] <- dplyr::case_when(
   colnames(thymus) %in% tcr_spots ~ "TCR",
   cd3e_counts[colnames(thymus), "CD3E"] > 0 ~ "CD3E+",
   TRUE ~ NA_character_
 )
 
-thymus[["sirap_ms4a1_bcr_mark"]] <- dplyr::case_when(
+thymus[["sirup_ms4a1_bcr_mark"]] <- dplyr::case_when(
   colnames(thymus) %in% bcr_spots ~ "BCR",
   ms4a1_counts[colnames(thymus), "MS4A1"] > 0 ~ "MS4A1+",
   TRUE ~ NA_character_
@@ -242,7 +242,7 @@ ripleyNsim <- 10 # Increase for real analysis, but this is slow to run on large 
 
 cd3eTcrK <- spatialRipleyCrossK(
   thymus,
-  mark_col = "sirap_cd3e_tcr_mark",
+  mark_col = "sirup_cd3e_tcr_mark",
   i = "TCR",
   j = "CD3E+",
   nsim = ripleyNsim,
@@ -257,7 +257,7 @@ cd3eTcrKPlot <- plotRipleyCrossK(
 
 ms4a1BcrK <- spatialRipleyCrossK(
   thymus,
-  mark_col = "sirap_ms4a1_bcr_mark",
+  mark_col = "sirup_ms4a1_bcr_mark",
   i = "BCR",
   j = "MS4A1+",
   nsim = ripleyNsim,

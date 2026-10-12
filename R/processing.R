@@ -84,31 +84,31 @@ filterAirr <- function(airr_df,
     if ("productive" %in% colnames(out)) {
       out <- out[out$productive %in% c(TRUE, "TRUE", "T"), , drop = FALSE]
     } else {
-      if (asked_productive) .sirap_warn_missing_filter_col("productive_only", "productive")
+      if (asked_productive) .sirup_warn_missing_filter_col("productive_only", "productive")
     }
   }
   if (complete_vdj) {
     if ("complete_vdj" %in% colnames(out)) {
       out <- out[out$complete_vdj %in% c(TRUE, "TRUE", "T"), , drop = FALSE]
     } else {
-      if (asked_complete) .sirap_warn_missing_filter_col("complete_vdj", "complete_vdj")
+      if (asked_complete) .sirup_warn_missing_filter_col("complete_vdj", "complete_vdj")
     }
   }
   if (!is.null(min_consensus_count)) {
     if ("consensus_count" %in% colnames(out)) {
       out <- out[!is.na(out$consensus_count) & out$consensus_count >= min_consensus_count, , drop = FALSE]
     } else {
-      if (asked_consensus) .sirap_warn_missing_filter_col("min_consensus_count", "consensus_count")
+      if (asked_consensus) .sirup_warn_missing_filter_col("min_consensus_count", "consensus_count")
     }
   }
   if (!is.null(max_opening_gap)) {
     .check_required_cols(out, sequence_alignment, "airr_df")
-    gaps <- .sirap_opening_gap_length(out[[sequence_alignment]])
+    gaps <- .sirup_opening_gap_length(out[[sequence_alignment]])
     out <- out[gaps <= max_opening_gap, , drop = FALSE]
   }
   if (!is.null(max_gap_length)) {
     .check_required_cols(out, sequence_alignment, "airr_df")
-    inner_gaps <- .sirap_max_gap_length(out[[sequence_alignment]])
+    inner_gaps <- .sirup_max_gap_length(out[[sequence_alignment]])
     out <- out[inner_gaps <= max_gap_length, , drop = FALSE]
   }
 
@@ -359,7 +359,7 @@ processSpatialSample <- function(input,
   }
 
   if (input_type == "auto") {
-    input_type <- .sirap_detect_input_type(input)
+    input_type <- .sirup_detect_input_type(input)
   } else if (input_type == "airr") {
     input_type <- if (is.data.frame(input)) "airr_df" else "airr_tsv"
   } else if (input_type == "spatial_fasta" && is.data.frame(input)) {
@@ -408,9 +408,9 @@ processSpatialSample <- function(input,
         c_region_db = c_region_db,
         num_threads = nproc
       )
-      airr <- .sirap_read_airr(raw_airr_tsv)
+      airr <- .sirup_read_airr(raw_airr_tsv)
     } else if (input_type == "airr_tsv") {
-      airr <- .sirap_read_airr(input)
+      airr <- .sirup_read_airr(input)
     } else {
       airr <- .as_data_frame(input)
     }
@@ -453,7 +453,7 @@ processSpatialSample <- function(input,
       # FASTA header fields, so validate against the same `delimiters` the
       # pipeline passes to pRESTO.
       invalid <- which(is.na(spatial_ids) | !nzchar(spatial_ids) |
-                         grepl(.sirap_delims_regex_class(delimiters), spatial_ids))
+                         grepl(.sirup_delims_regex_class(delimiters), spatial_ids))
       if (length(invalid)) {
         detail <- paste0(
           length(invalid), " of ", n_filtered, " filtered rows have a missing ",
@@ -499,7 +499,7 @@ processSpatialSample <- function(input,
     if (isTRUE(umi_support)) {
       # One consensus per barcode-UMI cluster, carrying its read support, so the
       # barcode stage below weighs molecules rather than reads.
-      umi_out <- .sirap_umi_consensus(
+      umi_out <- .sirup_umi_consensus(
         df = filtered,
         output_dir = output_dir,
         sample_name = sample_name,
@@ -560,7 +560,7 @@ processSpatialSample <- function(input,
     cluster_field = cluster_field,
     consensus_min_count = barcode_min_count
   )
-  commands <- .sirap_presto_commands(
+  commands <- .sirup_presto_commands(
     paths = paths,
     receptor = receptor,
     organism = organism,
@@ -586,7 +586,7 @@ processSpatialSample <- function(input,
   )
 
   tool_execs <- unique(vapply(commands, function(cmd) cmd$exec, character(1)))
-  .sirap_check_tools(c(
+  .sirup_check_tools(c(
     stats::setNames(tool_execs, basename(tool_execs)),
     muscle = muscle_exec,
     igblastn = igblast_exec
@@ -597,12 +597,12 @@ processSpatialSample <- function(input,
       message("Skipping ", cmd$exec, ": output exists (", cmd$out, ").")
       next
     }
-    .sirap_run_command(cmd$exec, cmd$args)
+    .sirup_run_command(cmd$exec, cmd$args)
   }
 
   db_pass_umi <- NULL
   if (isTRUE(umi_support) && file.exists(paths$db_pass)) {
-    db <- .sirap_read_airr(paths$db_pass)
+    db <- .sirup_read_airr(paths$db_pass)
     sup_col <- intersect(c("cc_bc_umi", "CC_BC_UMI"), colnames(db))
     if (length(sup_col) == 0L) {
       rlang::warn("MakeDb wrote no `cc_bc_umi` column, so the `min_umi_support` floor was not applied.")
@@ -762,24 +762,24 @@ addSequenceQualityMetrics <- function(airr_df,
     out$non_N_nucleotide_prop <- stringr::str_count(out[[sequence]], "[ACGT]") / nchar(out[[sequence]])
   }
   if (alignment %in% colnames(out)) {
-    out$max_gap_length <- .sirap_max_gap_length(out[[alignment]])
-    out$opening_gap_length <- .sirap_opening_gap_length(out[[alignment]])
+    out$max_gap_length <- .sirup_max_gap_length(out[[alignment]])
+    out$opening_gap_length <- .sirup_opening_gap_length(out[[alignment]])
   }
   out
 }
 
 #' Summarize a spatial receptor table
 #'
-#' @param airr_df AIRR-style data frame or a SIRAP object.
-#' @param spatial_id Spatial ID column to count. When omitted for a SIRAP object,
+#' @param airr_df AIRR-style data frame or a SIRUP object.
+#' @param spatial_id Spatial ID column to count. When omitted for a SIRUP object,
 #'   the spatial ID field recorded in its metadata is used.
 #' @return One-row tibble of basic counts.
 #' @export
 spatialReceptorSummary <- function(airr_df, spatial_id = "spatial_id_2um") {
   spatial_id_missing <- missing(spatial_id)
-  inputs <- .sirap_receptor_input(
+  inputs <- .sirup_receptor_input(
     airr_df,
-    if (isSIRAP(airr_df) && spatial_id_missing) NULL else spatial_id
+    if (isSIRUP(airr_df) && spatial_id_missing) NULL else spatial_id
   )
   airr_df <- inputs$receptors
   spatial_id <- inputs$spatial_id_col %||% "spatial_id_2um"
@@ -806,21 +806,21 @@ spatialReceptorSummary <- function(airr_df, spatial_id = "spatial_id_2um") {
 #'
 #' For each unique receptor sequence, finds connected components of neighboring
 #' spots sharing that sequence, then collapses each component to a single
-#' representative spot. A SIRAP object is the preferred input: receptor IDs
-#' are read from the SIRAP field mapping and spatial coordinates are read from
-#' the stored Seurat object. If you are not using a SIRAP object, pass an
+#' representative spot. A SIRUP object is the preferred input: receptor IDs
+#' are read from the SIRUP field mapping and spatial coordinates are read from
+#' the stored Seurat object. If you are not using a SIRUP object, pass an
 #' AIRR-style receptor table as `object` and the matching Seurat object as
 #' `seurat_object`.
 #'
-#' When `object` is a SIRAP object, the returned value is the updated SIRAP
+#' When `object` is a SIRUP object, the returned value is the updated SIRUP
 #' object with its receptor table replaced. When `object` is a receptor table,
 #' the returned value is the collapsed receptor table.
 #'
-#' @param object A SIRAP object, or an AIRR-style receptor data frame.
+#' @param object A SIRUP object, or an AIRR-style receptor data frame.
 #' @param seurat_object Optional Seurat object used only when `object` is a
 #'   receptor data frame.
 #' @param spatial_id Column in the receptor table matching Seurat spot/cell
-#'   spatial IDs. When omitted for a SIRAP object, the recorded SIRAP spatial ID field
+#'   spatial IDs. When omitted for a SIRUP object, the recorded SIRUP spatial ID field
 #'   is used. When omitted for a receptor table, a spatial ID-like column is
 #'   guessed.
 #' @param sequence Column containing receptor sequence strings.
@@ -833,9 +833,9 @@ spatialReceptorSummary <- function(airr_df, spatial_id = "spatial_id_2um") {
 #'   coordinates.
 #' @param num_neighbors_non_boundary Number of nearby points needed to be
 #'   considered non-boundary.
-#' @param validate Whether to validate the updated SIRAP object before
-#'   returning it. Only used when `object` is a SIRAP object.
-#' @return A SIRAP object or receptor data frame with bleedover rows removed,
+#' @param validate Whether to validate the updated SIRUP object before
+#'   returning it. Only used when `object` is a SIRUP object.
+#' @return A SIRUP object or receptor data frame with bleedover rows removed,
 #'   retaining only the representative spot for each contiguous group of
 #'   identical sequences.
 #' @export
@@ -849,16 +849,16 @@ collapseIdenticalNeighbors <- function(object,
                                        swap_coords = NULL,
                                        num_neighbors_non_boundary = 6L,
                                        validate = TRUE) {
-  is_sirap <- isSIRAP(object)
-  if (is_sirap) {
+  is_sirup <- isSIRUP(object)
+  if (is_sirup) {
     if (!is.null(seurat_object)) {
-      rlang::abort("`seurat_object` should not be supplied when `object` is a SIRAP object.")
+      rlang::abort("`seurat_object` should not be supplied when `object` is a SIRUP object.")
     }
-    validateSIRAP(object)
-    receptor_fields <- .sirap_receptor_fields(object)
+    validateSIRUP(object)
+    receptor_fields <- .sirup_receptor_fields(object)
     receptors <- object$receptors
     spatial_id <- spatial_id %||% receptor_fields$spatial_id
-    sample_col <- .sirap_receptor_sample_col(receptors, receptor_fields, object$spatial)
+    sample_col <- .sirup_receptor_sample_col(receptors, receptor_fields, object$spatial)
     seurat_object <- object$spatial
   } else {
     if (is.null(seurat_object)) {
@@ -866,17 +866,17 @@ collapseIdenticalNeighbors <- function(object,
     }
     receptors <- .as_data_frame(object)
     spatial_id <- .guess_spatial_id_col(receptors, spatial_id)
-    sample_col <- .sirap_receptor_sample_col(receptors, spatial = seurat_object)
+    sample_col <- .sirup_receptor_sample_col(receptors, spatial = seurat_object)
   }
-  options <- .sirap_spatial_options(
-    object = if (is_sirap) object else seurat_object,
+  options <- .sirup_spatial_options(
+    object = if (is_sirup) object else seurat_object,
     image_scale = image_scale,
     swap_coords = swap_coords
   )
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
 
-  coords <- .sirap_spatial_coordinate_table(
+  coords <- .sirup_spatial_coordinate_table(
     seurat_object,
     images = images,
     image_scale = image_scale,
@@ -892,18 +892,18 @@ collapseIdenticalNeighbors <- function(object,
     num_neighbors_non_boundary = num_neighbors_non_boundary
   )
 
-  if (!is_sirap) {
+  if (!is_sirup) {
     return(collapsed)
   }
 
   object$receptors <- tibble::as_tibble(collapsed)
   if (isTRUE(validate)) {
-    validateSIRAP(object)
+    validateSIRUP(object)
   }
   object
 }
 
-# Collapse identical neighboring receptors after SIRAP/Seurat inputs have been
+# Collapse identical neighboring receptors after SIRUP/Seurat inputs have been
 # resolved to a receptor table and a coordinate table.
 .collapse_identical_neighbors_table <- function(receptors,
                                                 tissue_positions,
@@ -1053,11 +1053,11 @@ collapseIdenticalNeighbors <- function(object,
   # threshold learned from all tissue positions so boundary spots are not
   # over-connected.
   spatial_keys <- unique(data[, merge_by, drop = FALSE])
-  tissue_key <- .sirap_key_vector(.sirap_collapse_key_table(tissue_positions, temp))
-  observed_key <- .sirap_key_vector(.sirap_collapse_key_table(spatial_keys, temp))
+  tissue_key <- .sirup_key_vector(.sirup_collapse_key_table(tissue_positions, temp))
+  observed_key <- .sirup_key_vector(.sirup_collapse_key_table(spatial_keys, temp))
   tissue_data <- tissue_positions[tissue_key %in% observed_key, ]
   coords <- as.matrix(tissue_data[, c(temp$x, temp$y)])
-  spatial_ids_ordered <- .sirap_key_vector(.sirap_collapse_key_table(tissue_data, temp))
+  spatial_ids_ordered <- .sirup_key_vector(.sirup_collapse_key_table(tissue_data, temp))
   n <- nrow(tissue_data)
   n_pretty <- scales::comma(n)
   n_all_pretty <- scales::comma(n_all)
@@ -1116,15 +1116,15 @@ collapseIdenticalNeighbors <- function(object,
   for (si in seq_len(n_seqs)) {
     seq_i <- unique_sequences[[si]]
     seq_rows <- data[data[[temp$sequence]] == seq_i, , drop = FALSE]
-    seq_spatial_ids <- .sirap_key_vector(.sirap_collapse_key_table(seq_rows, temp))
+    seq_spatial_ids <- .sirup_key_vector(.sirup_collapse_key_table(seq_rows, temp))
     seq_idx <- spatial_id_to_idx[seq_spatial_ids]
 
     # For each exact sequence, connected components identify spatially
     # contiguous spots carrying that sequence.
     if (length(seq_idx) == 1L) {
       component_labels[[si]] <- data.frame(
-        .sirap_spatial_id = seq_spatial_ids,
-        .sirap_sequence = seq_i,
+        .sirup_spatial_id = seq_spatial_ids,
+        .sirup_sequence = seq_i,
         component = 1L
       )
     } else {
@@ -1133,8 +1133,8 @@ collapseIdenticalNeighbors <- function(object,
       components <- igraph::components(g)
 
       component_labels[[si]] <- data.frame(
-        .sirap_spatial_id = seq_spatial_ids,
-        .sirap_sequence = seq_i,
+        .sirup_spatial_id = seq_spatial_ids,
+        .sirup_sequence = seq_i,
         component = components$membership
       )
     }
@@ -1149,16 +1149,16 @@ collapseIdenticalNeighbors <- function(object,
   cli::cli_progress_step("Collapsing components to representative spots...")
 
   coords_df <- data.frame(spatial_ids_ordered, cx = coords[, 1], cy = coords[, 2])
-  colnames(coords_df)[1] <- ".sirap_collapse_key"
+  colnames(coords_df)[1] <- ".sirup_collapse_key"
 
-  colnames(component_df)[colnames(component_df) == ".sirap_spatial_id"] <- ".sirap_collapse_key"
-  colnames(component_df)[colnames(component_df) == ".sirap_sequence"] <- temp$sequence
-  component_df <- merge(component_df, coords_df, by = ".sirap_collapse_key")
-  data$.sirap_collapse_key <- .sirap_key_vector(.sirap_collapse_key_table(data, temp))
+  colnames(component_df)[colnames(component_df) == ".sirup_spatial_id"] <- ".sirup_collapse_key"
+  colnames(component_df)[colnames(component_df) == ".sirup_sequence"] <- temp$sequence
+  component_df <- merge(component_df, coords_df, by = ".sirup_collapse_key")
+  data$.sirup_collapse_key <- .sirup_key_vector(.sirup_collapse_key_table(data, temp))
   component_df <- merge(
     component_df,
-    data[, c(".sirap_collapse_key", temp$sequence, consensus_count_col)],
-    by = c(".sirap_collapse_key", temp$sequence)
+    data[, c(".sirup_collapse_key", temp$sequence, consensus_count_col)],
+    by = c(".sirup_collapse_key", temp$sequence)
   )
 
   representative_rows <- lapply(
@@ -1193,10 +1193,10 @@ collapseIdenticalNeighbors <- function(object,
 
   cli::cli_progress_step("Filtering data to representative spots...")
 
-  keep_keys <- paste(representative_df$.sirap_collapse_key, representative_df[[temp$sequence]], sep = "___")
-  all_keys <- paste(data$.sirap_collapse_key, data[[temp$sequence]], sep = "___")
+  keep_keys <- paste(representative_df$.sirup_collapse_key, representative_df[[temp$sequence]], sep = "___")
+  all_keys <- paste(data$.sirup_collapse_key, data[[temp$sequence]], sep = "___")
   result <- data[all_keys %in% keep_keys, ]
-  result <- result[, setdiff(colnames(result), c(unlist(temp, use.names = FALSE), ".sirap_collapse_key")), drop = FALSE]
+  result <- result[, setdiff(colnames(result), c(unlist(temp, use.names = FALSE), ".sirup_collapse_key")), drop = FALSE]
   n_result_pretty <- scales::comma(nrow(result))
   n_data_pretty <- scales::comma(nrow(data))
   n_removed_pretty <- scales::comma(nrow(data) - nrow(result))
@@ -1213,12 +1213,12 @@ collapseIdenticalNeighbors <- function(object,
 # Seurat coordinates.
 .collapse_identical_neighbors_temp_cols <- function(data) {
   temp <- c(
-    spatial_id = ".sirap_collapse_barcode",
-    sample = ".sirap_collapse_sample",
-    sequence = ".sirap_collapse_sequence",
-    row = ".sirap_collapse_row",
-    x = ".sirap_collapse_x",
-    y = ".sirap_collapse_y"
+    spatial_id = ".sirup_collapse_barcode",
+    sample = ".sirup_collapse_sample",
+    sequence = ".sirup_collapse_sequence",
+    row = ".sirup_collapse_row",
+    x = ".sirup_collapse_x",
+    y = ".sirup_collapse_y"
   )
   overlapping <- intersect(unname(temp), colnames(data))
   if (length(overlapping) > 0L) {
@@ -1232,10 +1232,10 @@ collapseIdenticalNeighbors <- function(object,
   as.list(temp)
 }
 
-.sirap_collapse_key_table <- function(dat, temp) {
-  out <- data.frame(.sirap_spatial_id = as.character(dat[[temp$spatial_id]]), stringsAsFactors = FALSE)
+.sirup_collapse_key_table <- function(dat, temp) {
+  out <- data.frame(.sirup_spatial_id = as.character(dat[[temp$spatial_id]]), stringsAsFactors = FALSE)
   if (temp$sample %in% colnames(dat)) {
-    out$.sirap_sample <- as.character(dat[[temp$sample]])
+    out$.sirup_sample <- as.character(dat[[temp$sample]])
   }
   out
 }
@@ -1278,7 +1278,7 @@ collapseIdenticalNeighbors <- function(object,
 # exec/args pairs for system2. Pure function: it does not run anything.
 # `germline_files` is the expanded IMGT germline file list for MakeDb.py -r
 # (globs must expand in R because the runner quotes every argument).
-.sirap_presto_commands <- function(paths,
+.sirup_presto_commands <- function(paths,
                                    receptor,
                                    organism,
                                    identity,
@@ -1380,7 +1380,7 @@ collapseIdenticalNeighbors <- function(object,
 # spatial tables run to hundreds of thousands of rows, and the scalar form had
 # to be driven through vapply() by every caller. Both `.` and `-` count as gap
 # characters, so a deletion is measured as well as IMGT padding.
-.sirap_max_gap_length <- function(seq) {
+.sirup_max_gap_length <- function(seq) {
   seq <- as.character(seq)
   out <- integer(length(seq))
   keep <- !is.na(seq)
@@ -1399,7 +1399,7 @@ collapseIdenticalNeighbors <- function(object,
 # Skipping silently has already voided a filter in a real analysis: MakeDb.py
 # only writes `consensus_count` when the pRESTO field-value delimiter is `=`, so
 # a pipeline run with `:` delimiters made `min_consensus_count` a no-op.
-.sirap_warn_missing_filter_col <- function(arg, column) {
+.sirup_warn_missing_filter_col <- function(arg, column) {
   rlang::warn(paste0(
     "`", arg, "` was requested but column `", column,
     "` is absent. The filter did not run."
@@ -1407,7 +1407,7 @@ collapseIdenticalNeighbors <- function(object,
 }
 
 # Return the length of the leading gap run in an aligned receptor sequence.
-.sirap_opening_gap_length <- function(seq) {
+.sirup_opening_gap_length <- function(seq) {
   seq <- as.character(seq)
   out <- integer(length(seq))
   keep <- !is.na(seq)

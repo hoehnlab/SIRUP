@@ -17,7 +17,7 @@ This document records walkthrough comments that were resolved and removed from
 | `TODO: @Codex update this section and clean it up` | The closed note was removed; the section now reads as walkthrough prose around the contiguous identical-sequence collapse example. | 2026-06-02 |
 | `Should the post-pRESTO block become a single high-level function? No...` | No high-level wrapper was added; the walkthrough keeps the individual post-pRESTO processing steps visible. | 2026-06-02 |
 | `Should collapseTopConsensusPerBarcode() have built-in diagnostics for ties? Answer: Sure` | `collapseTopConsensusPerBarcode()` now reports barcode/locus groups with tied top consensus rows. | 2026-06-02 |
-| `plotReceptorExpression doesn't print warning messages (get annoying ones from seurat)` | The active plotting functions now use SIRAP's ggplot-native spatial code instead of Seurat plot objects. | 2026-06-02 |
+| `plotReceptorExpression doesn't print warning messages (get annoying ones from seurat)` | The active plotting functions now use SIRUP's ggplot-native spatial code instead of Seurat plot objects. | 2026-06-02 |
 | `plotReceptorExpression doesn't print a legend if there is only one receptor type...` | The ggplot-native receptor expression plotting handles receptor/gene legends internally and avoids a receptor-only legend by default. | 2026-06-02 |
 | Empty receptor plotting TODO | Removed because there was no actionable item attached to it. | 2026-06-02 |
 | `Pick up here` | Removed after the surrounding gene-expression section was updated and no longer needed a place marker. | 2026-06-02 |

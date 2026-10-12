@@ -332,7 +332,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>For now, this vignette uses the full local thymus dataset from the walkthrough. We should replace this with a small packaged toy dataset later so the vignette can be run anywhere without large external files.</p>
 <div id="setup" class="section level2">
 <h2>Setup</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SIRAP)</a>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SIRUP)</a>
 <a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">library</span>(dplyr)</a>
 <a class="sourceLine" id="cb1-3" data-line-number="3"><span class="kw">library</span>(ggplot2)</a>
 <a class="sourceLine" id="cb1-4" data-line-number="4"><span class="kw">library</span>(cowplot)</a>
@@ -358,7 +358,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb1-24" data-line-number="24">rawBCRIgblastPath &lt;-<span class="st"> </span><span class="kw">file.path</span>(demuxDir, <span class="st">&quot;igblast_out&quot;</span>, <span class="st">&quot;igblast_bcr_1M_example.tsv&quot;</span>)</a>
 <a class="sourceLine" id="cb1-25" data-line-number="25">rawTCRIgblastPath &lt;-<span class="st"> </span><span class="kw">file.path</span>(demuxDir, <span class="st">&quot;igblast_out&quot;</span>, <span class="st">&quot;igblast_tcr_1M_example.tsv&quot;</span>)</a>
 <a class="sourceLine" id="cb1-26" data-line-number="26"></a>
-<a class="sourceLine" id="cb1-27" data-line-number="27">outDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(thymusDir, <span class="st">&quot;SIRAP_walkthrough&quot;</span>, sampleId)</a>
+<a class="sourceLine" id="cb1-27" data-line-number="27">outDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(thymusDir, <span class="st">&quot;SIRUP_walkthrough&quot;</span>, sampleId)</a>
 <a class="sourceLine" id="cb1-28" data-line-number="28">prestoInputDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(outDir, <span class="st">&quot;01_length_filtered_spatial_fastas&quot;</span>)</a>
 <a class="sourceLine" id="cb1-29" data-line-number="29">prestoOutputDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(outDir, <span class="st">&quot;02_presto_igblast&quot;</span>)</a>
 <a class="sourceLine" id="cb1-30" data-line-number="30">finalAirrDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(outDir, <span class="st">&quot;03_final_spatial_airr&quot;</span>)</a>
@@ -372,7 +372,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="create-or-load-the-seurat-object" class="section level2">
 <h2>Create or Load the Seurat Object</h2>
-<p>If you need to create the Visium HD Seurat object directly from Space Ranger output, use <code>Load10X_Spatial()</code>. Visium HD loading requires <code>arrow</code>, which can be difficult to install, but SIRAP’s downstream plotting and analyses do not otherwise require <code>arrow</code>. We also find it easier to create a .csv version of the barcode mappings rather than relying on the <code>read_parquet()</code> function in <code>arrow</code> to read the parquet files directly.</p>
+<p>If you need to create the Visium HD Seurat object directly from Space Ranger output, use <code>Load10X_Spatial()</code>. Visium HD loading requires <code>arrow</code>, which can be difficult to install, but SIRUP’s downstream plotting and analyses do not otherwise require <code>arrow</code>. We also find it easier to create a .csv version of the barcode mappings rather than relying on the <code>read_parquet()</code> function in <code>arrow</code> to read the parquet files directly.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="co"># Build seurat object</span></a>
 <a class="sourceLine" id="cb2-2" data-line-number="2">m5_path &lt;-<span class="st"> &quot;./analysis/M5_260129/outs/&quot;</span></a>
 <a class="sourceLine" id="cb2-3" data-line-number="3">thy_m5 &lt;-<span class="st"> </span><span class="kw">Load10X_Spatial</span>(</a>
@@ -601,10 +601,10 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb8-79" data-line-number="79">airr<span class="op">::</span><span class="kw">write_rearrangement</span>(bcrTopBarcode, finalBCRPath)</a>
 <a class="sourceLine" id="cb8-80" data-line-number="80">airr<span class="op">::</span><span class="kw">write_rearrangement</span>(tcrTopBarcode, finalTCRPath)</a></code></pre></div>
 </div>
-<div id="create-sirap-objects" class="section level2">
-<h2>Create SIRAP Objects</h2>
-<p>Once the receptor table and spatial Seurat object are available, keep their relationship in a SIRAP object. The receptor data are stored as a tibble, and the resolved barcode column is recorded so downstream functions do not need to guess it repeatedly. Receptor rows that do not match the spatial object are retained; this is useful when a table also contains bulk or other nonspatial records.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1">bcrSirap &lt;-<span class="st"> </span><span class="kw">createSIRAP</span>(</a>
+<div id="create-sirup-objects" class="section level2">
+<h2>Create SIRUP Objects</h2>
+<p>Once the receptor table and spatial Seurat object are available, keep their relationship in a SIRUP object. The receptor data are stored as a tibble, and the resolved barcode column is recorded so downstream functions do not need to guess it repeatedly. Receptor rows that do not match the spatial object are retained; this is useful when a table also contains bulk or other nonspatial records.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1">bcrSirup &lt;-<span class="st"> </span><span class="kw">createSIRUP</span>(</a>
 <a class="sourceLine" id="cb9-2" data-line-number="2">  <span class="dt">spatial =</span> thymus,</a>
 <a class="sourceLine" id="cb9-3" data-line-number="3">  <span class="dt">receptors =</span> bcrTopBarcode,</a>
 <a class="sourceLine" id="cb9-4" data-line-number="4">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
@@ -613,7 +613,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb9-7" data-line-number="7">  <span class="dt">metadata =</span> <span class="kw">list</span>(<span class="dt">sample_id =</span> sampleId, <span class="dt">receptor_type =</span> <span class="st">&quot;BCR&quot;</span>)</a>
 <a class="sourceLine" id="cb9-8" data-line-number="8">)</a>
 <a class="sourceLine" id="cb9-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb9-10" data-line-number="10">tcrSirap &lt;-<span class="st"> </span><span class="kw">createSIRAP</span>(</a>
+<a class="sourceLine" id="cb9-10" data-line-number="10">tcrSirup &lt;-<span class="st"> </span><span class="kw">createSIRUP</span>(</a>
 <a class="sourceLine" id="cb9-11" data-line-number="11">  <span class="dt">spatial =</span> thymus,</a>
 <a class="sourceLine" id="cb9-12" data-line-number="12">  <span class="dt">receptors =</span> tcrTopBarcode,</a>
 <a class="sourceLine" id="cb9-13" data-line-number="13">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
@@ -622,18 +622,18 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb9-16" data-line-number="16">  <span class="dt">metadata =</span> <span class="kw">list</span>(<span class="dt">sample_id =</span> sampleId, <span class="dt">receptor_type =</span> <span class="st">&quot;TCR&quot;</span>)</a>
 <a class="sourceLine" id="cb9-17" data-line-number="17">)</a>
 <a class="sourceLine" id="cb9-18" data-line-number="18"></a>
-<a class="sourceLine" id="cb9-19" data-line-number="19">bcrSirap</a>
-<a class="sourceLine" id="cb9-20" data-line-number="20"><span class="kw">summary</span>(tcrSirap)</a>
-<a class="sourceLine" id="cb9-21" data-line-number="21"><span class="kw">spatialReceptorSummary</span>(bcrSirap)</a></code></pre></div>
-<p>The paired components can be inspected with <code>getReceptors()</code> and <code>getSpatial()</code>. Use <code>updateReceptors()</code> or <code>updateSpatial()</code> when the result should be stored back in the appropriate component of a returned SIRAP object. Derived results can be kept alongside the input data with <code>setAnalysis()</code> and retrieved with <code>getAnalysis()</code>.</p>
+<a class="sourceLine" id="cb9-19" data-line-number="19">bcrSirup</a>
+<a class="sourceLine" id="cb9-20" data-line-number="20"><span class="kw">summary</span>(tcrSirup)</a>
+<a class="sourceLine" id="cb9-21" data-line-number="21"><span class="kw">spatialReceptorSummary</span>(bcrSirup)</a></code></pre></div>
+<p>The paired components can be inspected with <code>getReceptors()</code> and <code>getSpatial()</code>. Use <code>updateReceptors()</code> or <code>updateSpatial()</code> when the result should be stored back in the appropriate component of a returned SIRUP object. Derived results can be kept alongside the input data with <code>setAnalysis()</code> and retrieved with <code>getAnalysis()</code>.</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1">bcrCounts &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">count</span>(</a>
-<a class="sourceLine" id="cb10-2" data-line-number="2">  <span class="kw">getReceptors</span>(bcrSirap),</a>
+<a class="sourceLine" id="cb10-2" data-line-number="2">  <span class="kw">getReceptors</span>(bcrSirup),</a>
 <a class="sourceLine" id="cb10-3" data-line-number="3">  locus,</a>
 <a class="sourceLine" id="cb10-4" data-line-number="4">  <span class="dt">sort =</span> <span class="ot">TRUE</span></a>
 <a class="sourceLine" id="cb10-5" data-line-number="5">)</a>
 <a class="sourceLine" id="cb10-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb10-7" data-line-number="7">bcrSirap &lt;-<span class="st"> </span><span class="kw">setAnalysis</span>(bcrSirap, <span class="st">&quot;receptor_counts&quot;</span>, bcrCounts)</a>
-<a class="sourceLine" id="cb10-8" data-line-number="8"><span class="kw">listAnalyses</span>(bcrSirap)</a></code></pre></div>
+<a class="sourceLine" id="cb10-7" data-line-number="7">bcrSirup &lt;-<span class="st"> </span><span class="kw">setAnalysis</span>(bcrSirup, <span class="st">&quot;receptor_counts&quot;</span>, bcrCounts)</a>
+<a class="sourceLine" id="cb10-8" data-line-number="8"><span class="kw">listAnalyses</span>(bcrSirup)</a></code></pre></div>
 </div>
 <div id="plot-bcrs-and-tcrs-over-tissue" class="section level2">
 <h2>Plot BCRs and TCRs Over Tissue</h2>
@@ -662,7 +662,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb11-22" data-line-number="22"></a>
 <a class="sourceLine" id="cb11-23" data-line-number="23">bcr_spots &lt;-<span class="st"> </span><span class="kw">unique</span>(bcrTopBarcode<span class="op">$</span>barcode_8um)</a>
 <a class="sourceLine" id="cb11-24" data-line-number="24">tcr_spots &lt;-<span class="st"> </span><span class="kw">unique</span>(tcrTopBarcode<span class="op">$</span>barcode_8um)</a>
-<a class="sourceLine" id="cb11-25" data-line-number="25">thymus[[<span class="st">&quot;sirap_receptor_type&quot;</span>]] &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">case_when</span>(</a>
+<a class="sourceLine" id="cb11-25" data-line-number="25">thymus[[<span class="st">&quot;sirup_receptor_type&quot;</span>]] &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">case_when</span>(</a>
 <a class="sourceLine" id="cb11-26" data-line-number="26">  <span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>bcr_spots <span class="op">&amp;</span><span class="st"> </span><span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>tcr_spots <span class="op">~</span><span class="st"> &quot;BCR + TCR&quot;</span>,</a>
 <a class="sourceLine" id="cb11-27" data-line-number="27">  <span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>bcr_spots <span class="op">~</span><span class="st"> &quot;BCR&quot;</span>,</a>
 <a class="sourceLine" id="cb11-28" data-line-number="28">  <span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>tcr_spots <span class="op">~</span><span class="st"> &quot;TCR&quot;</span>,</a>
@@ -671,7 +671,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb11-31" data-line-number="31"></a>
 <a class="sourceLine" id="cb11-32" data-line-number="32">bcrTCROverlay &lt;-<span class="st"> </span><span class="kw">spatialDiscretePlot</span>(</a>
 <a class="sourceLine" id="cb11-33" data-line-number="33">  thymus,</a>
-<a class="sourceLine" id="cb11-34" data-line-number="34">  <span class="dt">meta_col =</span> <span class="st">&quot;sirap_receptor_type&quot;</span>,</a>
+<a class="sourceLine" id="cb11-34" data-line-number="34">  <span class="dt">meta_col =</span> <span class="st">&quot;sirup_receptor_type&quot;</span>,</a>
 <a class="sourceLine" id="cb11-35" data-line-number="35">  <span class="dt">zero_value =</span> <span class="st">&quot;0&quot;</span>,</a>
 <a class="sourceLine" id="cb11-36" data-line-number="36">  <span class="dt">image_scale =</span> <span class="st">&quot;hires&quot;</span>,</a>
 <a class="sourceLine" id="cb11-37" data-line-number="37">  <span class="dt">swap_coords =</span> <span class="ot">FALSE</span>,</a>

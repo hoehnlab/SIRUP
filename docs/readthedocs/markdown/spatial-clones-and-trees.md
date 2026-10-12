@@ -11,14 +11,14 @@ later.
 
 This read-the-docs version can be rendered in two modes. By default,
 code is shown but not evaluated. To generate plots from the full
-dataset, render on the cluster with `SIRAP_RENDER_PLOTS=true`.
+dataset, render on the cluster with `SIRUP_RENDER_PLOTS=true`.
 
 ## Setup
 
 ## Call BCR and TCR Clones
 
-SIRAP does not wrap `scoper` clone calling. Use `scoper` directly, then
-pass the resulting data frames to SIRAP plotting functions.
+SIRUP does not wrap `scoper` clone calling. Use `scoper` directly, then
+pass the resulting data frames to SIRUP plotting functions.
 
 ``` r
 bcrClones <- scoper::hierarchicalClones(
@@ -117,7 +117,7 @@ cowplot::plot_grid(plotlist = tcrClonePlots, ncol = 2)
 
 ## Build BCR Trees with Dowser
 
-SIRAP keeps tree building in `dowser`, then focuses on coloring and
+SIRUP keeps tree building in `dowser`, then focuses on coloring and
 pairing trees with spatial plots.
 
 ``` r
@@ -219,7 +219,7 @@ cowplot::plot_grid(
 )
 ```
 
-If you want SIRAP to choose a separate cluster number for each tree, set
+If you want SIRUP to choose a separate cluster number for each tree, set
 `k = "auto"` and adjust `k_range` or `improvement_threshold` as needed.
 
 ``` r

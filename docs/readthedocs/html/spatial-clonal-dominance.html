@@ -329,11 +329,11 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 <p>This vignette shows how to draw spatial regions, calculate clone dominance inside those regions, and make region-level plots for clone IDs and V-gene annotations.</p>
-<p>Clone dominance is the fraction of BCR rows inside a polygon assigned to each clone. <code>spatialCloneDominance()</code> also returns the BCR rows and spatial coordinates inside each polygon. Its result and the original SIRAP or Seurat object are the two required inputs to the regional plotting functions.</p>
-<p>By default, this page shows runnable code but does not evaluate it. To render plots from the full local thymus dataset, render on the cluster with <code>SIRAP_RENDER_PLOTS=true</code>.</p>
+<p>Clone dominance is the fraction of BCR rows inside a polygon assigned to each clone. <code>spatialCloneDominance()</code> also returns the BCR rows and spatial coordinates inside each polygon. Its result and the original SIRUP or Seurat object are the two required inputs to the regional plotting functions.</p>
+<p>By default, this page shows runnable code but does not evaluate it. To render plots from the full local thymus dataset, render on the cluster with <code>SIRUP_RENDER_PLOTS=true</code>.</p>
 <div id="setup" class="section level2">
 <h2>Setup</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SIRAP)</a>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SIRUP)</a>
 <a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">library</span>(dplyr)</a>
 <a class="sourceLine" id="cb1-3" data-line-number="3"><span class="kw">library</span>(ggplot2)</a>
 <a class="sourceLine" id="cb1-4" data-line-number="4"><span class="kw">library</span>(data.table)</a>
@@ -347,7 +347,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb1-12" data-line-number="12">nproc &lt;-<span class="st"> </span><span class="dv">8</span></a>
 <a class="sourceLine" id="cb1-13" data-line-number="13"></a>
 <a class="sourceLine" id="cb1-14" data-line-number="14">thymusDir &lt;-<span class="st"> </span><span class="kw">normalizePath</span>(<span class="st">&quot;/dartfs/rc/lab/H/HoehnK/Hunter/Thymus_VisiumHD&quot;</span>, <span class="dt">mustWork =</span> <span class="ot">TRUE</span>)</a>
-<a class="sourceLine" id="cb1-15" data-line-number="15">outDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(thymusDir, <span class="st">&quot;SIRAP_walkthrough&quot;</span>, sampleId)</a>
+<a class="sourceLine" id="cb1-15" data-line-number="15">outDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(thymusDir, <span class="st">&quot;SIRUP_walkthrough&quot;</span>, sampleId)</a>
 <a class="sourceLine" id="cb1-16" data-line-number="16">finalAirrDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(outDir, <span class="st">&quot;03_final_spatial_airr&quot;</span>)</a>
 <a class="sourceLine" id="cb1-17" data-line-number="17">plotDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(outDir, <span class="st">&quot;plots&quot;</span>)</a>
 <a class="sourceLine" id="cb1-18" data-line-number="18">dominanceOutDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(plotDir, <span class="st">&quot;clonal_dominance&quot;</span>)</a>
@@ -525,7 +525,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="plot-regional-receptors" class="section level2">
 <h2>Plot Regional Receptors</h2>
-<p><code>plotSpatialRegionReceptors()</code> requires the dominance result and its original SIRAP or Seurat object. It plots the regional receptor rows already stored by <code>spatialCloneDominance()</code> over the tissue image, without repeating barcode or polygon arguments. In this example those rows are heavy-chain BCRs. <code>top_n</code> keeps the most common displayed levels and groups lower-frequency levels as <code>Other</code>.</p>
+<p><code>plotSpatialRegionReceptors()</code> requires the dominance result and its original SIRUP or Seurat object. It plots the regional receptor rows already stored by <code>spatialCloneDominance()</code> over the tissue image, without repeating barcode or polygon arguments. In this example those rows are heavy-chain BCRs. <code>top_n</code> keeps the most common displayed levels and groups lower-frequency levels as <code>Other</code>.</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1">bcrClonePlot &lt;-<span class="st"> </span><span class="kw">plotSpatialRegionReceptors</span>(</a>
 <a class="sourceLine" id="cb10-2" data-line-number="2">  clonalDominance,</a>
 <a class="sourceLine" id="cb10-3" data-line-number="3">  <span class="dt">object =</span> thymus,</a>
@@ -599,7 +599,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="plot-pie-summaries" class="section level2">
 <h2>Plot Pie Summaries</h2>
-<p><code>plotSpatialPolygonPies()</code> likewise requires the dominance result and its original SIRAP or Seurat object. It makes pie summaries directly from the regional rows and polygons stored in the dominance result. With <code>mode = &quot;side_by_side&quot;</code>, the tissue image and numbered polygons appear on the left and the pie charts appear on the right. The top levels are identified within each polygon, then unioned across polygons so a clone that is top-ranked in any polygon remains named everywhere it appears. Other levels are grouped as <code>Other</code>.</p>
+<p><code>plotSpatialPolygonPies()</code> likewise requires the dominance result and its original SIRUP or Seurat object. It makes pie summaries directly from the regional rows and polygons stored in the dominance result. With <code>mode = &quot;side_by_side&quot;</code>, the tissue image and numbered polygons appear on the left and the pie charts appear on the right. The top levels are identified within each polygon, then unioned across polygons so a clone that is top-ranked in any polygon remains named everywhere it appears. Other levels are grouped as <code>Other</code>.</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">clonePies &lt;-<span class="st"> </span><span class="kw">plotSpatialPolygonPies</span>(</a>
 <a class="sourceLine" id="cb11-2" data-line-number="2">  clonalDominance,</a>
 <a class="sourceLine" id="cb11-3" data-line-number="3">  <span class="dt">object =</span> thymus,</a>

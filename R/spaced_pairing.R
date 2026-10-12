@@ -9,7 +9,7 @@
 #' (https://github.com/hjm2217/spaced) and its use of a REPAIR model matrix
 #' (https://github.com/almaan/star-repair; modified SPaCeD notes reference
 #' https://github.com/Floraliu7/star-repair). The original SPaCeD spatial term
-#' was computed with `spatstat::pppdist(type = "mat")`; SIRAP's default spatial
+#' was computed with `spatstat::pppdist(type = "mat")`; SIRUP's default spatial
 #' term uses sparse clone-by-barcode matrices. For Visium HD, use the Space
 #' Ranger 8um barcodes as the native spatial bins rather than adding another
 #' coordinate downsampling step.
@@ -152,11 +152,11 @@ spacedCloneTableFromWide <- function(df,
 #' @param light_points Light-chain output from `buildSpacedCloneTable()` or any
 #'   data frame with `clone_id`, `barcode`, and `n`.
 #' @param method Spatial scoring method. `"weighted_cosim"` is the scalable
-#'   SIRAP default, and `"ot"` is the original SPaCeD optimal-transport
+#'   SIRUP default, and `"ot"` is the original SPaCeD optimal-transport
 #'   point-pattern distance.
 #' @param feature Column containing the native spatial feature/bin ID.
 #' @param kernel_sigma Gaussian kernel scale for `method = "weighted_cosim"`,
-#'   in the same units as `x` and `y`. When `NULL`, SIRAP estimates the
+#'   in the same units as `x` and `y`. When `NULL`, SIRUP estimates the
 #'   median nearest-neighbor feature spacing and uses twice that value.
 #' @param kernel_radius Maximum feature-feature distance retained in the sparse
 #'   spatial kernel. Defaults to `3 * kernel_sigma`.
@@ -206,7 +206,7 @@ spacedSpatialAffinity <- function(heavy_points,
   if (!is.character(feature) || length(feature) != 1L || is.na(feature) || feature == "") {
     rlang::abort("`feature` must be a single non-empty column name.")
   }
-  heavy_points <- .sirap_spaced_filter_clone_points(
+  heavy_points <- .sirup_spaced_filter_clone_points(
     heavy_points,
     name = "heavy_points",
     feature_col = feature,
@@ -214,7 +214,7 @@ spacedSpatialAffinity <- function(heavy_points,
     min_x_obs = min_x_obs,
     filter_x = filter_x
   )
-  light_points <- .sirap_spaced_filter_clone_points(
+  light_points <- .sirup_spaced_filter_clone_points(
     light_points,
     name = "light_points",
     feature_col = feature,
@@ -225,7 +225,7 @@ spacedSpatialAffinity <- function(heavy_points,
 
   sim <- switch(
     method,
-    weighted_cosim = .sirap_spaced_weighted_cosim_affinity(
+    weighted_cosim = .sirup_spaced_weighted_cosim_affinity(
       heavy_points = heavy_points,
       light_points = light_points,
       feature_col = feature,
@@ -235,7 +235,7 @@ spacedSpatialAffinity <- function(heavy_points,
       x_col = x,
       y_col = y
     ),
-    ot = .sirap_spaced_ot_affinity(
+    ot = .sirup_spaced_ot_affinity(
       heavy_points = heavy_points,
       light_points = light_points,
       x_col = x,
@@ -251,13 +251,13 @@ spacedSpatialAffinity <- function(heavy_points,
     if (is.na(top_n) || top_n < 1L) {
       rlang::abort("`top_n` must be a positive integer when supplied.")
     }
-    sim <- .sirap_spaced_prune_top_n(sim, top_n)
+    sim <- .sirup_spaced_prune_top_n(sim, top_n)
   }
   if (!is.null(min_affinity) && min_affinity > 0) {
     sim[sim < min_affinity] <- 0
   }
 
-  .sirap_spaced_row_normalize(sim)
+  .sirup_spaced_row_normalize(sim)
 }
 
 #' Transform SPaCeD spatial distances into affinities
@@ -277,7 +277,7 @@ transformSpacedDistances <- function(dist_matrix, scale = 1) {
   }
   affinity <- exp(-dist_matrix / scale)
   affinity[!is.finite(affinity)] <- 0
-  .sirap_spaced_row_normalize(affinity)
+  .sirup_spaced_row_normalize(affinity)
 }
 
 #' Pair heavy and light clones with SPaCeD's weighted scores
@@ -307,14 +307,14 @@ pairHeavyLightSpaced <- function(spatial_affinity,
                                  mapping_matrix = NULL,
                                  weights = seq(0, 1, by = 0.1),
                                  top_n_light_chains = 5L) {
-  spatial_affinity <- .sirap_spaced_matrix_arg(spatial_affinity, "spatial_affinity")
+  spatial_affinity <- .sirup_spaced_matrix_arg(spatial_affinity, "spatial_affinity")
   if (is.null(rownames(spatial_affinity)) || is.null(colnames(spatial_affinity))) {
     rlang::abort("`spatial_affinity` must have rownames for heavy clones and colnames for light clones.")
   }
   if (anyDuplicated(rownames(spatial_affinity)) || anyDuplicated(colnames(spatial_affinity))) {
     rlang::abort("`spatial_affinity` rownames and colnames must be unique clone IDs.")
   }
-  mapping_matrix <- .sirap_spaced_prepare_mapping(mapping_matrix, spatial_affinity)
+  mapping_matrix <- .sirup_spaced_prepare_mapping(mapping_matrix, spatial_affinity)
   weights <- as.numeric(weights)
   if (any(is.na(weights) | weights < 0 | weights > 1)) {
     rlang::abort("`weights` must contain values between 0 and 1.")
@@ -327,9 +327,9 @@ pairHeavyLightSpaced <- function(spatial_affinity,
 
   out <- lapply(weights, function(w) {
     score <- (w * spatial_affinity) + ((1 - w) * mapping_matrix)
-    normalized_pairing <- .sirap_spaced_row_normalize(score)
-    light_specificity <- .sirap_spaced_col_normalize(score)
-    .sirap_spaced_top_light_candidates(
+    normalized_pairing <- .sirup_spaced_row_normalize(score)
+    light_specificity <- .sirup_spaced_col_normalize(score)
+    .sirup_spaced_top_light_candidates(
       spatial_affinity = spatial_affinity,
       mapping_matrix = mapping_matrix,
       score = score,
@@ -350,7 +350,7 @@ pairHeavyLightSpaced <- function(spatial_affinity,
 #'
 #' REPAIR expects a spatial observation-by-clone expression table with heavy and
 #' light clone columns distinguishable by regex patterns such as `"^heavy"` and
-#' `"^light"`. This helper builds that matrix directly from SPaCeD/SIRAP clone
+#' `"^light"`. This helper builds that matrix directly from SPaCeD/SIRUP clone
 #' point tables.
 #'
 #' @param heavy_points Heavy-chain clone spatial table with `clone_id`,
@@ -367,8 +367,8 @@ buildRepairInputMatrix <- function(heavy_points,
   if (!requireNamespace("Matrix", quietly = TRUE)) {
     rlang::abort("Package 'Matrix' is required for `buildRepairInputMatrix()`.")
   }
-  heavy_points <- .sirap_spaced_check_repair_points(heavy_points, "heavy_points")
-  light_points <- .sirap_spaced_check_repair_points(light_points, "light_points")
+  heavy_points <- .sirup_spaced_check_repair_points(heavy_points, "heavy_points")
+  light_points <- .sirup_spaced_check_repair_points(light_points, "light_points")
   points <- rbind(heavy_points, light_points)
 
   barcodes <- sort(unique(points$barcode))
@@ -493,8 +493,8 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
     "import repair.analyze as analyze",
     "path = pathlib.Path(inspect.getfile(analyze))",
     "text = path.read_text()",
-    "print('SIRAP_REPAIR_ANALYZE_PATH=' + str(path))",
-    "print('SIRAP_REPAIR_EXPORTS_MODEL_MATRIX=' + str('_model_matrix.tsv' in text))",
+    "print('SIRUP_REPAIR_ANALYZE_PATH=' + str(path))",
+    "print('SIRUP_REPAIR_EXPORTS_MODEL_MATRIX=' + str('_model_matrix.tsv' in text))",
     sep = "; "
   )
 
@@ -530,8 +530,8 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
     ))
   }
 
-  path_line <- grep("^SIRAP_REPAIR_ANALYZE_PATH=", output, value = TRUE)
-  matrix_line <- grep("^SIRAP_REPAIR_EXPORTS_MODEL_MATRIX=", output, value = TRUE)
+  path_line <- grep("^SIRUP_REPAIR_ANALYZE_PATH=", output, value = TRUE)
+  matrix_line <- grep("^SIRUP_REPAIR_EXPORTS_MODEL_MATRIX=", output, value = TRUE)
   if (length(path_line) != 1L || length(matrix_line) != 1L) {
     rlang::abort(paste0(
       "REPAIR check did not return the expected markers. Output:\n",
@@ -539,12 +539,12 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
     ))
   }
 
-  analyze_path <- sub("^SIRAP_REPAIR_ANALYZE_PATH=", "", path_line)
-  exports_model_matrix <- identical(sub("^SIRAP_REPAIR_EXPORTS_MODEL_MATRIX=", "", matrix_line), "True")
+  analyze_path <- sub("^SIRUP_REPAIR_ANALYZE_PATH=", "", path_line)
+  exports_model_matrix <- identical(sub("^SIRUP_REPAIR_EXPORTS_MODEL_MATRIX=", "", matrix_line), "True")
   if (!exports_model_matrix) {
     rlang::abort(paste0(
       "The installed REPAIR package does not appear to export `*_model_matrix.tsv`. ",
-      "SIRAP's SPaCeD pairing workflow needs the modified REPAIR fork from ",
+      "SIRUP's SPaCeD pairing workflow needs the modified REPAIR fork from ",
       "https://github.com/Floraliu7/star-repair. Detected REPAIR analyze file: ",
       analyze_path
     ))
@@ -556,7 +556,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   invisible(list(analyze_path = analyze_path, exports_model_matrix = TRUE))
 }
 
-.sirap_spaced_check_repair_points <- function(points, name) {
+.sirup_spaced_check_repair_points <- function(points, name) {
   points <- .as_data_frame(points)
   .check_required_cols(points, c("clone_id", "barcode", "n"), name)
   points$clone_id <- as.character(points$clone_id)
@@ -576,14 +576,14 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   stats::aggregate(n ~ clone_id + barcode, data = points, FUN = sum)
 }
 
-.sirap_spaced_matrix_arg <- function(x, name) {
+.sirup_spaced_matrix_arg <- function(x, name) {
   if (is.character(x) && length(x) == 1L) {
     if (!file.exists(x)) {
       rlang::abort(paste0("`", name, "` path does not exist: ", x))
     }
-    x <- .sirap_spaced_read_matrix_file(x)
+    x <- .sirup_spaced_read_matrix_file(x)
   } else if (is.data.frame(x)) {
-    x <- .sirap_spaced_data_frame_to_matrix(x)
+    x <- .sirup_spaced_data_frame_to_matrix(x)
   } else {
     x <- as.matrix(x)
   }
@@ -596,7 +596,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   x
 }
 
-.sirap_spaced_read_matrix_file <- function(path) {
+.sirup_spaced_read_matrix_file <- function(path) {
   first_line <- readLines(path, n = 1L, warn = FALSE)
   if (length(first_line) == 0L) {
     rlang::abort(paste0("Matrix file is empty: ", path))
@@ -605,10 +605,10 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   fields_numeric <- suppressWarnings(!is.na(as.numeric(fields)))
   header <- !all(fields != "" & fields_numeric)
   df <- utils::read.delim(path, header = header, check.names = FALSE)
-  .sirap_spaced_data_frame_to_matrix(df)
+  .sirup_spaced_data_frame_to_matrix(df)
 }
 
-.sirap_spaced_data_frame_to_matrix <- function(df) {
+.sirup_spaced_data_frame_to_matrix <- function(df) {
   df <- as.data.frame(df, check.names = FALSE)
   if (ncol(df) > 1L) {
     first_col_numeric <- suppressWarnings(!any(is.na(as.numeric(df[[1L]]))))
@@ -623,14 +623,14 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   as.matrix(df)
 }
 
-.sirap_spaced_has_matching_dimnames <- function(mat, target) {
+.sirup_spaced_has_matching_dimnames <- function(mat, target) {
   !is.null(rownames(mat)) &&
     !is.null(colnames(mat)) &&
     setequal(rownames(target), rownames(mat)) &&
     setequal(colnames(target), colnames(mat))
 }
 
-.sirap_spaced_filter_clone_points <- function(points,
+.sirup_spaced_filter_clone_points <- function(points,
                                               name,
                                               feature_col,
                                               min_counts,
@@ -699,7 +699,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   points
 }
 
-.sirap_spaced_native_features <- function(points, name, feature_col) {
+.sirup_spaced_native_features <- function(points, name, feature_col) {
   points <- .as_data_frame(points)
   .check_required_cols(points, c("clone_id", feature_col, "n"), name)
   points$clone_id <- as.character(points$clone_id)
@@ -722,7 +722,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
     stats::setNames(c("clone_id", "feature", "value"))
 }
 
-.sirap_spaced_spatial_features <- function(points, name, feature_col, x_col, y_col) {
+.sirup_spaced_spatial_features <- function(points, name, feature_col, x_col, y_col) {
   points <- .as_data_frame(points)
   .check_required_cols(points, c("clone_id", feature_col, "n", x_col, y_col), name)
   points$clone_id <- as.character(points$clone_id)
@@ -753,7 +753,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
     stats::setNames(c("clone_id", "feature", "x", "y", "value"))
 }
 
-.sirap_spaced_sparse_clone_matrix <- function(features, feature_levels) {
+.sirup_spaced_sparse_clone_matrix <- function(features, feature_levels) {
   clone_levels <- sort(unique(features$clone_id))
   i <- match(features$clone_id, clone_levels)
   j <- match(features$feature, feature_levels)
@@ -767,7 +767,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   mat
 }
 
-.sirap_spaced_weighted_cosim_affinity <- function(heavy_points,
+.sirup_spaced_weighted_cosim_affinity <- function(heavy_points,
                                                     light_points,
                                                     feature_col,
                                                     kernel_sigma,
@@ -775,13 +775,13 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
                                                     kernel_max_neighbors,
                                                     x_col,
                                                     y_col) {
-  heavy_features <- .sirap_spaced_spatial_features(heavy_points, "heavy_points", feature_col, x_col, y_col)
-  light_features <- .sirap_spaced_spatial_features(light_points, "light_points", feature_col, x_col, y_col)
+  heavy_features <- .sirup_spaced_spatial_features(heavy_points, "heavy_points", feature_col, x_col, y_col)
+  light_features <- .sirup_spaced_spatial_features(light_points, "light_points", feature_col, x_col, y_col)
   feature_levels <- union(heavy_features$feature, light_features$feature)
-  coords <- .sirap_spaced_feature_coordinates(rbind(heavy_features, light_features), feature_levels)
+  coords <- .sirup_spaced_feature_coordinates(rbind(heavy_features, light_features), feature_levels)
 
   if (is.null(kernel_sigma)) {
-    kernel_sigma <- 2 * .sirap_spaced_median_nn_distance(coords)
+    kernel_sigma <- 2 * .sirup_spaced_median_nn_distance(coords)
   }
   kernel_sigma <- as.numeric(kernel_sigma)
   if (!is.finite(kernel_sigma) || kernel_sigma <= 0) {
@@ -795,18 +795,18 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
     rlang::abort("`kernel_radius` must be a positive finite number.")
   }
 
-  heavy_mat <- .sirap_spaced_sparse_clone_matrix(heavy_features, feature_levels)
-  light_mat <- .sirap_spaced_sparse_clone_matrix(light_features, feature_levels)
-  kernel <- .sirap_spaced_spatial_kernel(
+  heavy_mat <- .sirup_spaced_sparse_clone_matrix(heavy_features, feature_levels)
+  light_mat <- .sirup_spaced_sparse_clone_matrix(light_features, feature_levels)
+  kernel <- .sirup_spaced_spatial_kernel(
     coords = coords,
     sigma = kernel_sigma,
     radius = kernel_radius,
     max_neighbors = kernel_max_neighbors
   )
-  .sirap_spaced_kernel_similarity(heavy_mat, light_mat, kernel)
+  .sirup_spaced_kernel_similarity(heavy_mat, light_mat, kernel)
 }
 
-.sirap_spaced_kernel_similarity <- function(heavy_mat, light_mat, kernel) {
+.sirup_spaced_kernel_similarity <- function(heavy_mat, light_mat, kernel) {
   heavy_kernel <- heavy_mat %*% kernel
   light_kernel <- light_mat %*% kernel
   sim <- as.matrix(heavy_kernel %*% Matrix::t(light_mat))
@@ -819,7 +819,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   sim
 }
 
-.sirap_spaced_feature_coordinates <- function(features, feature_levels) {
+.sirup_spaced_feature_coordinates <- function(features, feature_levels) {
   coords <- unique(features[, c("feature", "x", "y")])
   duplicated_features <- coords$feature[duplicated(coords$feature)]
   if (length(duplicated_features) > 0L) {
@@ -839,7 +839,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   coords[, c("x", "y"), drop = FALSE]
 }
 
-.sirap_spaced_median_nn_distance <- function(coords) {
+.sirup_spaced_median_nn_distance <- function(coords) {
   if (nrow(coords) < 2L) {
     rlang::abort("At least two spatial features are required to estimate `kernel_sigma`; supply `kernel_sigma` directly.")
   }
@@ -855,7 +855,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   stats::median(d)
 }
 
-.sirap_spaced_spatial_kernel <- function(coords, sigma, radius, max_neighbors) {
+.sirup_spaced_spatial_kernel <- function(coords, sigma, radius, max_neighbors) {
   if (!requireNamespace("RANN", quietly = TRUE)) {
     rlang::abort("Package 'RANN' is required for `method = \"weighted_cosim\"`.")
   }
@@ -888,28 +888,28 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   )
 }
 
-.sirap_spaced_ot_affinity <- function(heavy_points,
+.sirup_spaced_ot_affinity <- function(heavy_points,
                                       light_points,
                                       x_col,
                                       y_col,
                                       cutoff,
                                       scale,
                                       nproc) {
-  pppdist <- .sirap_spaced_pppdist()
-  heavy <- .sirap_spaced_ot_points(heavy_points, "heavy_points", x_col, y_col)
-  light <- .sirap_spaced_ot_points(light_points, "light_points", x_col, y_col)
+  pppdist <- .sirup_spaced_pppdist()
+  heavy <- .sirup_spaced_ot_points(heavy_points, "heavy_points", x_col, y_col)
+  light <- .sirup_spaced_ot_points(light_points, "light_points", x_col, y_col)
   heavy_ids <- sort(unique(heavy$clone_id))
   light_ids <- sort(unique(light$clone_id))
-  win <- .sirap_spaced_ppp_window(rbind(heavy, light))
-  nproc <- .sirap_spaced_check_nproc(nproc)
+  win <- .sirup_spaced_ppp_window(rbind(heavy, light))
+  nproc <- .sirup_spaced_check_nproc(nproc)
 
   distance_row <- function(i) {
     heavy_id <- heavy_ids[[i]]
-    heavy_ppp <- .sirap_spaced_as_ppp(heavy[heavy$clone_id == heavy_id, , drop = FALSE], win)
+    heavy_ppp <- .sirup_spaced_as_ppp(heavy[heavy$clone_id == heavy_id, , drop = FALSE], win)
     row <- numeric(length(light_ids))
     for (j in seq_along(light_ids)) {
       light_id <- light_ids[[j]]
-      light_ppp <- .sirap_spaced_as_ppp(light[light$clone_id == light_id, , drop = FALSE], win)
+      light_ppp <- .sirup_spaced_as_ppp(light[light$clone_id == light_id, , drop = FALSE], win)
       row[[j]] <- tryCatch(
         pppdist(heavy_ppp, light_ppp, type = "mat", matching = FALSE, auction = FALSE, cutoff = cutoff),
         error = function(e) {
@@ -923,13 +923,13 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
     row
   }
 
-  rows <- .sirap_spaced_lapply(seq_along(heavy_ids), distance_row, nproc)
+  rows <- .sirup_spaced_lapply(seq_along(heavy_ids), distance_row, nproc)
   dist_matrix <- do.call(rbind, rows)
   dimnames(dist_matrix) <- list(heavy_ids, light_ids)
   transformSpacedDistances(dist_matrix, scale = scale)
 }
 
-.sirap_spaced_check_nproc <- function(nproc) {
+.sirup_spaced_check_nproc <- function(nproc) {
   nproc <- as.integer(nproc)
   if (is.na(nproc) || nproc < 1L) {
     rlang::abort("`nproc` must be a positive integer.")
@@ -937,7 +937,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   nproc
 }
 
-.sirap_spaced_lapply <- function(x, fun, nproc) {
+.sirup_spaced_lapply <- function(x, fun, nproc) {
   if (nproc == 1L || length(x) <= 1L) {
     return(lapply(x, fun))
   }
@@ -949,7 +949,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   parallel::mclapply(x, fun, mc.cores = nproc)
 }
 
-.sirap_spaced_ot_points <- function(points, name, x_col, y_col) {
+.sirup_spaced_ot_points <- function(points, name, x_col, y_col) {
   points <- .as_data_frame(points)
   .check_required_cols(points, c("clone_id", x_col, y_col), name)
   points$clone_id <- as.character(points$clone_id)
@@ -969,7 +969,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   points
 }
 
-.sirap_spaced_pppdist <- function() {
+.sirup_spaced_pppdist <- function() {
   if (!requireNamespace("spatstat.geom", quietly = TRUE)) {
     rlang::abort("Package 'spatstat.geom' is required for `method = \"ot\"`.")
   }
@@ -983,7 +983,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   rlang::abort("Could not find `pppdist()` in installed spatstat packages.")
 }
 
-.sirap_spaced_ppp_window <- function(points) {
+.sirup_spaced_ppp_window <- function(points) {
   xrange <- range(points$x, finite = TRUE)
   yrange <- range(points$y, finite = TRUE)
   if (diff(xrange) == 0) {
@@ -995,11 +995,11 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   spatstat.geom::owin(xrange = xrange, yrange = yrange)
 }
 
-.sirap_spaced_as_ppp <- function(points, window) {
+.sirup_spaced_as_ppp <- function(points, window) {
   spatstat.geom::ppp(x = points$x, y = points$y, window = window)
 }
 
-.sirap_spaced_prune_top_n <- function(mat, top_n) {
+.sirup_spaced_prune_top_n <- function(mat, top_n) {
   if (top_n >= ncol(mat)) {
     return(mat)
   }
@@ -1016,7 +1016,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   out
 }
 
-.sirap_spaced_row_normalize <- function(mat) {
+.sirup_spaced_row_normalize <- function(mat) {
   rows <- rowSums(mat)
   keep <- rows > 0
   if (any(keep)) {
@@ -1025,7 +1025,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   mat
 }
 
-.sirap_spaced_col_normalize <- function(mat) {
+.sirup_spaced_col_normalize <- function(mat) {
   cols <- colSums(mat)
   keep <- cols > 0
   if (any(keep)) {
@@ -1034,7 +1034,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   mat
 }
 
-.sirap_spaced_top_light_candidates <- function(spatial_affinity,
+.sirup_spaced_top_light_candidates <- function(spatial_affinity,
                                                mapping_matrix,
                                                score,
                                                normalized_pairing,
@@ -1061,7 +1061,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   do.call(rbind, out)
 }
 
-.sirap_spaced_prepare_mapping <- function(mapping_matrix, spatial_affinity) {
+.sirup_spaced_prepare_mapping <- function(mapping_matrix, spatial_affinity) {
   if (is.null(mapping_matrix)) {
     mapping_matrix <- matrix(
       0,
@@ -1071,7 +1071,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
     )
     return(mapping_matrix)
   }
-  mapping_matrix <- .sirap_spaced_matrix_arg(mapping_matrix, "mapping_matrix")
+  mapping_matrix <- .sirup_spaced_matrix_arg(mapping_matrix, "mapping_matrix")
   if (!identical(dim(mapping_matrix), dim(spatial_affinity))) {
     rlang::abort(paste0(
       "`mapping_matrix` dimensions must match `spatial_affinity`. Found ",
@@ -1085,7 +1085,7 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
       " spatial."
     ))
   }
-  if (.sirap_spaced_has_matching_dimnames(mapping_matrix, spatial_affinity)) {
+  if (.sirup_spaced_has_matching_dimnames(mapping_matrix, spatial_affinity)) {
     if (anyDuplicated(rownames(mapping_matrix)) || anyDuplicated(colnames(mapping_matrix))) {
       rlang::abort("`mapping_matrix` rownames and colnames must be unique clone IDs.")
     }
@@ -1095,5 +1095,5 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
     # matrices once the REPAIR export is stable across environments.
     dimnames(mapping_matrix) <- dimnames(spatial_affinity)
   }
-  .sirap_spaced_row_normalize(mapping_matrix)
+  .sirup_spaced_row_normalize(mapping_matrix)
 }

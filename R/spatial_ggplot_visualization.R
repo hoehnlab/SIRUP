@@ -1,12 +1,12 @@
 #' Plot V/J/junction length QC histograms
 #'
-#' @param airr_df AIRR-style data frame or a SIRAP object.
+#' @param airr_df AIRR-style data frame or a SIRUP object.
 #' @param bin_width Width of histogram bins.
 #' @param title Optional plot title prefix.
 #' @return A ggplot object.
 #' @export
 plotLengthQc <- function(airr_df, bin_width = 5, title = NULL) {
-  airr_df <- .sirap_receptor_input(airr_df)$receptors
+  airr_df <- .sirup_receptor_input(airr_df)$receptors
   .check_required_cols(airr_df, c("v_sequence_end", "v_sequence_start", "j_sequence_end", "j_sequence_start", "junction_length"), "airr_df")
   out <- .as_data_frame(airr_df)
   out$v_sequence_length <- out$v_sequence_end - out$v_sequence_start + 1L
@@ -27,17 +27,17 @@ plotLengthQc <- function(airr_df, bin_width = 5, title = NULL) {
 
 #' Plot spatial features after excluding zero-expression spots
 #'
-#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param object Seurat object with spatial images, or a SIRUP object.
 #' @param features Feature names to plot.
 #' @param assay Optional assay to set before plotting.
 #' @param layer Seurat expression layer to fetch.
 #' @param images Optional Seurat image names.
 #' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRAP objects. Defaults to `NULL`, which plots all samples.
+#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRAP object metadata.
+#'   value must be supplied explicitly or by SIRUP object metadata.
 #' @param feature_colors Optional colors used, in order, for the continuous
 #'   expression scale. The first color is the low value and the last color is
 #'   the high value. When supplied, this overrides `feature_color_palette`.
@@ -55,7 +55,7 @@ plotLengthQc <- function(airr_df, bin_width = 5, title = NULL) {
 #' @param zoom Zoom to non-zero spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
 #' @param combine Combine plots into one figure with patchwork if multiple images/features.
-#' @param combine_sample_plots For multi-sample SIRAP objects, combine plots
+#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
 #'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
 #'   multi-sample calls return a named list of per-sample plots.
 #' @return A ggplot/patchwork object, list, or `NULL` when all spots are zero.
@@ -79,28 +79,28 @@ spatialExpressionPlot <- function(object,
                                       zoom = FALSE,
                                       combine = TRUE,
                                       combine_sample_plots = FALSE) {
-  sample_id <- .sirap_plot_sample_id(object, sample_id)
-  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  sample_id <- .sirup_plot_sample_id(object, sample_id)
+  context <- .sirup_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
   .require_namespace("SeuratObject")
   .require_namespace("patchwork")
   if (!is.null(assay)) {
-    object <- .sirap_set_default_assay(object, assay)
+    object <- .sirup_set_default_assay(object, assay)
   }
-  feature_colors <- .sirap_feature_color_values(
+  feature_colors <- .sirup_feature_color_values(
     feature_colors = feature_colors,
     feature_color_palette = feature_color_palette
   )
 
-  expr <- .sirap_spatial_fetch_data(object, vars = features, layer = layer, assay = assay)
+  expr <- .sirup_spatial_fetch_data(object, vars = features, layer = layer, assay = assay)
   plots <- list()
-  spatial_images <- .sirap_spatial_images(object, images = images, sample_id = sample_id)
+  spatial_images <- .sirup_spatial_images(object, images = images, sample_id = sample_id)
   single_panel <- length(features) == 1L && length(spatial_images) == 1L
   for (image in spatial_images) {
-    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
-    dat <- .sirap_merge_spatial_values(spatial$coords, expr)
+    spatial <- .sirup_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
+    dat <- .sirup_merge_spatial_values(spatial$coords, expr)
     for (feature in features) {
       keep <- !is.na(dat[[feature]]) & dat[[feature]] > zero_tol
       if (!any(keep)) {
@@ -110,7 +110,7 @@ spatialExpressionPlot <- function(object,
       if (isTRUE(order_points)) {
         plot_data <- plot_data[order(plot_data[[feature]], na.last = TRUE), , drop = FALSE]
       }
-      plots[[paste(image, feature, sep = "_")]] <- .sirap_spatial_base(
+      plots[[paste(image, feature, sep = "_")]] <- .sirup_spatial_base(
         plot_data,
         spatial$image,
         image_alpha = image_alpha,
@@ -128,14 +128,14 @@ spatialExpressionPlot <- function(object,
     }
   }
 
-  out <- .sirap_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
+  out <- .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
   if (!is.null(out) && !is.list(out) && !single_panel && isTRUE(combine) && !is.null(title)) {
     out <- out + patchwork::plot_annotation(title = title)
   }
   out
 }
 
-.sirap_feature_color_values <- function(feature_colors = NULL,
+.sirup_feature_color_values <- function(feature_colors = NULL,
                                         feature_color_palette = "viridis",
                                         n = 256L) {
   if (!is.null(feature_colors)) {
@@ -165,16 +165,16 @@ spatialExpressionPlot <- function(object,
 
 #' Plot spatial metadata groups after excluding zero/blank spots
 #'
-#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param object Seurat object with spatial images, or a SIRUP object.
 #' @param meta_col Metadata column to plot.
 #' @param zero_value Value treated as not present.
 #' @param images Optional Seurat image names.
 #' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRAP objects. Defaults to `NULL`, which plots all samples.
+#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRAP object metadata.
+#'   value must be supplied explicitly or by SIRUP object metadata.
 #' @param cols Optional named color vector.
 #' @param point_size Size of plotted spots.
 #' @param point_alpha Opacity for plotted spots.
@@ -184,7 +184,7 @@ spatialExpressionPlot <- function(object,
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
 #' @param combine Combine plots with patchwork when possible.
-#' @param combine_sample_plots For multi-sample SIRAP objects, combine plots
+#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
 #'   from different spatial samples into one patchwork. Defaults to `FALSE`.
 #' @return A ggplot/patchwork object, list, or `NULL` when all spots are blank.
 #' @export
@@ -203,12 +203,12 @@ spatialDiscretePlot <- function(object,
                                   zoom = FALSE,
                                   combine = TRUE,
                                   combine_sample_plots = FALSE) {
-  sample_id <- .sirap_plot_sample_id(object, sample_id)
-  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  sample_id <- .sirup_plot_sample_id(object, sample_id)
+  context <- .sirup_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
-  values <- .sirap_spatial_metadata_values(object, meta_col)
+  values <- .sirup_spatial_metadata_values(object, meta_col)
   values <- values[!is.na(values[[meta_col]]) & as.character(values[[meta_col]]) != as.character(zero_value), , drop = FALSE]
   if (nrow(values) == 0L) {
     message("All spots are zero/blank for `", meta_col, "`.")
@@ -216,9 +216,9 @@ spatialDiscretePlot <- function(object,
   }
 
   plots <- list()
-  for (image in .sirap_spatial_images(object, images = images, sample_id = sample_id)) {
-    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
-    plot_data <- .sirap_merge_spatial_values(spatial$coords, values)
+  for (image in .sirup_spatial_images(object, images = images, sample_id = sample_id)) {
+    spatial <- .sirup_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
+    plot_data <- .sirup_merge_spatial_values(spatial$coords, values)
     plot_data <- plot_data[!is.na(plot_data[[meta_col]]) & as.character(plot_data[[meta_col]]) != as.character(zero_value), , drop = FALSE]
     if (nrow(plot_data) == 0L) {
       next
@@ -236,7 +236,7 @@ spatialDiscretePlot <- function(object,
       names(color_values) <- levels(plot_data[[meta_col]])
     }
 
-    plots[[image]] <- .sirap_spatial_base(
+    plots[[image]] <- .sirup_spatial_base(
       plot_data,
       spatial$image,
       image_alpha = image_alpha,
@@ -253,15 +253,15 @@ spatialDiscretePlot <- function(object,
       ggplot2::labs(title = meta_col)
   }
 
-  .sirap_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
+  .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
 }
 
 #' Blend two spatial features after excluding double-zero spots
 #'
-#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param object Seurat object with spatial images, or a SIRUP object.
 #' @param features Two feature names.
 #' @param combine Combine plots with patchwork.
-#' @param combine_sample_plots For multi-sample SIRAP objects, combine plots
+#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
 #'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
 #'   multi-sample calls return a named list of per-sample plots.
 #' @param feature_1_alt_name Optional axis label for the first feature in the
@@ -278,11 +278,11 @@ spatialDiscretePlot <- function(object,
 #' @param zero_tol Values at or below this threshold are treated as zero.
 #' @param images Optional Seurat image names.
 #' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRAP objects. Defaults to `NULL`, which plots all samples.
+#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRAP object metadata.
+#'   value must be supplied explicitly or by SIRUP object metadata.
 #' @param point_size Size of plotted spots.
 #' @param point_alpha Opacity for plotted spots.
 #' @param order_points Plot lower blended expression intensity first so higher
@@ -315,8 +315,8 @@ spatialExpressionBlendPlot <- function(object,
                                                 order_points = TRUE,
                                                 image_alpha = 1,
                                                 zoom = FALSE) {
-  sample_id <- .sirap_plot_sample_id(object, sample_id)
-  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  sample_id <- .sirup_plot_sample_id(object, sample_id)
+  context <- .sirup_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
@@ -326,33 +326,33 @@ spatialExpressionBlendPlot <- function(object,
     rlang::abort(paste0("Requires two features, received ", length(features), "."))
   }
   if (!is.null(assay)) {
-    object <- .sirap_set_default_assay(object, assay)
+    object <- .sirup_set_default_assay(object, assay)
   }
 
-  expr <- .sirap_spatial_fetch_data(object, vars = features, layer = layer, assay = assay)
-  color_grid <- .sirap_blend_color_grid(
+  expr <- .sirup_spatial_fetch_data(object, vars = features, layer = layer, assay = assay)
+  color_grid <- .sirup_blend_color_grid(
     bottom_left = bottom_left,
     bottom_right = bottom_right,
     top_left = top_left,
     top_right = top_right
   )
   plots <- list()
-  for (image in .sirap_spatial_images(object, images = images, sample_id = sample_id)) {
-    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
-    dat <- .sirap_merge_spatial_values(spatial$coords, expr)
+  for (image in .sirup_spatial_images(object, images = images, sample_id = sample_id)) {
+    spatial <- .sirup_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
+    dat <- .sirup_merge_spatial_values(spatial$coords, expr)
     keep <- rowSums(dat[, features, drop = FALSE] > zero_tol, na.rm = TRUE) > 0
     if (!any(keep)) {
       next
     }
     dat <- dat[keep, , drop = FALSE]
     if (isTRUE(order_points)) {
-      dat$.sirap_blend_order <- rowSums(dat[, features, drop = FALSE], na.rm = TRUE)
-      dat <- dat[order(dat$.sirap_blend_order, na.last = TRUE), , drop = FALSE]
+      dat$.sirup_blend_order <- rowSums(dat[, features, drop = FALSE], na.rm = TRUE)
+      dat <- dat[order(dat$.sirup_blend_order, na.last = TRUE), , drop = FALSE]
     }
-    dat$.sirap_blend_color <- .sirap_blend_colors(dat[, features, drop = FALSE], color_grid)
-    color_values <- stats::setNames(unique(dat$.sirap_blend_color), unique(dat$.sirap_blend_color))
+    dat$.sirup_blend_color <- .sirup_blend_colors(dat[, features, drop = FALSE], color_grid)
+    color_values <- stats::setNames(unique(dat$.sirup_blend_color), unique(dat$.sirup_blend_color))
 
-    blended <- .sirap_spatial_base(
+    blended <- .sirup_spatial_base(
       dat,
       spatial$image,
       image_alpha = image_alpha,
@@ -360,7 +360,7 @@ spatialExpressionBlendPlot <- function(object,
       view_data = spatial$coords
     ) +
       ggplot2::geom_point(
-        ggplot2::aes(color = .data$.sirap_blend_color),
+        ggplot2::aes(color = .data$.sirup_blend_color),
         size = point_size,
         alpha = point_alpha,
         na.rm = TRUE,
@@ -369,7 +369,7 @@ spatialExpressionBlendPlot <- function(object,
       ggplot2::scale_color_manual(values = color_values) +
       ggplot2::labs(title = paste(features, collapse = " + "))
 
-    legend <- .sirap_blend_legend(
+    legend <- .sirup_blend_legend(
       color_grid,
       xlab = feature_1_alt_name %||% features[[1]],
       ylab = feature_2_alt_name %||% features[[2]]
@@ -416,17 +416,17 @@ spatialExpressionBlendPlot <- function(object,
     }
   }
 
-  .sirap_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
+  .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
 }
 
 #' Plot multiple spatial features as ordered color layers
 #'
-#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param object Seurat object with spatial images, or a SIRUP object.
 #' @param features Feature names.
 #' @param feat_order Optional plotting priority, broad/low priority first and
 #'   rare/high priority last.
 #' @param combine Combine spatial panels and legends with patchwork.
-#' @param combine_sample_plots For multi-sample SIRAP objects, combine plots
+#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
 #'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
 #'   multi-sample calls return a named list of per-sample plots.
 #' @param assay Optional assay to set before plotting.
@@ -435,11 +435,11 @@ spatialExpressionBlendPlot <- function(object,
 #' @param breadth_metric Metric used to choose default feature order.
 #' @param images Optional Seurat image names.
 #' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRAP objects. Defaults to `NULL`, which plots all samples.
+#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRAP object metadata.
+#'   value must be supplied explicitly or by SIRUP object metadata.
 #' @param point_size Size of plotted spots.
 #' @param point_alpha Opacity for plotted spots.
 #' @param order_points Plot lower-priority feature assignments first so later
@@ -469,8 +469,8 @@ spatialExpressionMultiPlot <- function(object,
                                     zero_tol = 0,
                                     image_alpha = 1,
                                     zoom = FALSE) {
-  sample_id <- .sirap_plot_sample_id(object, sample_id)
-  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  sample_id <- .sirup_plot_sample_id(object, sample_id)
+  context <- .sirup_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
@@ -480,7 +480,7 @@ spatialExpressionMultiPlot <- function(object,
     rlang::abort("Requires at least 2 features.")
   }
   if (!is.null(assay)) {
-    object <- .sirap_set_default_assay(object, assay)
+    object <- .sirup_set_default_assay(object, assay)
   }
   colors <- colors %||% c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#A65628", "#F781BF", "#999999")
   if (length(colors) < length(features)) {
@@ -488,11 +488,11 @@ spatialExpressionMultiPlot <- function(object,
   }
   names(colors) <- features
 
-  expr <- .sirap_spatial_fetch_data(object, vars = features, layer = layer, assay = assay)
+  expr <- .sirup_spatial_fetch_data(object, vars = features, layer = layer, assay = assay)
   plots <- list()
-  for (image in .sirap_spatial_images(object, images = images, sample_id = sample_id)) {
-    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
-    dat <- .sirap_merge_spatial_values(spatial$coords, expr)
+  for (image in .sirup_spatial_images(object, images = images, sample_id = sample_id)) {
+    spatial <- .sirup_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
+    dat <- .sirup_merge_spatial_values(spatial$coords, expr)
     keep <- rowSums(dat[, features, drop = FALSE] > zero_tol, na.rm = TRUE) > 0
     if (!any(keep)) {
       next
@@ -505,17 +505,17 @@ spatialExpressionMultiPlot <- function(object,
       rlang::abort(paste0("`feat_order` includes feature(s) not found in `features`: ", paste(missing_features, collapse = ", ")))
     }
 
-    dat$.sirap_feature <- NA_character_
+    dat$.sirup_feature <- NA_character_
     for (feature in feature_order) {
-      dat$.sirap_feature[dat[[feature]] > zero_tol] <- feature
+      dat$.sirup_feature[dat[[feature]] > zero_tol] <- feature
     }
-    dat$.sirap_feature <- factor(dat$.sirap_feature, levels = feature_order)
+    dat$.sirup_feature <- factor(dat$.sirup_feature, levels = feature_order)
     if (isTRUE(order_points)) {
-      dat <- dat[order(as.integer(dat$.sirap_feature), na.last = TRUE), , drop = FALSE]
+      dat <- dat[order(as.integer(dat$.sirup_feature), na.last = TRUE), , drop = FALSE]
     }
     ordered_colors <- colors[feature_order]
 
-    spatial_plot <- .sirap_spatial_base(
+    spatial_plot <- .sirup_spatial_base(
       dat,
       spatial$image,
       image_alpha = image_alpha,
@@ -523,7 +523,7 @@ spatialExpressionMultiPlot <- function(object,
       view_data = spatial$coords
     ) +
       ggplot2::geom_point(
-        ggplot2::aes(color = .data$.sirap_feature),
+        ggplot2::aes(color = .data$.sirup_feature),
         size = point_size,
         alpha = point_alpha,
         na.rm = TRUE
@@ -534,7 +534,7 @@ spatialExpressionMultiPlot <- function(object,
     plots[[image]] <- spatial_plot
   }
 
-  .sirap_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
+  .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
 }
 
 #' Plot grouped receptors over spatial gene expression
@@ -548,10 +548,10 @@ spatialExpressionMultiPlot <- function(object,
 #' scale. The receptor circles therefore look the same whether you colour them
 #' by `group` or by a continuous `value`.
 #'
-#' @param object Seurat object, or a SIRAP object containing both spatial and
+#' @param object Seurat object, or a SIRUP object containing both spatial and
 #'   receptor data.
 #' @param receptors AIRR-style receptor table containing a spatial ID and
-#'   grouping column. May be omitted when `object` is a SIRAP object.
+#'   grouping column. May be omitted when `object` is a SIRUP object.
 #' @param group Column in `receptors` defining receptor groups, for example
 #'   `"receptor_type"` with values `"BCR"` and `"TCR"`. Optional when `value`
 #'   is given; if both are given, `group` and `group_val` only select which
@@ -559,7 +559,7 @@ spatialExpressionMultiPlot <- function(object,
 #' @param group_val Optional group values to plot and their display order.
 #'   Defaults to all non-missing values in `group`.
 #' @param spatial_id Column in `receptors` matching Seurat spot names. If
-#'   `NULL`, the SIRAP spatial_id field is used or a spatial ID-like column is guessed.
+#'   `NULL`, the SIRUP spatial_id field is used or a spatial ID-like column is guessed.
 #' @param feature Gene or feature plotted beneath receptor-positive spots.
 #' @param gene Alias for `feature`.
 #' @param colors Optional colors for receptor groups. Named colors are matched
@@ -595,14 +595,14 @@ spatialExpressionMultiPlot <- function(object,
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate axes.
 #' @param images Optional Seurat image names.
 #' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRAP objects. Defaults to `NULL`, which plots all samples.
+#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
 #' @param image_alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`.
 #' @param receptor_legend_title Title for the receptor-group legend. Defaults
 #'   to `group`.
 #' @param show_receptor_legend Show the receptor-group legend.
 #' @param combine Combine image panels with patchwork.
-#' @param combine_sample_plots For multi-sample SIRAP objects, combine plots
+#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
 #'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
 #'   multi-sample calls return a named list of per-sample plots.
 #' @return A ggplot/patchwork object, or a list when `combine = FALSE`.
@@ -641,17 +641,17 @@ plotReceptorsExpression <- function(object,
                                     show_receptor_legend = TRUE,
                                     combine = TRUE,
                                     combine_sample_plots = FALSE) {
-  sample_id <- .sirap_plot_sample_id(object, sample_id)
-  options <- .sirap_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
+  sample_id <- .sirup_plot_sample_id(object, sample_id)
+  options <- .sirup_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
-  inputs <- .sirap_resolve_inputs(object, receptors, spatial_id)
+  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id)
   object <- inputs$object
   receptors <- inputs$receptors
   spatial_id <- inputs$spatial_id_col
-  sample_col <- .sirap_receptor_sample_col(receptors %||% data.frame(), inputs$receptor_fields, object)
+  sample_col <- .sirup_receptor_sample_col(receptors %||% data.frame(), inputs$receptor_fields, object)
   if (is.null(receptors)) {
-    rlang::abort("`receptors` is required when `object` is not a SIRAP object.")
+    rlang::abort("`receptors` is required when `object` is not a SIRUP object.")
   }
 
   feature <- feature %||% gene
@@ -682,14 +682,14 @@ plotReceptorsExpression <- function(object,
     if (nrow(receptors) == 0L) {
       rlang::abort("No receptor rows with a spatial ID to summarise.")
     }
-    summarised <- .sirap_receptor_spot_values(receptors, spatial_id, value, value_combine, sample_col = sample_col)
+    summarised <- .sirup_receptor_spot_values(receptors, spatial_id, value, value_combine, sample_col = sample_col)
     receptor_lookup <- summarised$data
     receptor_legend_title <- receptor_legend_title %||% summarised$legend
   } else {
 
-  receptors$.sirap_receptor_group <- as.character(receptors[[group]])
+  receptors$.sirup_receptor_group <- as.character(receptors[[group]])
   if (is.null(group_val)) {
-    group_val <- unique(stats::na.omit(receptors$.sirap_receptor_group))
+    group_val <- unique(stats::na.omit(receptors$.sirup_receptor_group))
   }
   group_val <- as.character(group_val)
   group_val <- group_val[!is.na(group_val) & nzchar(group_val)]
@@ -698,8 +698,8 @@ plotReceptorsExpression <- function(object,
   }
 
   receptors <- receptors[
-    !is.na(receptors$.sirap_receptor_group) &
-      receptors$.sirap_receptor_group %in% group_val &
+    !is.na(receptors$.sirup_receptor_group) &
+      receptors$.sirup_receptor_group %in% group_val &
       !is.na(receptors[[spatial_id]]),
     ,
     drop = FALSE
@@ -708,38 +708,38 @@ plotReceptorsExpression <- function(object,
     rlang::abort("No receptor rows matched `group_val` in `group`.")
   }
   receptors[[spatial_id]] <- as.character(receptors[[spatial_id]])
-  receptors$.sirap_receptor_group <- factor(
-    receptors$.sirap_receptor_group,
+  receptors$.sirup_receptor_group <- factor(
+    receptors$.sirup_receptor_group,
     levels = group_val
   )
-  single_colors <- .sirap_receptor_group_colors(group_val, colors)
+  single_colors <- .sirup_receptor_group_colors(group_val, colors)
   receptor_legend_title <- receptor_legend_title %||% group
 
-  receptor_lookup <- receptors[, unique(c(sample_col, spatial_id, ".sirap_receptor_group")), drop = FALSE]
+  receptor_lookup <- receptors[, unique(c(sample_col, spatial_id, ".sirup_receptor_group")), drop = FALSE]
   receptor_lookup <- receptor_lookup[!duplicated(receptor_lookup), , drop = FALSE]
 
   # Spots with more than one receptor group become a combined, colour-averaged
   # group (for example "BCR + TCR"), so each spot is drawn as a single ring.
-  combined <- .sirap_combine_receptor_groups(receptor_lookup, spatial_id, group_val, single_colors, overlap = overlap, sample_col = sample_col)
+  combined <- .sirup_combine_receptor_groups(receptor_lookup, spatial_id, group_val, single_colors, overlap = overlap, sample_col = sample_col)
   receptor_lookup <- combined$lookup
   plot_groups <- combined$levels
   colors <- combined$colors
   }
 
   if (!is.null(assay)) {
-    object <- .sirap_set_default_assay(object, assay)
+    object <- .sirup_set_default_assay(object, assay)
   }
-  expr <- .sirap_spatial_fetch_data(object, vars = feature, layer = layer, assay = assay)
+  expr <- .sirup_spatial_fetch_data(object, vars = feature, layer = layer, assay = assay)
 
   plots <- list()
-  for (image in .sirap_spatial_images(object, images = images, sample_id = sample_id)) {
-    spatial <- .sirap_spatial_data(
+  for (image in .sirup_spatial_images(object, images = images, sample_id = sample_id)) {
+    spatial <- .sirup_spatial_data(
       object,
       image = image,
       image_scale = image_scale,
       swap_coords = swap_coords
     )
-    expression_data <- .sirap_merge_spatial_values(spatial$coords, expr)
+    expression_data <- .sirup_merge_spatial_values(spatial$coords, expr)
     expression_data <- expression_data[
       !is.na(expression_data[[feature]]) & expression_data[[feature]] > zero_tol,
       ,
@@ -753,10 +753,10 @@ plotReceptorsExpression <- function(object,
       ]
     }
 
-    receptor_data <- .sirap_merge_receptor_lookup(spatial$coords, receptor_lookup, spatial_id, sample_col)
+    receptor_data <- .sirup_merge_receptor_lookup(spatial$coords, receptor_lookup, spatial_id, sample_col)
     if (!use_value) {
-      receptor_data$.sirap_receptor_group <- factor(
-        receptor_data$.sirap_receptor_group,
+      receptor_data$.sirup_receptor_group <- factor(
+        receptor_data$.sirup_receptor_group,
         levels = plot_groups
       )
     }
@@ -765,7 +765,7 @@ plotReceptorsExpression <- function(object,
       next
     }
 
-    p <- .sirap_spatial_base(
+    p <- .sirup_spatial_base(
       spatial$coords,
       spatial$image,
       image_alpha = image_alpha,
@@ -781,7 +781,7 @@ plotReceptorsExpression <- function(object,
       p <- p +
         ggplot2::geom_point(
           data = expression_data,
-          ggplot2::aes(x = .data$x, y = .data$.sirap_y, fill = .data[[feature]]),
+          ggplot2::aes(x = .data$x, y = .data$.sirup_y, fill = .data[[feature]]),
           shape = 21,
           # "transparent", not NA: colour = NA makes geom_point drop the rows,
           # so every expression spot silently disappears.
@@ -798,14 +798,14 @@ plotReceptorsExpression <- function(object,
     if (use_value) {
       if (nrow(receptor_data) > 0L) {
         if (isTRUE(order_points)) {
-          receptor_data <- receptor_data[order(receptor_data$.sirap_count), , drop = FALSE]
+          receptor_data <- receptor_data[order(receptor_data$.sirup_count), , drop = FALSE]
         }
         # Hollow rings, same as grouped mode, with the ring colour carrying the
         # value. The expression layer uses the fill scale, so colour is free.
         p <- p +
           ggplot2::geom_point(
             data = receptor_data,
-            ggplot2::aes(x = .data$x, y = .data$.sirap_y, color = .data$.sirap_count),
+            ggplot2::aes(x = .data$x, y = .data$.sirup_y, color = .data$.sirup_count),
             shape = 21,
             fill = NA,
             size = receptor_size,
@@ -815,26 +815,26 @@ plotReceptorsExpression <- function(object,
             na.rm = TRUE,
             show.legend = isTRUE(show_receptor_legend)
           ) +
-          .sirap_value_color_scale(value_colors, value_limits, receptor_legend_title,
+          .sirup_value_color_scale(value_colors, value_limits, receptor_legend_title,
                                    aesthetic = "colour")
       }
     } else {
     for (grp in plot_groups) {
       group_data <- receptor_data[
-        receptor_data$.sirap_receptor_group == grp,
+        receptor_data$.sirup_receptor_group == grp,
         ,
         drop = FALSE
       ]
       if (nrow(group_data) == 0L) {
         next
       }
-      group_data$.sirap_receptor_label <- factor(grp, levels = plot_groups)
+      group_data$.sirup_receptor_label <- factor(grp, levels = plot_groups)
       p <- p + ggplot2::geom_point(
         data = group_data,
         ggplot2::aes(
           x = .data$x,
-          y = .data$.sirap_y,
-          shape = .data$.sirap_receptor_label
+          y = .data$.sirup_y,
+          shape = .data$.sirup_receptor_label
         ),
         color = unname(colors[[grp]]),
         fill = NA,
@@ -870,15 +870,15 @@ plotReceptorsExpression <- function(object,
     plots[[image]] <- p + ggplot2::labs(title = title %||% feature)
   }
 
-  .sirap_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
+  .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
 }
 
 #' Plot one or more receptor groups over a tissue image
 #'
-#' @param object Seurat object, or a SIRAP object containing both spatial and
+#' @param object Seurat object, or a SIRUP object containing both spatial and
 #'   receptor data.
 #' @param receptors AIRR-style receptor table containing a spatial ID and
-#'   grouping column. May be omitted when `object` is a SIRAP object.
+#'   grouping column. May be omitted when `object` is a SIRUP object.
 #' @param group Column in `receptors` used to select and color receptor
 #'   groups, for example `"clone_id"`.
 #' @param group_val Optional values from `group` to plot. Defaults to all
@@ -900,7 +900,7 @@ plotReceptorsExpression <- function(object,
 #'   `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRAP object metadata.
+#'   value must be supplied explicitly or by SIRUP object metadata.
 #' @param images Optional Seurat image names.
 #' @param image_alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
@@ -910,7 +910,7 @@ plotReceptorsExpression <- function(object,
 #' @param show_receptor_legend Show the receptor group legend.
 #' @param polygons Draw region polygons under the receptor points on each
 #'   spatial panel. `FALSE` (the default) draws no polygons. `TRUE` uses the
-#'   polygons stored in the SIRAP object. You can also pass a data frame of
+#'   polygons stored in the SIRUP object. You can also pass a data frame of
 #'   polygon vertices, or a path to a CSV file of polygon vertices. Vertex
 #'   tables need `polygon_x` and `polygon_y` columns, plus `polygon_id` to
 #'   separate multiple polygons.
@@ -946,8 +946,8 @@ plotReceptorsExpression <- function(object,
 #'   `"min"` or `"sum"`. Ignored when `value = "count"`.
 #' @param combine Combine image panels with patchwork.
 #' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRAP objects. Defaults to `NULL`, which plots all samples.
-#' @param combine_sample_plots For multi-sample SIRAP objects, combine plots
+#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
+#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
 #'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
 #'   multi-sample calls return a named list of per-sample plots.
 #' @return A ggplot/patchwork object or a list when `combine = FALSE`.
@@ -990,13 +990,13 @@ plotReceptors <- function(object,
                           polygon_label_color = "black",
                           combine = TRUE,
                           combine_sample_plots = FALSE) {
-  sample_id <- .sirap_plot_sample_id(object, sample_id)
-  options <- .sirap_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
+  sample_id <- .sirup_plot_sample_id(object, sample_id)
+  options <- .sirup_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
-  # Resolve any polygon overlay while `object` may still be the SIRAP object;
-  # `.sirap_resolve_inputs()` replaces it with the plain Seurat object below.
-  polygon_overlay <- .sirap_resolve_overlay_polygons(
+  # Resolve any polygon overlay while `object` may still be the SIRUP object;
+  # `.sirup_resolve_inputs()` replaces it with the plain Seurat object below.
+  polygon_overlay <- .sirup_resolve_overlay_polygons(
     polygons = polygons,
     object = object,
     polygon_x = polygon_x,
@@ -1005,13 +1005,13 @@ plotReceptors <- function(object,
     polygon_val = polygon_val,
     label_by = polygon_label_by
   )
-  inputs <- .sirap_resolve_inputs(object, receptors, spatial_id)
+  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id)
   object <- inputs$object
   receptors <- inputs$receptors
   spatial_id <- inputs$spatial_id_col
-  sample_col <- .sirap_receptor_sample_col(receptors %||% data.frame(), inputs$receptor_fields, object)
+  sample_col <- .sirup_receptor_sample_col(receptors %||% data.frame(), inputs$receptor_fields, object)
   if (is.null(receptors)) {
-    rlang::abort("`receptors` is required when `object` is not a SIRAP object.")
+    rlang::abort("`receptors` is required when `object` is not a SIRUP object.")
   }
   .require_namespace("SeuratObject")
   receptors <- .as_data_frame(receptors)
@@ -1032,27 +1032,27 @@ plotReceptors <- function(object,
     }
     # A spot is drawn once, so several receptors on one spot are reduced to a
     # single number first.
-    summarised <- .sirap_receptor_spot_values(receptors, spatial_id, value, value_combine, sample_col = sample_col)
+    summarised <- .sirup_receptor_spot_values(receptors, spatial_id, value, value_combine, sample_col = sample_col)
     counts <- summarised$data
     legend_name <- receptor_legend_title %||% summarised$legend
     plots <- list()
-    for (image in .sirap_spatial_images(object, images = images, sample_id = sample_id)) {
-      spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
-      image_polygon_overlay <- .sirap_filter_polygon_plot_sample(polygon_overlay, image)
-      receptor_data <- .sirap_merge_receptor_lookup(spatial$coords, counts, spatial_id, sample_col)
+    for (image in .sirup_spatial_images(object, images = images, sample_id = sample_id)) {
+      spatial <- .sirup_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
+      image_polygon_overlay <- .sirup_filter_polygon_plot_sample(polygon_overlay, image)
+      receptor_data <- .sirup_merge_receptor_lookup(spatial$coords, counts, spatial_id, sample_col)
       if (nrow(receptor_data) == 0L) {
         next
       }
       # Draw high-count spots last so they sit on top.
       if (isTRUE(order_points)) {
-        receptor_data <- receptor_data[order(receptor_data$.sirap_count), , drop = FALSE]
+        receptor_data <- receptor_data[order(receptor_data$.sirup_count), , drop = FALSE]
       }
-      p <- .sirap_spatial_base(
+      p <- .sirup_spatial_base(
         receptor_data, spatial$image,
         image_alpha = image_alpha, zoom = zoom, view_data = spatial$coords
       )
       if (!is.null(image_polygon_overlay) && nrow(image_polygon_overlay) > 0L) {
-        p <- p + .sirap_polygon_fill_layer(
+        p <- p + .sirup_polygon_fill_layer(
           image_polygon_overlay, polygon_alpha = polygon_alpha,
           polygon_fill = polygon_fill, polygon_color = polygon_color,
           polygon_linewidth = polygon_linewidth
@@ -1061,14 +1061,14 @@ plotReceptors <- function(object,
       p <- p +
         ggplot2::geom_point(
           data = receptor_data,
-          ggplot2::aes(x = .data$x, y = .data$.sirap_y, color = .data$.sirap_count),
+          ggplot2::aes(x = .data$x, y = .data$.sirup_y, color = .data$.sirup_count),
           size = receptor_size, alpha = receptor_alpha,
           inherit.aes = FALSE, na.rm = TRUE,
           show.legend = isTRUE(show_receptor_legend)
         ) +
-        .sirap_value_color_scale(value_colors, value_limits, legend_name)
+        .sirup_value_color_scale(value_colors, value_limits, legend_name)
       if (!is.null(image_polygon_overlay) && nrow(image_polygon_overlay) > 0L) {
-        label_layer <- .sirap_polygon_label_layer(
+        label_layer <- .sirup_polygon_label_layer(
           image_polygon_overlay, polygon_label = polygon_label,
           polygon_label_by = polygon_label_by,
           polygon_label_size = polygon_label_size,
@@ -1080,7 +1080,7 @@ plotReceptors <- function(object,
       }
       plots[[image]] <- p + ggplot2::labs(title = title %||% legend_name)
     }
-    return(.sirap_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots))
+    return(.sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots))
   }
 
   if (is.null(group)) {
@@ -1088,9 +1088,9 @@ plotReceptors <- function(object,
   }
   .check_required_cols(receptors, c(spatial_id, group), "receptors")
 
-  receptors$.sirap_receptor_group <- as.character(receptors[[group]])
+  receptors$.sirup_receptor_group <- as.character(receptors[[group]])
   if (is.null(group_val)) {
-    group_val <- unique(stats::na.omit(receptors$.sirap_receptor_group))
+    group_val <- unique(stats::na.omit(receptors$.sirup_receptor_group))
   }
   group_val <- as.character(group_val)
   group_val <- group_val[!is.na(group_val)]
@@ -1099,8 +1099,8 @@ plotReceptors <- function(object,
   }
 
   receptors <- receptors[
-    !is.na(receptors$.sirap_receptor_group) &
-      receptors$.sirap_receptor_group %in% group_val &
+    !is.na(receptors$.sirup_receptor_group) &
+      receptors$.sirup_receptor_group %in% group_val &
       !is.na(receptors[[spatial_id]]),
     ,
     drop = FALSE
@@ -1109,31 +1109,31 @@ plotReceptors <- function(object,
     rlang::abort("No receptor rows matched `group_val` in `group`.")
   }
   receptors[[spatial_id]] <- as.character(receptors[[spatial_id]])
-  receptors$.sirap_receptor_group <- factor(receptors$.sirap_receptor_group, levels = group_val)
-  single_colors <- .sirap_receptor_group_colors(group_val, colors)
+  receptors$.sirup_receptor_group <- factor(receptors$.sirup_receptor_group, levels = group_val)
+  single_colors <- .sirup_receptor_group_colors(group_val, colors)
   receptor_legend_title <- receptor_legend_title %||% group
 
-  receptor_lookup <- receptors[, unique(c(sample_col, spatial_id, ".sirap_receptor_group")), drop = FALSE]
+  receptor_lookup <- receptors[, unique(c(sample_col, spatial_id, ".sirup_receptor_group")), drop = FALSE]
   receptor_lookup <- receptor_lookup[!duplicated(receptor_lookup), , drop = FALSE]
 
   # Spots with more than one receptor group become a combined, colour-averaged
   # group (for example "BCR + TCR"), so each spot is drawn as a single point.
-  combined <- .sirap_combine_receptor_groups(receptor_lookup, spatial_id, group_val, single_colors, overlap = overlap, sample_col = sample_col)
+  combined <- .sirup_combine_receptor_groups(receptor_lookup, spatial_id, group_val, single_colors, overlap = overlap, sample_col = sample_col)
   receptor_lookup <- combined$lookup
   plot_groups <- combined$levels
   colors <- combined$colors
   plots <- list()
-  for (image in .sirap_spatial_images(object, images = images, sample_id = sample_id)) {
-    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
-    image_polygon_overlay <- .sirap_filter_polygon_plot_sample(polygon_overlay, image)
-    receptor_data <- .sirap_merge_receptor_lookup(spatial$coords, receptor_lookup, spatial_id, sample_col)
-    receptor_data$.sirap_receptor_group <- factor(
-      receptor_data$.sirap_receptor_group,
+  for (image in .sirup_spatial_images(object, images = images, sample_id = sample_id)) {
+    spatial <- .sirup_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
+    image_polygon_overlay <- .sirup_filter_polygon_plot_sample(polygon_overlay, image)
+    receptor_data <- .sirup_merge_receptor_lookup(spatial$coords, receptor_lookup, spatial_id, sample_col)
+    receptor_data$.sirup_receptor_group <- factor(
+      receptor_data$.sirup_receptor_group,
       levels = plot_groups
     )
     if (isTRUE(order_points)) {
       receptor_data <- receptor_data[
-        order(as.integer(receptor_data$.sirap_receptor_group), na.last = TRUE),
+        order(as.integer(receptor_data$.sirup_receptor_group), na.last = TRUE),
         ,
         drop = FALSE
       ]
@@ -1143,7 +1143,7 @@ plotReceptors <- function(object,
       next
     }
 
-    p <- .sirap_spatial_base(
+    p <- .sirup_spatial_base(
       receptor_data,
       spatial$image,
       image_alpha = image_alpha,
@@ -1153,7 +1153,7 @@ plotReceptors <- function(object,
 
     # Draw polygons under the receptor points so both stay visible.
     if (!is.null(image_polygon_overlay) && nrow(image_polygon_overlay) > 0L) {
-      p <- p + .sirap_polygon_fill_layer(
+      p <- p + .sirup_polygon_fill_layer(
         image_polygon_overlay,
         polygon_alpha = polygon_alpha,
         polygon_fill = polygon_fill,
@@ -1165,7 +1165,7 @@ plotReceptors <- function(object,
     p <- p +
       ggplot2::geom_point(
         data = receptor_data,
-        ggplot2::aes(x = .data$x, y = .data$.sirap_y, color = .data$.sirap_receptor_group),
+        ggplot2::aes(x = .data$x, y = .data$.sirup_y, color = .data$.sirup_receptor_group),
         size = receptor_size,
         alpha = receptor_alpha,
         inherit.aes = FALSE,
@@ -1180,7 +1180,7 @@ plotReceptors <- function(object,
 
     # Polygon labels sit on top of the points.
     if (!is.null(image_polygon_overlay) && nrow(image_polygon_overlay) > 0L) {
-      label_layer <- .sirap_polygon_label_layer(
+      label_layer <- .sirup_polygon_label_layer(
         image_polygon_overlay,
         polygon_label = polygon_label,
         polygon_label_by = polygon_label_by,
@@ -1195,12 +1195,12 @@ plotReceptors <- function(object,
     plots[[image]] <- p + ggplot2::labs(title = title %||% receptor_legend_title)
   }
 
-  .sirap_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
+  .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
 }
 
 #' Plot tip colors over a tissue image
 #'
-#' @param object Seurat object, or a SIRAP object.
+#' @param object Seurat object, or a SIRUP object.
 #' @param tip_data Data frame with spatial ID and color columns.
 #' @param spatial_id Spatial ID column in `tip_data` matching Seurat spot names.
 #' @param color Column containing colors.
@@ -1211,21 +1211,21 @@ plotReceptors <- function(object,
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRAP object metadata.
+#'   value must be supplied explicitly or by SIRUP object metadata.
 #' @param point_size Size of plotted tips.
 #' @param point_alpha Opacity for plotted tips.
 #' @param order_points Plot earlier tip-color groups first so later groups
 #'   appear on top.
 #' @param images Optional Seurat image names.
 #' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRAP objects. Defaults to `NULL`, which plots all samples.
+#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
 #' @param image_alpha Tissue image opacity.
 #' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
 #'   full tissue area covered by the spatial coordinates.
 #' @param show_legend Show color legend.
 #' @param polygons Draw region polygons under the tip points on each spatial
 #'   panel. `FALSE` (the default) draws no polygons. `TRUE` uses the polygons
-#'   stored in the SIRAP object. You can also pass a data frame of polygon
+#'   stored in the SIRUP object. You can also pass a data frame of polygon
 #'   vertices, or a path to a CSV file of polygon vertices. Vertex tables need
 #'   `polygon_x` and `polygon_y` columns, plus `polygon_id` to separate
 #'   multiple polygons.
@@ -1249,7 +1249,7 @@ plotReceptors <- function(object,
 #' @param sample Optional column in `tip_data` matching names of a spatial
 #'   object list.
 #' @param combine Combine image panels with patchwork.
-#' @param combine_sample_plots For multi-sample SIRAP objects, combine plots
+#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
 #'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
 #'   multi-sample calls return a named list of per-sample plots.
 #' @return A ggplot/patchwork object.
@@ -1288,14 +1288,14 @@ plotSpatialColorTips <- function(object,
                                 polygon_label_color = "black",
                                 combine = TRUE,
                                 combine_sample_plots = FALSE) {
-  sample_id <- .sirap_plot_sample_id(object, sample_id)
+  sample_id <- .sirup_plot_sample_id(object, sample_id)
   spatial_id_missing <- missing(spatial_id)
-  if (isSIRAP(object) && spatial_id_missing) {
-    spatial_id <- .sirap_receptor_fields(object)$spatial_id
+  if (isSIRUP(object) && spatial_id_missing) {
+    spatial_id <- .sirup_receptor_fields(object)$spatial_id
   }
-  # Resolve any polygon overlay while `object` may still be the SIRAP object;
-  # `.sirap_spatial_context()` replaces it with the plain Seurat object below.
-  polygon_overlay <- .sirap_resolve_overlay_polygons(
+  # Resolve any polygon overlay while `object` may still be the SIRUP object;
+  # `.sirup_spatial_context()` replaces it with the plain Seurat object below.
+  polygon_overlay <- .sirup_resolve_overlay_polygons(
     polygons = polygons,
     object = object,
     polygon_x = polygon_x,
@@ -1304,14 +1304,14 @@ plotSpatialColorTips <- function(object,
     polygon_val = polygon_val,
     label_by = polygon_label_by
   )
-  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  context <- .sirup_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
   .require_namespace("SeuratObject")
   tip_data <- .as_data_frame(tip_data)
   .check_required_cols(tip_data, c(spatial_id, color), "tip_data")
-  sample <- sample %||% if (.sirap_is_spatial_list(object) && "sample" %in% colnames(tip_data)) "sample" else NULL
+  sample <- sample %||% if (.sirup_is_spatial_list(object) && "sample" %in% colnames(tip_data)) "sample" else NULL
   if (!is.null(sample)) {
     .check_required_cols(tip_data, sample, "tip_data")
   }
@@ -1346,9 +1346,9 @@ plotSpatialColorTips <- function(object,
   }
 
   plots <- list()
-  for (image in .sirap_spatial_images(object, images = images, sample_id = sample_id)) {
-    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
-    image_polygon_overlay <- .sirap_filter_polygon_plot_sample(polygon_overlay, image)
+  for (image in .sirup_spatial_images(object, images = images, sample_id = sample_id)) {
+    spatial <- .sirup_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
+    image_polygon_overlay <- .sirup_filter_polygon_plot_sample(polygon_overlay, image)
     coord_key <- if (!is.null(sample) && "sample" %in% colnames(spatial$coords)) {
       paste(as.character(spatial$coords$sample), as.character(spatial$coords$cell), sep = "\r")
     } else {
@@ -1363,17 +1363,17 @@ plotSpatialColorTips <- function(object,
     } else {
       as.character(dat$cell)
     }
-    dat$.sirap_tip_color <- spot_color[dat_key]
+    dat$.sirup_tip_color <- spot_color[dat_key]
     if (!is.null(label)) {
-      dat$.sirap_tip_label <- factor(spot_label[dat_key], levels = names(colors))
-      dat$.sirap_tip_legend <- dat$.sirap_tip_label
+      dat$.sirup_tip_label <- factor(spot_label[dat_key], levels = names(colors))
+      dat$.sirup_tip_legend <- dat$.sirup_tip_label
     } else {
-      dat$.sirap_tip_legend <- factor(dat$.sirap_tip_color, levels = names(colors))
+      dat$.sirup_tip_legend <- factor(dat$.sirup_tip_color, levels = names(colors))
     }
     if (isTRUE(order_points)) {
-      dat <- dat[order(as.integer(dat$.sirap_tip_legend), na.last = TRUE), , drop = FALSE]
+      dat <- dat[order(as.integer(dat$.sirup_tip_legend), na.last = TRUE), , drop = FALSE]
     }
-    p <- .sirap_spatial_base(
+    p <- .sirup_spatial_base(
       dat,
       spatial$image,
       image_alpha = image_alpha,
@@ -1382,7 +1382,7 @@ plotSpatialColorTips <- function(object,
     )
     # Draw polygons under the tip points so both stay visible.
     if (!is.null(image_polygon_overlay) && nrow(image_polygon_overlay) > 0L) {
-      p <- p + .sirap_polygon_fill_layer(
+      p <- p + .sirup_polygon_fill_layer(
         image_polygon_overlay,
         polygon_alpha = polygon_alpha,
         polygon_fill = polygon_fill,
@@ -1392,7 +1392,7 @@ plotSpatialColorTips <- function(object,
     }
     p <- p +
       ggplot2::geom_point(
-        ggplot2::aes(color = .data$.sirap_tip_legend),
+        ggplot2::aes(color = .data$.sirup_tip_legend),
         size = point_size,
         alpha = point_alpha,
         na.rm = TRUE
@@ -1407,7 +1407,7 @@ plotSpatialColorTips <- function(object,
       ggplot2::labs(title = title)
     # Polygon labels sit on top of the points.
     if (!is.null(image_polygon_overlay) && nrow(image_polygon_overlay) > 0L) {
-      label_layer <- .sirap_polygon_label_layer(
+      label_layer <- .sirup_polygon_label_layer(
         image_polygon_overlay,
         polygon_label = polygon_label,
         polygon_label_by = polygon_label_by,
@@ -1424,22 +1424,22 @@ plotSpatialColorTips <- function(object,
     plots[[image]] <- p
   }
 
-  .sirap_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
+  .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
 }
 
 #' Plot a clone with tip colors over a spatial tissue image
 #'
-#' @param colored_clones Output from `assignTipColors()`, or a SIRAP object
+#' @param colored_clones Output from `assignTipColors()`, or a SIRUP object
 #'   whose receptor table contains tip colors.
 #' @param clone_val Clone ID to plot.
-#' @param tissue_positions Seurat object with spatial images, or a SIRAP
-#'   object. May be omitted when `colored_clones` is a SIRAP object.
+#' @param tissue_positions Seurat object with spatial images, or a SIRUP
+#'   object. May be omitted when `colored_clones` is a SIRUP object.
 #' @param clone Clone ID column.
 #' @param spatial_id Spatial ID column in `colored_clones`.
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate axes.
 #' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRAP objects. Defaults to `NULL`, which plots all samples.
+#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
 #' @param ... Additional arguments passed to `plotSpatialColorTips()`.
 #' @return A ggplot object.
 #' @export
@@ -1456,9 +1456,9 @@ plotSpatialCloneColorTips <- function(colored_clones,
   spatial_id_missing <- missing(spatial_id)
   spatial_options_object <- tissue_positions
   plot_object <- NULL
-  if (isSIRAP(colored_clones)) {
+  if (isSIRUP(colored_clones)) {
     container <- colored_clones
-    receptor_fields <- .sirap_receptor_fields(container)
+    receptor_fields <- .sirup_receptor_fields(container)
     spatial_options_object <- container
     plot_object <- tissue_positions %||% container
     tissue_positions <- tissue_positions %||% container$spatial
@@ -1470,23 +1470,23 @@ plotSpatialCloneColorTips <- function(colored_clones,
       spatial_id <- receptor_fields$spatial_id
     }
   }
-  if (isSIRAP(tissue_positions) && spatial_id_missing) {
-    spatial_id <- .sirap_receptor_fields(tissue_positions)$spatial_id
+  if (isSIRUP(tissue_positions) && spatial_id_missing) {
+    spatial_id <- .sirup_receptor_fields(tissue_positions)$spatial_id
   }
   spatial_options_object <- spatial_options_object %||% tissue_positions
-  options <- .sirap_spatial_options(
+  options <- .sirup_spatial_options(
     spatial_options_object,
     image_scale = image_scale,
     swap_coords = swap_coords
   )
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
-  tissue_positions <- .sirap_spatial_input(tissue_positions)
+  tissue_positions <- .sirup_spatial_input(tissue_positions)
   clone_df <- .as_data_frame(colored_clones)
   .check_required_cols(clone_df, c(clone, spatial_id, "tip_color"), "colored_clones")
   clone_df <- clone_df[clone_df[[clone]] == clone_val, , drop = FALSE]
 
-  if (!inherits(tissue_positions, "Seurat") && !.sirap_is_spatial_list(tissue_positions)) {
+  if (!inherits(tissue_positions, "Seurat") && !.sirup_is_spatial_list(tissue_positions)) {
     rlang::abort("plotSpatialCloneColorTips() expects a Seurat object or named list of Seurat objects. Use ggplot directly for coordinate data frames.")
   }
   plot_object <- plot_object %||% tissue_positions
@@ -1512,14 +1512,14 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #'
 #' @param trees Dowser `getTrees()` output, or a list containing a `trees`
 #'   element with that output.
-#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param object Seurat object with spatial images, or a SIRUP object.
 #' @param spatial_id Column in the dowser clone data matching Seurat spot
-#'   names. May be omitted when `object` is a SIRAP object.
+#'   names. May be omitted when `object` is a SIRUP object.
 #' @param clone_val Optional clone IDs to plot.
 #' @param id Column in the dowser clone data matching tree tip labels.
 #' @param sequence_id Column in `object` receptor data used to decide which
 #'   tree tips belong to the current spatial object. Defaults to `id`. This is
-#'   only applied when `object` is a SIRAP object; tips absent from this receptor
+#'   only applied when `object` is a SIRUP object; tips absent from this receptor
 #'   column remain in the tree panel but are not plotted in the spatial panel.
 #' @param clone Clone ID column.
 #' @param color_by Column used to assign matching tree and spatial colors.
@@ -1531,12 +1531,12 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRAP object metadata.
+#'   value must be supplied explicitly or by SIRUP object metadata.
 #' @param images Optional Seurat image names.
 #' @param sample Optional spatial sample name(s) to show for multi-spatial
-#'   SIRAP objects.
+#'   SIRUP objects.
 #' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRAP objects. Defaults to `NULL`, which plots all samples. This is a
+#'   SIRUP objects. Defaults to `NULL`, which plots all samples. This is a
 #'   clearer alias for `sample` when selecting spatial samples.
 #' @param zoom Zoom spatial plots to the clone. Defaults to `FALSE`, which
 #'   shows the full tissue area covered by spatial coordinates.
@@ -1569,11 +1569,11 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #'   groups appear on top.
 #' @param show_spatial_legend Show a color legend based on the tree tip colors
 #'   below the spatial plot.
-#' @param combine_sample_plots For multi-sample SIRAP objects, combine spatial
+#' @param combine_sample_plots For multi-sample SIRUP objects, combine spatial
 #'   plots from different samples into one patchwork. Defaults to `FALSE`, so
 #'   multi-sample calls return one tree/spatial pair per sample.
 #' @param polygons Draw region polygons on each spatial panel. `FALSE` (the
-#'   default) draws no polygons. `TRUE` uses the polygons stored in the SIRAP
+#'   default) draws no polygons. `TRUE` uses the polygons stored in the SIRUP
 #'   object. You can also pass a data frame of polygon vertices, or a path to a
 #'   CSV file of polygon vertices. Vertex tables need `polygon_x` and
 #'   `polygon_y` columns, plus `polygon_id` to separate multiple polygons.
@@ -1617,7 +1617,7 @@ plotSpatialCloneTreePairs <- function(trees,
                                       scale = 0.01,
                                       layout = "rectangular",
                                       title = TRUE,
-                                      shape_by = ".sirap_spatial_status",
+                                      shape_by = ".sirup_spatial_status",
                                       shape_values = c(spatial = 21, not_spatial = 22),
                                       tree_layout = NULL,
                                       tree_tip_size = NULL,
@@ -1649,33 +1649,33 @@ plotSpatialCloneTreePairs <- function(trees,
   object_spatial_ids <- NULL
   object_samples <- NULL
   sample_field <- NULL
-  uid_col <- ".sirap_uid"
+  uid_col <- ".sirup_uid"
   sample_id <- sample_id %||% sample
   if (!is.null(sample_id)) {
-    sample_id <- .sirap_plot_sample_id(object, sample_id)
+    sample_id <- .sirup_plot_sample_id(object, sample_id)
   }
   if (!is.null(sample_id)) {
     images <- unique(c(images %||% character(), as.character(sample_id)))
   } else if (!is.null(sample)) {
     images <- unique(c(images %||% character(), as.character(sample)))
   }
-  if (isSIRAP(object)) {
+  if (isSIRUP(object)) {
     if (is.null(spatial_id)) {
-      spatial_id <- .sirap_receptor_fields(object)$spatial_id
+      spatial_id <- .sirup_receptor_fields(object)$spatial_id
     }
     receptor_data <- getReceptors(object)
     .check_required_cols(receptor_data, c(sequence_id, spatial_id), "object receptor data")
     object_tip_ids <- unique(stats::na.omit(as.character(receptor_data[[sequence_id]])))
     object_spatial_ids <- unique(stats::na.omit(as.character(receptor_data[[spatial_id]])))
-    sample_field <- .sirap_receptor_fields(object)$sample
+    sample_field <- .sirup_receptor_fields(object)$sample
     if (!is.null(sample_field) && sample_field %in% colnames(receptor_data)) {
       object_samples <- unique(stats::na.omit(as.character(receptor_data[[sample_field]])))
     }
   }
-  # Resolve the optional polygon overlay while `object` still holds the SIRAP
+  # Resolve the optional polygon overlay while `object` still holds the SIRUP
   # object, because `polygons = TRUE` reads the stored polygon table from it.
-  # `.sirap_spatial_context()` replaces `object` with the plain Seurat object.
-  polygon_overlay <- .sirap_resolve_overlay_polygons(
+  # `.sirup_spatial_context()` replaces `object` with the plain Seurat object.
+  polygon_overlay <- .sirup_resolve_overlay_polygons(
     polygons = polygons,
     object = object,
     polygon_x = polygon_x,
@@ -1684,16 +1684,16 @@ plotSpatialCloneTreePairs <- function(trees,
     polygon_val = polygon_val,
     label_by = polygon_label_by
   )
-  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  context <- .sirup_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
   if (is.null(spatial_id)) {
-    rlang::abort("`spatial_id` is required when `object` is not a SIRAP object.")
+    rlang::abort("`spatial_id` is required when `object` is not a SIRUP object.")
   }
   .require_namespace("ggtree")
-  nproc <- .sirap_plot_check_nproc(nproc)
-  records <- .sirap_dowser_tree_records(trees)
+  nproc <- .sirup_plot_check_nproc(nproc)
+  records <- .sirup_dowser_tree_records(trees)
   if (!is.null(clone_val)) {
     records <- records[names(records) %in% as.character(clone_val)]
   }
@@ -1708,7 +1708,7 @@ plotSpatialCloneTreePairs <- function(trees,
   plot_one_clone <- function(clone_id) {
     record <- records[[clone_id]]
     tree <- record$tree
-    clone_data <- .sirap_airr_clone_data(record$data, clone_id = clone_id, clone_col = clone)
+    clone_data <- .sirup_airr_clone_data(record$data, clone_id = clone_id, clone_col = clone)
     .check_required_cols(clone_data, c(id, spatial_id, clone), "dowser clone data")
 
     tip_ids <- setdiff(tree$tip.label, "Germline")
@@ -1718,11 +1718,11 @@ plotSpatialCloneTreePairs <- function(trees,
     }
     if (!is.null(object_tip_ids)) {
       # Match tree tips back to this object's receptors. Prefer the verbatim id
-      # copy (`.sirap_uid`) carried by `formatSpatialClones()`: dowser sanitizes
+      # copy (`.sirup_uid`) carried by `formatSpatialClones()`: dowser sanitizes
       # tip labels for Newick, so the tree `id` column no longer equals the raw
       # receptor id. dowser also comma-joins text fields when it collapses
       # identical sequences, so a tip may carry several ids; it belongs to this
-      # object if ANY of them matches. Trees built before `.sirap_uid` existed
+      # object if ANY of them matches. Trees built before `.sirup_uid` existed
       # fall back to matching on the (verbatim) spatial id.
       if (uid_col %in% colnames(tip_data)) {
         tip_id_lists <- strsplit(as.character(tip_data[[uid_col]]), ",", fixed = TRUE)
@@ -1734,7 +1734,7 @@ plotSpatialCloneTreePairs <- function(trees,
       } else {
         in_current_object <- as.character(tip_data[[spatial_id]]) %in% object_spatial_ids
       }
-      # When the SIRAP `sample` field is set and carried into the tree data,
+      # When the SIRUP `sample` field is set and carried into the tree data,
       # also require the tip's sample to belong to this object. This keeps spots
       # that share a barcode name across sections from being drawn on the wrong
       # section.
@@ -1750,7 +1750,7 @@ plotSpatialCloneTreePairs <- function(trees,
       .check_required_cols(tip_data, color_by, "dowser clone data")
       shared_color_col <- color_by
     }
-    if (identical(shape_by, ".sirap_spatial_status")) {
+    if (identical(shape_by, ".sirup_spatial_status")) {
       spatial_vals <- as.character(tip_data[[spatial_id]])
       tip_data[[shape_by]] <- ifelse(!is.na(spatial_vals) & nzchar(spatial_vals), "spatial", "not_spatial")
     } else if (!is.null(shape_by)) {
@@ -1764,7 +1764,7 @@ plotSpatialCloneTreePairs <- function(trees,
       shared_color = shared_color_col,
       palette = palette
     )
-    legend_info <- .sirap_spatial_tip_legend_info(colored_tips, color_by = color_by)
+    legend_info <- .sirup_spatial_tip_legend_info(colored_tips, color_by = color_by)
     colored_tips <- legend_info$tip_data
     tree_title <- if (isTRUE(title)) {
       paste("Clone", clone_id)
@@ -1774,7 +1774,7 @@ plotSpatialCloneTreePairs <- function(trees,
       as.character(title)
     }
 
-    tree_plot <- .sirap_plot_colored_tree(
+    tree_plot <- .sirup_plot_colored_tree(
       tree,
       colored_tips,
       id_col = id,
@@ -1787,7 +1787,7 @@ plotSpatialCloneTreePairs <- function(trees,
       treescale = scale, treescale_position = treescale_position,
       shape_col = shape_by,
       shape_values = shape_values,
-      label_col = ".sirap_tip_legend_label",
+      label_col = ".sirup_tip_legend_label",
       legend_title = "Tip cluster",
       legend_colors = legend_info$colors,
       show_legend = show_spatial_legend,
@@ -1820,14 +1820,14 @@ plotSpatialCloneTreePairs <- function(trees,
       combine_sample_plots = combine_sample_plots,
       ...
     )
-    overlay_image <- .sirap_spatial_tip_overlay_image(
+    overlay_image <- .sirup_spatial_tip_overlay_image(
       colored_tips,
       spatial_id = spatial_id,
       sample_field = sample_field,
       sample_id = sample_id
     )
     # Draw region polygons beneath the tip points so both stay visible.
-    spatial_plot <- .sirap_add_polygon_overlay(
+    spatial_plot <- .sirup_add_polygon_overlay(
       spatial_plot,
       polygon_overlay,
       image = overlay_image,
@@ -1860,7 +1860,7 @@ plotSpatialCloneTreePairs <- function(trees,
     build_pair(spatial_plot)
   }
 
-  out <- .sirap_plot_lapply(names(records), plot_one_clone, nproc = nproc)
+  out <- .sirup_plot_lapply(names(records), plot_one_clone, nproc = nproc)
   names(out) <- names(records)
   out <- out[!vapply(out, is.null, logical(1))]
   nested <- vapply(out, function(x) is.list(x) && length(x) > 0L && is.null(x$tree), logical(1))
@@ -1870,12 +1870,12 @@ plotSpatialCloneTreePairs <- function(trees,
       value <- out[[clone_id]]
       if (isTRUE(nested[[clone_id]])) {
         parsed_samples <- vapply(names(value), function(sample_name) {
-          parsed <- .sirap_parse_spatial_image_label(sample_name)
+          parsed <- .sirup_parse_spatial_image_label(sample_name)
           if (is.null(parsed)) NA_character_ else parsed$sample
         }, character(1))
         sample_counts <- table(stats::na.omit(parsed_samples))
         for (sample_name in names(value)) {
-          parsed <- .sirap_parse_spatial_image_label(sample_name)
+          parsed <- .sirup_parse_spatial_image_label(sample_name)
           flat_sample_name <- if (!is.null(parsed) &&
               !is.na(parsed$sample) &&
               sample_counts[[parsed$sample]] == 1L) {
@@ -1896,11 +1896,11 @@ plotSpatialCloneTreePairs <- function(trees,
 }
 
 # Resolve the `polygons` argument shared by the spatial plotting functions into
-# a plot-ready vertex table (columns `x`, `.sirap_y`, `polygon`, plus
-# `label_by`). `FALSE` returns NULL; `TRUE` reads the SIRAP object polygons; a
+# a plot-ready vertex table (columns `x`, `.sirup_y`, `polygon`, plus
+# `label_by`). `FALSE` returns NULL; `TRUE` reads the SIRUP object polygons; a
 # data frame or CSV path is used directly. Reuses the same helpers as
 # `plotSpatialPolygons()`.
-.sirap_resolve_overlay_polygons <- function(polygons,
+.sirup_resolve_overlay_polygons <- function(polygons,
                                             object,
                                             polygon_x = "x",
                                             polygon_y = "y",
@@ -1911,15 +1911,15 @@ plotSpatialCloneTreePairs <- function(trees,
     return(NULL)
   }
   if (isTRUE(polygons)) {
-    if (!isSIRAP(object)) {
-      rlang::abort("`polygons = TRUE` needs a SIRAP object with stored polygons. Pass a data frame or CSV path instead.")
+    if (!isSIRUP(object)) {
+      rlang::abort("`polygons = TRUE` needs a SIRUP object with stored polygons. Pass a data frame or CSV path instead.")
     }
-    polygon <- .sirap_polygon_vertices_table(.sirap_polygons(object))
+    polygon <- .sirup_polygon_vertices_table(.sirup_polygons(object))
     if (nrow(polygon) == 0L) {
-      rlang::abort("The SIRAP object does not contain stored polygons.")
+      rlang::abort("The SIRUP object does not contain stored polygons.")
     }
   } else if (is.character(polygons)) {
-    polygon <- .sirap_read_polygons_path(polygons)
+    polygon <- .sirup_read_polygons_path(polygons)
   } else if (is.data.frame(polygons)) {
     polygon <- polygons
   } else {
@@ -1937,9 +1937,9 @@ plotSpatialCloneTreePairs <- function(trees,
   .check_required_cols(polygon, c(polygon_x, polygon_y), "polygons")
   keep_cols <- unique(c(
     if (is.null(label_by)) character() else label_by,
-    .sirap_polygon_sample_col(polygon)
+    .sirup_polygon_sample_col(polygon)
   ))
-  .sirap_polygon_plot_data(
+  .sirup_polygon_plot_data(
     polygon = polygon,
     polygon_id = polygon_val,
     polygon_col = polygon_id,
@@ -1949,16 +1949,16 @@ plotSpatialCloneTreePairs <- function(trees,
   )
 }
 
-# The polygon fill/outline layer. Add this to a `.sirap_spatial_base()` plot
+# The polygon fill/outline layer. Add this to a `.sirup_spatial_base()` plot
 # BEFORE the receptor/tip points so the points stay visible on top.
-.sirap_polygon_fill_layer <- function(polygon_data,
+.sirup_polygon_fill_layer <- function(polygon_data,
                                       polygon_alpha = 0.2,
                                       polygon_fill = "#0072B2",
                                       polygon_color = "#0072B2",
                                       polygon_linewidth = 0.6) {
   ggplot2::geom_polygon(
     data = polygon_data,
-    ggplot2::aes(x = .data$x, y = .data$.sirap_y, group = .data$polygon),
+    ggplot2::aes(x = .data$x, y = .data$.sirup_y, group = .data$polygon),
     inherit.aes = FALSE,
     fill = polygon_fill,
     color = polygon_color,
@@ -1968,7 +1968,7 @@ plotSpatialCloneTreePairs <- function(trees,
 }
 
 # The optional polygon center-label layer, or NULL when labels are off.
-.sirap_polygon_label_layer <- function(polygon_data,
+.sirup_polygon_label_layer <- function(polygon_data,
                                        polygon_label = FALSE,
                                        polygon_label_by = NULL,
                                        polygon_label_size = 3,
@@ -1976,16 +1976,16 @@ plotSpatialCloneTreePairs <- function(trees,
   if (!isTRUE(polygon_label)) {
     return(NULL)
   }
-  centers <- .sirap_polygon_centers(polygon_data, unique(polygon_data$polygon))
+  centers <- .sirup_polygon_centers(polygon_data, unique(polygon_data$polygon))
   if (!is.null(polygon_label_by) && polygon_label_by %in% names(polygon_data)) {
     lookup <- polygon_data[!duplicated(polygon_data$polygon), c("polygon", polygon_label_by), drop = FALSE]
-    centers$.sirap_label <- as.character(lookup[[polygon_label_by]][match(centers$polygon, lookup$polygon)])
+    centers$.sirup_label <- as.character(lookup[[polygon_label_by]][match(centers$polygon, lookup$polygon)])
   } else {
-    centers$.sirap_label <- as.character(centers$polygon)
+    centers$.sirup_label <- as.character(centers$polygon)
   }
   ggplot2::geom_text(
     data = centers,
-    ggplot2::aes(x = .data$x, y = .data$.sirap_y, label = .data$.sirap_label),
+    ggplot2::aes(x = .data$x, y = .data$.sirup_y, label = .data$.sirup_label),
     inherit.aes = FALSE,
     size = polygon_label_size,
     color = polygon_label_color,
@@ -1993,7 +1993,7 @@ plotSpatialCloneTreePairs <- function(trees,
   )
 }
 
-.sirap_spatial_tip_overlay_image <- function(tip_data,
+.sirup_spatial_tip_overlay_image <- function(tip_data,
                                              spatial_id,
                                              sample_field = NULL,
                                              sample_id = NULL) {
@@ -2015,7 +2015,7 @@ plotSpatialCloneTreePairs <- function(trees,
 # output). The fill is inserted beneath the tip points (after the image raster
 # layer) so both stay visible; labels are drawn on top. Handles a single ggplot
 # and a patchwork of panels.
-.sirap_add_polygon_overlay <- function(plot,
+.sirup_add_polygon_overlay <- function(plot,
                                        polygon_data,
                                        image = NULL,
                                        polygon_alpha = 0.2,
@@ -2030,7 +2030,7 @@ plotSpatialCloneTreePairs <- function(trees,
     return(plot)
   }
   if (!is.null(image) && length(image) == 1L && !is.na(image) && nzchar(as.character(image))) {
-    polygon_data <- .sirap_filter_polygon_plot_sample(polygon_data, as.character(image))
+    polygon_data <- .sirup_filter_polygon_plot_sample(polygon_data, as.character(image))
     if (nrow(polygon_data) == 0L) {
       return(plot)
     }
@@ -2039,9 +2039,9 @@ plotSpatialCloneTreePairs <- function(trees,
     plot_names <- names(plot)
     out <- lapply(seq_along(plot), function(i) {
       name <- if (is.null(plot_names)) NA_character_ else plot_names[[i]]
-      .sirap_add_polygon_overlay(
+      .sirup_add_polygon_overlay(
         plot[[i]],
-        polygon_data = .sirap_filter_polygon_plot_sample(polygon_data, name),
+        polygon_data = .sirup_filter_polygon_plot_sample(polygon_data, name),
         image = NULL,
         polygon_alpha = polygon_alpha,
         polygon_fill = polygon_fill,
@@ -2056,14 +2056,14 @@ plotSpatialCloneTreePairs <- function(trees,
     names(out) <- plot_names
     return(out)
   }
-  polygon_geom <- .sirap_polygon_fill_layer(
+  polygon_geom <- .sirup_polygon_fill_layer(
     polygon_data,
     polygon_alpha = polygon_alpha,
     polygon_fill = polygon_fill,
     polygon_color = polygon_color,
     polygon_linewidth = polygon_linewidth
   )
-  label_geom <- .sirap_polygon_label_layer(
+  label_geom <- .sirup_polygon_label_layer(
     polygon_data,
     polygon_label = polygon_label,
     polygon_label_by = polygon_label_by,
@@ -2110,20 +2110,20 @@ spatialCloneTreePairsToPDF <- function(pairs,
   if (length(pairs) == 0L) {
     rlang::abort("`pairs` does not contain any clone tree/spatial plots.")
   }
-  nproc <- .sirap_plot_check_nproc(nproc)
+  nproc <- .sirup_plot_check_nproc(nproc)
   out_dir <- dirname(path)
   if (!dir.exists(out_dir)) {
     dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   }
 
   if (nproc > 1L && .Platform$OS.type != "windows" && requireNamespace("qpdf", quietly = TRUE)) {
-    tmp_dir <- tempfile("sirap_clone_tree_pairs_pdf_")
+    tmp_dir <- tempfile("sirup_clone_tree_pairs_pdf_")
     dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
     on.exit(unlink(tmp_dir, recursive = TRUE, force = TRUE), add = TRUE)
 
     page_paths <- file.path(tmp_dir, sprintf("page_%05d.pdf", seq_along(pairs)))
-    .sirap_plot_lapply(seq_along(pairs), function(i) {
-      .sirap_write_clone_tree_pair_pdf(
+    .sirup_plot_lapply(seq_along(pairs), function(i) {
+      .sirup_write_clone_tree_pair_pdf(
         pair = pairs[[i]],
         path = page_paths[[i]],
         width = width,
@@ -2148,14 +2148,14 @@ spatialCloneTreePairsToPDF <- function(pairs,
   on.exit(grDevices::dev.off(), add = TRUE)
 
   for (pair in pairs) {
-    print(.sirap_clone_tree_pair_grid(pair, rel_widths = rel_widths))
+    print(.sirup_clone_tree_pair_grid(pair, rel_widths = rel_widths))
   }
 
   invisible(path)
 }
 
 # Average a set of colors in sRGB space and return one hex color.
-.sirap_average_colors <- function(colors) {
+.sirup_average_colors <- function(colors) {
   rgb_mat <- grDevices::col2rgb(colors)
   avg <- round(rowMeans(rgb_mat))
   grDevices::rgb(avg[[1]], avg[[2]], avg[[3]], maxColorValue = 255)
@@ -2166,7 +2166,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
 # " + ", ordered as in `group_val`), coloured by the average of its members'
 # colors. Single-group spots are unchanged. Returns the per-spot lookup, the
 # ordered plot levels (single groups first, then combinations), and the colors.
-.sirap_combine_receptor_groups <- function(lookup, spatial_id, group_val, single_colors, sep = " + ", overlap = "average", sample_col = NULL) {
+.sirup_combine_receptor_groups <- function(lookup, spatial_id, group_val, single_colors, sep = " + ", overlap = "average", sample_col = NULL) {
   if (!identical(overlap, "average")) {
     if (length(overlap) != 1L || is.na(overlap) ||
         inherits(try(grDevices::col2rgb(overlap), silent = TRUE), "try-error")) {
@@ -2174,7 +2174,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
     }
   }
   lookup[[spatial_id]] <- as.character(lookup[[spatial_id]])
-  groups <- as.character(lookup$.sirap_receptor_group)
+  groups <- as.character(lookup$.sirup_receptor_group)
   split_key <- if (!is.null(sample_col) && sample_col %in% colnames(lookup)) {
     paste(as.character(lookup[[sample_col]]), lookup[[spatial_id]], sep = "\r")
   } else {
@@ -2191,20 +2191,20 @@ spatialCloneTreePairsToPDF <- function(pairs,
     out <- data.frame(
       sample = vapply(key_parts, `[[`, character(1), 1L),
       spatial_id = vapply(key_parts, `[[`, character(1), 2L),
-      .sirap_receptor_group = unname(labels),
+      .sirup_receptor_group = unname(labels),
       stringsAsFactors = FALSE
     )
     names(out)[1:2] <- c(sample_col, spatial_id)
   } else {
     out <- data.frame(names(labels), unname(labels), stringsAsFactors = FALSE)
-    names(out) <- c(spatial_id, ".sirap_receptor_group")
+    names(out) <- c(spatial_id, ".sirup_receptor_group")
   }
 
-  observed <- unique(out$.sirap_receptor_group)
+  observed <- unique(out$.sirup_receptor_group)
   singles <- group_val[group_val %in% observed]
   combos <- sort(setdiff(observed, singles))
   levels_out <- c(singles, combos)
-  out$.sirap_receptor_group <- factor(out$.sirap_receptor_group, levels = levels_out)
+  out$.sirup_receptor_group <- factor(out$.sirup_receptor_group, levels = levels_out)
 
   colors <- stats::setNames(character(length(levels_out)), levels_out)
   for (lv in levels_out) {
@@ -2216,7 +2216,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
     } else if (length(member_colors) == 1L) {
       unname(member_colors[[1L]])          # keep single-group colors unchanged
     } else if (identical(overlap, "average")) {
-      .sirap_average_colors(member_colors)   # combinations get the averaged color
+      .sirup_average_colors(member_colors)   # combinations get the averaged color
     } else {
       overlap                                # or a single fixed overlap color
     }
@@ -2225,13 +2225,13 @@ spatialCloneTreePairsToPDF <- function(pairs,
   list(lookup = out, levels = levels_out, colors = colors)
 }
 
-.sirap_receptor_group_colors <- function(values, colors = NULL) {
+.sirup_receptor_group_colors <- function(values, colors = NULL) {
   n <- length(values)
   if (is.null(colors)) {
     if (requireNamespace("pals", quietly = TRUE)) {
-      colors <- .sirap_extend_palette(pals::glasbey(32), n)
+      colors <- .sirup_extend_palette(pals::glasbey(32), n)
     } else {
-      colors <- .sirap_extend_palette(grDevices::hcl.colors(max(3L, n), palette = "Dark 3"), n)
+      colors <- .sirup_extend_palette(grDevices::hcl.colors(max(3L, n), palette = "Dark 3"), n)
     }
     names(colors) <- values
     return(colors)
@@ -2242,7 +2242,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
     return(colors[values])
   }
   if (length(colors) < n) {
-    colors <- .sirap_extend_palette(colors, n)
+    colors <- .sirup_extend_palette(colors, n)
   }
   colors <- colors[seq_len(n)]
   names(colors) <- values
@@ -2273,21 +2273,21 @@ spatialCloneTreePairsToPDF <- function(pairs,
   spatial_id_col
 }
 
-.sirap_spatial_tip_legend_info <- function(tip_data, color_by) {
-  tip_data$.sirap_tip_legend_label <- .sirap_spatial_tip_labels(tip_data, color_by = color_by)
+.sirup_spatial_tip_legend_info <- function(tip_data, color_by) {
+  tip_data$.sirup_tip_legend_label <- .sirup_spatial_tip_labels(tip_data, color_by = color_by)
   legend_df <- tip_data[
-    !is.na(tip_data$.sirap_tip_legend_label) &
+    !is.na(tip_data$.sirup_tip_legend_label) &
       !is.na(tip_data$tip_color),
-    c(".sirap_tip_legend_label", "tip_color", "tip_color_id"),
+    c(".sirup_tip_legend_label", "tip_color", "tip_color_id"),
     drop = FALSE
   ]
   legend_df <- legend_df[order(as.integer(legend_df$tip_color_id)), , drop = FALSE]
-  legend_df <- legend_df[!duplicated(legend_df$.sirap_tip_legend_label), , drop = FALSE]
+  legend_df <- legend_df[!duplicated(legend_df$.sirup_tip_legend_label), , drop = FALSE]
 
-  spatial <- grepl("^spatial_tip_cluster_[0-9]+$", legend_df$.sirap_tip_legend_label)
+  spatial <- grepl("^spatial_tip_cluster_[0-9]+$", legend_df$.sirup_tip_legend_label)
   spatial_df <- legend_df[spatial, , drop = FALSE]
   if (nrow(spatial_df) > 0L) {
-    spatial_id <- as.integer(sub("^spatial_tip_cluster_", "", spatial_df$.sirap_tip_legend_label))
+    spatial_id <- as.integer(sub("^spatial_tip_cluster_", "", spatial_df$.sirup_tip_legend_label))
     spatial_df <- spatial_df[order(spatial_id), , drop = FALSE]
   }
   other_df <- legend_df[!spatial, , drop = FALSE]
@@ -2297,12 +2297,12 @@ spatialCloneTreePairsToPDF <- function(pairs,
     tip_data = tip_data,
     colors = stats::setNames(
       as.character(legend_df$tip_color),
-      as.character(legend_df$.sirap_tip_legend_label)
+      as.character(legend_df$.sirup_tip_legend_label)
     )
   )
 }
 
-.sirap_spatial_tip_labels <- function(tip_data, color_by) {
+.sirup_spatial_tip_labels <- function(tip_data, color_by) {
   if (!identical(color_by, "identity") && color_by %in% colnames(tip_data)) {
     values <- as.character(tip_data[[color_by]])
     spatial_cluster <- grepl("^tree_cluster_[0-9]+$", values)
@@ -2316,7 +2316,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
   }
 }
 
-.sirap_plot_check_nproc <- function(nproc) {
+.sirup_plot_check_nproc <- function(nproc) {
   nproc <- as.integer(nproc)
   if (is.na(nproc) || nproc < 1L) {
     rlang::abort("`nproc` must be a positive integer.")
@@ -2324,7 +2324,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
   nproc
 }
 
-.sirap_plot_lapply <- function(x, fun, nproc) {
+.sirup_plot_lapply <- function(x, fun, nproc) {
   if (nproc == 1L || length(x) <= 1L) {
     return(lapply(x, fun))
   }
@@ -2335,18 +2335,18 @@ spatialCloneTreePairsToPDF <- function(pairs,
   parallel::mclapply(x, fun, mc.cores = nproc)
 }
 
-.sirap_write_clone_tree_pair_pdf <- function(pair,
+.sirup_write_clone_tree_pair_pdf <- function(pair,
                                              path,
                                              width,
                                              height,
                                              rel_widths) {
   grDevices::pdf(path, width = width, height = height)
   on.exit(grDevices::dev.off(), add = TRUE)
-  print(.sirap_clone_tree_pair_grid(pair, rel_widths = rel_widths))
+  print(.sirup_clone_tree_pair_grid(pair, rel_widths = rel_widths))
   invisible(path)
 }
 
-.sirap_clone_tree_pair_grid <- function(pair, rel_widths) {
+.sirup_clone_tree_pair_grid <- function(pair, rel_widths) {
   top_row <- cowplot::plot_grid(
     pair$tree,
     pair$spatial_clone,
@@ -2366,7 +2366,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
   )
 }
 
-.sirap_dowser_tree_records <- function(trees) {
+.sirup_dowser_tree_records <- function(trees) {
   if (is.list(trees) && !is.data.frame(trees) && "trees" %in% names(trees)) {
     trees <- trees$trees
   }
@@ -2375,14 +2375,14 @@ spatialCloneTreePairsToPDF <- function(pairs,
       clone_id <- if ("clone_id" %in% colnames(trees)) as.character(trees$clone_id[[i]]) else NULL
       tree <- trees$trees[[i]]
       clone_data <- trees$data[[i]]
-      clone_id <- clone_id %||% tree$name %||% .sirap_airr_clone_id(clone_data)
+      clone_id <- clone_id %||% tree$name %||% .sirup_airr_clone_id(clone_data)
       list(tree = tree, data = clone_data)
     })
     if ("clone_id" %in% colnames(trees)) {
       names(records) <- as.character(trees$clone_id)
     } else {
       names(records) <- vapply(seq_along(records), function(i) {
-        records[[i]]$tree$name %||% .sirap_airr_clone_id(records[[i]]$data) %||% paste0("clone_", i)
+        records[[i]]$tree$name %||% .sirup_airr_clone_id(records[[i]]$data) %||% paste0("clone_", i)
       }, character(1))
     }
     return(records)
@@ -2412,14 +2412,14 @@ spatialCloneTreePairsToPDF <- function(pairs,
   rlang::abort("Could not interpret `trees` as dowser getTrees() output.")
 }
 
-.sirap_airr_clone_id <- function(x) {
+.sirup_airr_clone_id <- function(x) {
   if (inherits(x, "airrClone")) {
     return(x@clone)
   }
   NULL
 }
 
-.sirap_airr_clone_data <- function(x, clone_id, clone_col) {
+.sirup_airr_clone_data <- function(x, clone_id, clone_col) {
   if (inherits(x, "airrClone")) {
     out <- x@data
     clone_id <- x@clone %||% clone_id
@@ -2432,7 +2432,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
   out
 }
 
-.sirap_plot_colored_tree <- function(tree,
+.sirup_plot_colored_tree <- function(tree,
                                      tip_data,
                                      id_col,
                                      color_col,
@@ -2544,9 +2544,9 @@ spatialCloneTreePairsToPDF <- function(pairs,
     )
 }
 
-.sirap_spatial_images <- function(object, images = NULL, sample_id = NULL) {
-  if (.sirap_is_spatial_list(object)) {
-    image_index <- .sirap_spatial_image_index(object)
+.sirup_spatial_images <- function(object, images = NULL, sample_id = NULL) {
+  if (.sirup_is_spatial_list(object)) {
+    image_index <- .sirup_spatial_image_index(object)
     if (!is.null(sample_id)) {
       missing_samples <- setdiff(as.character(sample_id), image_index$sample)
       if (length(missing_samples) > 0L) {
@@ -2570,7 +2570,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
   }
   .require_namespace("SeuratObject")
   if (!is.null(sample_id)) {
-    rlang::abort("`sample_id` can only select among samples in a multi-sample SIRAP object.")
+    rlang::abort("`sample_id` can only select among samples in a multi-sample SIRUP object.")
   }
   object_images <- SeuratObject::Images(object)
   if (is.null(images)) {
@@ -2586,7 +2586,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
   images
 }
 
-.sirap_spatial_image_index <- function(object) {
+.sirup_spatial_image_index <- function(object) {
   .require_namespace("SeuratObject")
   do.call(rbind, lapply(names(object), function(sample) {
     object_images <- SeuratObject::Images(object[[sample]])
@@ -2602,7 +2602,7 @@ spatialCloneTreePairsToPDF <- function(pairs,
   }))
 }
 
-.sirap_parse_spatial_image_label <- function(image) {
+.sirup_parse_spatial_image_label <- function(image) {
   parts <- strsplit(image, "::", fixed = TRUE)[[1L]]
   if (length(parts) < 2L) {
     return(NULL)
@@ -2610,9 +2610,9 @@ spatialCloneTreePairsToPDF <- function(pairs,
   list(sample = parts[[1L]], image = paste(parts[-1L], collapse = "::"))
 }
 
-#' Extract spatial sample names from SIRAP image labels
+#' Extract spatial sample names from SIRUP image labels
 #'
-#' Multi-sample SIRAP objects label spatial images as `"<sample>::<image>"` so
+#' Multi-sample SIRUP objects label spatial images as `"<sample>::<image>"` so
 #' image names remain unique across sections. This helper returns the sample
 #' component for composite labels and `NA` for non-composite labels.
 #'
@@ -2620,16 +2620,16 @@ spatialCloneTreePairsToPDF <- function(pairs,
 #' @return Character vector of sample names, with `NA` for labels that do not
 #'   contain a sample component.
 #' @export
-sirapSampleFromImage <- function(image) {
+sirupSampleFromImage <- function(image) {
   vapply(as.character(image), function(label) {
-    parsed <- .sirap_parse_spatial_image_label(label)
+    parsed <- .sirup_parse_spatial_image_label(label)
     if (is.null(parsed)) NA_character_ else parsed$sample
   }, character(1), USE.NAMES = FALSE)
 }
 
-.sirap_fetch_data <- function(object, vars, layer = "counts", assay = NULL) {
+.sirup_fetch_data <- function(object, vars, layer = "counts", assay = NULL) {
   if (!is.null(assay)) {
-    old_assay <- .sirap_fetch_data_assay(object)
+    old_assay <- .sirup_fetch_data_assay(object)
     SeuratObject::DefaultAssay(object) <- assay
     on.exit({
       if (!is.na(old_assay) && nzchar(old_assay)) {
@@ -2637,12 +2637,12 @@ sirapSampleFromImage <- function(image) {
       }
     }, add = TRUE)
   }
-  assay <- .sirap_fetch_data_assay(object)
+  assay <- .sirup_fetch_data_assay(object)
   out <- tryCatch(
-    .sirap_fetch_data_layer(object = object, vars = vars, layer = layer),
+    .sirup_fetch_data_layer(object = object, vars = vars, layer = layer),
     error = function(layer_error) {
       slot_out <- tryCatch(
-        .sirap_fetch_data_slot(object = object, vars = vars, slot = layer),
+        .sirup_fetch_data_slot(object = object, vars = vars, slot = layer),
         error = function(slot_error) {
           # Report the LAYER error as the parent, not the slot error. The slot
           # fall back only exists for SeuratObject < 5.0; from 5.0 on,
@@ -2652,7 +2652,7 @@ sirapSampleFromImage <- function(image) {
           # "deprecated slot argument" message.
           rlang::abort(
             paste0(
-              "Could not fetch feature data from Seurat. SIRAP tried layer = ",
+              "Could not fetch feature data from Seurat. SIRUP tried layer = ",
               layer, " in assay = ", assay, " first, then tried slot = ",
               layer, " as a fall back."
             ),
@@ -2666,8 +2666,8 @@ sirapSampleFromImage <- function(image) {
   as.data.frame(out, stringsAsFactors = FALSE)
 }
 
-.sirap_set_default_assay <- function(object, assay) {
-  if (.sirap_is_spatial_list(object)) {
+.sirup_set_default_assay <- function(object, assay) {
+  if (.sirup_is_spatial_list(object)) {
     for (sample in names(object)) {
       SeuratObject::DefaultAssay(object[[sample]]) <- assay
     }
@@ -2677,26 +2677,26 @@ sirapSampleFromImage <- function(image) {
   object
 }
 
-.sirap_fetch_data_assay <- function(object) {
+.sirup_fetch_data_assay <- function(object) {
   tryCatch(
     as.character(SeuratObject::DefaultAssay(object))[[1L]],
     error = function(e) NA_character_
   )
 }
 
-.sirap_fetch_data_layer <- function(object, vars, layer) {
+.sirup_fetch_data_layer <- function(object, vars, layer) {
   SeuratObject::FetchData(object, vars = vars, layer = layer)
 }
 
-.sirap_fetch_data_slot <- function(object, vars, slot) {
-  fetch_formals <- .sirap_fetch_data_method_formals(object)
+.sirup_fetch_data_slot <- function(object, vars, slot) {
+  fetch_formals <- .sirup_fetch_data_method_formals(object)
   if (!"slot" %in% fetch_formals) {
     rlang::abort("This SeuratObject `FetchData()` method does not support the legacy `slot` argument.")
   }
   SeuratObject::FetchData(object, vars = vars, slot = slot)
 }
 
-.sirap_fetch_data_method_formals <- function(object) {
+.sirup_fetch_data_method_formals <- function(object) {
   class_name <- class(object)[[1L]]
   method <- utils::getS3method("FetchData", class_name, optional = TRUE)
   if (is.null(method)) {
@@ -2705,18 +2705,18 @@ sirapSampleFromImage <- function(image) {
   names(formals(method))
 }
 
-.sirap_spatial_data <- function(object, image, image_scale = NULL, swap_coords = NULL) {
-  if (.sirap_is_spatial_list(object)) {
-    parsed <- .sirap_parse_spatial_image_label(image)
+.sirup_spatial_data <- function(object, image, image_scale = NULL, swap_coords = NULL) {
+  if (.sirup_is_spatial_list(object)) {
+    parsed <- .sirup_parse_spatial_image_label(image)
     if (is.null(parsed) || !parsed$sample %in% names(object)) {
       rlang::abort("Multi-spatial image labels must use '<sample>::<image>'.")
     }
-    options <- .sirap_require_spatial_options(
+    options <- .sirup_require_spatial_options(
       image_scale,
       swap_coords,
       sample = parsed$sample
     )
-    out <- .sirap_spatial_data(
+    out <- .sirup_spatial_data(
       object = object[[parsed$sample]],
       image = parsed$image,
       image_scale = options$image_scale,
@@ -2726,13 +2726,13 @@ sirapSampleFromImage <- function(image) {
     out$coords$image <- image
     return(out)
   }
-  options <- .sirap_require_spatial_options(image_scale, swap_coords)
+  options <- .sirup_require_spatial_options(image_scale, swap_coords)
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
   .require_namespace("SeuratObject")
   object_images <- SeuratObject::Images(object)
   if (identical(image, "metadata") && !"metadata" %in% object_images) {
-    coords <- .sirap_metadata_coordinate_table(object)
+    coords <- .sirup_metadata_coordinate_table(object)
     if (isTRUE(swap_coords)) {
       coords <- data.frame(
         cell = coords$cell,
@@ -2741,30 +2741,30 @@ sirapSampleFromImage <- function(image) {
         image = coords$image,
         stringsAsFactors = FALSE
       )
-      coords$.sirap_y <- -coords$y
+      coords$.sirup_y <- -coords$y
     }
     return(list(coords = coords, image = NULL))
   }
   image_obj <- object[[image]]
   if (isTRUE(swap_coords)) {
-    coords <- .sirap_swapped_spatial_coordinates(image_obj, image_scale = image_scale)
+    coords <- .sirup_swapped_spatial_coordinates(image_obj, image_scale = image_scale)
   } else {
-    coords <- .sirap_tissue_spatial_coordinates(image_obj, image_scale = image_scale)
+    coords <- .sirup_tissue_spatial_coordinates(image_obj, image_scale = image_scale)
   }
   if (is.null(coords)) {
     rlang::abort("Could not identify x/y coordinate columns in Seurat tissue coordinates.")
   }
   coords <- as.data.frame(coords, stringsAsFactors = FALSE)
   coords <- coords[coords$cell %in% colnames(object), , drop = FALSE]
-  coords$.sirap_y <- -coords$y
+  coords$.sirup_y <- -coords$y
 
   list(coords = coords, image = image_obj)
 }
 
-.sirap_tissue_spatial_coordinates <- function(image, image_scale = NULL) {
-  image_scale <- .sirap_resolve_image_scale(image_scale)
+.sirup_tissue_spatial_coordinates <- function(image, image_scale = NULL) {
+  image_scale <- .sirup_resolve_image_scale(image_scale)
   if (is.null(image_scale)) {
-    rlang::abort("`image_scale` must be supplied explicitly or stored in a SIRAP object.")
+    rlang::abort("`image_scale` must be supplied explicitly or stored in a SIRUP object.")
   }
   coords <- SeuratObject::GetTissueCoordinates(image, scale = image_scale)
   coords <- as.data.frame(coords, stringsAsFactors = FALSE)
@@ -2787,10 +2787,10 @@ sirapSampleFromImage <- function(image) {
   )
 }
 
-.sirap_swapped_spatial_coordinates <- function(image, image_scale = NULL) {
-  image_scale <- .sirap_resolve_image_scale(image_scale)
+.sirup_swapped_spatial_coordinates <- function(image, image_scale = NULL) {
+  image_scale <- .sirup_resolve_image_scale(image_scale)
   if (is.null(image_scale)) {
-    rlang::abort("`image_scale` must be supplied explicitly or stored in a SIRAP object.")
+    rlang::abort("`image_scale` must be supplied explicitly or stored in a SIRUP object.")
   }
   coords <- SeuratObject::GetTissueCoordinates(image, scale = image_scale)
   coords <- as.data.frame(coords, stringsAsFactors = FALSE)
@@ -2818,20 +2818,20 @@ sirapSampleFromImage <- function(image) {
   )
 }
 
-.sirap_spatial_coordinate_candidates <- function(coords,
+.sirup_spatial_coordinate_candidates <- function(coords,
                                                 image,
                                                 image_scale = NULL,
                                                 include_all_scales = FALSE) {
-  image_scale <- .sirap_resolve_image_scale(image_scale)
+  image_scale <- .sirup_resolve_image_scale(image_scale)
   if (is.null(image_scale)) {
-    rlang::abort("`image_scale` must be supplied explicitly or stored in a SIRAP object.")
+    rlang::abort("`image_scale` must be supplied explicitly or stored in a SIRUP object.")
   }
-  raster <- .sirap_image_raster(image, alpha = 1)
+  raster <- .sirup_image_raster(image, alpha = 1)
   image_dim <- dim(raster)
   height <- image_dim[[1L]]
   width <- image_dim[[2L]]
-  scale_factors <- .sirap_image_scale_factors(image)
-  requested_scale_factor <- .sirap_image_scale_factor(image, image_scale)
+  scale_factors <- .sirup_image_scale_factors(image)
+  requested_scale_factor <- .sirup_image_scale_factor(image, image_scale)
   scale_transforms <- c(raw = 1)
   if (is.finite(requested_scale_factor) && requested_scale_factor > 0) {
     scale_transforms <- c(requested = requested_scale_factor, scale_transforms)
@@ -2857,7 +2857,7 @@ sirapSampleFromImage <- function(image) {
     raw_y <- suppressWarnings(as.numeric(coords[[pair[[2L]]]]))
     for (transform_idx in seq_along(scale_transforms)) {
       scale_transform <- scale_transforms[[transform_idx]]
-      candidates[[length(candidates) + 1L]] <- .sirap_spatial_coordinate_candidate(
+      candidates[[length(candidates) + 1L]] <- .sirup_spatial_coordinate_candidate(
         x = raw_x * scale_transform,
         y = raw_y * scale_transform,
         pair_idx = pair_idx,
@@ -2878,7 +2878,7 @@ sirapSampleFromImage <- function(image) {
   candidates[order(scores[1L, ], scores[2L, ], scores[3L, ], scores[4L, ])]
 }
 
-.sirap_spatial_coordinate_candidate <- function(x,
+.sirup_spatial_coordinate_candidate <- function(x,
                                                 y,
                                                 pair_idx,
                                                 transform_idx,
@@ -2903,7 +2903,7 @@ sirapSampleFromImage <- function(image) {
   )
 }
 
-.sirap_image_scale_factor <- function(image, image_scale = NULL) {
+.sirup_image_scale_factor <- function(image, image_scale = NULL) {
   if (is.null(image_scale) || length(image_scale) == 0L || is.na(image_scale[[1L]])) {
     return(NA_real_)
   }
@@ -2922,7 +2922,7 @@ sirapSampleFromImage <- function(image) {
   scale_value[[1L]]
 }
 
-.sirap_image_scale_factors <- function(image) {
+.sirup_image_scale_factors <- function(image) {
   scale_factors <- tryCatch(methods::slot(image, "scale.factors"), error = function(e) NULL)
   if (is.null(scale_factors)) {
     return(numeric())
@@ -2937,7 +2937,7 @@ sirapSampleFromImage <- function(image) {
   scale_values[is.finite(scale_values) & scale_values > 0]
 }
 
-.sirap_spatial_base <- function(plot_data,
+.sirup_spatial_base <- function(plot_data,
                                 image,
                                 image_alpha = 1,
                                 zoom = FALSE,
@@ -2945,7 +2945,7 @@ sirapSampleFromImage <- function(image) {
                                 view_data = NULL) {
   raster <- NULL
   if (!is.null(image)) {
-    raster <- .sirap_image_raster(image, alpha = image_alpha)
+    raster <- .sirup_image_raster(image, alpha = image_alpha)
   }
   xlim <- c(0, 1)
   ylim <- c(-1, 0)
@@ -2974,11 +2974,11 @@ sirapSampleFromImage <- function(image) {
     NULL
   }
   if (!is.null(limit_data) && nrow(limit_data) > 0L) {
-    xlim <- .sirap_pad_range(limit_data$x, fallback = xlim)
-    ylim <- .sirap_pad_range(limit_data$.sirap_y, fallback = ylim)
+    xlim <- .sirup_pad_range(limit_data$x, fallback = xlim)
+    ylim <- .sirup_pad_range(limit_data$.sirup_y, fallback = ylim)
   }
 
-  p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = .data$x, y = .data$.sirap_y))
+  p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = .data$x, y = .data$.sirup_y))
   if (!is.null(raster)) {
     p <- p + ggplot2::annotation_raster(raster, xmin = 0, xmax = width, ymin = -height, ymax = 0, interpolate = FALSE)
   }
@@ -2991,7 +2991,7 @@ sirapSampleFromImage <- function(image) {
     )
 }
 
-.sirap_image_raster <- function(image, alpha = 1) {
+.sirup_image_raster <- function(image, alpha = 1) {
   .require_namespace("SeuratObject")
   img <- tryCatch(methods::slot(image, "image"), error = function(e) NULL)
   if (is.null(img) || length(dim(img)) < 2L) {
@@ -3009,7 +3009,7 @@ sirapSampleFromImage <- function(image) {
   grDevices::as.raster(img)
 }
 
-.sirap_pad_range <- function(x, fallback) {
+.sirup_pad_range <- function(x, fallback) {
   out <- range(x, na.rm = TRUE)
   if (!all(is.finite(out))) {
     return(fallback)
@@ -3021,26 +3021,26 @@ sirapSampleFromImage <- function(image) {
   out + c(-pad, pad)
 }
 
-.sirap_return_spatial_plots <- function(plots, combine = TRUE, combine_sample_plots = FALSE) {
+.sirup_return_spatial_plots <- function(plots, combine = TRUE, combine_sample_plots = FALSE) {
   plots <- Filter(Negate(is.null), plots)
   if (length(plots) == 0L) {
     return(NULL)
   }
-  combine <- .sirap_combine_spatial_plots(plots, combine, combine_sample_plots)
+  combine <- .sirup_combine_spatial_plots(plots, combine, combine_sample_plots)
   if (!isTRUE(combine) || length(plots) == 1L) {
-    plots <- .sirap_name_spatial_plot_list(plots)
+    plots <- .sirup_name_spatial_plot_list(plots)
     return(if (length(plots) == 1L && isTRUE(combine)) plots[[1L]] else plots)
   }
   .require_namespace("patchwork")
   patchwork::wrap_plots(plots, ncol = 1)
 }
 
-.sirap_combine_spatial_plots <- function(plots, combine = TRUE, combine_sample_plots = FALSE) {
+.sirup_combine_spatial_plots <- function(plots, combine = TRUE, combine_sample_plots = FALSE) {
   if (!isTRUE(combine)) {
     return(FALSE)
   }
   samples <- vapply(names(plots), function(name) {
-    parsed <- .sirap_parse_spatial_image_label(name)
+    parsed <- .sirup_parse_spatial_image_label(name)
     if (is.null(parsed)) NA_character_ else parsed$sample
   }, character(1))
   samples <- unique(stats::na.omit(samples))
@@ -3050,12 +3050,12 @@ sirapSampleFromImage <- function(image) {
   TRUE
 }
 
-.sirap_name_spatial_plot_list <- function(plots) {
+.sirup_name_spatial_plot_list <- function(plots) {
   plot_names <- names(plots)
   if (is.null(plot_names) || length(plot_names) == 0L) {
     return(plots)
   }
-  parsed <- lapply(plot_names, .sirap_parse_spatial_image_label)
+  parsed <- lapply(plot_names, .sirup_parse_spatial_image_label)
   samples <- vapply(parsed, function(x) {
     if (is.null(x)) NA_character_ else x$sample
   }, character(1))
@@ -3066,7 +3066,7 @@ sirapSampleFromImage <- function(image) {
   plots
 }
 
-.sirap_plot_sample_id <- function(object, sample_id = NULL) {
+.sirup_plot_sample_id <- function(object, sample_id = NULL) {
   if (is.null(sample_id)) {
     return(NULL)
   }
@@ -3074,8 +3074,8 @@ sirapSampleFromImage <- function(image) {
   if (any(is.na(sample_id) | !nzchar(sample_id))) {
     rlang::abort("`sample_id` must contain non-missing spatial sample IDs.")
   }
-  if (!isSIRAP(object)) {
-    rlang::abort("`sample_id` can only be used with SIRAP objects.")
+  if (!isSIRUP(object)) {
+    rlang::abort("`sample_id` can only be used with SIRUP objects.")
   }
   sample_names <- spatialSamples(object)
   missing_samples <- setdiff(sample_id, sample_names)
@@ -3088,7 +3088,7 @@ sirapSampleFromImage <- function(image) {
   sample_id
 }
 
-.sirap_blend_color_grid <- function(bottom_left,
+.sirup_blend_color_grid <- function(bottom_left,
                                     bottom_right,
                                     top_left,
                                     top_right,
@@ -3100,7 +3100,7 @@ sirapSampleFromImage <- function(image) {
   t(matrix(unlist(grid), ncol = side_length, nrow = side_length))
 }
 
-.sirap_blend_colors <- function(dat, color_grid) {
+.sirup_blend_colors <- function(dat, color_grid) {
   side_length <- nrow(color_grid)
   dat_norm <- apply(dat, 2, function(x) {
     if (max(x, na.rm = TRUE) <= 0) {
@@ -3114,7 +3114,7 @@ sirapSampleFromImage <- function(image) {
   }, character(1))
 }
 
-.sirap_blend_legend <- function(color_grid, xlab, ylab) {
+.sirup_blend_legend <- function(color_grid, xlab, ylab) {
   side_length <- nrow(color_grid)
   legend_grid <- expand.grid(
     x = seq(0, 1, length.out = side_length),
@@ -3142,20 +3142,20 @@ sirapSampleFromImage <- function(image) {
 }
 
 # Reduce several receptor values on one spot to a single number.
-.sirap_value_combine_fun <- function(value_combine) {
+.sirup_value_combine_fun <- function(value_combine) {
   switch(value_combine,
     mean = function(x) mean(x, na.rm = TRUE),
     median = function(x) stats::median(x, na.rm = TRUE),
     max = function(x) max(x, na.rm = TRUE),
     min = function(x) min(x, na.rm = TRUE),
     sum = function(x) sum(x, na.rm = TRUE),
-    mode = .sirap_mode,
+    mode = .sirup_mode,
     rlang::abort(paste0("Unknown `value_combine`: ", value_combine))
   )
 }
 
 # Most frequent value. Ties take the smallest value, so the result is stable.
-.sirap_mode <- function(x) {
+.sirup_mode <- function(x) {
   x <- x[!is.na(x)]
   if (!length(x)) {
     return(NA_real_)
@@ -3167,7 +3167,7 @@ sirapSampleFromImage <- function(image) {
 # Two colours give a low-to-high gradient; more give a multi-stop gradient.
 # `aesthetic` is "colour" or "fill": plotReceptorsExpression needs the fill
 # scale, because its expression layer already uses the colour scale.
-.sirap_value_color_scale <- function(value_colors, value_limits, legend_name,
+.sirup_value_color_scale <- function(value_colors, value_limits, legend_name,
                                      aesthetic = c("colour", "fill")) {
   aesthetic <- match.arg(aesthetic)
   if (length(value_colors) < 2L) {
@@ -3198,7 +3198,7 @@ sirapSampleFromImage <- function(image) {
 
 # One row per spot with the receptor value reduced to a single number. Shared by
 # plotReceptors and plotReceptorsExpression.
-.sirap_receptor_spot_values <- function(receptors, spatial_id, value, value_combine, sample_col = NULL) {
+.sirup_receptor_spot_values <- function(receptors, spatial_id, value, value_combine, sample_col = NULL) {
   if (length(value) != 1L || !is.character(value)) {
     rlang::abort("`value` must be a single column name, or \"count\".")
   }
@@ -3213,8 +3213,8 @@ sirapSampleFromImage <- function(image) {
       by = receptors[, group_cols, drop = FALSE],
       FUN = sum
     )
-    names(out)[ncol(out)] <- ".sirap_count"
-    out$.sirap_count <- as.integer(out$.sirap_count)
+    names(out)[ncol(out)] <- ".sirup_count"
+    out$.sirup_count <- as.integer(out$.sirup_count)
     return(list(data = out, legend = "Receptors/spot"))
   }
   .check_required_cols(receptors, value, "receptors")
@@ -3229,13 +3229,13 @@ sirapSampleFromImage <- function(image) {
   out <- stats::aggregate(
     receptors[[value]],
     by = receptors[, unique(c(sample_col, spatial_id)), drop = FALSE],
-    FUN = .sirap_value_combine_fun(value_combine)
+    FUN = .sirup_value_combine_fun(value_combine)
   )
-  names(out)[ncol(out)] <- ".sirap_count"
+  names(out)[ncol(out)] <- ".sirup_count"
   list(data = out, legend = value)
 }
 
-.sirap_merge_receptor_lookup <- function(coords, lookup, spatial_id, sample_col = NULL) {
+.sirup_merge_receptor_lookup <- function(coords, lookup, spatial_id, sample_col = NULL) {
   if (!is.null(sample_col) && sample_col %in% colnames(lookup) && "sample" %in% colnames(coords)) {
     return(merge(
       coords,

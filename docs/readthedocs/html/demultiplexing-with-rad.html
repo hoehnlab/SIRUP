@@ -328,13 +328,13 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 
-<p>This vignette drives the <a href="https://github.com/indianewok/rad"><code>rad</code></a> command-line demultiplexer from R using SIRAP’s <code>rad*()</code> wrappers. It is the upstream step that produces the demultiplexed, barcode-corrected reads the rest of the package builds on: the <a href="visium-hd-processing.html">Visium HD processing guide</a> <em>starts from</em> RAD output, and this guide shows how to get there.</p>
-<p>SIRAP does not vendor or reimplement rad — every wrapper shells out to the same <code>rad</code> binary you would call from a terminal, so you get rad’s exact behavior with R-friendly argument handling, path resolution, and error reporting. The wrappers covered here are <code>radPath()</code>, <code>radList()</code>, <code>radPrep()</code>, <code>radScanWl()</code>, <code>radDemux()</code>, <code>radReformat()</code>, and the one-call <code>radRun()</code>, plus <code>radSrcPath()</code> and <code>updateRad()</code> for building rad from source.</p>
+<p>This vignette drives the <a href="https://github.com/indianewok/rad"><code>rad</code></a> command-line demultiplexer from R using SIRUP’s <code>rad*()</code> wrappers. It is the upstream step that produces the demultiplexed, barcode-corrected reads the rest of the package builds on: the <a href="visium-hd-processing.html">Visium HD processing guide</a> <em>starts from</em> RAD output, and this guide shows how to get there.</p>
+<p>SIRUP does not vendor or reimplement rad — every wrapper shells out to the same <code>rad</code> binary you would call from a terminal, so you get rad’s exact behavior with R-friendly argument handling, path resolution, and error reporting. The wrappers covered here are <code>radPath()</code>, <code>radList()</code>, <code>radPrep()</code>, <code>radScanWl()</code>, <code>radDemux()</code>, <code>radReformat()</code>, and the one-call <code>radRun()</code>, plus <code>radSrcPath()</code> and <code>updateRad()</code> for building rad from source.</p>
 <p>Unlike the other guides, this one uses rad’s <strong>public simulated test dataset</strong>, so the whole thing is runnable on any machine that has a built <code>rad</code> binary — no private data required.</p>
 <p>This guide intentionally does not evaluate code during rendering, even in the read-the-docs version, because every step shells out to the external <code>rad</code> binary, downloads data, and writes files.</p>
 <div id="setup" class="section level2">
 <h2>Setup</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SIRAP)</a>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SIRUP)</a>
 <a class="sourceLine" id="cb1-2" data-line-number="2"></a>
 <a class="sourceLine" id="cb1-3" data-line-number="3"><span class="co"># Everything in this guide writes under one scratch directory.</span></a>
 <a class="sourceLine" id="cb1-4" data-line-number="4">runDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;rad_demo&quot;</span>)</a>
@@ -344,14 +344,14 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="point-r-at-the-rad-binary" class="section level2">
 <h2>Point R at the rad Binary</h2>
-<p>Every wrapper calls <code>radPath()</code> to find the <code>rad</code> executable. The resolution order is: an explicit <code>rad =</code> argument, then <code>getOption(&quot;SIRAP.rad_path&quot;)</code>, then the <code>SIRAP_RAD_PATH</code> environment variable, then <code>Sys.which(&quot;rad&quot;)</code> (i.e. rad on your <code>PATH</code>). Confirm R can see rad before running anything else.</p>
+<p>Every wrapper calls <code>radPath()</code> to find the <code>rad</code> executable. The resolution order is: an explicit <code>rad =</code> argument, then <code>getOption(&quot;SIRUP.rad_path&quot;)</code>, then the <code>SIRUP_RAD_PATH</code> environment variable, then <code>Sys.which(&quot;rad&quot;)</code> (i.e. rad on your <code>PATH</code>). Confirm R can see rad before running anything else.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">radPath</span>()</a>
 <a class="sourceLine" id="cb2-2" data-line-number="2"><span class="co">#&gt; &quot;/Users/you/code/rad/build/rad&quot;</span></a></code></pre></div>
-<p>If rad is not on your <code>PATH</code>, point SIRAP at it once per session and every wrapper will pick it up:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">options</span>(<span class="dt">SIRAP.rad_path =</span> <span class="st">&quot;/path/to/rad/build/rad&quot;</span>)</a>
+<p>If rad is not on your <code>PATH</code>, point SIRUP at it once per session and every wrapper will pick it up:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">options</span>(<span class="dt">SIRUP.rad_path =</span> <span class="st">&quot;/path/to/rad/build/rad&quot;</span>)</a>
 <a class="sourceLine" id="cb3-2" data-line-number="2"><span class="co"># or, in your shell before launching R:</span></a>
-<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="co">#   export SIRAP_RAD_PATH=/path/to/rad/build/rad</span></a></code></pre></div>
-<p>Don’t have rad built yet? If you have a git clone of the <a href="https://github.com/indianewok/rad">rad repo</a>, <code>updateRad()</code> will pull the latest commit and (re)build the binary for you. <code>radSrcPath()</code> finds the source tree the same way <code>radPath()</code> finds the binary (explicit argument, <code>options(SIRAP.rad_src=)</code>, <code>SIRAP_RAD_SRC</code>, or by walking up from the binary’s location). Building rad needs <code>git</code>, <code>cmake</code>, and a C++17 compiler on <code>PATH</code> — see rad’s <a href="https://github.com/indianewok/rad/blob/main/docs/installation.md">installation guide</a> for the one-line dependency install on macOS / conda.</p>
+<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="co">#   export SIRUP_RAD_PATH=/path/to/rad/build/rad</span></a></code></pre></div>
+<p>Don’t have rad built yet? If you have a git clone of the <a href="https://github.com/indianewok/rad">rad repo</a>, <code>updateRad()</code> will pull the latest commit and (re)build the binary for you. <code>radSrcPath()</code> finds the source tree the same way <code>radPath()</code> finds the binary (explicit argument, <code>options(SIRUP.rad_src=)</code>, <code>SIRUP_RAD_SRC</code>, or by walking up from the binary’s location). Building rad needs <code>git</code>, <code>cmake</code>, and a C++17 compiler on <code>PATH</code> — see rad’s <a href="https://github.com/indianewok/rad/blob/main/docs/installation.md">installation guide</a> for the one-line dependency install on macOS / conda.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">updateRad</span>(<span class="dt">path =</span> <span class="st">&quot;/path/to/rad&quot;</span>)  <span class="co"># git pull --ff-only + cmake build</span></a></code></pre></div>
 </div>
 <div id="inspect-layouts-and-whitelists" class="section level2">
@@ -494,7 +494,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="visium-hd-bcrtcr-the-spatial-case" class="section level2">
 <h2>Visium HD BCR/TCR — the Spatial Case</h2>
-<p>The reason SIRAP exists is the wonky end of rad’s range: long-read targeted enrichment of BCR/TCR from <strong>Visium HD</strong> data, where each read carries a <em>paired</em> spatial barcode (BC1 + BC2) instead of a single cell barcode. The flow is the same wrappers with a spatial layout and a couple of HD-specific switches.</p>
+<p>The reason SIRUP exists is the wonky end of rad’s range: long-read targeted enrichment of BCR/TCR from <strong>Visium HD</strong> data, where each read carries a <em>paired</em> spatial barcode (BC1 + BC2) instead of a single cell barcode. The flow is the same wrappers with a spatial layout and a couple of HD-specific switches.</p>
 <p>The <code>visium_hd</code> layout already names <code>visium_hd_bc1</code> and <code>visium_hd_bc2</code> as the whitelists for its two barcode elements and flags them as a joint barcode, so you don’t pass a <code>kit</code> — just switch on <code>joint_bc_mode = &quot;strict&quot;</code> so a read is only kept when <em>both</em> barcode halves correct cleanly:</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1">visiumFastq &lt;-<span class="st"> &quot;spatial_bcr_tcr_reads.fq.gz&quot;</span>  <span class="co"># your enriched long reads</span></a>
 <a class="sourceLine" id="cb16-2" data-line-number="2"></a>
@@ -514,14 +514,14 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb17-5" data-line-number="5">  <span class="dt">threads    =</span> nproc</a>
 <a class="sourceLine" id="cb17-6" data-line-number="6">)</a></code></pre></div>
 <p>The Visium HD layout and its paired-barcode whitelists are <strong>experimental</strong> — validate on a pilot before scaling up.</p>
-<p>From here the demultiplexed reads carry their 2 µm spatial barcode in the read header. They go through your aligner / IgBLAST step (outside rad and SIRAP) to produce AIRR-style rearrangement tables, at which point the <a href="visium-hd-processing.html">Visium HD processing guide</a> takes over: <code>extractSpatialBarcodes()</code> lifts the barcode back out of the <code>sequence_id</code>, <code>filterAirr()</code> does length/locus QC, and the 2 µm barcode is remapped to the 8 µm/16 µm grid for plotting.</p>
+<p>From here the demultiplexed reads carry their 2 µm spatial barcode in the read header. They go through your aligner / IgBLAST step (outside rad and SIRUP) to produce AIRR-style rearrangement tables, at which point the <a href="visium-hd-processing.html">Visium HD processing guide</a> takes over: <code>extractSpatialBarcodes()</code> lifts the barcode back out of the <code>sequence_id</code>, <code>filterAirr()</code> does length/locus QC, and the 2 µm barcode is remapped to the 8 µm/16 µm grid for plotting.</p>
 </div>
 <div id="keeping-rad-up-to-date" class="section level2">
 <h2>Keeping rad Up to Date</h2>
 <p>rad moves quickly, and newer builds grow capabilities beyond the ones wrapped here — for example a <code>correct-umi</code> subcommand for per-cell UMI correction, and support for seqspec YAML layout files in <code>prep</code>/<code>demux</code>. <code>updateRad()</code> keeps your binary current:</p>
 <div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" data-line-number="1"><span class="kw">updateRad</span>()                 <span class="co"># git pull --ff-only + rebuild if the commit changed</span></a>
 <a class="sourceLine" id="cb18-2" data-line-number="2"><span class="kw">updateRad</span>(<span class="dt">force_rebuild =</span> <span class="ot">TRUE</span>)</a></code></pre></div>
-<p>Any rad subcommand — wrapped or not — is reachable: <code>radHelp(&quot;demux&quot;)</code> prints a subcommand’s help from R, and the wrappers accept extra raw CLI tokens through <code>...</code> for flags SIRAP hasn’t surfaced yet.</p>
+<p>Any rad subcommand — wrapped or not — is reachable: <code>radHelp(&quot;demux&quot;)</code> prints a subcommand’s help from R, and the wrappers accept extra raw CLI tokens through <code>...</code> for flags SIRUP hasn’t surfaced yet.</p>
 </div>
 <div id="where-to-next" class="section level2">
 <h2>Where to Next</h2>

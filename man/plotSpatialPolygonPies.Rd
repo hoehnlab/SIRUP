@@ -33,7 +33,7 @@ plotSpatialPolygonPies(
 \arguments{
 \item{dominance}{Object returned by \code{spatialCloneDominance()}.}
 
-\item{object}{Seurat object with spatial images, or a SIRAP object.}
+\item{object}{Seurat object with spatial images, or a SIRUP object.}
 
 \item{fill}{Column in \code{dominance$region_receptors} summarized in each pie
 chart. When omitted, the clone column recorded by
@@ -62,14 +62,14 @@ everywhere; remaining levels are grouped as \code{other_label}.}
 \item{images}{Optional Seurat image names to show.}
 
 \item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
+SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
 
 \item{image_scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRAP object metadata.}
+value must be supplied explicitly or by SIRUP object metadata.}
 
 \item{polygon_val}{Optional polygon ID value(s) to select from the dominance
 result.}
@@ -98,7 +98,7 @@ plots. Defaults to \code{FALSE}.}
 \item{zoom}{Zoom to the plotted polygon extents. Defaults to \code{FALSE}, which
 shows the full tissue image.}
 
-\item{combine_sample_plots}{For multi-sample SIRAP objects, combine plots
+\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
 from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
 multi-sample calls return a named list of per-sample plots.}
 }

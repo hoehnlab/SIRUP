@@ -1,10 +1,10 @@
-#' SIRAP: Spatial Immune Receptor Analysis and Processing
+#' SIRUP: Spatial Immune Receptor Utilities and Processing
 #'
 #' A consolidated toolkit for long-read spatial immune receptor sequencing.
-#' SIRAP takes demultiplexed reads from the companion RRAD package and runs
+#' SIRUP takes demultiplexed reads from the companion RRAD package and runs
 #' an end-to-end IgBLAST and pRESTO pipeline to produce AIRR-style
 #' rearrangement tables with spatial IDs and coordinates. It also provides
-#' Visium HD spatial ID mapping, clonal summaries, lightweight SIRAP
+#' Visium HD spatial ID mapping, clonal summaries, lightweight SIRUP
 #' containers pairing spatial Seurat data with tibble-backed receptor tables,
 #' tree plotting, polygon annotation, and spatial statistics.
 #'

@@ -6,7 +6,7 @@ usage() {
 Usage:
   clean_native_artifacts.sh [--delete] [PACKAGE_DIR]
 
-Clears stale compiled native artifacts that can break SIRAP builds when switching
+Clears stale compiled native artifacts that can break SIRUP builds when switching
 between macOS and Linux/Discovery builds.
 
 By default this is a dry run. Pass --delete to remove matching files.

@@ -1,4 +1,4 @@
 library(testthat)
-library(SIRAP)
+library(SIRUP)
 
-test_check("SIRAP")
+test_check("SIRUP")

@@ -328,27 +328,27 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 
-<p>SIRAP includes SPaCeD-style heavy-light chain pairing helpers for spatial BCR data. The implementation follows the SPaCeD idea of combining spatial evidence with a REPAIR model matrix, then reporting the top light-chain candidates for each heavy clone across omega weights.</p>
+<p>SIRUP includes SPaCeD-style heavy-light chain pairing helpers for spatial BCR data. The implementation follows the SPaCeD idea of combining spatial evidence with a REPAIR model matrix, then reporting the top light-chain candidates for each heavy clone across omega weights.</p>
 <p>The original SPaCeD repository is <a href="https://github.com/hjm2217/spaced" class="uri">https://github.com/hjm2217/spaced</a>. SPaCeD uses REPAIR (<a href="https://github.com/almaan/star-repair" class="uri">https://github.com/almaan/star-repair</a>) and notes a modified REPAIR fork (<a href="https://github.com/Floraliu7/star-repair" class="uri">https://github.com/Floraliu7/star-repair</a>) that exports the fitted model matrix needed for downstream pairing.</p>
-<p>By default, this page shows runnable code but does not execute it. To run the toy REPAIR command while rendering, set <code>SIRAP_RUN_SPACED_EXAMPLES=true</code> in an environment with the modified REPAIR conda environment available.</p>
+<p>By default, this page shows runnable code but does not execute it. To run the toy REPAIR command while rendering, set <code>SIRUP_RUN_SPACED_EXAMPLES=true</code> in an environment with the modified REPAIR conda environment available.</p>
 <div id="method-overview" class="section level2">
 <h2>Method Overview</h2>
 <p>Let <code>H</code> be a heavy-clone by spatial-bin count matrix and <code>L</code> be a light-clone by spatial-bin count matrix. For Visium HD, use Space Ranger 8um barcodes as the native spatial bins.</p>
-<p>SIRAP’s scalable default builds a sparse Gaussian spatial kernel <code>K</code> over the 8um barcode coordinates:</p>
+<p>SIRUP’s scalable default builds a sparse Gaussian spatial kernel <code>K</code> over the 8um barcode coordinates:</p>
 <pre class="text"><code>K_ab = exp(-d_ab^2 / (2 sigma^2))</code></pre>
 <p>with entries outside <code>kernel_radius</code> dropped to zero. The spatial score between heavy clone <code>i</code> and light clone <code>j</code> is a kernel-normalized weighted overlap:</p>
 <pre class="text"><code>S_ij = (h_i^T K l_j) / sqrt((h_i^T K h_i) * (l_j^T K l_j))</code></pre>
-<p>Rows are normalized before combining with REPAIR. For each omega weight <code>w</code>, SIRAP forms:</p>
+<p>Rows are normalized before combining with REPAIR. For each omega weight <code>w</code>, SIRUP forms:</p>
 <pre class="text"><code>O_ij(w) = w * S_ij + (1 - w) * R_ij</code></pre>
-<p>where <code>R</code> is the row-normalized REPAIR model matrix. SIRAP then reports the top light-chain candidates for each heavy clone. A light clone can be reported for multiple heavy clones, which is useful when public light chains are plausible. For each candidate pair, SIRAP also reports:</p>
+<p>where <code>R</code> is the row-normalized REPAIR model matrix. SIRUP then reports the top light-chain candidates for each heavy clone. A light clone can be reported for multiple heavy clones, which is useful when public light chains are plausible. For each candidate pair, SIRUP also reports:</p>
 <pre class="text"><code>light_specificity_score_ij = O_ij / sum_i' O_i'j</code></pre>
 <p>This is a column-normalized specificity score. Values near one indicate that a light clone’s evidence is concentrated on that heavy clone. Lower values indicate that the light clone also scores well for other heavy clones.</p>
-<p>By default, both REPAIR and <code>spacedSpatialAffinity()</code> keep clones observed in at least two spatial features with count at least one (<code>mxo = 2</code>, <code>x = 1</code> in REPAIR; <code>min_x_obs = 2</code>, <code>filter_x = 1</code> in SIRAP). Use matching thresholds in both steps so the REPAIR model matrix and spatial affinity matrix describe the same clone universe.</p>
-<p>SIRAP also keeps a faithful <code>method = &quot;ot&quot;</code> option that computes SPaCeD-style point-pattern distances with <code>spatstat::pppdist()</code>. This is much slower but can be parallelized with <code>nproc</code>.</p>
+<p>By default, both REPAIR and <code>spacedSpatialAffinity()</code> keep clones observed in at least two spatial features with count at least one (<code>mxo = 2</code>, <code>x = 1</code> in REPAIR; <code>min_x_obs = 2</code>, <code>filter_x = 1</code> in SIRUP). Use matching thresholds in both steps so the REPAIR model matrix and spatial affinity matrix describe the same clone universe.</p>
+<p>SIRUP also keeps a faithful <code>method = &quot;ot&quot;</code> option that computes SPaCeD-style point-pattern distances with <code>spatstat::pppdist()</code>. This is much slower but can be parallelized with <code>nproc</code>.</p>
 </div>
 <div id="setup" class="section level2">
 <h2>Setup</h2>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">library</span>(SIRAP)</a>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">library</span>(SIRUP)</a>
 <a class="sourceLine" id="cb5-2" data-line-number="2"></a>
 <a class="sourceLine" id="cb5-3" data-line-number="3">repair_conda_env &lt;-<span class="st"> </span><span class="kw">Sys.getenv</span>(<span class="st">&quot;REPAIR_CONDA_ENV&quot;</span>, <span class="st">&quot;repair&quot;</span>)</a>
 <a class="sourceLine" id="cb5-4" data-line-number="4">repair_conda_bin &lt;-<span class="st"> </span><span class="kw">Sys.getenv</span>(<span class="st">&quot;CONDA_EXE&quot;</span>, <span class="st">&quot;conda&quot;</span>)</a></code></pre></div>
@@ -458,7 +458,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb13-12" data-line-number="12"><span class="cf">if</span> (<span class="kw">length</span>(toyRepairModelFiles) <span class="op">!=</span><span class="st"> </span>1L) {</a>
 <a class="sourceLine" id="cb13-13" data-line-number="13">  <span class="kw">stop</span>(<span class="st">&quot;Expected exactly one REPAIR model matrix in &quot;</span>, toyRepairOutputDir)</a>
 <a class="sourceLine" id="cb13-14" data-line-number="14">}</a></code></pre></div>
-<p>If the model matrix is unnamed, SIRAP follows the current SPaCeD convention and aligns it positionally to the spatial affinity matrix. This assumes REPAIR rows follow the heavy-clone order in the input matrix and columns follow the light-clone order. Prefer named model matrices when the REPAIR export supports them consistently.</p>
+<p>If the model matrix is unnamed, SIRUP follows the current SPaCeD convention and aligns it positionally to the spatial affinity matrix. This assumes REPAIR rows follow the heavy-clone order in the input matrix and columns follow the light-clone order. Prefer named model matrices when the REPAIR export supports them consistently.</p>
 </div>
 <div id="pair-heavy-and-light-clones" class="section level2">
 <h2>Pair Heavy and Light Clones</h2>
@@ -498,7 +498,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb15-8" data-line-number="8">  <span class="dt">min_x_obs =</span> <span class="dv">2</span>,</a>
 <a class="sourceLine" id="cb15-9" data-line-number="9">  <span class="dt">filter_x =</span> <span class="dv">1</span></a>
 <a class="sourceLine" id="cb15-10" data-line-number="10">)</a></code></pre></div>
-<p>With <code>kernel_sigma = NULL</code>, SIRAP estimates the median nearest-neighbor spacing among spatial features and uses twice that value. <code>kernel_radius</code> defaults to <code>3 * kernel_sigma</code>.</p>
+<p>With <code>kernel_sigma = NULL</code>, SIRUP estimates the median nearest-neighbor spacing among spatial features and uses twice that value. <code>kernel_radius</code> defaults to <code>3 * kernel_sigma</code>.</p>
 </div>
 
 

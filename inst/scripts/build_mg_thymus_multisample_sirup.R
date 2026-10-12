@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # ---------------------------------------------------------------------------
-# Demo: a MULTI-SAMPLE SIRAP object from the two MG thymus Visium slices.
+# Demo: a MULTI-SAMPLE SIRUP object from the two MG thymus Visium slices.
 #
 # Shows the new machinery: `spatial` is a NAMED LIST of Seurat objects keyed by
 # the receptor `sample` field, with ONE combined AIRR (receptor) table. Builds the
@@ -8,7 +8,7 @@
 # receptors/spatial data for a chosen sample, makes a couple of plots that either
 # select one section (images=) or facet across both, and saves the object.
 #
-# Run with the package loaded:  devtools::load_all("SIRAP")  (or library(SIRAP)).
+# Run with the package loaded:  devtools::load_all("SIRAP")  (or library(SIRUP)).
 # ---------------------------------------------------------------------------
 
 setwd("/Volumes/HoehnK/Hunter/spatial_bcr_tcr_package/")
@@ -41,13 +41,13 @@ airr <- readRDS(file.path(repo, "analysis/fig_3_bcr/01_clone_building/analysis/c
   mutate(barcode_10x = paste0(str_extract(sequence_id, "^[ACGT]+"), "-1"))
 
 
-# --- 2. Build the multi-sample SIRAP object --------------------
+# --- 2. Build the multi-sample SIRUP object --------------------
 # The multi-sample `spatial` argument is a NAMED LIST keyed by the receptor
 # `sample` field; we build it inline from the two slice objects. `sample = "sample"`
 # routes each receptor to its section's Seurat, and shared 16bp barcodes across
 # slices are disambiguated internally by the composite (sample, spatial_id) key.
 # No clone field yet -- we call clones below and attach them.
-obj <- createSIRAP(
+obj <- createSIRUP(
   spatial     = list(mg_thymus_slice1 = spatial_1, mg_thymus_slice2 = spatial_2),
   receptors   = airr,
   spatial_id  = "barcode_10x",
@@ -59,7 +59,7 @@ obj <- createSIRAP(
 )
 
 obj
-# <SIRAP object>
+# <SIRUP object>
 #  Spatial data:    Seurat, 6,599 spatial IDs, 36,601 genes, 2 spatial samples, 2 images
 # Receptor data:   tibble, 5,312 receptor sequences x 62 columns
 # Spatial overlap: 1,471/1,530 receptor IDs in spatial data (96.1%)
@@ -104,7 +104,7 @@ poly_csv <- c(
 # `addPolygons()` now accepts named polygon CSV paths for multi-sample objects.
 # The names tag each CSV by sample as it is loaded, so polygons from slice 1 are
 # only applied to `mg_thymus_slice1` and polygons from slice 2 are only applied
-# to `mg_thymus_slice2`. If polygon IDs are reused across slices, SIRAP stores
+# to `mg_thymus_slice2`. If polygon IDs are reused across slices, SIRUP stores
 # composite IDs internally (for example `mg_thymus_slice1::GC1`) to keep the
 # geometry and annotations separate.
 obj <- addPolygons(obj, polygons_path = poly_csv)
@@ -136,5 +136,5 @@ ggsave(file.path(out_dir, "demo_aicda_both.png"),  p_both, width = 10, height = 
 ggsave(file.path(out_dir, "demo_gc_polygons.png"), p_poly, width = 10, height = 5, dpi = 200)
 
 # --- 7. Save the object -------------------------------------------------------
-saveSIRAP(obj, file.path(out_dir, "mg_thymus_multisample_sirap.rds"))
+saveSIRUP(obj, file.path(out_dir, "mg_thymus_multisample_sirup.rds"))
 message("Saved object + demo plots to: ", out_dir)

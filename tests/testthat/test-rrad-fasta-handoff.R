@@ -96,7 +96,7 @@ test_that("tags stop at whitespace, so FASTA descriptions are not tag content", 
 
 test_that("rrad FASTA enters the read annotation pass before all six consensus commands", {
   fixture <- test_path("fixtures", "rrad-handoff", "canonical.fasta")
-  work <- withr::local_tempdir(pattern = "sirap handoff ")
+  work <- withr::local_tempdir(pattern = "sirup handoff ")
   germline <- file.path(work, "germline reference.fasta")
   writeLines(c(">reference", strrep("ACGT", 30)), germline)
   observed <- new.env(parent = emptyenv())
@@ -111,13 +111,13 @@ test_that("rrad FASTA enters the read annotation pass before all six consensus c
       data.table::fwrite(.rrad_handoff_airr(ids), output_tsv, sep = "\t")
       invisible(output_tsv)
     },
-    .sirap_check_tools = function(...) invisible(TRUE),
-    .sirap_run_command = function(exec, args, ...) {
+    .sirup_check_tools = function(...) invisible(TRUE),
+    .sirup_run_command = function(exec, args, ...) {
       observed$steps <- c(observed$steps, exec)
       observed$commands[[exec]] <- args
       invisible(0L)
     },
-    .package = "SIRAP"
+    .package = "SIRUP"
   )
   result <- processSpatialSample(
     input = fixture,
@@ -153,9 +153,9 @@ test_that("AIRR input keeps existing metadata and skips the raw read pass", {
   writeLines(c(">reference", strrep("ACGT", 30)), germline)
   testthat::local_mocked_bindings(
     runIgblast = function(...) stop("AIRR input must skip read-level IgBLAST"),
-    .sirap_check_tools = function(...) invisible(TRUE),
-    .sirap_run_command = function(...) invisible(0L),
-    .package = "SIRAP"
+    .sirup_check_tools = function(...) invisible(TRUE),
+    .sirup_run_command = function(...) invisible(0L),
+    .package = "SIRUP"
   )
   result <- processSpatialSample(
     input = .rrad_handoff_airr("plain-read", "AACC", "TGCA"),
@@ -171,9 +171,9 @@ test_that("AIRR input keeps existing metadata and skips the raw read pass", {
 test_that("missing barcodes in surviving reads fail before consensus", {
   work <- withr::local_tempdir()
   testthat::local_mocked_bindings(
-    .sirap_check_tools = function(...) stop("Consensus must not start"),
-    .sirap_run_command = function(...) stop("Consensus must not start"),
-    .package = "SIRAP"
+    .sirup_check_tools = function(...) stop("Consensus must not start"),
+    .sirup_run_command = function(...) stop("Consensus must not start"),
+    .package = "SIRUP"
   )
   for (missing_barcode in c(NA_character_, "")) {
     expect_error(
@@ -194,9 +194,9 @@ test_that("reads removed by quality filtering need no spatial barcode", {
   germline <- file.path(work, "reference.fasta")
   writeLines(c(">reference", strrep("ACGT", 30)), germline)
   testthat::local_mocked_bindings(
-    .sirap_check_tools = function(...) invisible(TRUE),
-    .sirap_run_command = function(...) invisible(0L),
-    .package = "SIRAP"
+    .sirup_check_tools = function(...) invisible(TRUE),
+    .sirup_run_command = function(...) invisible(0L),
+    .package = "SIRUP"
   )
   airr <- .rrad_handoff_airr(c("good", "discard"), c("AACC", NA_character_))
   airr$productive[[2L]] <- "F"
@@ -215,9 +215,9 @@ test_that("explicit NULL count overrides keep singleton reads", {
   germline <- file.path(work, "reference.fasta")
   writeLines(c(">reference", strrep("ACGT", 30)), germline)
   testthat::local_mocked_bindings(
-    .sirap_check_tools = function(...) invisible(TRUE),
-    .sirap_run_command = function(...) invisible(0L),
-    .package = "SIRAP"
+    .sirup_check_tools = function(...) invisible(TRUE),
+    .sirup_run_command = function(...) invisible(0L),
+    .package = "SIRUP"
   )
   airr <- .rrad_handoff_airr(
     c("singleton", "pair", "larger"), c("AACC", "TTGA", "CCGG")
@@ -245,9 +245,9 @@ test_that("explicit NULL count overrides keep singleton reads", {
 test_that("NULL is rejected for filter parameters that cannot be NULL", {
   work <- withr::local_tempdir()
   testthat::local_mocked_bindings(
-    .sirap_check_tools = function(...) stop("Pipeline must not start"),
-    .sirap_run_command = function(...) stop("Pipeline must not start"),
-    .package = "SIRAP"
+    .sirup_check_tools = function(...) stop("Pipeline must not start"),
+    .sirup_run_command = function(...) stop("Pipeline must not start"),
+    .package = "SIRUP"
   )
   airr <- .rrad_handoff_airr("read", "AACC")
   for (bad in list(
@@ -272,9 +272,9 @@ test_that("invalid_spatial_ids = 'drop' removes bad rows with a warning", {
   germline <- file.path(work, "reference.fasta")
   writeLines(c(">reference", strrep("ACGT", 30)), germline)
   testthat::local_mocked_bindings(
-    .sirap_check_tools = function(...) invisible(TRUE),
-    .sirap_run_command = function(...) invisible(0L),
-    .package = "SIRAP"
+    .sirup_check_tools = function(...) invisible(TRUE),
+    .sirup_run_command = function(...) invisible(0L),
+    .package = "SIRUP"
   )
   airr <- .rrad_handoff_airr(
     c("good", "missing", "also-good"), c("AACC", NA_character_, "TTGA")
@@ -295,9 +295,9 @@ test_that("invalid_spatial_ids = 'drop' removes bad rows with a warning", {
 test_that("the abort for invalid barcodes reports a count", {
   work <- withr::local_tempdir()
   testthat::local_mocked_bindings(
-    .sirap_check_tools = function(...) stop("Consensus must not start"),
-    .sirap_run_command = function(...) stop("Consensus must not start"),
-    .package = "SIRAP"
+    .sirup_check_tools = function(...) stop("Consensus must not start"),
+    .sirup_run_command = function(...) stop("Consensus must not start"),
+    .package = "SIRUP"
   )
   expect_error(
     processSpatialSample(
@@ -314,9 +314,9 @@ test_that("the abort for invalid barcodes reports a count", {
 test_that("duplicate spatial FASTA headers abort before writing", {
   work <- withr::local_tempdir()
   testthat::local_mocked_bindings(
-    .sirap_check_tools = function(...) stop("Pipeline must not start"),
-    .sirap_run_command = function(...) stop("Pipeline must not start"),
-    .package = "SIRAP"
+    .sirup_check_tools = function(...) stop("Pipeline must not start"),
+    .sirup_run_command = function(...) stop("Pipeline must not start"),
+    .package = "SIRUP"
   )
   # Distinct raw IDs that collapse to the same bare ID after tag stripping.
   airr <- .rrad_handoff_airr(c("contig|BARCODE=AACC|UMI=AAAA", "contig|BARCODE=AACC|UMI=CCCC"))
@@ -331,11 +331,11 @@ test_that("duplicate spatial FASTA headers abort before writing", {
 })
 
 test_that("barcode validation derives its character class from delimiters", {
-  expect_equal(.sirap_delims_regex_class(c("|", "=", ",")), "[[:space:]|=,]")
-  expect_true(grepl(.sirap_delims_regex_class(c("|", "=", ";")), "AA;CC"))
-  expect_false(grepl(.sirap_delims_regex_class(c("|", "=", ";")), "AA,CC"))
+  expect_equal(.sirup_delims_regex_class(c("|", "=", ",")), "[[:space:]|=,]")
+  expect_true(grepl(.sirup_delims_regex_class(c("|", "=", ";")), "AA;CC"))
+  expect_false(grepl(.sirup_delims_regex_class(c("|", "=", ";")), "AA,CC"))
   # Characters that are special inside a regex class are escaped.
-  expect_true(grepl(.sirap_delims_regex_class(c("]", "-")), "AA-CC"))
-  expect_true(grepl(.sirap_delims_regex_class(c("]", "-")), "AA]CC"))
-  expect_false(grepl(.sirap_delims_regex_class(c("]", "-")), "AACC"))
+  expect_true(grepl(.sirup_delims_regex_class(c("]", "-")), "AA-CC"))
+  expect_true(grepl(.sirup_delims_regex_class(c("]", "-")), "AA]CC"))
+  expect_false(grepl(.sirup_delims_regex_class(c("]", "-")), "AACC"))
 })

@@ -332,7 +332,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>For now, this vignette uses the full local thymus dataset from the walkthrough. We should replace this with a small packaged toy dataset later.</p>
 <div id="setup" class="section level2">
 <h2>Setup</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SIRAP)</a>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SIRUP)</a>
 <a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">library</span>(dplyr)</a>
 <a class="sourceLine" id="cb1-3" data-line-number="3"><span class="kw">library</span>(ggplot2)</a>
 <a class="sourceLine" id="cb1-4" data-line-number="4"><span class="kw">library</span>(cowplot)</a>
@@ -348,7 +348,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb1-14" data-line-number="14">nproc &lt;-<span class="st"> </span><span class="dv">8</span></a>
 <a class="sourceLine" id="cb1-15" data-line-number="15"></a>
 <a class="sourceLine" id="cb1-16" data-line-number="16">thymusDir &lt;-<span class="st"> </span><span class="kw">normalizePath</span>(<span class="st">&quot;../../Thymus_VisiumHD&quot;</span>, <span class="dt">mustWork =</span> <span class="ot">TRUE</span>)</a>
-<a class="sourceLine" id="cb1-17" data-line-number="17">outDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(thymusDir, <span class="st">&quot;SIRAP_walkthrough&quot;</span>, sampleId)</a>
+<a class="sourceLine" id="cb1-17" data-line-number="17">outDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(thymusDir, <span class="st">&quot;SIRUP_walkthrough&quot;</span>, sampleId)</a>
 <a class="sourceLine" id="cb1-18" data-line-number="18">finalAirrDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(outDir, <span class="st">&quot;03_final_spatial_airr&quot;</span>)</a>
 <a class="sourceLine" id="cb1-19" data-line-number="19">plotDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(outDir, <span class="st">&quot;plots&quot;</span>)</a>
 <a class="sourceLine" id="cb1-20" data-line-number="20"><span class="kw">dir.create</span>(plotDir, <span class="dt">recursive =</span> <span class="ot">TRUE</span>, <span class="dt">showWarnings =</span> <span class="ot">FALSE</span>)</a>
@@ -367,7 +367,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="call-bcr-and-tcr-clones" class="section level2">
 <h2>Call BCR and TCR Clones</h2>
-<p>SIRAP does not wrap <code>scoper</code> clone calling. Use <code>scoper</code> directly, then pass the resulting data frames to SIRAP plotting functions.</p>
+<p>SIRUP does not wrap <code>scoper</code> clone calling. Use <code>scoper</code> directly, then pass the resulting data frames to SIRUP plotting functions.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">bcrClones &lt;-<span class="st"> </span>scoper<span class="op">::</span><span class="kw">hierarchicalClones</span>(</a>
 <a class="sourceLine" id="cb2-2" data-line-number="2">  <span class="kw">filter</span>(bcrTopBarcode, productive),</a>
 <a class="sourceLine" id="cb2-3" data-line-number="3">  <span class="dt">threshold =</span> <span class="fl">0.1</span>,</a>
@@ -386,8 +386,8 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>If clone calling has already been run, load the saved RDS files instead.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">bcrClones &lt;-<span class="st"> </span><span class="kw">readRDS</span>(bcrClonesPath)</a>
 <a class="sourceLine" id="cb3-2" data-line-number="2">tcrClones &lt;-<span class="st"> </span><span class="kw">readRDS</span>(tcrClonesPath)</a></code></pre></div>
-<p>Keep each clone table paired with its spatial transcriptomics data in a SIRAP object. <code>createSIRAP()</code> converts the receptor table to a tibble and records the receptor field mappings in the SIRAP metadata without copying receptor columns into Seurat metadata.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">bcrSirap &lt;-<span class="st"> </span><span class="kw">createSIRAP</span>(</a>
+<p>Keep each clone table paired with its spatial transcriptomics data in a SIRUP object. <code>createSIRUP()</code> converts the receptor table to a tibble and records the receptor field mappings in the SIRUP metadata without copying receptor columns into Seurat metadata.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">bcrSirup &lt;-<span class="st"> </span><span class="kw">createSIRUP</span>(</a>
 <a class="sourceLine" id="cb4-2" data-line-number="2">  <span class="dt">spatial =</span> thymus,</a>
 <a class="sourceLine" id="cb4-3" data-line-number="3">  <span class="dt">receptors =</span> bcrClones,</a>
 <a class="sourceLine" id="cb4-4" data-line-number="4">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
@@ -397,7 +397,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb4-8" data-line-number="8">  <span class="dt">metadata =</span> <span class="kw">list</span>(<span class="dt">sample_id =</span> sampleId, <span class="dt">receptor_type =</span> <span class="st">&quot;BCR&quot;</span>)</a>
 <a class="sourceLine" id="cb4-9" data-line-number="9">)</a>
 <a class="sourceLine" id="cb4-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb4-11" data-line-number="11">tcrSirap &lt;-<span class="st"> </span><span class="kw">createSIRAP</span>(</a>
+<a class="sourceLine" id="cb4-11" data-line-number="11">tcrSirup &lt;-<span class="st"> </span><span class="kw">createSIRUP</span>(</a>
 <a class="sourceLine" id="cb4-12" data-line-number="12">  <span class="dt">spatial =</span> thymus,</a>
 <a class="sourceLine" id="cb4-13" data-line-number="13">  <span class="dt">receptors =</span> tcrClones,</a>
 <a class="sourceLine" id="cb4-14" data-line-number="14">  <span class="dt">barcode =</span> <span class="st">&quot;barcode_8um&quot;</span>,</a>
@@ -406,12 +406,12 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb4-17" data-line-number="17">  <span class="dt">swap_coords =</span> <span class="ot">FALSE</span>,</a>
 <a class="sourceLine" id="cb4-18" data-line-number="18">  <span class="dt">metadata =</span> <span class="kw">list</span>(<span class="dt">sample_id =</span> sampleId, <span class="dt">receptor_type =</span> <span class="st">&quot;TCR&quot;</span>)</a>
 <a class="sourceLine" id="cb4-19" data-line-number="19">)</a></code></pre></div>
-<p>The object can also be created before clone calling. In that workflow, <code>updateReceptors(bcrSirap, scoper::hierarchicalClones, ...)</code> passes the stored receptor table to <code>hierarchicalClones()</code> and returns a SIRAP object containing the clone-called table. The usual <code>clone_id</code> output is recorded automatically. The same pattern works with <code>dowser::createGermlines()</code> or another function whose first argument is a receptor table. Use <code>getReceptors()</code> when the function result should be returned without replacing the receptor table.</p>
+<p>The object can also be created before clone calling. In that workflow, <code>updateReceptors(bcrSirup, scoper::hierarchicalClones, ...)</code> passes the stored receptor table to <code>hierarchicalClones()</code> and returns a SIRUP object containing the clone-called table. The usual <code>clone_id</code> output is recorded automatically. The same pattern works with <code>dowser::createGermlines()</code> or another function whose first argument is a receptor table. Use <code>getReceptors()</code> when the function result should be returned without replacing the receptor table.</p>
 <p>Dowser-formatted clones and trees can be retained without adding a package-specific slot:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">bcrSirap &lt;-<span class="st"> </span><span class="kw">setAnalysis</span>(bcrSirap, <span class="st">&quot;dowser_clones&quot;</span>, formattedBcrClones)</a>
-<a class="sourceLine" id="cb5-2" data-line-number="2">bcrSirap &lt;-<span class="st"> </span><span class="kw">setAnalysis</span>(bcrSirap, <span class="st">&quot;dowser_trees&quot;</span>, bcrTrees)</a>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">bcrSirup &lt;-<span class="st"> </span><span class="kw">setAnalysis</span>(bcrSirup, <span class="st">&quot;dowser_clones&quot;</span>, formattedBcrClones)</a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">bcrSirup &lt;-<span class="st"> </span><span class="kw">setAnalysis</span>(bcrSirup, <span class="st">&quot;dowser_trees&quot;</span>, bcrTrees)</a>
 <a class="sourceLine" id="cb5-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb5-4" data-line-number="4"><span class="kw">length</span>(<span class="kw">getAnalysis</span>(bcrSirap, <span class="st">&quot;dowser_trees&quot;</span>))</a></code></pre></div>
+<a class="sourceLine" id="cb5-4" data-line-number="4"><span class="kw">length</span>(<span class="kw">getAnalysis</span>(bcrSirup, <span class="st">&quot;dowser_trees&quot;</span>))</a></code></pre></div>
 </div>
 <div id="choose-clones-to-plot" class="section level2">
 <h2>Choose Clones to Plot</h2>
@@ -441,7 +441,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <h2>Plot Clone Locations Over Tissue</h2>
 <p><code>plotReceptors()</code> uses the stored receptor tibble and receptor field metadata directly. The <code>group_val</code> argument selects the clones to draw.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">bcrClonePlot &lt;-<span class="st"> </span><span class="kw">plotReceptors</span>(</a>
-<a class="sourceLine" id="cb7-2" data-line-number="2">  <span class="dt">object =</span> bcrSirap,</a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">  <span class="dt">object =</span> bcrSirup,</a>
 <a class="sourceLine" id="cb7-3" data-line-number="3">  <span class="dt">group =</span> <span class="st">&quot;clone_id&quot;</span>,</a>
 <a class="sourceLine" id="cb7-4" data-line-number="4">  <span class="dt">group_val =</span> bcrCloneIds,</a>
 <a class="sourceLine" id="cb7-5" data-line-number="5">  <span class="dt">receptor_size =</span> <span class="fl">1.7</span>,</a>
@@ -449,7 +449,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb7-7" data-line-number="7">)</a>
 <a class="sourceLine" id="cb7-8" data-line-number="8"></a>
 <a class="sourceLine" id="cb7-9" data-line-number="9">tcrClonePlot &lt;-<span class="st"> </span><span class="kw">plotReceptors</span>(</a>
-<a class="sourceLine" id="cb7-10" data-line-number="10">  <span class="dt">object =</span> tcrSirap,</a>
+<a class="sourceLine" id="cb7-10" data-line-number="10">  <span class="dt">object =</span> tcrSirup,</a>
 <a class="sourceLine" id="cb7-11" data-line-number="11">  <span class="dt">group =</span> <span class="st">&quot;clone_id&quot;</span>,</a>
 <a class="sourceLine" id="cb7-12" data-line-number="12">  <span class="dt">group_val =</span> tcrCloneIds,</a>
 <a class="sourceLine" id="cb7-13" data-line-number="13">  <span class="dt">receptor_size =</span> <span class="fl">1.7</span>,</a>
@@ -460,7 +460,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="build-bcr-trees-with-dowser" class="section level2">
 <h2>Build BCR Trees with Dowser</h2>
-<p>SIRAP keeps tree building in <code>dowser</code>, then focuses on coloring and pairing trees with spatial plots.</p>
+<p>SIRUP keeps tree building in <code>dowser</code>, then focuses on coloring and pairing trees with spatial plots.</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1">germlineDir &lt;-<span class="st"> </span><span class="kw">path.expand</span>(<span class="st">&quot;~/software/germlines/imgt/human/vdj&quot;</span>)</a>
 <a class="sourceLine" id="cb8-2" data-line-number="2">refs &lt;-<span class="st"> </span>dowser<span class="op">::</span><span class="kw">readIMGT</span>(germlineDir)</a>
 <a class="sourceLine" id="cb8-3" data-line-number="3"></a>
@@ -496,7 +496,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p><code>plotSpatialCloneTreePairs()</code> assigns tip colors, draws the BCR tree with <code>ggtree</code>, and creates a matching spatial plot over the tissue. By default, each tip gets its own color.</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1">pairedTreeSpatialPlots &lt;-<span class="st"> </span><span class="kw">plotSpatialCloneTreePairs</span>(</a>
 <a class="sourceLine" id="cb10-2" data-line-number="2">  bcrTrees,</a>
-<a class="sourceLine" id="cb10-3" data-line-number="3">  <span class="dt">object =</span> bcrSirap,</a>
+<a class="sourceLine" id="cb10-3" data-line-number="3">  <span class="dt">object =</span> bcrSirup,</a>
 <a class="sourceLine" id="cb10-4" data-line-number="4">  <span class="dt">clone_val =</span> bcrCloneIds,</a>
 <a class="sourceLine" id="cb10-5" data-line-number="5">  <span class="dt">id =</span> <span class="st">&quot;sequence_id&quot;</span>,</a>
 <a class="sourceLine" id="cb10-6" data-line-number="6">  <span class="dt">treescale =</span> <span class="fl">0.01</span>,</a>
@@ -520,7 +520,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb11-7" data-line-number="7"></a>
 <a class="sourceLine" id="cb11-8" data-line-number="8">pairedTreeSpatialClusterPlots &lt;-<span class="st"> </span><span class="kw">plotSpatialCloneTreePairs</span>(</a>
 <a class="sourceLine" id="cb11-9" data-line-number="9">  bcrTreesClustered,</a>
-<a class="sourceLine" id="cb11-10" data-line-number="10">  <span class="dt">object =</span> bcrSirap,</a>
+<a class="sourceLine" id="cb11-10" data-line-number="10">  <span class="dt">object =</span> bcrSirup,</a>
 <a class="sourceLine" id="cb11-11" data-line-number="11">  <span class="dt">clone_val =</span> bcrCloneIds,</a>
 <a class="sourceLine" id="cb11-12" data-line-number="12">  <span class="dt">id =</span> <span class="st">&quot;sequence_id&quot;</span>,</a>
 <a class="sourceLine" id="cb11-13" data-line-number="13">  <span class="dt">color_by =</span> <span class="st">&quot;tree_cluster&quot;</span>,</a>
@@ -535,7 +535,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb11-22" data-line-number="22">  <span class="dt">ncol =</span> <span class="dv">2</span>,</a>
 <a class="sourceLine" id="cb11-23" data-line-number="23">  <span class="dt">rel_widths =</span> <span class="kw">c</span>(<span class="fl">1.2</span>, <span class="dv">1</span>)</a>
 <a class="sourceLine" id="cb11-24" data-line-number="24">)</a></code></pre></div>
-<p>If you want SIRAP to choose a separate cluster number for each tree, set <code>k = &quot;auto&quot;</code> and adjust <code>k_range</code> or <code>improvement_threshold</code> as needed.</p>
+<p>If you want SIRUP to choose a separate cluster number for each tree, set <code>k = &quot;auto&quot;</code> and adjust <code>k_range</code> or <code>improvement_threshold</code> as needed.</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1">bcrTreesAutoClustered &lt;-<span class="st"> </span><span class="kw">clusterTreesTips</span>(</a>
 <a class="sourceLine" id="cb12-2" data-line-number="2">  bcrTrees,</a>
 <a class="sourceLine" id="cb12-3" data-line-number="3">  <span class="dt">k =</span> <span class="st">&quot;auto&quot;</span>,</a>

@@ -8,17 +8,17 @@ IDs and V-gene annotations.
 Clone dominance is the fraction of BCR rows inside a polygon assigned to
 each clone. `spatialCloneDominance()` also returns the BCR rows and
 spatial coordinates inside each polygon. Its result and the original
-SIRAP or Seurat object are the two required inputs to the regional
+SIRUP or Seurat object are the two required inputs to the regional
 plotting functions.
 
 By default, this page shows runnable code but does not evaluate it. To
 render plots from the full local thymus dataset, render on the cluster
-with `SIRAP_RENDER_PLOTS=true`.
+with `SIRUP_RENDER_PLOTS=true`.
 
 ## Setup
 
 ``` r
-library(SIRAP)
+library(SIRUP)
 library(dplyr)
 library(ggplot2)
 library(data.table)
@@ -32,7 +32,7 @@ sampleLower <- tolower(sampleId)
 nproc <- 8
 
 thymusDir <- normalizePath("/dartfs/rc/lab/H/HoehnK/Hunter/Thymus_VisiumHD", mustWork = TRUE)
-outDir <- file.path(thymusDir, "SIRAP_walkthrough", sampleId)
+outDir <- file.path(thymusDir, "SIRUP_walkthrough", sampleId)
 finalAirrDir <- file.path(outDir, "03_final_spatial_airr")
 plotDir <- file.path(outDir, "plots")
 dominanceOutDir <- file.path(plotDir, "clonal_dominance")
@@ -258,7 +258,7 @@ The returned object contains:
 ## Plot Regional Receptors
 
 `plotSpatialRegionReceptors()` requires the dominance result and its
-original SIRAP or Seurat object. It plots the regional receptor rows
+original SIRUP or Seurat object. It plots the regional receptor rows
 already stored by `spatialCloneDominance()` over the tissue image,
 without repeating barcode or polygon arguments. In this example those
 rows are heavy-chain BCRs. `top_n` keeps the most common displayed
@@ -340,7 +340,7 @@ ggsave(
 ## Plot Pie Summaries
 
 `plotSpatialPolygonPies()` likewise requires the dominance result and
-its original SIRAP or Seurat object. It makes pie summaries directly
+its original SIRUP or Seurat object. It makes pie summaries directly
 from the regional rows and polygons stored in the dominance result. With
 `mode = "side_by_side"`, the tissue image and numbered polygons appear
 on the left and the pie charts appear on the right. The top levels are

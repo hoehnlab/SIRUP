@@ -328,8 +328,8 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 
-<p>The whole point of <a href="https://github.com/indianewok/rad"><code>rad</code></a> is that it is <em>read-structure agnostic</em>: instead of hard-coding one chemistry, you hand it a small CSV that describes how your reads are laid out — primers, barcodes, UMIs, the cDNA — and it figures out the alignment and extraction from there. The <a href="demultiplexing-with-rad.html">demultiplexing guide</a> drove rad on its <strong>bundled</strong> layouts (<code>five_prime</code>, <code>three_prime</code>, <code>sctagger</code>, <code>visium_hd</code>, …). This guide is the other half: how to write your <em>own</em> layout for a wonky or custom format and run the same pipeline on it, all from R through SIRAP’s <code>rad*()</code> wrappers.</p>
-<p>As with the other rad guide, SIRAP does not reimplement rad — every wrapper here shells out to the same <code>rad</code> binary you would call from a terminal. The wrappers used below are <code>radList()</code>, <code>radPrep()</code>, <code>radModify()</code>, and <code>radDemux()</code>, with pointers to <code>radScanWl()</code> for building the whitelists your layout references.</p>
+<p>The whole point of <a href="https://github.com/indianewok/rad"><code>rad</code></a> is that it is <em>read-structure agnostic</em>: instead of hard-coding one chemistry, you hand it a small CSV that describes how your reads are laid out — primers, barcodes, UMIs, the cDNA — and it figures out the alignment and extraction from there. The <a href="demultiplexing-with-rad.html">demultiplexing guide</a> drove rad on its <strong>bundled</strong> layouts (<code>five_prime</code>, <code>three_prime</code>, <code>sctagger</code>, <code>visium_hd</code>, …). This guide is the other half: how to write your <em>own</em> layout for a wonky or custom format and run the same pipeline on it, all from R through SIRUP’s <code>rad*()</code> wrappers.</p>
+<p>As with the other rad guide, SIRUP does not reimplement rad — every wrapper here shells out to the same <code>rad</code> binary you would call from a terminal. The wrappers used below are <code>radList()</code>, <code>radPrep()</code>, <code>radModify()</code>, and <code>radDemux()</code>, with pointers to <code>radScanWl()</code> for building the whitelists your layout references.</p>
 <p>This guide does not evaluate code during rendering: the layout-validation steps shell out to the external <code>rad</code> binary, and the demux steps need a FASTQ that matches your custom structure. Copy the chunks into a live R session against your own reads.</p>
 <div id="when-you-need-a-custom-layout" class="section level2">
 <h2>When You Need a Custom Layout</h2>
@@ -344,7 +344,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="setup" class="section level2">
 <h2>Setup</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SIRAP)</a>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SIRUP)</a>
 <a class="sourceLine" id="cb1-2" data-line-number="2"></a>
 <a class="sourceLine" id="cb1-3" data-line-number="3"><span class="co"># Everything in this guide writes under one scratch directory.</span></a>
 <a class="sourceLine" id="cb1-4" data-line-number="4">runDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;rad_layout&quot;</span>)</a>
@@ -353,10 +353,10 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb1-7" data-line-number="7">nproc &lt;-<span class="st"> </span><span class="dv">4</span></a>
 <a class="sourceLine" id="cb1-8" data-line-number="8"></a>
 <a class="sourceLine" id="cb1-9" data-line-number="9"><span class="co"># Confirm R can see the rad binary (resolution order: explicit `rad =`,</span></a>
-<a class="sourceLine" id="cb1-10" data-line-number="10"><span class="co"># options(SIRAP.rad_path=), $SIRAP_RAD_PATH, then `rad` on your PATH).</span></a>
+<a class="sourceLine" id="cb1-10" data-line-number="10"><span class="co"># options(SIRUP.rad_path=), $SIRUP_RAD_PATH, then `rad` on your PATH).</span></a>
 <a class="sourceLine" id="cb1-11" data-line-number="11"><span class="kw">radPath</span>()</a>
 <a class="sourceLine" id="cb1-12" data-line-number="12"><span class="co">#&gt; &quot;/Users/you/code/rad/build/rad&quot;</span></a></code></pre></div>
-<p>If rad is not on your <code>PATH</code>, point SIRAP at it once per session — see the <a href="demultiplexing-with-rad.html#point-r-at-the-rad-binary">demultiplexing guide</a> for the full resolution rules and <code>updateRad()</code> for building rad from source.</p>
+<p>If rad is not on your <code>PATH</code>, point SIRUP at it once per session — see the <a href="demultiplexing-with-rad.html#point-r-at-the-rad-binary">demultiplexing guide</a> for the full resolution rules and <code>updateRad()</code> for building rad from source.</p>
 </div>
 <div id="the-anatomy-of-a-read-layout" class="section level2">
 <h2>The Anatomy of a Read Layout</h2>

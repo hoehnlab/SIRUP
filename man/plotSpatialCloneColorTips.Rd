@@ -17,13 +17,13 @@ plotSpatialCloneColorTips(
 )
 }
 \arguments{
-\item{colored_clones}{Output from \code{assignTipColors()}, or a SIRAP object
+\item{colored_clones}{Output from \code{assignTipColors()}, or a SIRUP object
 whose receptor table contains tip colors.}
 
 \item{clone_val}{Clone ID to plot.}
 
-\item{tissue_positions}{Seurat object with spatial images, or a SIRAP
-object. May be omitted when \code{colored_clones} is a SIRAP object.}
+\item{tissue_positions}{Seurat object with spatial images, or a SIRUP
+object. May be omitted when \code{colored_clones} is a SIRUP object.}
 
 \item{clone}{Clone ID column.}
 
@@ -34,7 +34,7 @@ object. May be omitted when \code{colored_clones} is a SIRAP object.}
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate axes.}
 
 \item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
+SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
 
 \item{...}{Additional arguments passed to \code{plotSpatialColorTips()}.}
 }

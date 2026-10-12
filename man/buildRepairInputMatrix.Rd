@@ -22,6 +22,6 @@ column; sparse output has barcodes as row names and clones as column names.
 \description{
 REPAIR expects a spatial observation-by-clone expression table with heavy and
 light clone columns distinguishable by regex patterns such as \code{"^heavy"} and
-\code{"^light"}. This helper builds that matrix directly from SPaCeD/SIRAP clone
+\code{"^light"}. This helper builds that matrix directly from SPaCeD/SIRUP clone
 point tables.
 }

@@ -3,9 +3,9 @@
 ^\.Rhistory$
 ^\.RData$
 ^\.Rcheck$
-^SIRAP\.Rcheck$
+^SIRUP\.Rcheck$
 ^spatialVDJ\.Rcheck$
-^SIRAP_.*\.tar\.gz$
+^SIRUP_.*\.tar\.gz$
 ^spatialVDJ_.*\.tar\.gz$
 ^Rplots\.pdf$
 ^.*\.png$

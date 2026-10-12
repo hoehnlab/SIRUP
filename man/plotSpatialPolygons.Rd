@@ -38,23 +38,23 @@ plotSpatialPolygons(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images, or a SIRAP object.}
+\item{object}{Seurat object with spatial images, or a SIRUP object.}
 
 \item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
-\code{y} columns by default. If \code{object} is a SIRAP object and \code{polygon} is
+\code{y} columns by default. If \code{object} is a SIRUP object and \code{polygon} is
 omitted, the object's stored polygons are used.}
 
 \item{images}{Optional Seurat image names to show.}
 
 \item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
+SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
 
 \item{image_scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRAP object metadata.}
+value must be supplied explicitly or by SIRUP object metadata.}
 
 \item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
 exists.}
@@ -69,7 +69,7 @@ exists.}
 
 \item{polygon_fill}{Fill color for polygons when no analysis is mapped.}
 
-\item{fill_analysis}{Optional name of a stored SIRAP analysis containing
+\item{fill_analysis}{Optional name of a stored SIRUP analysis containing
 one row per polygon.}
 
 \item{fill_column}{Optional column used to color polygon interiors. When
@@ -115,7 +115,7 @@ each polygon to its displaced label.}
 
 \item{combine}{Combine plots with patchwork when possible.}
 
-\item{combine_sample_plots}{For multi-sample SIRAP objects, combine plots
+\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
 from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
 multi-sample calls return a named list of per-sample plots.}
 }

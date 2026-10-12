@@ -27,11 +27,11 @@ spatialCloneDominance(
 }
 \arguments{
 \item{receptors}{AIRR-style receptor data frame containing clone assignments
-and a spatial ID column. This may instead be a SIRAP object when
+and a spatial ID column. This may instead be a SIRUP object when
 \code{object} is omitted.}
 
 \item{object}{Seurat object with spatial coordinates or metadata coordinate
-columns, or a SIRAP object. When this is a SIRAP object, \code{receptors} may
+columns, or a SIRUP object. When this is a SIRUP object, \code{receptors} may
 be omitted.}
 
 \item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
@@ -65,7 +65,7 @@ after locus filtering.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRAP object metadata.}
+value must be supplied explicitly or by SIRUP object metadata.}
 
 \item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
 exists. When \code{NULL}, all polygons in \code{polygon_id} are analyzed.}
@@ -77,7 +77,7 @@ exists. When \code{NULL}, all polygons in \code{polygon_id} are analyzed.}
 \item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
 
 \item{include_boundary}{Include Seurat spots on polygon edges when polygon
-membership must be calculated from \code{polygon}. If a SIRAP object with stored
+membership must be calculated from \code{polygon}. If a SIRUP object with stored
 polygon annotations is supplied and \code{polygon = NULL}, stored annotations
 are used and this argument is ignored.}
 }

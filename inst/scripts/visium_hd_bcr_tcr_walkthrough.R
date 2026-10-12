@@ -1,9 +1,9 @@
 ###############################################################################
-# SIRAP Visium HD BCR/TCR walkthrough
+# SIRUP Visium HD BCR/TCR walkthrough
 #
 # This is a scratchpad-style script for processing and visualizing the thymus
 # Visium HD BCR/TCR data. It follows the same logic as the original
-# Thymus_VisiumHD processing script, but uses SIRAP functions so we can see
+# Thymus_VisiumHD processing script, but uses SIRUP functions so we can see
 # what the package is doing and where the workflow should feel nicer.
 #
 # I recommend running this one section at a time.
@@ -15,14 +15,14 @@
 
 # ---- Setup ------------------------------------------------------------------
 
-if (!requireNamespace("SIRAP", quietly = TRUE)) {
+if (!requireNamespace("SIRUP", quietly = TRUE)) {
   if (file.exists("DESCRIPTION") && requireNamespace("devtools", quietly = TRUE)) {
     devtools::load_all(".")
   }
 }
 
 suppressPackageStartupMessages({
-  library(SIRAP)
+  library(SIRUP)
   library(dplyr)
   library(ggplot2)
   library(cowplot)
@@ -574,10 +574,10 @@ if (!is.null(thymus)) {
     colnames(thymus) %in% tcr_spots ~ "TCR",
     TRUE ~ "0"
   )
-  thymus[["sirap_receptor_type"]] <- receptor_type
+  thymus[["sirup_receptor_type"]] <- receptor_type
   bcrTCROverlay <- spatialDiscretePlot(
     thymus,
-    meta_col = "sirap_receptor_type",
+    meta_col = "sirup_receptor_type",
     zero_value = "0",
     image_scale = "hires",
     swap_coords = FALSE,
@@ -765,7 +765,7 @@ if (!is.null(thymus)) {
 
   bcrTcrColocalizationPlot <- spatialDiscretePlot(
     thymus,
-    meta_col = "sirap_receptor_type",
+    meta_col = "sirup_receptor_type",
     zero_value = "0",
     cols = c("BCR" = "#2c7fb8", "TCR" = "#d95f02", "BCR + TCR" = "white"),
     image_scale = "hires",
@@ -779,7 +779,7 @@ if (!is.null(thymus)) {
 
   bcrTcrK <- spatialRipleyCrossK(
     thymus,
-    mark_col = "sirap_receptor_type",
+    mark_col = "sirup_receptor_type",
     i = "BCR",
     j = "TCR",
     nsim = ripleyNsim,
@@ -833,10 +833,10 @@ plot(kcross_thy2_ctecs_sim)
 dev.off()
 
 
-  if ("BCR + TCR" %in% thymus$sirap_receptor_type) {
+  if ("BCR + TCR" %in% thymus$sirup_receptor_type) {
     bcrDualPositiveK <- spatialRipleyCrossK(
       thymus,
-      mark_col = "sirap_receptor_type",
+      mark_col = "sirup_receptor_type",
       i = "BCR",
       j = "BCR + TCR",
       nsim = ripleyNsim,
@@ -1068,7 +1068,7 @@ if (savePlots && exists("pairedTreeSpatialClusterPlots")) {
 # clone 1, and heavy clone 2 is near light clone 2, even though the paired
 # clones do not occupy exactly the same barcode. For Visium HD, use 8um
 # barcodes as these native spatial bins rather than adding another
-# coordinate-binning step in SIRAP.
+# coordinate-binning step in SIRUP.
 toyPositions <- data.frame(
   barcode = paste0("toy_", 1:6),
   x = c(0, 2, 4, 100, 102, 104),

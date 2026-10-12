@@ -32,13 +32,13 @@ data frame with \code{clone_id}, \code{barcode}, and \code{n}.}
 data frame with \code{clone_id}, \code{barcode}, and \code{n}.}
 
 \item{method}{Spatial scoring method. \code{"weighted_cosim"} is the scalable
-SIRAP default, and \code{"ot"} is the original SPaCeD optimal-transport
+SIRUP default, and \code{"ot"} is the original SPaCeD optimal-transport
 point-pattern distance.}
 
 \item{feature}{Column containing the native spatial feature/bin ID.}
 
 \item{kernel_sigma}{Gaussian kernel scale for \code{method = "weighted_cosim"},
-in the same units as \code{x} and \code{y}. When \code{NULL}, SIRAP estimates the
+in the same units as \code{x} and \code{y}. When \code{NULL}, SIRUP estimates the
 median nearest-neighbor feature spacing and uses twice that value.}
 
 \item{kernel_radius}{Maximum feature-feature distance retained in the sparse

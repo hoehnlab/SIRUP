@@ -18,13 +18,13 @@ collapseIdenticalNeighbors(
 )
 }
 \arguments{
-\item{object}{A SIRAP object, or an AIRR-style receptor data frame.}
+\item{object}{A SIRUP object, or an AIRR-style receptor data frame.}
 
 \item{seurat_object}{Optional Seurat object used only when \code{object} is a
 receptor data frame.}
 
 \item{spatial_id}{Column in the receptor table matching Seurat spot/cell
-spatial IDs. When omitted for a SIRAP object, the recorded SIRAP spatial ID field
+spatial IDs. When omitted for a SIRUP object, the recorded SIRUP spatial ID field
 is used. When omitted for a receptor table, a spatial ID-like column is
 guessed.}
 
@@ -44,25 +44,25 @@ coordinates.}
 \item{num_neighbors_non_boundary}{Number of nearby points needed to be
 considered non-boundary.}
 
-\item{validate}{Whether to validate the updated SIRAP object before
-returning it. Only used when \code{object} is a SIRAP object.}
+\item{validate}{Whether to validate the updated SIRUP object before
+returning it. Only used when \code{object} is a SIRUP object.}
 }
 \value{
-A SIRAP object or receptor data frame with bleedover rows removed,
+A SIRUP object or receptor data frame with bleedover rows removed,
 retaining only the representative spot for each contiguous group of
 identical sequences.
 }
 \description{
 For each unique receptor sequence, finds connected components of neighboring
 spots sharing that sequence, then collapses each component to a single
-representative spot. A SIRAP object is the preferred input: receptor IDs
-are read from the SIRAP field mapping and spatial coordinates are read from
-the stored Seurat object. If you are not using a SIRAP object, pass an
+representative spot. A SIRUP object is the preferred input: receptor IDs
+are read from the SIRUP field mapping and spatial coordinates are read from
+the stored Seurat object. If you are not using a SIRUP object, pass an
 AIRR-style receptor table as \code{object} and the matching Seurat object as
 \code{seurat_object}.
 }
 \details{
-When \code{object} is a SIRAP object, the returned value is the updated SIRAP
+When \code{object} is a SIRUP object, the returned value is the updated SIRUP
 object with its receptor table replaced. When \code{object} is a receptor table,
 the returned value is the collapsed receptor table.
 }

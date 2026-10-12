@@ -17,7 +17,7 @@ workflow writes files and can launch external pRESTO/IgBLAST commands.
 ## Setup
 
 ``` r
-library(SIRAP)
+library(SIRUP)
 library(dplyr)
 library(ggplot2)
 library(cowplot)
@@ -43,7 +43,7 @@ demuxDir <- file.path(
 rawBCRIgblastPath <- file.path(demuxDir, "igblast_out", "igblast_bcr_1M_example.tsv")
 rawTCRIgblastPath <- file.path(demuxDir, "igblast_out", "igblast_tcr_1M_example.tsv")
 
-outDir <- file.path(thymusDir, "SIRAP_walkthrough", sampleId)
+outDir <- file.path(thymusDir, "SIRUP_walkthrough", sampleId)
 prestoInputDir <- file.path(outDir, "01_length_filtered_spatial_fastas")
 prestoOutputDir <- file.path(outDir, "02_presto_igblast")
 finalAirrDir <- file.path(outDir, "03_final_spatial_airr")
@@ -60,7 +60,7 @@ finalTCRPath <- file.path(finalAirrDir, sprintf("%s_tcrs_beta_final_spatial_airr
 
 If you need to create the Visium HD Seurat object directly from Space
 Ranger output, use `Load10X_Spatial()`. Visium HD loading requires
-`arrow`, which can be difficult to install, but SIRAP’s downstream
+`arrow`, which can be difficult to install, but SIRUP’s downstream
 plotting and analyses do not otherwise require `arrow`. We also find it
 easier to create a .csv version of the barcode mappings rather than
 relying on the `read_parquet()` function in `arrow` to read the parquet
@@ -376,7 +376,7 @@ allTCRPlot <- plotReceptors(
 
 bcr_spots <- unique(bcrTopBarcode$barcode_8um)
 tcr_spots <- unique(tcrTopBarcode$barcode_8um)
-thymus[["sirap_receptor_type"]] <- dplyr::case_when(
+thymus[["sirup_receptor_type"]] <- dplyr::case_when(
   colnames(thymus) %in% bcr_spots & colnames(thymus) %in% tcr_spots ~ "BCR + TCR",
   colnames(thymus) %in% bcr_spots ~ "BCR",
   colnames(thymus) %in% tcr_spots ~ "TCR",
@@ -385,7 +385,7 @@ thymus[["sirap_receptor_type"]] <- dplyr::case_when(
 
 bcrTCROverlay <- spatialDiscretePlot(
   thymus,
-  meta_col = "sirap_receptor_type",
+  meta_col = "sirup_receptor_type",
   zero_value = "0",
   image_scale = "hires",
   swap_coords = FALSE,

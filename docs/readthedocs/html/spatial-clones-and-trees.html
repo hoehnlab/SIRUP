@@ -330,13 +330,13 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <p>This vignette shows how to call clones, visualize BCR/TCR clone locations over tissue, build BCR lineage trees with <code>dowser</code>, and pair each tree with the spatial locations of its colored tips.</p>
 <p>For now, this vignette uses the full local thymus dataset from the walkthrough. We should replace this with a small packaged toy dataset later.</p>
-<p>This read-the-docs version can be rendered in two modes. By default, code is shown but not evaluated. To generate plots from the full dataset, render on the cluster with <code>SIRAP_RENDER_PLOTS=true</code>.</p>
+<p>This read-the-docs version can be rendered in two modes. By default, code is shown but not evaluated. To generate plots from the full dataset, render on the cluster with <code>SIRUP_RENDER_PLOTS=true</code>.</p>
 <div id="setup" class="section level2">
 <h2>Setup</h2>
 </div>
 <div id="call-bcr-and-tcr-clones" class="section level2">
 <h2>Call BCR and TCR Clones</h2>
-<p>SIRAP does not wrap <code>scoper</code> clone calling. Use <code>scoper</code> directly, then pass the resulting data frames to SIRAP plotting functions.</p>
+<p>SIRUP does not wrap <code>scoper</code> clone calling. Use <code>scoper</code> directly, then pass the resulting data frames to SIRUP plotting functions.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1">bcrClones &lt;-<span class="st"> </span>scoper<span class="op">::</span><span class="kw">hierarchicalClones</span>(</a>
 <a class="sourceLine" id="cb1-2" data-line-number="2">  <span class="kw">filter</span>(bcrTopBarcode, productive),</a>
 <a class="sourceLine" id="cb1-3" data-line-number="3">  <span class="dt">threshold =</span> <span class="fl">0.1</span>,</a>
@@ -420,7 +420,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="build-bcr-trees-with-dowser" class="section level2">
 <h2>Build BCR Trees with Dowser</h2>
-<p>SIRAP keeps tree building in <code>dowser</code>, then focuses on coloring and pairing trees with spatial plots.</p>
+<p>SIRUP keeps tree building in <code>dowser</code>, then focuses on coloring and pairing trees with spatial plots.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">germlineDir &lt;-<span class="st"> </span><span class="kw">path.expand</span>(<span class="st">&quot;~/software/germlines/imgt/human/vdj&quot;</span>)</a>
 <a class="sourceLine" id="cb5-2" data-line-number="2">refs &lt;-<span class="st"> </span>dowser<span class="op">::</span><span class="kw">readIMGT</span>(germlineDir)</a>
 <a class="sourceLine" id="cb5-3" data-line-number="3"></a>
@@ -500,7 +500,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb8-25" data-line-number="25">  <span class="dt">ncol =</span> <span class="dv">2</span>,</a>
 <a class="sourceLine" id="cb8-26" data-line-number="26">  <span class="dt">rel_widths =</span> <span class="kw">c</span>(<span class="fl">1.2</span>, <span class="dv">1</span>)</a>
 <a class="sourceLine" id="cb8-27" data-line-number="27">)</a></code></pre></div>
-<p>If you want SIRAP to choose a separate cluster number for each tree, set <code>k = &quot;auto&quot;</code> and adjust <code>k_range</code> or <code>improvement_threshold</code> as needed.</p>
+<p>If you want SIRUP to choose a separate cluster number for each tree, set <code>k = &quot;auto&quot;</code> and adjust <code>k_range</code> or <code>improvement_threshold</code> as needed.</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1">bcrTreesAutoClustered &lt;-<span class="st"> </span><span class="kw">clusterTreesTips</span>(</a>
 <a class="sourceLine" id="cb9-2" data-line-number="2">  bcrTrees,</a>
 <a class="sourceLine" id="cb9-3" data-line-number="3">  <span class="dt">k =</span> <span class="st">&quot;auto&quot;</span>,</a>

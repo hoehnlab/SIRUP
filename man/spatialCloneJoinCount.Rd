@@ -29,17 +29,17 @@ spatialCloneJoinCount(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images, or a SIRAP object.}
+\item{object}{Seurat object with spatial images, or a SIRUP object.}
 
 \item{receptors}{AIRR-style receptor data frame containing spatial IDs
-and clone calls. May be omitted when \code{object} is a SIRAP object.}
+and clone calls. May be omitted when \code{object} is a SIRUP object.}
 
 \item{clone}{Column in \code{receptors} containing clone IDs. Defaults to
-\code{NULL}; when \code{object} is a SIRAP object, the stored receptor clone field
+\code{NULL}; when \code{object} is a SIRUP object, the stored receptor clone field
 is used when available.}
 
 \item{spatial_id}{Column in \code{receptors} matching Seurat spot/cell spatial IDs.
-Defaults to \code{NULL}; when \code{object} is a SIRAP object, the stored receptor
+Defaults to \code{NULL}; when \code{object} is a SIRUP object, the stored receptor
 spatial_id field is used. Pass this explicitly when using separate Seurat and
 receptor objects.}
 
@@ -59,7 +59,7 @@ exists.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRAP object metadata.}
+value must be supplied explicitly or by SIRUP object metadata.}
 
 \item{x}{Coordinate column in \code{polygon}.}
 
@@ -68,7 +68,7 @@ value must be supplied explicitly or by SIRAP object metadata.}
 \item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
 
 \item{include_boundary}{Include Seurat spots on polygon edges.
-Ignored when \code{object} is a SIRAP object with stored polygons and \code{polygon}
+Ignored when \code{object} is a SIRUP object with stored polygons and \code{polygon}
 is \code{NULL}; in that case stored polygon annotations are used.}
 
 \item{min_spatial_ids}{Minimum number of spatial IDs containing a clone for
@@ -85,8 +85,8 @@ that clone to be tested.}
 test.}
 
 \item{use_stored_polygons}{Whether to run one join-count test per stored polygon
-(e.g. per GC) in a SIRAP object. \code{NULL} (default) auto-detects: \code{TRUE} when a
-SIRAP object has stored polygons and \code{polygon} is not supplied, otherwise
+(e.g. per GC) in a SIRUP object. \code{NULL} (default) auto-detects: \code{TRUE} when a
+SIRUP object has stored polygons and \code{polygon} is not supplied, otherwise
 \code{FALSE}. Set \code{FALSE} to force one tissue-wide neighbor graph per spatial
 sample (ignoring any stored polygons); set \code{TRUE} to require stored-polygon tests.}
 
