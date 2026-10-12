@@ -19,14 +19,14 @@ polygonReceptorSummary(
 )
 }
 \arguments{
-\item{object}{A SIRAP object or an AIRR-style receptor data frame.}
+\item{object}{A SIRUP object or an AIRR-style receptor data frame.}
 
 \item{polygons}{Optional polygon table used to define the output polygon
-order. When \code{NULL}, polygon IDs are taken from the SIRAP object or from
+order. When \code{NULL}, polygon IDs are taken from the SIRUP object or from
 \code{polygon_id} values already present in \code{receptors}.}
 
 \item{spatial_id}{Column identifying spatial spots/cells. If \code{NULL}, the
-value is pulled from the SIRAP object or guessed from \code{receptors}.}
+value is pulled from the SIRUP object or guessed from \code{receptors}.}
 
 \item{polygon_id}{Primary polygon assignment column in \code{receptors}.}
 
@@ -44,20 +44,20 @@ length 1 or the same length as \code{summary_columns}. Supported operations are
 \code{count}, \code{sum}, \code{mean}, \code{median}, \code{variance}, \code{var}, \code{sd}, \code{min}, \code{max},
 \code{any}, \code{all}, and \code{cat}.}
 
-\item{include_total_spots}{For SIRAP objects, include \code{n_total_spatial_ids},
+\item{include_total_spots}{For SIRUP objects, include \code{n_total_spatial_ids},
 the number of all spatial spots assigned to each polygon, including spots
 without receptor rows.}
 
-\item{analysis_name}{Name used when storing the summary in a SIRAP object.}
+\item{analysis_name}{Name used when storing the summary in a SIRUP object.}
 
-\item{validate}{Whether to validate an updated SIRAP object.}
+\item{validate}{Whether to validate an updated SIRUP object.}
 }
 \value{
-An updated SIRAP object for SIRAP input, otherwise a summary tibble.
+An updated SIRUP object for SIRUP input, otherwise a summary tibble.
 }
 \description{
-Builds one receptor summary row per polygon from a SIRAP object or from an
-already polygon-annotated receptor table. For SIRAP objects, the summary is
+Builds one receptor summary row per polygon from a SIRUP object or from an
+already polygon-annotated receptor table. For SIRUP objects, the summary is
 also stored as a named analysis and the updated object is returned. For a
 receptor table input, the summary tibble is returned directly.
 }

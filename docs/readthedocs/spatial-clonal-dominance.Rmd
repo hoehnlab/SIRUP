@@ -8,12 +8,12 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
-sirap_render_plots <- identical(Sys.getenv("SIRAP_RENDER_PLOTS"), "true")
+sirup_render_plots <- identical(Sys.getenv("SIRUP_RENDER_PLOTS"), "true")
 
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  eval = sirap_render_plots
+  eval = sirup_render_plots
 )
 ```
 
@@ -23,17 +23,17 @@ annotations.
 
 Clone dominance is the fraction of BCR rows inside a polygon assigned to each
 clone. `spatialCloneDominance()` also returns the BCR rows and spatial
-coordinates inside each polygon. Its result and the original SIRAP or Seurat
+coordinates inside each polygon. Its result and the original SIRUP or Seurat
 object are the two required inputs to the regional plotting functions.
 
 By default, this page shows runnable code but does not evaluate it. To render
 plots from the full local thymus dataset, render on the cluster with
-`SIRAP_RENDER_PLOTS=true`.
+`SIRUP_RENDER_PLOTS=true`.
 
 ## Setup
 
 ```{r setup}
-library(SIRAP)
+library(SIRUP)
 library(dplyr)
 library(ggplot2)
 library(data.table)
@@ -47,7 +47,7 @@ sampleLower <- tolower(sampleId)
 nproc <- 8
 
 thymusDir <- normalizePath("/dartfs/rc/lab/H/HoehnK/Hunter/Thymus_VisiumHD", mustWork = TRUE)
-outDir <- file.path(thymusDir, "SIRAP_walkthrough", sampleId)
+outDir <- file.path(thymusDir, "SIRUP_walkthrough", sampleId)
 finalAirrDir <- file.path(outDir, "03_final_spatial_airr")
 plotDir <- file.path(outDir, "plots")
 dominanceOutDir <- file.path(plotDir, "clonal_dominance")
@@ -273,7 +273,7 @@ and broad `v_gene_superfamily` values for each clone.
 ## Plot Regional Receptors
 
 `plotSpatialRegionReceptors()` requires the dominance result and its original
-SIRAP or Seurat object. It plots the regional receptor rows already stored by
+SIRUP or Seurat object. It plots the regional receptor rows already stored by
 `spatialCloneDominance()` over the tissue image, without repeating spatial_id or
 polygon arguments. In this example those rows are heavy-chain BCRs. `top_n`
 keeps the most common displayed levels and groups lower-frequency levels as
@@ -355,7 +355,7 @@ ggsave(
 ## Plot Pie Summaries
 
 `plotSpatialPolygonPies()` likewise requires the dominance result and its
-original SIRAP or Seurat object. It makes pie summaries directly from the
+original SIRUP or Seurat object. It makes pie summaries directly from the
 regional rows and polygons stored in the dominance result. With
 `mode = "side_by_side"`, the tissue image and numbered polygons appear on the
 left and the pie charts appear on the right. The top levels are identified

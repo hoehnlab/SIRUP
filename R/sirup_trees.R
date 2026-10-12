@@ -154,7 +154,7 @@ clusterTreeTips <- function(tree,
 
   keep_edge <- rep(TRUE, nrow(edge))
   if (k > 1L) {
-    cut_edges <- .sirap_tree_cut_edges(
+    cut_edges <- .sirup_tree_cut_edges(
       edge = edge,
       edge_length = edge_length,
       n_tips = n_tips,
@@ -261,7 +261,7 @@ chooseTreeTipK <- function(tree,
       method = method,
       cut_terminal_edges = cut_terminal_edges
     )
-    cluster_score <- .sirap_tree_cluster_score(
+    cluster_score <- .sirup_tree_cluster_score(
       tree,
       clusters,
       id_col = "sequence_id",
@@ -362,12 +362,12 @@ clusterTreesTips <- function(trees,
   out <- trees
   chosen_k <- integer(nrow(out))
   k_scores <- vector("list", nrow(out))
-  use_keep_filter <- .sirap_check_tree_keep_args(keep, keep_val)
+  use_keep_filter <- .sirup_check_tree_keep_args(keep, keep_val)
   for (i in seq_len(nrow(out))) {
     tree_for_clustering <- out$trees[[i]]
     extra_tip_clusters <- NULL
     if (use_keep_filter) {
-      extra_tip_clusters <- .sirap_tree_non_keep_clusters(
+      extra_tip_clusters <- .sirup_tree_non_keep_clusters(
         tree = out$trees[[i]],
         clone_data = out$data[[i]],
         id_col = id,
@@ -396,7 +396,7 @@ clusterTreesTips <- function(trees,
       n_tree_tips <- length(tree_for_clustering$tip.label)
       if (as.integer(tree_k) > n_tree_tips) {
         warning(
-          .sirap_tree_row_label(out, i),
+          .sirup_tree_row_label(out, i),
           " requested k = ",
           as.integer(tree_k),
           " but has only ",
@@ -428,11 +428,11 @@ clusterTreesTips <- function(trees,
       ]
       tree_tip_clusters <- rbind(tree_tip_clusters, extra_tip_clusters)
     }
-    tree_tip_clusters[[cluster]] <- .sirap_compact_tree_cluster_labels(
+    tree_tip_clusters[[cluster]] <- .sirup_compact_tree_cluster_labels(
       tree_tip_clusters[[cluster]],
       prefix = prefix
     )
-    out$data[[i]] <- .sirap_add_tree_tip_clusters(
+    out$data[[i]] <- .sirup_add_tree_tip_clusters(
       out$data[[i]],
       tree_tip_clusters,
       id_col = id,
@@ -444,14 +444,14 @@ clusterTreesTips <- function(trees,
   out
 }
 
-#' Format SIRAP receptors as dowser clones
+#' Format SIRUP receptors as dowser clones
 #'
-#' Runs [dowser::formatClones()] on the SIRAP receptor table and stores the
+#' Runs [dowser::formatClones()] on the SIRUP receptor table and stores the
 #' result as a named analysis. The default germline column follows dowser's
 #' default; if it is missing, add germlines to the receptor table first with
 #' `updateReceptors()` and [dowser::createGermlines()].
 #'
-#' @param object A SIRAP object.
+#' @param object A SIRUP object.
 #' @param analysis_name Name used to store the formatted clone analysis.
 #' @param seq dowser: name of the column containing observed DNA sequences. All
 #'   sequences in this column must be multiple aligned.
@@ -515,8 +515,8 @@ clusterTreesTips <- function(trees,
 #' @param majoronly dowser: only return largest subgroup and sequences without
 #'   light chains
 #' @param columns dowser: additional data columns to include in output
-#' @param validate Whether to validate the updated SIRAP object.
-#' @return An updated SIRAP object with the formatted clones stored as an analysis.
+#' @param validate Whether to validate the updated SIRUP object.
+#' @return An updated SIRUP object with the formatted clones stored as an analysis.
 #' @export
 formatSpatialClones <- function(object,
                                 analysis_name = "f_clones",
@@ -555,26 +555,26 @@ formatSpatialClones <- function(object,
                                 columns = NULL,
                                 validate = TRUE) {
   .require_namespace("dowser")
-  validateSIRAP(object)
+  validateSIRUP(object)
   receptors <- getReceptors(object)
   if (!germ %in% colnames(receptors)) {
     rlang::abort(paste0(
       "The receptor table does not contain `", germ,
-      "`. Run `updateReceptors()` on this SIRAP object with ",
+      "`. Run `updateReceptors()` on this SIRUP object with ",
       "`dowser::createGermlines()` before `formatSpatialClones()`."
     ))
   }
   # Carry a verbatim copy of the receptor id (and the sample column, when the
-  # SIRAP `sample` field is set) through tree building. dowser sanitizes tip
+  # SIRUP `sample` field is set) through tree building. dowser sanitizes tip
   # labels for Newick output (":" and "," become "_"), so the tree `id` column
-  # can no longer be matched against the raw receptor id. `.sirap_uid` is passed
+  # can no longer be matched against the raw receptor id. `.sirup_uid` is passed
   # as a text field, which dowser preserves verbatim (and comma-joins when it
   # collapses identical sequences), so `plotSpatialCloneTreePairs()` can match
   # tree tips back to this object's receptors. See that function for the match.
-  uid_col <- ".sirap_uid"
+  uid_col <- ".sirup_uid"
   receptors[[uid_col]] <- as.character(receptors[[id]])
   text_fields <- union(text_fields, uid_col)
-  sample_field <- .sirap_receptor_fields(object)$sample
+  sample_field <- .sirup_receptor_fields(object)$sample
   if (!is.null(sample_field) && sample_field %in% colnames(receptors)) {
     traits <- union(traits, sample_field)
   }
@@ -617,12 +617,12 @@ formatSpatialClones <- function(object,
   setAnalysis(object, analysis_name, f_clones, validate = validate)
 }
 
-#' Infer dowser trees from formatted SIRAP clone analyses
+#' Infer dowser trees from formatted SIRUP clone analyses
 #'
 #' Runs [dowser::getTrees()] on a stored formatted-clone analysis and stores the
-#' resulting trees as another SIRAP analysis.
+#' resulting trees as another SIRUP analysis.
 #'
-#' @param object A SIRAP object.
+#' @param object A SIRUP object.
 #' @param f_clones_analysis Name of the stored formatted-clone analysis.
 #' @param analysis_name Name used to store the tree analysis.
 #' @param trait dowser: trait to use for parsimony models (required if igphyml
@@ -644,8 +644,8 @@ formatSpatialClones <- function(object,
 #' @param collapse dowser: Collapse internal nodes with identical sequences?
 #' @param check_divergence dowser: run checkDivergence on trees?
 #' @param ... dowser: Additional arguments passed to tree building programs
-#' @param validate Whether to validate the updated SIRAP object.
-#' @return An updated SIRAP object with dowser trees stored as an analysis.
+#' @param validate Whether to validate the updated SIRUP object.
+#' @return An updated SIRUP object with dowser trees stored as an analysis.
 #' @export
 getSpatialTrees <- function(object,
                             f_clones_analysis = "f_clones",
@@ -668,7 +668,7 @@ getSpatialTrees <- function(object,
                             ...,
                             validate = TRUE) {
   .require_namespace("dowser")
-  validateSIRAP(object)
+  validateSIRUP(object)
   clones <- getAnalysis(object, f_clones_analysis)
   trees <- dowser::getTrees(
     clones = clones,
@@ -739,26 +739,26 @@ assignTipColors <- function(clones,
   n_colors <- max(as.integer(out$tip_color_id), na.rm = TRUE)
   if (is.null(palette)) {
     if (requireNamespace("pals", quietly = TRUE)) {
-      palette <- .sirap_extend_palette(pals::glasbey(32), n_colors)
+      palette <- .sirup_extend_palette(pals::glasbey(32), n_colors)
     } else {
       palette <- grDevices::hcl.colors(max(12, n_colors), palette = "Dark 3")
     }
   } else if (length(palette) < n_colors) {
-    palette <- .sirap_extend_palette(palette, n_colors)
+    palette <- .sirup_extend_palette(palette, n_colors)
   }
   out$tip_color <- palette[as.integer(out$tip_color_id)]
   out
 }
 
 # Dispatch to the requested strategy for choosing which tree edges to remove.
-.sirap_tree_cut_edges <- function(edge,
+.sirup_tree_cut_edges <- function(edge,
                                   edge_length,
                                   n_tips,
                                   n_cut,
                                   cut_terminal_edges,
                                   method) {
   if (identical(method, "cut_largest_branches")) {
-    return(.sirap_tree_cut_largest_branches(
+    return(.sirup_tree_cut_largest_branches(
       edge = edge,
       edge_length = edge_length,
       n_tips = n_tips,
@@ -768,7 +768,7 @@ assignTipColors <- function(clones,
   }
 
   if (identical(method, "monophyletic_clades")) {
-    return(.sirap_tree_split_clades(
+    return(.sirup_tree_split_clades(
       edge = edge,
       edge_length = edge_length,
       n_tips = n_tips,
@@ -776,7 +776,7 @@ assignTipColors <- function(clones,
     ))
   }
 
-  .sirap_tree_split_largest_subtrees(
+  .sirup_tree_split_largest_subtrees(
     edge = edge,
     edge_length = edge_length,
     n_tips = n_tips,
@@ -786,7 +786,7 @@ assignTipColors <- function(clones,
 }
 
 # Choose the globally longest eligible branches for fixed-k tree clustering.
-.sirap_tree_cut_largest_branches <- function(edge,
+.sirup_tree_cut_largest_branches <- function(edge,
                                              edge_length,
                                              n_tips,
                                              n_cut,
@@ -802,7 +802,7 @@ assignTipColors <- function(clones,
 }
 
 # Recursively split the current component with the largest tip-to-tip span.
-.sirap_tree_split_largest_subtrees <- function(edge,
+.sirup_tree_split_largest_subtrees <- function(edge,
                                                edge_length,
                                                n_tips,
                                                n_cut,
@@ -812,16 +812,16 @@ assignTipColors <- function(clones,
   nodes <- sort(unique(as.integer(edge)))
 
   for (step in seq_len(n_cut)) {
-    components <- .sirap_tree_components(edge, keep_edge, nodes)
+    components <- .sirup_tree_components(edge, keep_edge, nodes)
     tip_counts <- vapply(
       components,
       function(component) sum(component <= n_tips),
       integer(1)
     )
-    weighted_adjacency <- .sirap_tree_weighted_adjacency(edge, edge_length, keep_edge, nodes)
+    weighted_adjacency <- .sirup_tree_weighted_adjacency(edge, edge_length, keep_edge, nodes)
     component_scores <- vapply(
       components,
-      .sirap_tree_component_diameter,
+      .sirup_tree_component_diameter,
       numeric(1),
       n_tips = n_tips,
       weighted_adjacency = weighted_adjacency
@@ -846,7 +846,7 @@ assignTipColors <- function(clones,
       } else {
         component_edges[edge[component_edges, 2] > n_tips]
       }
-      best_edge <- .sirap_best_tree_cut_edge(
+      best_edge <- .sirup_best_tree_cut_edge(
         candidate_edges,
         edge = edge,
         edge_length = edge_length,
@@ -858,7 +858,7 @@ assignTipColors <- function(clones,
 
       if (is.na(best_edge) && !isTRUE(cut_terminal_edges)) {
         terminal_edges <- component_edges[edge[component_edges, 2] <= n_tips]
-        best_edge <- .sirap_best_tree_cut_edge(
+        best_edge <- .sirup_best_tree_cut_edge(
           terminal_edges,
           edge = edge,
           edge_length = edge_length,
@@ -894,7 +894,7 @@ assignTipColors <- function(clones,
 # bifurcating tree this cuts exactly `n_cut` edges (k = n_cut + 1 clades); at a
 # multifurcation a split adds all children at once, so the result can have more
 # than `n_cut + 1` clades.
-.sirap_tree_split_clades <- function(edge, edge_length, n_tips, n_cut) {
+.sirup_tree_split_clades <- function(edge, edge_length, n_tips, n_cut) {
   k_target <- n_cut + 1L
   nodes <- sort(unique(as.integer(edge)))
 
@@ -911,7 +911,7 @@ assignTipColors <- function(clones,
   # Descendant node set (self + all nodes below) for every node, in post-order so
   # each node is filled after its children.
   descendants <- stats::setNames(vector("list", length(nodes)), as.character(nodes))
-  for (nd in .sirap_tree_postorder(root, children)) {
+  for (nd in .sirup_tree_postorder(root, children)) {
     kids <- children[[as.character(nd)]]
     if (is.null(kids)) {
       descendants[[as.character(nd)]] <- nd
@@ -923,11 +923,11 @@ assignTipColors <- function(clones,
   }
   n_desc_tips <- function(nd) sum(descendants[[as.character(nd)]] <= n_tips)
 
-  weighted_adjacency <- .sirap_tree_weighted_adjacency(
+  weighted_adjacency <- .sirup_tree_weighted_adjacency(
     edge, edge_length, rep(TRUE, nrow(edge)), nodes
   )
   clade_diameter <- function(nd) {
-    .sirap_tree_component_diameter(descendants[[as.character(nd)]], n_tips, weighted_adjacency)
+    .sirup_tree_component_diameter(descendants[[as.character(nd)]], n_tips, weighted_adjacency)
   }
 
   frontier <- root
@@ -951,7 +951,7 @@ assignTipColors <- function(clones,
 
 # Iterative post-order node ordering (descendants before ancestors) for a rooted
 # tree given a parent -> children list.
-.sirap_tree_postorder <- function(root, children) {
+.sirup_tree_postorder <- function(root, children) {
   out <- integer()
   stack <- root
   while (length(stack) > 0L) {
@@ -966,7 +966,7 @@ assignTipColors <- function(clones,
   out
 }
 
-.sirap_best_tree_cut_edge <- function(candidate_edges,
+.sirup_best_tree_cut_edge <- function(candidate_edges,
                                       edge,
                                       edge_length,
                                       keep_edge,
@@ -980,7 +980,7 @@ assignTipColors <- function(clones,
   candidate_scores <- lapply(candidate_edges, function(edge_idx) {
     keep_after_cut <- keep_edge
     keep_after_cut[[edge_idx]] <- FALSE
-    components <- .sirap_tree_components(edge, keep_after_cut, nodes)
+    components <- .sirup_tree_components(edge, keep_after_cut, nodes)
     split_components <- components[
       vapply(components, function(component) all(component %in% component_nodes), logical(1))
     ]
@@ -1013,7 +1013,7 @@ assignTipColors <- function(clones,
 }
 
 # Return connected components after dropping selected tree edges.
-.sirap_tree_components <- function(edge, keep_edge, nodes) {
+.sirup_tree_components <- function(edge, keep_edge, nodes) {
   kept_edge <- edge[keep_edge, , drop = FALSE]
   adjacency <- stats::setNames(vector("list", length(nodes)), as.character(nodes))
   if (nrow(kept_edge) > 0L) {
@@ -1051,7 +1051,7 @@ assignTipColors <- function(clones,
 }
 
 # Build a branch-length-weighted adjacency list for retained tree edges.
-.sirap_tree_weighted_adjacency <- function(edge, edge_length, keep_edge, nodes) {
+.sirup_tree_weighted_adjacency <- function(edge, edge_length, keep_edge, nodes) {
   kept_idx <- which(keep_edge)
   adjacency <- stats::setNames(vector("list", length(nodes)), as.character(nodes))
   for (i in kept_idx) {
@@ -1065,7 +1065,7 @@ assignTipColors <- function(clones,
 }
 
 # Measure a component's genetic span as its largest tip-to-tip distance.
-.sirap_tree_component_diameter <- function(component, n_tips, weighted_adjacency) {
+.sirup_tree_component_diameter <- function(component, n_tips, weighted_adjacency) {
   tips <- component[component <= n_tips]
   if (length(tips) < 2L) {
     return(0)
@@ -1073,7 +1073,7 @@ assignTipColors <- function(clones,
 
   max_distance <- 0
   for (tip in tips) {
-    distances <- .sirap_tree_distances_from_node(tip, weighted_adjacency)
+    distances <- .sirup_tree_distances_from_node(tip, weighted_adjacency)
     tip_distances <- distances[as.character(tips)]
     max_distance <- max(max_distance, tip_distances, na.rm = TRUE)
   }
@@ -1081,7 +1081,7 @@ assignTipColors <- function(clones,
 }
 
 # Compute shortest branch-length distances from one tree node.
-.sirap_tree_distances_from_node <- function(start, weighted_adjacency) {
+.sirup_tree_distances_from_node <- function(start, weighted_adjacency) {
   start <- as.character(start)
   distances <- stats::setNames(rep(NA_real_, length(weighted_adjacency)), names(weighted_adjacency))
   distances[[start]] <- 0
@@ -1101,11 +1101,11 @@ assignTipColors <- function(clones,
 }
 
 # Score clustering quality for one candidate k in automatic k selection.
-.sirap_tree_cluster_score <- function(tree,
+.sirup_tree_cluster_score <- function(tree,
                                       clusters,
                                       id_col,
                                       cluster_col) {
-  dist_mat <- .sirap_tip_patristic_matrix(tree, clusters[[id_col]])
+  dist_mat <- .sirup_tip_patristic_matrix(tree, clusters[[id_col]])
   total <- 0
   n_pairs <- 0L
   for (cluster in unique(clusters[[cluster_col]])) {
@@ -1129,18 +1129,18 @@ assignTipColors <- function(clones,
 #'
 #' Returns a pairwise patristic-distance matrix for selected tip labels,
 #' preserving the requested tip order. This is the public wrapper around
-#' SIRAP's tree-tip distance helper used by tree-tip clustering workflows.
+#' SIRUP's tree-tip distance helper used by tree-tip clustering workflows.
 #'
 #' @param tree A phylogenetic tree with `edge`, `edge.length`, and `tip.label`.
 #' @param tip_labels Character vector of tip labels to include.
 #' @return A numeric matrix of pairwise patristic distances.
 #' @export
 tipPatristicMatrix <- function(tree, tip_labels) {
-  .sirap_tip_patristic_matrix(tree = tree, tip_labels = tip_labels)
+  .sirup_tip_patristic_matrix(tree = tree, tip_labels = tip_labels)
 }
 
 # Return patristic distances among selected tips, preserving tip order.
-.sirap_tip_patristic_matrix <- function(tree, tip_labels) {
+.sirup_tip_patristic_matrix <- function(tree, tip_labels) {
   edge <- as.matrix(tree$edge)
   edge_length <- as.numeric(tree$edge.length)
   n_tips <- length(tree$tip.label)
@@ -1155,16 +1155,16 @@ tipPatristicMatrix <- function(tree, tip_labels) {
   depth <- stats::setNames(rep(NA_real_, length(nodes)), as.character(nodes))
   depth[as.character(root)] <- 0
   for (node in names(depth)) {
-    .sirap_node_depth(as.integer(node), parent, branch_length, depth)
+    .sirup_node_depth(as.integer(node), parent, branch_length, depth)
   }
   for (node in names(depth)) {
-    depth[[node]] <- .sirap_node_depth(as.integer(node), parent, branch_length, depth)
+    depth[[node]] <- .sirup_node_depth(as.integer(node), parent, branch_length, depth)
   }
 
   tip_nodes <- stats::setNames(seq_len(n_tips), tree$tip.label)
   tip_nodes <- tip_nodes[tip_labels]
   out <- matrix(0, nrow = length(tip_labels), ncol = length(tip_labels), dimnames = list(tip_labels, tip_labels))
-  ancestors <- lapply(tip_nodes, .sirap_node_ancestors, parent = parent)
+  ancestors <- lapply(tip_nodes, .sirup_node_ancestors, parent = parent)
   names(ancestors) <- tip_labels
   for (i in seq_along(tip_labels)) {
     for (j in seq_along(tip_labels)) {
@@ -1182,7 +1182,7 @@ tipPatristicMatrix <- function(tree, tip_labels) {
 }
 
 # Calculate root-to-node depth from parent and branch-length maps.
-.sirap_node_depth <- function(node, parent, branch_length, depth) {
+.sirup_node_depth <- function(node, parent, branch_length, depth) {
   node_name <- as.character(node)
   if (!is.na(depth[[node_name]])) {
     return(depth[[node_name]])
@@ -1191,11 +1191,11 @@ tipPatristicMatrix <- function(tree, tip_labels) {
   if (is.na(parent_node)) {
     return(0)
   }
-  .sirap_node_depth(parent_node, parent, branch_length, depth) + branch_length[[node_name]]
+  .sirup_node_depth(parent_node, parent, branch_length, depth) + branch_length[[node_name]]
 }
 
 # Walk from a node to the root and return its ancestor chain.
-.sirap_node_ancestors <- function(node, parent) {
+.sirup_node_ancestors <- function(node, parent) {
   ancestors <- integer()
   current <- node
   while (!is.na(current)) {
@@ -1206,7 +1206,7 @@ tipPatristicMatrix <- function(tree, tip_labels) {
 }
 
 # Relabel arbitrary component IDs as compact, stable cluster labels.
-.sirap_compact_tree_cluster_labels <- function(labels, prefix) {
+.sirup_compact_tree_cluster_labels <- function(labels, prefix) {
   labels <- as.character(labels)
   prefix_re <- gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", prefix)
   pattern <- paste0("^", prefix_re, "[0-9]+$")
@@ -1223,7 +1223,7 @@ tipPatristicMatrix <- function(tree, tip_labels) {
 }
 
 # Build a human-readable label for a row in a dowser-style tree table.
-.sirap_tree_row_label <- function(trees, i) {
+.sirup_tree_row_label <- function(trees, i) {
   label_cols <- intersect(
     c("clone_id", "clone", "clone_id_rank", "sample_id", "sample", "locus"),
     colnames(trees)
@@ -1238,7 +1238,7 @@ tipPatristicMatrix <- function(tree, tip_labels) {
 }
 
 # Validate the paired arguments used to ignore reference/germline tips.
-.sirap_check_tree_keep_args <- function(keep_col, keep_value) {
+.sirup_check_tree_keep_args <- function(keep_col, keep_value) {
   has_keep_col <- !is.null(keep_col)
   has_keep_value <- !is.null(keep_value)
   if (xor(has_keep_col, has_keep_value)) {
@@ -1257,14 +1257,14 @@ tipPatristicMatrix <- function(tree, tip_labels) {
 }
 
 # Identify clusters that contain no retained non-reference tips.
-.sirap_tree_non_keep_clusters <- function(tree,
+.sirup_tree_non_keep_clusters <- function(tree,
                                           clone_data,
                                           id_col,
                                           keep_col,
                                           keep_value,
                                           cluster_col,
                                           ignore_tips) {
-  data <- .sirap_tree_clone_data_frame(clone_data)
+  data <- .sirup_tree_clone_data_frame(clone_data)
   .check_required_cols(data, c(id_col, keep_col), "tree clone data")
 
   data[[id_col]] <- as.character(data[[id_col]])
@@ -1292,7 +1292,7 @@ tipPatristicMatrix <- function(tree, tip_labels) {
 }
 
 # Extract the clone metadata data frame from common dowser tree containers.
-.sirap_tree_clone_data_frame <- function(clone_data) {
+.sirup_tree_clone_data_frame <- function(clone_data) {
   if (inherits(clone_data, "airrClone")) {
     return(.as_data_frame(clone_data@data))
   }
@@ -1306,7 +1306,7 @@ tipPatristicMatrix <- function(tree, tip_labels) {
 }
 
 # Add computed tip cluster labels back into the original clone-data container.
-.sirap_add_tree_tip_clusters <- function(clone_data,
+.sirup_add_tree_tip_clusters <- function(clone_data,
                                          tree_tip_clusters,
                                          id_col,
                                          cluster_col) {
@@ -1337,7 +1337,7 @@ tipPatristicMatrix <- function(tree, tip_labels) {
 }
 
 # Extend a user palette with hue colors when there are more groups than colors.
-.sirap_extend_palette <- function(palette, n) {
+.sirup_extend_palette <- function(palette, n) {
   palette <- unique(as.character(stats::na.omit(palette)))
   if (length(palette) == 0L) {
     palette <- grDevices::hcl.colors(max(2L, n), palette = "Dark 3")

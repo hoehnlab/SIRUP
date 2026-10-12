@@ -9,7 +9,7 @@ make_image_free_spatial <- function() {
     sparse = TRUE
   )
   dimnames(counts) <- list(c("geneA", "geneB"), paste0("cell", 1:4))
-  object <- sirap_test_seurat(
+  object <- sirup_test_seurat(
     counts = counts
   )
   object$x <- c(0, 1, 2, 3)
@@ -24,8 +24,8 @@ test_that("shared spatial plotting helpers use metadata coordinates without imag
 
   object <- make_image_free_spatial()
 
-  expect_equal(SIRAP:::.sirap_spatial_images(object), "metadata")
-  spatial <- SIRAP:::.sirap_spatial_data(
+  expect_equal(SIRUP:::.sirup_spatial_images(object), "metadata")
+  spatial <- SIRUP:::.sirup_spatial_data(
     object,
     image = "metadata",
     image_scale = "hires",
@@ -35,9 +35,9 @@ test_that("shared spatial plotting helpers use metadata coordinates without imag
   expect_null(spatial$image)
   expect_equal(spatial$coords$cell, paste0("cell", 1:4))
   expect_equal(spatial$coords$x, c(0, 1, 2, 3))
-  expect_equal(spatial$coords$.sirap_y, c(0, -1, -1, 0))
+  expect_equal(spatial$coords$.sirup_y, c(0, -1, -1, 0))
 
-  plot <- SIRAP:::.sirap_spatial_base(spatial$coords, image = NULL)
+  plot <- SIRUP:::.sirup_spatial_base(spatial$coords, image = NULL)
   expect_s3_class(plot, "ggplot")
 })
 
@@ -139,7 +139,7 @@ test_that("spatialDiscretePlot reads multisample metadata without barcode bleed"
     object$cell_type <- cell_type
     object
   }
-  sirap <- createSIRAP(
+  sirup <- createSIRUP(
     spatial = list(
       section_a = make_section(c("B", "B", "T", "T")),
       section_b = make_section(c("T", "T", "B", "B"))
@@ -157,14 +157,14 @@ test_that("spatialDiscretePlot reads multisample metadata without barcode bleed"
     swap_coords = FALSE
   )
 
-  plots <- spatialDiscretePlot(sirap, meta_col = "cell_type", combine = FALSE)
+  plots <- spatialDiscretePlot(sirup, meta_col = "cell_type", combine = FALSE)
 
   expect_equal(sort(names(plots)), c("section_a", "section_b"))
   expect_equal(as.character(unique(plots[["section_a"]]$data$cell_type)), c("B", "T"))
   expect_equal(as.character(unique(plots[["section_b"]]$data$cell_type)), c("T", "B"))
 
   section_b_plot <- spatialDiscretePlot(
-    sirap,
+    sirup,
     meta_col = "cell_type",
     sample_id = "section_b",
     combine = FALSE
@@ -174,72 +174,72 @@ test_that("spatialDiscretePlot reads multisample metadata without barcode bleed"
 })
 
 test_that("spatialExpressionPlot uses feature colors or palette", {
-  expect_equal(length(.sirap_feature_color_values()), 256)
+  expect_equal(length(.sirup_feature_color_values()), 256)
   expect_identical(
-    .sirap_feature_color_values(feature_colors = c("black", "cyan"), feature_color_palette = "plasma"),
+    .sirup_feature_color_values(feature_colors = c("black", "cyan"), feature_color_palette = "plasma"),
     c("black", "cyan")
   )
   expect_error(
-    .sirap_feature_color_values(feature_color_palette = "not_a_palette"),
+    .sirup_feature_color_values(feature_color_palette = "not_a_palette"),
     "`feature_color_palette`"
   )
 })
 
-test_that(".sirap_fetch_data tries layer before legacy slot fallback", {
+test_that(".sirup_fetch_data tries layer before legacy slot fallback", {
   calls <- character()
   testthat::local_mocked_bindings(
-    .sirap_fetch_data_layer = function(object, vars, layer) {
+    .sirup_fetch_data_layer = function(object, vars, layer) {
       calls <<- c(calls, paste0("layer:", layer))
       data.frame(geneA = 1, row.names = "cell1")
     },
-    .sirap_fetch_data_slot = function(object, vars, slot) {
+    .sirup_fetch_data_slot = function(object, vars, slot) {
       calls <<- c(calls, paste0("slot:", slot))
       data.frame(geneA = 2, row.names = "cell1")
     },
-    .package = "SIRAP"
+    .package = "SIRUP"
   )
 
-  out <- .sirap_fetch_data(list(), vars = "geneA", layer = "counts")
+  out <- .sirup_fetch_data(list(), vars = "geneA", layer = "counts")
 
   expect_equal(out$geneA, 1)
   expect_identical(calls, "layer:counts")
 })
 
-test_that(".sirap_fetch_data falls back to slot only after layer errors", {
+test_that(".sirup_fetch_data falls back to slot only after layer errors", {
   calls <- character()
   testthat::local_mocked_bindings(
-    .sirap_fetch_data_layer = function(object, vars, layer) {
+    .sirup_fetch_data_layer = function(object, vars, layer) {
       calls <<- c(calls, paste0("layer:", layer))
       rlang::abort("layer failed")
     },
-    .sirap_fetch_data_slot = function(object, vars, slot) {
+    .sirup_fetch_data_slot = function(object, vars, slot) {
       calls <<- c(calls, paste0("slot:", slot))
       data.frame(geneA = 2, row.names = "cell1")
     },
-    .package = "SIRAP"
+    .package = "SIRUP"
   )
 
-  out <- .sirap_fetch_data(list(), vars = "geneA", layer = "counts")
+  out <- .sirup_fetch_data(list(), vars = "geneA", layer = "counts")
 
   expect_equal(out$geneA, 2)
   expect_identical(calls, c("layer:counts", "slot:counts"))
 })
 
-test_that(".sirap_fetch_data reports ordered layer and slot failures", {
+test_that(".sirup_fetch_data reports ordered layer and slot failures", {
   testthat::local_mocked_bindings(
-    .sirap_fetch_data_assay = function(object) "RNA",
-    .sirap_fetch_data_layer = function(object, vars, layer) {
+    .sirup_fetch_data_assay = function(object) "RNA",
+    .sirup_fetch_data_layer = function(object, vars, layer) {
       rlang::abort("layer failed")
     },
-    .sirap_fetch_data_slot = function(object, vars, slot) {
+    .sirup_fetch_data_slot = function(object, vars, slot) {
       rlang::abort("slot failed")
     },
-    .package = "SIRAP"
+    .package = "SIRUP"
   )
 
   expect_error(
-    .sirap_fetch_data(list(), vars = "geneA", layer = "counts"),
-    "SIRAP tried layer = counts in assay = RNA first, then tried slot = counts as a fall back"
+    .sirup_fetch_data(list(), vars = "geneA", layer = "counts"),
+    "SIRUP tried layer = counts in assay = RNA first, then tried slot = counts as a fall back"
   )
 })
 
@@ -252,7 +252,7 @@ test_that("spatial statistic and polygon plots work without Seurat images", {
     cell = paste0("cell", 1:4),
     x = c(0, 1, 2, 3),
     y = c(0, 1, 1, 0),
-    .sirap_y = c(0, -1, -1, 0),
+    .sirup_y = c(0, -1, -1, 0),
     image = "metadata",
     variable = "geneA",
     z_i = c(-1, 0, 1, 2),
@@ -393,7 +393,7 @@ test_that("plotReceptors overlays polygons from a data frame and a CSV path", {
   expect_equal(n_polygon_layers(none_plot), 0L)
 })
 
-test_that("plotSpatialColorTips overlays SIRAP object polygons", {
+test_that("plotSpatialColorTips overlays SIRUP object polygons", {
   skip_if_not_installed("SeuratObject")
   skip_if_not_installed("Matrix")
 
@@ -409,7 +409,7 @@ test_that("plotSpatialColorTips overlays SIRAP object polygons", {
     y = c(-0.5, -0.5, 1.5, 1.5, -0.5),
     stringsAsFactors = FALSE
   )
-  sirap <- createSIRAP(
+  sirup <- createSIRUP(
     spatial = object,
     receptors = receptors,
     spatial_id = "spatial_id",
@@ -420,7 +420,7 @@ test_that("plotSpatialColorTips overlays SIRAP object polygons", {
   )
 
   tip_plot <- plotSpatialColorTips(
-    sirap,
+    sirup,
     tip_data = data.frame(
       spatial_id = c("cell1", "cell3"),
       tip_color = c("#111111", "#CC5500"),
@@ -440,7 +440,7 @@ test_that("stored polygon overlays are filtered per spatial sample", {
   make_section <- function() {
     make_image_free_spatial()
   }
-  sirap <- createSIRAP(
+  sirup <- createSIRUP(
     spatial = list(section_a = make_section(), section_b = make_section()),
     receptors = data.frame(
       spatial_id = c("cell1", "cell1"),
@@ -459,10 +459,10 @@ test_that("stored polygon overlays are filtered per spatial sample", {
     y = rep(c(-0.5, -0.5, 1.5, 1.5, -0.5), 2),
     stringsAsFactors = FALSE
   )
-  sirap <- addPolygons(sirap, polygons = polygons)
+  sirup <- addPolygons(sirup, polygons = polygons)
 
   plots <- plotSpatialColorTips(
-    sirap,
+    sirup,
     tip_data = data.frame(
       spatial_id = c("cell1", "cell1"),
       sample = c("section_a", "section_b"),
@@ -483,17 +483,17 @@ test_that("stored polygon overlays are filtered per spatial sample", {
     section_a = ggplot2::ggplot() + ggplot2::geom_point(data = data.frame(x = 0, y = 0), ggplot2::aes(.data$x, .data$y)),
     section_b = ggplot2::ggplot() + ggplot2::geom_point(data = data.frame(x = 0, y = 0), ggplot2::aes(.data$x, .data$y))
   )
-  overlay <- SIRAP:::.sirap_resolve_overlay_polygons(
+  overlay <- SIRUP:::.sirup_resolve_overlay_polygons(
     polygons = TRUE,
-    object = sirap,
+    object = sirup,
     polygon_id = "polygon",
     polygon_val = NULL
   )
-  finished <- SIRAP:::.sirap_add_polygon_overlay(base_plots, overlay)
+  finished <- SIRUP:::.sirup_add_polygon_overlay(base_plots, overlay)
   expect_equal(unique(as.character(polygon_layer_data(finished[["section_a"]])$polygon)), "a_gc")
   expect_equal(unique(as.character(polygon_layer_data(finished[["section_b"]])$polygon)), "b_gc")
 
-  single_finished <- SIRAP:::.sirap_add_polygon_overlay(base_plots[["section_b"]], overlay, image = "section_b")
+  single_finished <- SIRUP:::.sirup_add_polygon_overlay(base_plots[["section_b"]], overlay, image = "section_b")
   expect_equal(unique(as.character(polygon_layer_data(single_finished)$polygon)), "b_gc")
 })
 
@@ -538,7 +538,7 @@ test_that("spatialExpressionBlendPlot forwards assay and layer to per-feature pa
 # Helper: pull the continuous colour values off the resolved receptor layer.
 receptor_color_values <- function(plot) {
   layer <- Filter(function(l) inherits(l$geom, "GeomPoint"), plot$layers)[[1]]
-  sort(as.numeric(layer$data$.sirap_count))
+  sort(as.numeric(layer$data$.sirup_count))
 }
 
 # Helper: the legend title lives on the colour scale, not in plot$labels.

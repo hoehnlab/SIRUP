@@ -2,7 +2,7 @@ test_that("point-in-polygon includes boundary points when requested", {
   vx <- c(0, 10, 10, 0, 0)
   vy <- c(0, 0, 10, 10, 0)
 
-  inside <- .sirap_points_in_polygon(
+  inside <- .sirup_points_in_polygon(
     px = c(5, 10, 12),
     py = c(5, 5, 5),
     vx = vx,
@@ -12,7 +12,7 @@ test_that("point-in-polygon includes boundary points when requested", {
 
   expect_equal(inside, c(TRUE, TRUE, FALSE))
 
-  inside_no_boundary <- .sirap_points_in_polygon(
+  inside_no_boundary <- .sirup_points_in_polygon(
     px = c(5, 10),
     py = c(5, 5),
     vx = vx,
@@ -25,7 +25,7 @@ test_that("point-in-polygon includes boundary points when requested", {
 
 test_that("polygon assignment annotates spatial metadata and receptor tables", {
   skip_if_not_installed("SeuratObject")
-  spatial <- sirap_test_seurat(
+  spatial <- sirup_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -92,12 +92,12 @@ test_that("polygon assignment can use receptor coordinate columns directly", {
   expect_equal(receptors_out$polygon_id, c("left", "left", "right", NA))
   expect_equal(receptors_out$polygon_left, c(TRUE, TRUE, FALSE, FALSE))
   expect_equal(receptors_out$polygon_right, c(FALSE, FALSE, TRUE, FALSE))
-  expect_false(".sirap_receptor_row" %in% colnames(receptors_out))
+  expect_false(".sirup_receptor_row" %in% colnames(receptors_out))
 })
 
 test_that("overlapping polygon assignment keeps flags and chooses smallest polygon", {
   skip_if_not_installed("SeuratObject")
-  spatial <- sirap_test_seurat(
+  spatial <- sirup_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -176,7 +176,7 @@ test_that("polygon vertex selection closes open polygons automatically", {
     stringsAsFactors = FALSE
   )
 
-  closed <- .sirap_select_polygon_vertices(
+  closed <- .sirup_select_polygon_vertices(
     polygon = polygon,
     polygon_id = NULL,
     polygon_col = "polygon",
@@ -196,13 +196,13 @@ test_that("polygon plotting coordinates can be downsampled reproducibly", {
     stringsAsFactors = FALSE
   )
 
-  sampled_a <- .sirap_downsample_polygon_plot_coords(coords, downsample_n = 4, seed = 10)
-  sampled_b <- .sirap_downsample_polygon_plot_coords(coords, downsample_n = 4, seed = 10)
+  sampled_a <- .sirup_downsample_polygon_plot_coords(coords, downsample_n = 4, seed = 10)
+  sampled_b <- .sirup_downsample_polygon_plot_coords(coords, downsample_n = 4, seed = 10)
 
   expect_equal(nrow(sampled_a), 4)
   expect_equal(sampled_a, sampled_b)
-  expect_equal(.sirap_downsample_polygon_plot_coords(coords, downsample_n = 20), coords)
-  expect_error(.sirap_downsample_polygon_plot_coords(coords, downsample_n = 0), "positive number")
+  expect_equal(.sirup_downsample_polygon_plot_coords(coords, downsample_n = 20), coords)
+  expect_error(.sirup_downsample_polygon_plot_coords(coords, downsample_n = 0), "positive number")
 })
 
 test_that("selected polygon table displays only current polygon without image", {
@@ -210,7 +210,7 @@ test_that("selected polygon table displays only current polygon without image", 
     spatial_id = c("cell1", "cell2"),
     x = c(1, 2),
     y = c(1, 2),
-    .sirap_plot_y = c(-1, -2),
+    .sirup_plot_y = c(-1, -2),
     num = c(1L, 2L),
     polygon = c("1", "renamed"),
     image = c("slice1", "slice1"),
@@ -218,14 +218,14 @@ test_that("selected polygon table displays only current polygon without image", 
   )
 
   current <- points[points$num == 2L, , drop = FALSE]
-  shown <- .sirap_public_polygon_vertices(current)
+  shown <- .sirup_public_polygon_vertices(current)
   shown <- shown[, setdiff(colnames(shown), "image"), drop = FALSE]
 
   expect_equal(shown$spatial_id, "cell2")
   expect_equal(shown$num, 2L)
   expect_equal(shown$polygon, "renamed")
   expect_false("image" %in% names(shown))
-  expect_false(".sirap_plot_y" %in% names(shown))
+  expect_false(".sirup_plot_y" %in% names(shown))
 })
 
 test_that("polygon closing uses num while keeping editable polygon names", {
@@ -233,14 +233,14 @@ test_that("polygon closing uses num while keeping editable polygon names", {
     spatial_id = paste0("cell", 1:3),
     x = c(0, 1, 0),
     y = c(0, 0, 1),
-    .sirap_plot_y = c(0, 0, -1),
+    .sirup_plot_y = c(0, 0, -1),
     num = c(1L, 1L, 1L),
     polygon = c("custom", "custom", "custom"),
     image = c("slice1", "slice1", "slice1"),
     stringsAsFactors = FALSE
   )
 
-  out <- .sirap_close_current_polygon(points, 1L)
+  out <- .sirup_close_current_polygon(points, 1L)
 
   expect_equal(nrow(out), 4L)
   expect_equal(out$num, c(1L, 1L, 1L, 1L))
@@ -264,7 +264,7 @@ test_that("polygon plotting data preserves polygon groups and flips plotting y",
     )
   )
 
-  plot_data <- .sirap_polygon_plot_data(
+  plot_data <- .sirup_polygon_plot_data(
     polygon = polygon,
     polygon_id = NULL,
     polygon_col = "polygon",
@@ -273,12 +273,12 @@ test_that("polygon plotting data preserves polygon groups and flips plotting y",
   )
 
   expect_equal(sort(unique(plot_data$polygon)), c("left", "right"))
-  expect_equal(plot_data$.sirap_y, -plot_data$y)
+  expect_equal(plot_data$.sirup_y, -plot_data$y)
 })
 
 test_that("plotSpatialPolygons colors stored polygons by an analysis column", {
   skip_if_not_installed("SeuratObject")
-  spatial <- sirap_test_seurat(
+  spatial <- sirup_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -288,7 +288,7 @@ test_that("plotSpatialPolygons colors stored polygons by an analysis column", {
   )
   spatial$x <- 0:3
   spatial$y <- 0:3
-  x <- createSIRAP(
+  x <- createSIRUP(
     spatial = spatial,
     receptors = data.frame(spatial_id = paste0("cell", 1:4)),
     spatial_id = "spatial_id",
@@ -309,23 +309,23 @@ test_that("plotSpatialPolygons colors stored polygons by an analysis column", {
   ))
 
   ns <- environment(plotSpatialPolygons)
-  old_images <- get(".sirap_spatial_images", envir = ns)
-  old_data <- get(".sirap_spatial_data", envir = ns)
-  old_base <- get(".sirap_spatial_base", envir = ns)
-  locked <- vapply(c(".sirap_spatial_images", ".sirap_spatial_data", ".sirap_spatial_base"),
+  old_images <- get(".sirup_spatial_images", envir = ns)
+  old_data <- get(".sirup_spatial_data", envir = ns)
+  old_base <- get(".sirup_spatial_base", envir = ns)
+  locked <- vapply(c(".sirup_spatial_images", ".sirup_spatial_data", ".sirup_spatial_base"),
                    bindingIsLocked, logical(1), env = ns)
   for (name in names(locked)[locked]) unlockBinding(name, ns)
-  assign(".sirap_spatial_images", function(object, images = NULL, sample_id = NULL) "metadata", envir = ns)
-  assign(".sirap_spatial_data", function(object, image, image_scale = NULL, swap_coords = NULL) {
-    list(coords = data.frame(cell = paste0("cell", 1:4), x = 0:3, y = 0:3, .sirap_y = 0:-3), image = NULL)
+  assign(".sirup_spatial_images", function(object, images = NULL, sample_id = NULL) "metadata", envir = ns)
+  assign(".sirup_spatial_data", function(object, image, image_scale = NULL, swap_coords = NULL) {
+    list(coords = data.frame(cell = paste0("cell", 1:4), x = 0:3, y = 0:3, .sirup_y = 0:-3), image = NULL)
   }, envir = ns)
-  assign(".sirap_spatial_base", function(plot_data, image, image_alpha = 1, zoom = FALSE, view_data = NULL) {
+  assign(".sirup_spatial_base", function(plot_data, image, image_alpha = 1, zoom = FALSE, view_data = NULL) {
     ggplot2::ggplot()
   }, envir = ns)
   withr::defer({
-    assign(".sirap_spatial_images", old_images, envir = ns)
-    assign(".sirap_spatial_data", old_data, envir = ns)
-    assign(".sirap_spatial_base", old_base, envir = ns)
+    assign(".sirup_spatial_images", old_images, envir = ns)
+    assign(".sirup_spatial_data", old_data, envir = ns)
+    assign(".sirup_spatial_base", old_base, envir = ns)
     for (name in names(locked)[locked]) lockBinding(name, ns)
   })
 
@@ -380,7 +380,7 @@ test_that("plotSpatialPolygons colors stored polygons by an analysis column", {
 
 test_that("plotSpatialPolygons can place labels outside polygons", {
   skip_if_not_installed("SeuratObject")
-  spatial <- sirap_test_seurat(
+  spatial <- sirup_test_seurat(
     counts = matrix(
       1,
       nrow = 1,
@@ -390,7 +390,7 @@ test_that("plotSpatialPolygons can place labels outside polygons", {
   )
   spatial$x <- 0:3
   spatial$y <- 0:3
-  x <- createSIRAP(
+  x <- createSIRUP(
     spatial = spatial,
     receptors = data.frame(spatial_id = paste0("cell", 1:4)),
     spatial_id = "spatial_id",
@@ -406,23 +406,23 @@ test_that("plotSpatialPolygons can place labels outside polygons", {
   ))
 
   ns <- environment(plotSpatialPolygons)
-  old_images <- get(".sirap_spatial_images", envir = ns)
-  old_data <- get(".sirap_spatial_data", envir = ns)
-  old_base <- get(".sirap_spatial_base", envir = ns)
-  locked <- vapply(c(".sirap_spatial_images", ".sirap_spatial_data", ".sirap_spatial_base"),
+  old_images <- get(".sirup_spatial_images", envir = ns)
+  old_data <- get(".sirup_spatial_data", envir = ns)
+  old_base <- get(".sirup_spatial_base", envir = ns)
+  locked <- vapply(c(".sirup_spatial_images", ".sirup_spatial_data", ".sirup_spatial_base"),
                    bindingIsLocked, logical(1), env = ns)
   for (name in names(locked)[locked]) unlockBinding(name, ns)
-  assign(".sirap_spatial_images", function(object, images = NULL, sample_id = NULL) "metadata", envir = ns)
-  assign(".sirap_spatial_data", function(object, image, image_scale = NULL, swap_coords = NULL) {
-    list(coords = data.frame(cell = paste0("cell", 1:4), x = 0:3, y = 0:3, .sirap_y = 0:-3), image = NULL)
+  assign(".sirup_spatial_images", function(object, images = NULL, sample_id = NULL) "metadata", envir = ns)
+  assign(".sirup_spatial_data", function(object, image, image_scale = NULL, swap_coords = NULL) {
+    list(coords = data.frame(cell = paste0("cell", 1:4), x = 0:3, y = 0:3, .sirup_y = 0:-3), image = NULL)
   }, envir = ns)
-  assign(".sirap_spatial_base", function(plot_data, image, image_alpha = 1, zoom = FALSE, view_data = NULL) {
+  assign(".sirup_spatial_base", function(plot_data, image, image_alpha = 1, zoom = FALSE, view_data = NULL) {
     ggplot2::ggplot()
   }, envir = ns)
   withr::defer({
-    assign(".sirap_spatial_images", old_images, envir = ns)
-    assign(".sirap_spatial_data", old_data, envir = ns)
-    assign(".sirap_spatial_base", old_base, envir = ns)
+    assign(".sirup_spatial_images", old_images, envir = ns)
+    assign(".sirup_spatial_data", old_data, envir = ns)
+    assign(".sirup_spatial_base", old_base, envir = ns)
     for (name in names(locked)[locked]) lockBinding(name, ns)
   })
 
@@ -432,20 +432,20 @@ test_that("plotSpatialPolygons can place labels outside polygons", {
   expect_s3_class(plot$layers[[2]]$geom, "GeomSegment")
   expect_s3_class(plot$layers[[3]]$geom, "GeomText")
   label_data <- plot$layers[[3]]$data
-  expect_true(all(c(".sirap_lx", ".sirap_ly", ".sirap_ex", ".sirap_ey") %in% names(label_data)))
-  expect_false(isTRUE(all.equal(label_data$x, label_data$.sirap_lx)))
+  expect_true(all(c(".sirup_lx", ".sirup_ly", ".sirup_ex", ".sirup_ey") %in% names(label_data)))
+  expect_false(isTRUE(all.equal(label_data$x, label_data$.sirup_lx)))
   expect_error(plotSpatialPolygons(x, label_outside = NA), "`label_outside` must be TRUE or FALSE")
   expect_error(plotSpatialPolygons(x, label_leader = NA), "`label_leader` must be TRUE or FALSE")
   expect_error(plotSpatialPolygons(x, label_outside = TRUE, label_offset = -0.1), "`label_offset` must be a non-negative number")
 })
 
 test_that("V gene helpers retain alleles and extract families and superfamilies", {
-  genes <- .sirap_v_genes(c("IGHV3-23*01", "IGHV3-30*02,IGHV3-23*01"))
-  families <- .sirap_v_gene_family(c(genes, "IGKV1D-39*01"))
+  genes <- .sirup_v_genes(c("IGHV3-23*01", "IGHV3-30*02,IGHV3-23*01"))
+  families <- .sirup_v_gene_family(c(genes, "IGKV1D-39*01"))
 
   expect_equal(genes, c("IGHV3-23*01", "IGHV3-30*02"))
   expect_equal(families, c("IGHV3-23", "IGHV3-30", "IGKV1D-39"))
-  expect_equal(.sirap_v_gene_superfamily(families), c("IGHV3", "IGHV3", "IGKV1"))
+  expect_equal(.sirup_v_gene_superfamily(families), c("IGHV3", "IGHV3", "IGKV1"))
 })
 
 test_that("polygon pie summaries group lower-frequency levels and label top levels", {
@@ -455,7 +455,7 @@ test_that("polygon pie summaries group lower-frequency levels and label top leve
     stringsAsFactors = FALSE
   )
 
-  pies <- .sirap_polygon_pie_summary(
+  pies <- .sirup_polygon_pie_summary(
     region_receptors,
     fill = "clone_id",
     top_n = 2,
@@ -471,9 +471,9 @@ test_that("polygon pie summaries group lower-frequency levels and label top leve
   expect_equal(sum(poly1$proportion), 1)
   expect_equal(sum(poly1$label != ""), 1)
   expect_equal(sort(unique(pies$polygon_label)), c("poly1", "poly2", "poly3"))
-  expect_false(".sirap_order" %in% names(pies))
+  expect_false(".sirup_order" %in% names(pies))
 
-  pies_without_other <- .sirap_polygon_pie_summary(
+  pies_without_other <- .sirup_polygon_pie_summary(
     region_receptors,
     fill = "clone_id",
     top_n = 1,
@@ -488,7 +488,7 @@ test_that("polygon pie summaries group lower-frequency levels and label top leve
 })
 
 test_that("discrete palette uses pals glasbey and configured other color", {
-  values <- .sirap_discrete_palette_values(
+  values <- .sirup_discrete_palette_values(
     c("A", "B", "Other"),
     other_label = "Other",
     other_color = "#EEEEEE"
@@ -498,7 +498,7 @@ test_that("discrete palette uses pals glasbey and configured other color", {
   expect_equal(unname(values["Other"]), "#EEEEEE")
 
   many_levels <- paste0("clone", seq_len(46))
-  many_values <- .sirap_discrete_palette_values(
+  many_values <- .sirup_discrete_palette_values(
     c(many_levels, "Other"),
     other_label = "Other",
     other_color = "#EEEEEE"
@@ -509,7 +509,7 @@ test_that("discrete palette uses pals glasbey and configured other color", {
 })
 
 test_that("spatial pie sectors start at the visual top", {
-  sector <- .sirap_pie_sector(center_x = 10, center_y = 20, radius = 5, ymin = 0, ymax = 0.25)
+  sector <- .sirup_pie_sector(center_x = 10, center_y = 20, radius = 5, ymin = 0, ymax = 0.25)
 
   expect_equal(sector$x[2], 10, tolerance = 1e-8)
   expect_equal(sector$y[2], 15, tolerance = 1e-8)
@@ -517,28 +517,28 @@ test_that("spatial pie sectors start at the visual top", {
 
 test_that("3D clone density data groups clones and builds surfaces", {
   ns <- environment(spatialCloneDominance)
-  old_image_dim <- get(".sirap_image_dim", envir = ns)
-  image_dim_binding_locked <- bindingIsLocked(".sirap_image_dim", ns)
+  old_image_dim <- get(".sirup_image_dim", envir = ns)
+  image_dim_binding_locked <- bindingIsLocked(".sirup_image_dim", ns)
   if (image_dim_binding_locked) {
-    unlockBinding(".sirap_image_dim", ns)
+    unlockBinding(".sirup_image_dim", ns)
   }
   assign(
-    ".sirap_image_dim",
+    ".sirup_image_dim",
     function(image) {
       list(height = 100, width = 100)
     },
     envir = ns
   )
   if (image_dim_binding_locked) {
-    lockBinding(".sirap_image_dim", ns)
+    lockBinding(".sirup_image_dim", ns)
   }
   withr::defer({
     if (image_dim_binding_locked) {
-      unlockBinding(".sirap_image_dim", ns)
+      unlockBinding(".sirup_image_dim", ns)
     }
-    assign(".sirap_image_dim", old_image_dim, envir = ns)
+    assign(".sirup_image_dim", old_image_dim, envir = ns)
     if (image_dim_binding_locked) {
-      lockBinding(".sirap_image_dim", ns)
+      lockBinding(".sirup_image_dim", ns)
     }
   })
 
@@ -546,7 +546,7 @@ test_that("3D clone density data groups clones and builds surfaces", {
     clone_id = c("A", "A", "B", "C"),
     x = c(20, 22, 70, 72),
     y = c(20, 22, 70, 72),
-    .sirap_y = -c(20, 22, 70, 72),
+    .sirup_y = -c(20, 22, 70, 72),
     polygon = "poly1",
     image = "metadata",
     stringsAsFactors = FALSE
@@ -554,18 +554,18 @@ test_that("3D clone density data groups clones and builds surfaces", {
   polygons <- data.frame(
     x = c(10, 80, 80, 10, 10),
     y = c(10, 10, 80, 80, 10),
-    .sirap_y = -c(10, 10, 80, 80, 10),
+    .sirup_y = -c(10, 10, 80, 80, 10),
     polygon = "poly1",
     stringsAsFactors = FALSE
   )
 
-  out <- .sirap_clone_density_3d_data(
+  out <- .sirup_clone_density_3d_data(
     region_receptors = region_receptors,
     polygons = polygons,
     image = list(),
     spatial_coords = data.frame(
       x = c(0, 100),
-      .sirap_y = c(-100, 0)
+      .sirup_y = c(-100, 0)
     ),
     clone = "clone_id",
     weight = NULL,
@@ -595,14 +595,14 @@ test_that("polygon plots filter tagged polygons per spatial sample", {
   skip_if_not_installed("ggplot2")
 
   make_spatial <- function() {
-    spatial <- sirap_test_seurat(
+    spatial <- sirup_test_seurat(
       counts = matrix(1, nrow = 1, ncol = 2, dimnames = list("gene", c("cell1", "cell2")))
     )
     spatial$x <- c(0, 10)
     spatial$y <- c(0, 10)
     spatial
   }
-  x <- createSIRAP(
+  x <- createSIRUP(
     spatial = list(section_a = make_spatial(), section_b = make_spatial()),
     receptors = data.frame(
       barcode = c("cell1", "cell1"),
@@ -642,14 +642,14 @@ test_that("spatial clipped polygon pies filter tagged polygons per spatial sampl
   skip_if_not_installed("sf")
 
   make_spatial <- function() {
-    spatial <- sirap_test_seurat(
+    spatial <- sirup_test_seurat(
       counts = matrix(1, nrow = 1, ncol = 2, dimnames = list("gene", c("cell1", "cell2")))
     )
     spatial$x <- c(0, 10)
     spatial$y <- c(0, 10)
     spatial
   }
-  x <- createSIRAP(
+  x <- createSIRUP(
     spatial = list(section_a = make_spatial(), section_b = make_spatial()),
     receptors = data.frame(
       barcode = c("cell1", "cell1"),
@@ -682,13 +682,13 @@ test_that("spatial clipped polygon pies filter tagged polygons per spatial sampl
 
 test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   ns <- environment(spatialCloneDominance)
-  old_coordinate_table <- get(".sirap_spatial_coordinate_table", envir = ns)
-  coordinate_binding_locked <- bindingIsLocked(".sirap_spatial_coordinate_table", ns)
+  old_coordinate_table <- get(".sirup_spatial_coordinate_table", envir = ns)
+  coordinate_binding_locked <- bindingIsLocked(".sirup_spatial_coordinate_table", ns)
   if (coordinate_binding_locked) {
-    unlockBinding(".sirap_spatial_coordinate_table", ns)
+    unlockBinding(".sirup_spatial_coordinate_table", ns)
   }
   assign(
-    ".sirap_spatial_coordinate_table",
+    ".sirup_spatial_coordinate_table",
     function(object, images = NULL, image_scale = NULL, swap_coords = NULL) {
       data.frame(
         cell = paste0("cell", 1:5),
@@ -701,15 +701,15 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
     envir = ns
   )
   if (coordinate_binding_locked) {
-    lockBinding(".sirap_spatial_coordinate_table", ns)
+    lockBinding(".sirup_spatial_coordinate_table", ns)
   }
   withr::defer({
     if (coordinate_binding_locked) {
-      unlockBinding(".sirap_spatial_coordinate_table", ns)
+      unlockBinding(".sirup_spatial_coordinate_table", ns)
     }
-    assign(".sirap_spatial_coordinate_table", old_coordinate_table, envir = ns)
+    assign(".sirup_spatial_coordinate_table", old_coordinate_table, envir = ns)
     if (coordinate_binding_locked) {
-      lockBinding(".sirap_spatial_coordinate_table", ns)
+      lockBinding(".sirup_spatial_coordinate_table", ns)
     }
   })
 
@@ -738,7 +738,7 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
     swap_coords = FALSE
   )
 
-  expect_s3_class(out, "sirap_spatial_clone_dominance")
+  expect_s3_class(out, "sirup_spatial_clone_dominance")
   expect_equal(out$dominance$clone_id, c("A", "B"))
   expect_equal(out$dominance$v_gene[out$dominance$clone_id == "A"], "IGHV3-23*01,IGHV3-23*02,IGKV1-5*01")
   expect_equal(out$dominance$v_gene_family[out$dominance$clone_id == "A"], "IGHV3-23,IGKV1-5")
@@ -747,12 +747,12 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   expect_equal(out$dominance$proportion, c(0.75, 0.25))
   expect_equal(unique(out$dominance$region_receptor_total), 4)
   expect_equal(unique(out$dominance$n_region_spatial_ids), 3)
-  expect_equal(sort(unique(out$region_receptors$.sirap_spatial_id)), c("cell1", "cell2", "cell3"))
-  expect_true(all(c("x", "y", ".sirap_y", "polygon") %in% names(out$region_receptors)))
+  expect_equal(sort(unique(out$region_receptors$.sirup_spatial_id)), c("cell1", "cell2", "cell3"))
+  expect_true(all(c("x", "y", ".sirup_y", "polygon") %in% names(out$region_receptors)))
   expect_false(any(c("x.x", "x.y", "y.x", "y.y") %in% names(out$region_receptors)))
   expect_equal(sort(unique(out$region_receptors$x)), c(1, 2, 8))
   expect_equal(sort(unique(out$region_receptors$y)), c(1, 2, 8))
-  expect_true(all(c("x", "y", ".sirap_y", "polygon") %in% names(out$polygons)))
+  expect_true(all(c("x", "y", ".sirup_y", "polygon") %in% names(out$polygons)))
   expect_false(any(c("polygon_col", "spatial_id_col", "clone_col", "v_call_col") %in% names(out)))
   expect_equal(out$metadata$receptor_fields$spatial_id, "barcode")
   expect_equal(out$metadata$receptor_fields$clone, "clone_id")
@@ -798,7 +798,7 @@ test_that("spatialCloneDominance counts clone proportions inside a polygon", {
   expect_equal(no_singletons$dominance$n_receptors, 3)
   expect_equal(unique(no_singletons$region_receptors$clone_id), "A")
 
-  region <- .sirap_region_from_dominance(out)
+  region <- .sirup_region_from_dominance(out)
   expect_equal(region$receptors, out$region_receptors)
   expect_equal(region$polygons, out$polygons)
 })
@@ -829,13 +829,13 @@ test_that("regional plotting APIs require dominance and spatial objects", {
 
 test_that("spatialCloneDominance summarizes multiple polygons independently", {
   ns <- environment(spatialCloneDominance)
-  old_coordinate_table <- get(".sirap_spatial_coordinate_table", envir = ns)
-  coordinate_binding_locked <- bindingIsLocked(".sirap_spatial_coordinate_table", ns)
+  old_coordinate_table <- get(".sirup_spatial_coordinate_table", envir = ns)
+  coordinate_binding_locked <- bindingIsLocked(".sirup_spatial_coordinate_table", ns)
   if (coordinate_binding_locked) {
-    unlockBinding(".sirap_spatial_coordinate_table", ns)
+    unlockBinding(".sirup_spatial_coordinate_table", ns)
   }
   assign(
-    ".sirap_spatial_coordinate_table",
+    ".sirup_spatial_coordinate_table",
     function(object, images = NULL, image_scale = NULL, swap_coords = NULL) {
       data.frame(
         cell = paste0("cell", 1:5),
@@ -848,15 +848,15 @@ test_that("spatialCloneDominance summarizes multiple polygons independently", {
     envir = ns
   )
   if (coordinate_binding_locked) {
-    lockBinding(".sirap_spatial_coordinate_table", ns)
+    lockBinding(".sirup_spatial_coordinate_table", ns)
   }
   withr::defer({
     if (coordinate_binding_locked) {
-      unlockBinding(".sirap_spatial_coordinate_table", ns)
+      unlockBinding(".sirup_spatial_coordinate_table", ns)
     }
-    assign(".sirap_spatial_coordinate_table", old_coordinate_table, envir = ns)
+    assign(".sirup_spatial_coordinate_table", old_coordinate_table, envir = ns)
     if (coordinate_binding_locked) {
-      lockBinding(".sirap_spatial_coordinate_table", ns)
+      lockBinding(".sirup_spatial_coordinate_table", ns)
     }
   })
 
@@ -908,28 +908,28 @@ test_that("spatialCloneDominance summarizes multiple polygons independently", {
   expect_equal(right$dominance$clone_id, "D")
 })
 
-test_that(".sirap_spatial_base crops to spatial barcodes by default", {
+test_that(".sirup_spatial_base crops to spatial barcodes by default", {
   skip_if_not_installed("ggplot2")
-  plot_data <- data.frame(x = c(10, 20), .sirap_y = c(-10, -20))
-  spots <- data.frame(x = c(0, 100), .sirap_y = c(0, -100))
+  plot_data <- data.frame(x = c(10, 20), .sirup_y = c(-10, -20))
+  spots <- data.frame(x = c(0, 100), .sirup_y = c(0, -100))
 
   # crop = TRUE with spot coordinates as view_data -> limits follow the spots.
-  p_crop <- .sirap_spatial_base(plot_data, image = NULL, crop = TRUE, view_data = spots)
+  p_crop <- .sirup_spatial_base(plot_data, image = NULL, crop = TRUE, view_data = spots)
   xlim <- p_crop$coordinates$limits$x
   ylim <- p_crop$coordinates$limits$y
   expect_true(xlim[[1]] <= 0 && xlim[[2]] >= 100)
   expect_true(ylim[[1]] <= -100 && ylim[[2]] >= 0)
 
   # crop = FALSE with no image -> default unit box, not the spot extent.
-  p_full <- .sirap_spatial_base(plot_data, image = NULL, crop = FALSE, view_data = spots)
+  p_full <- .sirup_spatial_base(plot_data, image = NULL, crop = FALSE, view_data = spots)
   expect_equal(p_full$coordinates$limits$x, c(0, 1))
 
   # An empty view_data is treated as absent and falls back to plot_data.
-  p_empty <- .sirap_spatial_base(
+  p_empty <- .sirup_spatial_base(
     plot_data,
     image = NULL,
     crop = TRUE,
-    view_data = data.frame(x = numeric(), .sirap_y = numeric())
+    view_data = data.frame(x = numeric(), .sirup_y = numeric())
   )
   xr <- p_empty$coordinates$limits$x
   expect_true(xr[[1]] <= 10 && xr[[2]] >= 20)
@@ -947,11 +947,11 @@ test_that("side-by-side pies order polygons by receptor count", {
   )
 
   expect_equal(
-    .sirap_pie_polygon_order(pie_data, "receptors"),
+    .sirup_pie_polygon_order(pie_data, "receptors"),
     c("2", "3", "1")
   )
   expect_equal(
-    .sirap_pie_polygon_order(pie_data, "polygon"),
+    .sirup_pie_polygon_order(pie_data, "polygon"),
     c("1", "2", "3")
   )
 
@@ -961,7 +961,7 @@ test_that("side-by-side pies order polygons by receptor count", {
     n = c(5L, 7L, 70L, 10L, 6L),
     stringsAsFactors = FALSE
   )
-  expect_equal(.sirap_pie_polygon_order(multi, "receptors"), c("2", "3", "1"))
+  expect_equal(.sirup_pie_polygon_order(multi, "receptors"), c("2", "3", "1"))
 
   # A tie in receptor count breaks by the polygon label, ascending.
   tied <- data.frame(
@@ -969,7 +969,7 @@ test_that("side-by-side pies order polygons by receptor count", {
     n = c(20L, 20L, 5L),
     stringsAsFactors = FALSE
   )
-  expect_equal(.sirap_pie_polygon_order(tied, "receptors"), c("1", "2", "3"))
+  expect_equal(.sirup_pie_polygon_order(tied, "receptors"), c("1", "2", "3"))
 })
 
 test_that("stacked polygon dominance bars use clean polygon labels", {
@@ -982,7 +982,7 @@ test_that("stacked polygon dominance bars use clean polygon labels", {
     stringsAsFactors = FALSE
   )
 
-  pie_data <- .sirap_polygon_pie_summary(
+  pie_data <- .sirup_polygon_pie_summary(
     region_bcrs,
     fill = "clone_id",
     top_n = NULL,
@@ -992,7 +992,7 @@ test_that("stacked polygon dominance bars use clean polygon labels", {
   expect_equal(unique(pie_data$polygon), c("section_a::1", "section_a::2"))
   expect_equal(unique(pie_data$polygon_label), c("1", "2"))
 
-  p <- .sirap_stacked_bar_polygon_dominance(
+  p <- .sirup_stacked_bar_polygon_dominance(
     pie_data,
     fill_values = c(A = "#111111", B = "#222222"),
     label_size = 3,
@@ -1023,7 +1023,7 @@ test_that("expandPolygons moves vertices outward from the centroid", {
   expect_equal(c(expanded$x[[1]], expanded$y[[1]]), c(expanded$x[[last]], expanded$y[[last]]))
 
   # Expanding grows the area; a negative delta shrinks it.
-  area <- function(p) .sirap_polygon_area(p$x, p$y)
+  area <- function(p) .sirup_polygon_area(p$x, p$y)
   expect_gt(area(expanded), area(square))
   expect_lt(area(expandPolygons(square, delta = -0.2)), area(square))
 })
@@ -1031,7 +1031,7 @@ test_that("expandPolygons moves vertices outward from the centroid", {
 test_that("expandPolygons uses the area centroid and needs a delta", {
   # An L-free convex quad whose vertex mean differs from its area centroid.
   rect <- data.frame(x = c(0, 4, 4, 0), y = c(0, 0, 2, 2), stringsAsFactors = FALSE)
-  centroid <- .sirap_polygon_centroid(rect$x, rect$y)
+  centroid <- .sirup_polygon_centroid(rect$x, rect$y)
   expect_equal(centroid$x, 2)
   expect_equal(centroid$y, 1)
 
@@ -1040,7 +1040,7 @@ test_that("expandPolygons uses the area centroid and needs a delta", {
   expect_error(expandPolygons(rect, delta = c(1, 2)), "single finite number")
 })
 
-test_that("expandPolygons handles multiple polygons and SIRAP objects", {
+test_that("expandPolygons handles multiple polygons and SIRUP objects", {
   skip_if_not_installed("SeuratObject")
 
   # Each polygon expands independently around its own centroid.
@@ -1054,8 +1054,8 @@ test_that("expandPolygons handles multiple polygons and SIRAP objects", {
   expect_equal(nrow(out), nrow(multi))
   expect_equal(as.character(out$polygon), as.character(multi$polygon))
 
-  # SIRAP object input returns a valid, expanded object.
-  object <- sirap_test_seurat(
+  # SIRUP object input returns a valid, expanded object.
+  object <- sirup_test_seurat(
     counts = matrix(1, 1, 4, dimnames = list("gene", paste0("cell", 1:4)))
   )
   object$x <- c(0, 1, 2, 3)
@@ -1071,7 +1071,7 @@ test_that("expandPolygons handles multiple polygons and SIRAP objects", {
     y = c(0.5, 0.5, 2.5, 2.5, 0.5),
     stringsAsFactors = FALSE
   )
-  sirap <- createSIRAP(
+  sirup <- createSIRUP(
     spatial = object,
     receptors = receptors,
     spatial_id = "spatial_id",
@@ -1080,23 +1080,23 @@ test_that("expandPolygons handles multiple polygons and SIRAP objects", {
     swap_coords = FALSE,
     polygons = polygon
   )
-  grown <- expandPolygons(sirap, delta = 1)
-  expect_true(isSIRAP(grown))
-  before <- getPolygons(sirap)$vertices[[1]]
+  grown <- expandPolygons(sirup, delta = 1)
+  expect_true(isSIRUP(grown))
+  before <- getPolygons(sirup)$vertices[[1]]
   after <- getPolygons(grown)$vertices[[1]]
   expect_gt(diff(range(after$x)), diff(range(before$x)))
 })
 
-test_that(".sirap_polygon_feature_values labels source and guards non-numeric", {
+test_that(".sirup_polygon_feature_values labels source and guards non-numeric", {
   skip_if_not_installed("SeuratObject")
   counts <- matrix(c(0, 1, 2, 3, 4, 5, 6, 7),
                    nrow = 2,
                    dimnames = list(c("GeneA", "GeneB"), paste0("cell", 1:4)))
-  obj <- sirap_test_seurat(counts = counts)
+  obj <- sirup_test_seurat(counts = counts)
   gene <- "GeneA"
 
   # assay hit keeps its source label
-  from_assay <- .sirap_polygon_feature_values(obj, gene, layer = "counts")
+  from_assay <- .sirup_polygon_feature_values(obj, gene, layer = "counts")
   expect_false(is.null(from_assay))
   expect_identical(attr(from_assay, "source"), "assay")
   expect_identical(colnames(from_assay), gene)
@@ -1105,7 +1105,7 @@ test_that(".sirap_polygon_feature_values labels source and guards non-numeric", 
   # as an assay hit -- FetchData resolves both, so only the label distinguishes
   # a real gene from a same-named metadata column
   obj$my_module_score <- seq_len(ncol(obj)) / ncol(obj)
-  from_meta <- .sirap_polygon_feature_values(obj, "my_module_score", layer = "counts")
+  from_meta <- .sirup_polygon_feature_values(obj, "my_module_score", layer = "counts")
   expect_false(is.null(from_meta))
   expect_identical(attr(from_meta, "source"), "metadata")
   expect_identical(rownames(from_meta), colnames(obj))
@@ -1114,9 +1114,9 @@ test_that(".sirap_polygon_feature_values labels source and guards non-numeric", 
   # a factor/character column would break the continuous colour scale, so it
   # is refused here rather than erroring inside the Shiny reactive
   obj$a_label <- rep("x", ncol(obj))
-  expect_null(.sirap_polygon_feature_values(obj, "a_label", layer = "counts"))
-  expect_null(.sirap_polygon_feature_values(obj, "not_a_real_feature", layer = "counts"))
-  expect_null(.sirap_polygon_feature_values(obj, "", layer = "counts"))
+  expect_null(.sirup_polygon_feature_values(obj, "a_label", layer = "counts"))
+  expect_null(.sirup_polygon_feature_values(obj, "not_a_real_feature", layer = "counts"))
+  expect_null(.sirup_polygon_feature_values(obj, "", layer = "counts"))
 })
 
 test_that("selectSpatialPolygons gains a show_zeros argument", {
@@ -1124,12 +1124,12 @@ test_that("selectSpatialPolygons gains a show_zeros argument", {
   expect_true(isTRUE(eval(formals(selectSpatialPolygons)$show_zeros)))
 })
 
-test_that(".sirap_nn_index returns the true nearest point on irregular data", {
+test_that(".sirup_nn_index returns the true nearest point on irregular data", {
   # Irregular on purpose: the index must not assume a lattice, since Visium is
   # hexagonal and single-cell data has no grid at all.
   set.seed(42)
   xy <- cbind(runif(500, 0, 100), runif(500, -100, 0))
-  idx <- .sirap_nn_index(xy)
+  idx <- .sirup_nn_index(xy)
   expect_true(is.character(idx$backend) && nzchar(idx$backend))
   expect_true(is.function(idx$query))
 
@@ -1145,10 +1145,10 @@ test_that(".sirap_nn_index returns the true nearest point on irregular data", {
   expect_identical(as.integer(idx$query(xy[13, 1], xy[13, 2])), 13L)
 })
 
-test_that(".sirap_nn_index scan backend agrees with whichever backend is chosen", {
+test_that(".sirup_nn_index scan backend agrees with whichever backend is chosen", {
   set.seed(1)
   xy <- cbind(runif(200), runif(200))
-  chosen <- .sirap_nn_index(xy)
+  chosen <- .sirup_nn_index(xy)
   xs <- xy[, 1]; ys <- xy[, 2]
   scan_query <- function(x, y) which.min((xs - x)^2 + (ys - y)^2)
   for (i in seq_len(20)) {
@@ -1157,16 +1157,16 @@ test_that(".sirap_nn_index scan backend agrees with whichever backend is chosen"
   }
 })
 
-test_that(".sirap_region_from_dominance selects by polygon_id or polygon label", {
+test_that(".sirup_region_from_dominance selects by polygon_id or polygon label", {
   skip_if_not_installed("SeuratObject")
 
   make_spatial <- function() {
-    s <- sirap_test_seurat(
+    s <- sirup_test_seurat(
       counts = matrix(1, nrow = 1, ncol = 2, dimnames = list("gene", c("cell1", "cell2")))
     )
     s$x <- c(0, 10); s$y <- c(0, 10); s
   }
-  x <- createSIRAP(
+  x <- createSIRUP(
     spatial = list(section_a = make_spatial(), section_b = make_spatial()),
     receptors = data.frame(
       barcode = c("cell1", "cell1"),
@@ -1191,11 +1191,11 @@ test_that(".sirap_region_from_dominance selects by polygon_id or polygon label",
   dom <- spatialCloneDominance(x, locus_val = "IGH")
 
   # Composite polygon_id selects ONE section only.
-  r_a <- SIRAP:::.sirap_region_from_dominance(dom, polygon_val = "section_a::gc1")
+  r_a <- SIRUP:::.sirup_region_from_dominance(dom, polygon_val = "section_a::gc1")
   expect_equal(nrow(r_a$receptors), 1L)
   expect_equal(as.character(r_a$receptors$sample), "section_a")
 
   # Clean label "gc1" matches both sections (backwards compatible).
-  r_all <- SIRAP:::.sirap_region_from_dominance(dom, polygon_val = "gc1")
+  r_all <- SIRUP:::.sirup_region_from_dominance(dom, polygon_val = "gc1")
   expect_equal(nrow(r_all$receptors), 2L)
 })

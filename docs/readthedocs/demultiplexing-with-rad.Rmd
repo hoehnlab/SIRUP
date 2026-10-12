@@ -1,8 +1,8 @@
 ---
-title: "Preparing FASTA with rrad for SIRAP"
+title: "Preparing FASTA with rrad for SIRUP"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Preparing FASTA with rrad for SIRAP}
+  %\VignetteIndexEntry{Preparing FASTA with rrad for SIRUP}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -13,8 +13,8 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 
 This guide prepares demultiplexed reads with the standalone
 [rrad package](https://github.com/indianewok/rrad), then passes an annotated
-FASTA file to SIRAP. Demultiplexing, layouts, whitelist discovery, and read
-reformatting are upstream steps. SIRAP begins with that file and performs
+FASTA file to SIRUP. Demultiplexing, layouts, whitelist discovery, and read
+reformatting are upstream steps. SIRUP begins with that file and performs
 IgBLAST annotation, filtering, clustering within barcodes, consensus generation,
 and IgBLAST annotation of the consensus sequences.
 
@@ -29,7 +29,7 @@ remotes::install_github("indianewok/rrad@v1.2.1")
 ```
 
 `rrad` is public and compiles its embedded RAD engine as part of R package
-installation. It does not require a separate RAD executable. SIRAP can process
+installation. It does not require a separate RAD executable. SIRUP can process
 an existing prepared FASTA without installing rrad.
 
 Small built-in resources are included in rrad. Large whitelists are downloaded
@@ -86,22 +86,22 @@ ACGTACGT
 
 `BARCODE` uses the nonempty spatial `BC:Z` tag when present, otherwise the
 corrected `CB:Z` tag. `UMI` comes from `UB:Z`; missing tags are omitted.
-Reads need a usable barcode for spatial clustering. SIRAP recognizes this
+Reads need a usable barcode for spatial clustering. SIRUP recognizes this
 canonical header form and the older `read1|umi:ACGT|barcode:BC01` form.
 
 Use `header_format = "presto"` explicitly: conversion to FASTA alone keeps
 SAM-style tags in the comment after whitespace, where IgBLAST does not retain
 them as part of the query identifier.
 
-## Begin SIRAP processing from FASTA
+## Begin SIRUP processing from FASTA
 
 Configure IgBLAST and its databases, pRESTO/Change-O, vsearch, and muscle before
 running this step. The example uses BCR databases named `IG_V`, `IG_D`,
 `IG_J`, and `IG_C` under `igblast_db_dir`. Per-segment path overrides are
-available in `?SIRAP::processSpatialSample`.
+available in `?SIRUP::processSpatialSample`.
 
 ```{r process-fasta}
-result <- SIRAP::processSpatialSample(
+result <- SIRUP::processSpatialSample(
   input = "prepared/sample-igblast.fasta",
   output_dir = "processed",
   receptor = "ig",
@@ -117,7 +117,7 @@ result$db_pass
 ```
 
 Ordinary FASTA input is detected automatically and receives the first IgBLAST
-pass. SIRAP then filters the AIRR calls, writes barcode-annotated spatial
+pass. SIRUP then filters the AIRR calls, writes barcode-annotated spatial
 FASTA, groups reads within each barcode, builds consensus sequences, and runs
 a second IgBLAST pass before writing the final AIRR table.
 

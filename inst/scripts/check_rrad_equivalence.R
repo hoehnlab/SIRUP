@@ -87,7 +87,7 @@ equivalence_parse_tags <- function(x) {
 
 equivalence_help <- function() {
   cat(paste(
-    "Compare 500 rrad-prepared reads through legacy and current SIRAP workflows.",
+    "Compare 500 rrad-prepared reads through legacy and current SIRUP workflows.",
     "",
     "Rscript inst/scripts/check_rrad_equivalence.R \\",
     "  --input reads.fasta.gz --output-dir NEW_DIRECTORY \\",
@@ -95,8 +95,8 @@ equivalence_help <- function() {
     "  --germline-glob '/path/imgt/*.fasta' --muscle /path/muscle \\",
     "  --receptor ig --organism human --threads 1",
     "",
-    "Optional: --sirap-repo CHECKOUT (load working source with pkgload)",
-    "  --baseline-repo CHECKOUT (default: --sirap-repo or working directory)",
+    "Optional: --sirup-repo CHECKOUT (load working source with pkgload)",
+    "  --baseline-repo CHECKOUT (default: --sirup-repo or working directory)",
     "  --baseline-ref REF (default: bb1b912ebc97f9daadd0c338d0d30031b1d1e1b3)",
     "  --igblast-exec PATH --aux-file PATH",
     "  --germline-db-v PATH --germline-db-d PATH --germline-db-j PATH",
@@ -113,7 +113,7 @@ equivalence_options <- function(args) {
     equivalence_help()
     return(NULL)
   }
-  allowed <- c("input", "output-dir", "sirap-repo", "baseline-repo", "baseline-ref",
+  allowed <- c("input", "output-dir", "sirup-repo", "baseline-repo", "baseline-ref",
                "igblast-base", "igblast-db-dir", "germline-glob", "muscle", "receptor",
                "organism", "threads", "aux-file", "igblast-exec", "germline-db-v",
                "germline-db-d", "germline-db-j", "c-region-db")
@@ -144,11 +144,11 @@ equivalence_main <- function(args = commandArgs(trailingOnly = TRUE)) {
   input <- normalizePath(path.expand(opt$input), mustWork = TRUE)
   out <- path.expand(opt[["output-dir"]])
   if (file.exists(out) || dir.exists(out)) stop("Output directory must be new: ", out)
-  if (!is.null(opt[["sirap-repo"]])) pkgload::load_all(opt[["sirap-repo"]], quiet = TRUE, export_all = FALSE)
-  ns <- asNamespace("SIRAP")
-  if (!"input" %in% names(formals(ns$processSpatialSample))) stop("Load the reviewed SIRAP version with --sirap-repo.")
+  if (!is.null(opt[["sirup-repo"]])) pkgload::load_all(opt[["sirup-repo"]], quiet = TRUE, export_all = FALSE)
+  ns <- asNamespace("SIRUP")
+  if (!"input" %in% names(formals(ns$processSpatialSample))) stop("Load the reviewed SIRUP version with --sirup-repo.")
   baseline_repo <- opt[["baseline-repo"]]
-  if (is.null(baseline_repo)) baseline_repo <- if (is.null(opt[["sirap-repo"]])) getwd() else opt[["sirap-repo"]]
+  if (is.null(baseline_repo)) baseline_repo <- if (is.null(opt[["sirup-repo"]])) getwd() else opt[["sirup-repo"]]
   git <- function(args) {
     result <- system2("git", shQuote(c("-C", baseline_repo, args)), stdout = TRUE, stderr = TRUE)
     if (!is.null(attr(result, "status"))) stop("Cannot read baseline Git revision: ", paste(result, collapse = "\n"))
@@ -178,7 +178,7 @@ equivalence_main <- function(args = commandArgs(trailingOnly = TRUE)) {
   germlines <- normalizePath(germlines, mustWork = TRUE)
   # Database-path resolution is shared configuration for both arms, so use
   # the package's own resolver instead of a copy that could drift from it.
-  dbs <- ns$.sirap_igblast_db_paths(
+  dbs <- ns$.sirup_igblast_db_paths(
     igblast_db_dir = opt[["igblast-db-dir"]],
     receptor = opt$receptor,
     germline_db_v = opt[["germline-db-v"]],
@@ -195,14 +195,14 @@ equivalence_main <- function(args = commandArgs(trailingOnly = TRUE)) {
                    input_bytes = input_info$size,
                    input_modified_utc = format(input_info$mtime, tz = "UTC", usetz = TRUE),
                    R = R.version.string,
-                   SIRAP_version = as.character(utils::packageVersion("SIRAP")),
+                   SIRUP_version = as.character(utils::packageVersion("SIRUP")),
                    rrad_version = if (requireNamespace("rrad", quietly = TRUE)) as.character(utils::packageVersion("rrad")) else NA_character_,
                    tools = tool_paths, database_paths = dbs,
                    germline_md5 = tools::md5sum(germlines), status = "running")
-  if (!is.null(opt[["sirap-repo"]])) {
-    manifest$current_git <- system2("git", shQuote(c("-C", opt[["sirap-repo"]], "rev-parse", "HEAD")), stdout = TRUE)
-    manifest$current_worktree <- system2("git", shQuote(c("-C", opt[["sirap-repo"]], "status", "--porcelain")), stdout = TRUE)
-    manifest$current_source_md5 <- tools::md5sum(file.path(opt[["sirap-repo"]],
+  if (!is.null(opt[["sirup-repo"]])) {
+    manifest$current_git <- system2("git", shQuote(c("-C", opt[["sirup-repo"]], "rev-parse", "HEAD")), stdout = TRUE)
+    manifest$current_worktree <- system2("git", shQuote(c("-C", opt[["sirup-repo"]], "status", "--porcelain")), stdout = TRUE)
+    manifest$current_source_md5 <- tools::md5sum(file.path(opt[["sirup-repo"]],
       c("R/processing.R", "R/igblast.R", "R/r_commands.R", "inst/scripts/check_rrad_equivalence.R")))
   }
   manifest$tool_versions <- lapply(names(tool_paths), function(key) {

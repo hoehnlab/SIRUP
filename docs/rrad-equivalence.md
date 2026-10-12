@@ -4,21 +4,21 @@ See the [recorded BCR and TCR results](rrad-equivalence-results.md) for the
 2026-09-07 real-tool runs and their scope limitations.
 
 This opt-in check compares the reviewed `processSpatialSample()` implementation
-against the manual workflow plus the old six-command pRESTO pipeline from SIRAP
+against the manual workflow plus the old six-command pRESTO pipeline from SIRUP
 commit `bb1b912ebc97f9daadd0c338d0d30031b1d1e1b3`. It calls real IgBLAST,
 pRESTO, Change-O, vsearch and MUSCLE. It does not download tools, references or
 reads, and it is separate from the mocked tests run during ordinary package checks.
 
 Use FASTA exported by rrad with `to_fasta = TRUE, header_format = "presto"`.
 Headers must retain `|BARCODE=...` and may contain `|UMI=...`, before any whitespace.
-Run the following from the SIRAP checkout, replacing paths with your installed
+Run the following from the SIRUP checkout, replacing paths with your installed
 tools, reference databases and prepared reads. The baseline commit must exist
-in the checkout's Git history. `--sirap-repo .` uses `pkgload` to load the code
-under review, including uncommitted fixes; omit it to test installed SIRAP.
+in the checkout's Git history. `--sirup-repo .` uses `pkgload` to load the code
+under review, including uncommitted fixes; omit it to test installed SIRUP.
 
 ```sh
 Rscript inst/scripts/check_rrad_equivalence.R \
-  --sirap-repo . --baseline-repo . \
+  --sirup-repo . --baseline-repo . \
   --input /data/rrad_prepared.fasta.gz \
   --output-dir /data/validation/rrad_ig_500 \
   --igblast-base /software/igblast \

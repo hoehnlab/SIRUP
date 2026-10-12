@@ -1,4 +1,4 @@
-# Minimal multi-spatial SIRAP workflow:
+# Minimal multi-spatial SIRUP workflow:
 # two tissue sections from one sample-level AIRR table, stored polygons,
 # clone dominance, and section-wise plots.
 
@@ -38,7 +38,7 @@ receptors <- data.frame(
   stringsAsFactors = FALSE
 )
 
-sirap <- createSIRAP(
+sirup <- createSIRUP(
   spatial = spatial,
   receptors = receptors,
   spatial_id = "spatial_id",
@@ -57,24 +57,24 @@ gc_polygons <- data.frame(
   stringsAsFactors = FALSE
 )
 
-sirap <- addPolygons(sirap, polygons = gc_polygons)
+sirup <- addPolygons(sirup, polygons = gc_polygons)
 
-dominance <- spatialCloneDominance(sirap)
+dominance <- spatialCloneDominance(sirup)
 
 receptor_plots <- plotReceptors(
-  sirap,
+  sirup,
   group = "locus",
   combine = FALSE
 )
 
 dominance_plots <- plotSpatialRegionReceptors(
   dominance,
-  sirap,
+  sirup,
   combine = FALSE
 )
 
 example_result <- list(
-  sirap = sirap,
+  sirup = sirup,
   dominance = dominance,
   receptor_plots = receptor_plots,
   dominance_plots = dominance_plots

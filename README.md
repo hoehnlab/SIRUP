@@ -1,8 +1,8 @@
-# SIRAP
+# SIRUP
 
-Spatial Immune Receptor Analysis and Processing: how sweet is that?
+Spatial Immune Receptor Utilities and Processing: how sweet is that?
 
-`SIRAP` is an R package-in-progress for long-read spatial immune receptor
+`SIRUP` is an R package-in-progress for long-read spatial immune receptor
 sequencing data. Its processing pipeline starts from prepared, demultiplexed
 FASTA reads with barcode annotations and runs a first IgBLAST pass, read
 filtering, clustering within each barcode, consensus generation, and a second
@@ -16,7 +16,7 @@ existing thymus BCR/TCR analysis scripts into package functions for:
 - adding tissue coordinates (`barcode`, `x`, `y`)
 - generating pRESTO/IgBLAST shell scripts for barcode-cluster consensus calling
 - collapsing consensus calls to top sequences per barcode
-- validated SIRAP objects pairing a spatial Seurat object with a tibble-backed
+- validated SIRUP objects pairing a spatial Seurat object with a tibble-backed
   AIRR-style receptor table
 - lightweight clone/spatial visualization helpers
 - spatial polygon selection and clonal dominance summaries
@@ -25,19 +25,19 @@ existing thymus BCR/TCR analysis scripts into package functions for:
 
 ```r
 install.packages("remotes")
-remotes::install_local("/path/to/SIRAP")
+remotes::install_local("/path/to/SIRUP")
 ```
 
 Processing requires IgBLAST, its reference databases, the pRESTO/Change-O tools,
 vsearch, and muscle. Configure their paths for your installation; see
 `?processSpatialSample` and `?runIgblast`.
 
-## Prepare FASTA, then process it in SIRAP
+## Prepare FASTA, then process it in SIRUP
 
-Demultiplexing and read-layout/whitelist setup happen upstream of SIRAP.
+Demultiplexing and read-layout/whitelist setup happen upstream of SIRUP.
 The standalone [rrad package](https://github.com/indianewok/rrad) is one way
 to prepare those reads. Install it separately when using the preparation
-example below; SIRAP does not require rrad to process an existing FASTA.
+example below; SIRUP does not require rrad to process an existing FASTA.
 
 ```r
 # Separate upstream preparation with rrad:
@@ -54,8 +54,8 @@ rrad::rad_reformat(
   header_format = "presto"
 )
 
-# SIRAP begins at the prepared FASTA and runs both IgBLAST passes:
-result <- SIRAP::processSpatialSample(
+# SIRUP begins at the prepared FASTA and runs both IgBLAST passes:
+result <- SIRUP::processSpatialSample(
   input = "prepared/sample-igblast.fasta",
   output_dir = "processed",
   receptor = "ig",
@@ -72,7 +72,7 @@ input runs the first annotation pass automatically. Use
 and formatted for within-barcode consensus; that entry point skips the first
 IgBLAST pass.
 
-See [Preparing FASTA with rrad for SIRAP](docs/readthedocs/markdown/demultiplexing-with-rad.md)
+See [Preparing FASTA with rrad for SIRUP](docs/readthedocs/markdown/demultiplexing-with-rad.md)
 for the input contract, whitelist downloads, and Visium HD preparation, and
 [Custom read layouts and whitelists](docs/readthedocs/markdown/custom-read-layouts-with-rad.md)
 for custom upstream preparation.
@@ -80,7 +80,7 @@ for custom upstream preparation.
 ## Minimal preprocessing example
 
 ```r
-library(SIRAP)
+library(SIRUP)
 
 m1_bcr_heavy <- data.table::fread("igblast_bcr.tsv")
 m1_bcr_heavy <- extractSpatialIds(
@@ -144,12 +144,12 @@ top_per_barcode <- collapseTopConsensusPerSpatialId(processed, ties = "all")
 
 ## Pair spatial and receptor data
 
-`createSIRAP()` records the relationship between a spatial Seurat object and
+`createSIRUP()` records the relationship between a spatial Seurat object and
 an AIRR-style receptor table. The receptor component is stored as a tibble, and
 unmatched bulk or other nonspatial receptor rows are retained.
 
 ```r
-sirap <- createSIRAP(
+sirup <- createSIRUP(
   spatial = seurat_object,
   receptors = cloned_receptors,
   spatial_id = "barcode_8um",
@@ -158,62 +158,62 @@ sirap <- createSIRAP(
   swap_coords = FALSE
 )
 
-sirap
-getReceptors(sirap)
-listAnalyses(sirap)
+sirup
+getReceptors(sirup)
+listAnalyses(sirup)
 
 # Work with the receptor table directly when an external function needs it.
 clone_counts <- dplyr::count(
-  getReceptors(sirap),
+  getReceptors(sirup),
   clone_id,
   sort = TRUE
 )
 
 # Store a derived result with the data that produced it.
-sirap <- setAnalysis(sirap, "clone_counts", clone_counts)
-getAnalysis(sirap, "clone_counts")
+sirup <- setAnalysis(sirup, "clone_counts", clone_counts)
+getAnalysis(sirup, "clone_counts")
 
 plotReceptors(
-  object = sirap,
+  object = sirup,
   group = "clone_id"
 )
 
 spatialExpressionPlot(
-  object = sirap,
+  object = sirup,
   features = "MS4A1"
 )
 
-spatialReceptorSummary(sirap)
+spatialReceptorSummary(sirup)
 ```
 
 Read-only plotting, spatial-analysis, and receptor-summary functions accept a
-SIRAP object directly. Functions continue to accept separate Seurat and
+SIRUP object directly. Functions continue to accept separate Seurat and
 receptor objects, so existing workflows remain supported.
 
-The component helpers work with functions from SIRAP, other packages, or your
+The component helpers work with functions from SIRUP, other packages, or your
 own code:
 
 - `updateReceptors()`, `updateSpatial()`, and `updateAnalysis()` put the result
-  back into a returned SIRAP object.
+  back into a returned SIRUP object.
 - `getReceptors()`, `getSpatial()`, and `getAnalysis()` return stored data
-  when a function should inspect it without modifying the SIRAP object.
+  when a function should inspect it without modifying the SIRUP object.
 - `setAnalysis()`, `getAnalysis()`, `listAnalyses()`, and `removeAnalysis()`
   manage arbitrary derived results, including Dowser clones or trees and
   spatial statistics.
 
 This means clone calling or germline creation can be run directly against the
 stored receptor table, for example
-`updateReceptors(sirap, scoper::hierarchicalClones, ...)`. A conventional
+`updateReceptors(sirup, scoper::hierarchicalClones, ...)`. A conventional
 `clone_id` column added by the function is recorded automatically.
 
-## Save and load a SIRAP object
+## Save and load a SIRUP object
 
-`saveSIRAP()` writes a validated object to a single RDS file and `readSIRAP()`
+`saveSIRUP()` writes a validated object to a single RDS file and `readSIRUP()`
 reads it back. Unlike a bare `saveRDS()`/`readRDS()`, this pair validates on
-write, records the SIRAP and Seurat versions used, upgrades older objects to the
+write, records the SIRUP and Seurat versions used, upgrades older objects to the
 current schema, warns on version drift, and re-validates on read.
 
 ```r
-saveSIRAP(sirap, "m1.sirap.rds")
-sirap <- readSIRAP("m1.sirap.rds")
+saveSIRUP(sirup, "m1.sirup.rds")
+sirup <- readSIRUP("m1.sirup.rds")
 ```

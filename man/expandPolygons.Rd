@@ -14,7 +14,7 @@ expandPolygons(
 }
 \arguments{
 \item{polygons}{Polygons to expand. Either a flat data frame of vertices
-(with \code{x}, \code{y}, and an optional polygon ID column), or a SIRAP object
+(with \code{x}, \code{y}, and an optional polygon ID column), or a SIRUP object
 whose stored polygons are expanded.}
 
 \item{delta}{Distance each vertex moves outward, in coordinate units. This
@@ -29,7 +29,7 @@ is used if present; otherwise all rows form one polygon.}
 }
 \value{
 The expanded polygons in the same form as the input: a data frame
-for a data-frame input, or an updated SIRAP object for a SIRAP object
+for a data-frame input, or an updated SIRUP object for a SIRUP object
 input.
 }
 \description{

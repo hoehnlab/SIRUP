@@ -23,21 +23,21 @@ assignReceptorPolygons(
 )
 }
 \arguments{
-\item{receptors}{AIRR-style receptor data frame, or a SIRAP object when
+\item{receptors}{AIRR-style receptor data frame, or a SIRUP object when
 \code{object} is omitted.}
 
-\item{object}{Seurat object with spatial coordinates, or a SIRAP object.}
+\item{object}{Seurat object with spatial coordinates, or a SIRUP object.}
 
 \item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
 \code{y} columns by default. If a \code{polygon} column is present, each polygon is
-evaluated independently. If \code{object} is a SIRAP object and \code{polygon} is
+evaluated independently. If \code{object} is a SIRUP object and \code{polygon} is
 omitted, the object's stored polygons are used.}
 
 \item{column}{Column added to the returned receptor table with polygon
 membership.}
 
 \item{spatial_id}{Column in \code{receptors} matching Seurat spot/cell spatial IDs.
-If \code{NULL}, a spatial ID-like column is guessed or pulled from the SIRAP
+If \code{NULL}, a spatial ID-like column is guessed or pulled from the SIRUP
 object.}
 
 \item{images}{Optional Seurat image names to use for spatial coordinates.}
@@ -47,7 +47,7 @@ object.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRAP object metadata.}
+value must be supplied explicitly or by SIRUP object metadata.}
 
 \item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
 exists.}
@@ -75,6 +75,6 @@ directly from coordinate columns in \code{receptors}.
 Receptors in spatial IDs inside overlapping polygons are assigned to the
 smallest polygon by area in the primary polygon column. Additional logical
 columns named \verb{polygon_<ID>} record membership in each individual polygon.
-When \code{receptors} is a SIRAP object and \code{object} and \code{polygon} are omitted,
+When \code{receptors} is a SIRUP object and \code{object} and \code{polygon} are omitted,
 the stored spatial object and polygons are used.
 }

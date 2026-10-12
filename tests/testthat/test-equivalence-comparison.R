@@ -1,6 +1,6 @@
 equivalence_script <- test_path("..", "..", "inst", "scripts", "check_rrad_equivalence.R")
 if (!file.exists(equivalence_script)) {
-  equivalence_script <- system.file("scripts", "check_rrad_equivalence.R", package = "SIRAP")
+  equivalence_script <- system.file("scripts", "check_rrad_equivalence.R", package = "SIRUP")
 }
 equivalence_helpers <- new.env(parent = globalenv())
 sys.source(equivalence_script, equivalence_helpers)

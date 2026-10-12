@@ -25,7 +25,7 @@ We should replace this with a small packaged toy dataset later.
 ## Setup
 
 ```{r setup}
-library(SIRAP)
+library(SIRUP)
 library(dplyr)
 library(ggplot2)
 library(cowplot)
@@ -41,7 +41,7 @@ sampleLower <- tolower(sampleId)
 nproc <- 8
 
 thymusDir <- normalizePath("../../Thymus_VisiumHD", mustWork = TRUE)
-outDir <- file.path(thymusDir, "SIRAP_walkthrough", sampleId)
+outDir <- file.path(thymusDir, "SIRUP_walkthrough", sampleId)
 finalAirrDir <- file.path(outDir, "03_final_spatial_airr")
 plotDir <- file.path(outDir, "plots")
 dir.create(plotDir, recursive = TRUE, showWarnings = FALSE)
@@ -61,8 +61,8 @@ tcrTopBarcode <- airr::read_rearrangement(finalTCRPath)
 
 ## Call BCR and TCR Clones
 
-SIRAP does not wrap `scoper` clone calling. Use `scoper` directly, then pass the
-resulting data frames to SIRAP plotting functions.
+SIRUP does not wrap `scoper` clone calling. Use `scoper` directly, then pass the
+resulting data frames to SIRUP plotting functions.
 
 ```{r call-clones}
 bcrClones <- scoper::hierarchicalClones(
@@ -89,13 +89,13 @@ bcrClones <- readRDS(bcrClonesPath)
 tcrClones <- readRDS(tcrClonesPath)
 ```
 
-Keep each clone table paired with its spatial transcriptomics data in a SIRAP
-object. `createSIRAP()` converts the receptor table to a tibble and records the
-receptor field mappings in the SIRAP metadata without copying receptor columns
+Keep each clone table paired with its spatial transcriptomics data in a SIRUP
+object. `createSIRUP()` converts the receptor table to a tibble and records the
+receptor field mappings in the SIRUP metadata without copying receptor columns
 into Seurat metadata.
 
-```{r create-clone-sirap-objects}
-bcrSirap <- createSIRAP(
+```{r create-clone-sirup-objects}
+bcrSirup <- createSIRUP(
   spatial = thymus,
   receptors = bcrClones,
   spatial_id = "barcode_8um",
@@ -105,7 +105,7 @@ bcrSirap <- createSIRAP(
   metadata = list(sample_id = sampleId, receptor_type = "BCR")
 )
 
-tcrSirap <- createSIRAP(
+tcrSirup <- createSIRUP(
   spatial = thymus,
   receptors = tcrClones,
   spatial_id = "barcode_8um",
@@ -117,8 +117,8 @@ tcrSirap <- createSIRAP(
 ```
 
 The object can also be created before clone calling. In that workflow,
-`updateReceptors(bcrSirap, scoper::hierarchicalClones, ...)` passes the stored
-receptor table to `hierarchicalClones()` and returns a SIRAP object containing
+`updateReceptors(bcrSirup, scoper::hierarchicalClones, ...)` passes the stored
+receptor table to `hierarchicalClones()` and returns a SIRUP object containing
 the clone-called table. The usual `clone_id` output is recorded automatically.
 The same pattern works with `dowser::createGermlines()` or another function
 whose first argument is a receptor table. Use `getReceptors()` when the
@@ -128,10 +128,10 @@ Dowser-formatted clones and trees can be retained without adding a
 package-specific slot:
 
 ```{r store-tree-results, eval=FALSE}
-bcrSirap <- setAnalysis(bcrSirap, "dowser_clones", formattedBcrClones)
-bcrSirap <- setAnalysis(bcrSirap, "dowser_trees", bcrTrees)
+bcrSirup <- setAnalysis(bcrSirup, "dowser_clones", formattedBcrClones)
+bcrSirup <- setAnalysis(bcrSirup, "dowser_trees", bcrTrees)
 
-length(getAnalysis(bcrSirap, "dowser_trees"))
+length(getAnalysis(bcrSirup, "dowser_trees"))
 ```
 
 ## Choose Clones to Plot
@@ -169,7 +169,7 @@ directly. The `group_val` argument selects the clones to draw.
 
 ```{r clone-location-plots}
 bcrClonePlot <- plotReceptors(
-  object = bcrSirap,
+  object = bcrSirup,
   group = "clone_id",
   group_val = bcrCloneIds,
   receptor_size = 1.7,
@@ -177,7 +177,7 @@ bcrClonePlot <- plotReceptors(
 )
 
 tcrClonePlot <- plotReceptors(
-  object = tcrSirap,
+  object = tcrSirup,
   group = "clone_id",
   group_val = tcrCloneIds,
   receptor_size = 1.7,
@@ -189,7 +189,7 @@ cowplot::plot_grid(bcrClonePlot, tcrClonePlot, ncol = 2)
 
 ## Build BCR Trees with Dowser
 
-SIRAP keeps tree building in `dowser`, then focuses on coloring and pairing
+SIRUP keeps tree building in `dowser`, then focuses on coloring and pairing
 trees with spatial plots.
 
 ```{r build-bcr-trees}
@@ -237,7 +237,7 @@ each tip gets its own color.
 ```{r tree-spatial-pairs}
 pairedTreeSpatialPlots <- plotSpatialCloneTreePairs(
   bcrTrees,
-  object = bcrSirap,
+  object = bcrSirup,
   clone_val = bcrCloneIds,
   id = "sequence_id",
   treescale = 0.01,
@@ -268,7 +268,7 @@ bcrTreesClustered <- clusterTreesTips(
 
 pairedTreeSpatialClusterPlots <- plotSpatialCloneTreePairs(
   bcrTreesClustered,
-  object = bcrSirap,
+  object = bcrSirup,
   clone_val = bcrCloneIds,
   id = "sequence_id",
   color_by = "tree_cluster",
@@ -285,7 +285,7 @@ cowplot::plot_grid(
 )
 ```
 
-If you want SIRAP to choose a separate cluster number for each tree, set
+If you want SIRUP to choose a separate cluster number for each tree, set
 `k = "auto"` and adjust `k_range` or `improvement_threshold` as needed.
 
 ```{r tree-tip-clusters-auto}

@@ -23,10 +23,10 @@ polygonDiversity(
 )
 }
 \arguments{
-\item{receptors}{A SIRAP object or an AIRR-style receptor data frame.}
+\item{receptors}{A SIRUP object or an AIRR-style receptor data frame.}
 
 \item{polygons}{Optional polygon table used to define the output polygon
-order. When \code{NULL}, polygon IDs are taken from the SIRAP object or from
+order. When \code{NULL}, polygon IDs are taken from the SIRUP object or from
 \code{polygon_id} values already present in \code{receptors}.}
 
 \item{polygon_id}{Primary polygon assignment column in \code{receptors}.}
@@ -34,7 +34,7 @@ order. When \code{NULL}, polygon IDs are taken from the SIRAP object or from
 \item{mode}{\code{"by_polygon"} runs the diversity calculation once per polygon;
 \code{"all_polygons"} runs it once on all receptors in any polygon.}
 
-\item{analysis_name}{Name used when storing the diversity result in a SIRAP
+\item{analysis_name}{Name used when storing the diversity result in a SIRUP
 object.}
 
 \item{clone}{alakazam: name of the data column containing clone identifiers.}
@@ -64,14 +64,14 @@ between 0 and 1.}
 \item{...}{alakazam: additional arguments to pass to estimateAbundance.
 Additional arguments are ignored if a AbundanceCurve is provided as input.}
 
-\item{validate}{Whether to validate an updated SIRAP object.}
+\item{validate}{Whether to validate an updated SIRUP object.}
 }
 \value{
-An updated SIRAP object for SIRAP input, otherwise diversity result(s).
+An updated SIRUP object for SIRUP input, otherwise diversity result(s).
 }
 \description{
 Runs \code{\link[alakazam:alphaDiversity]{alakazam::alphaDiversity()}} on receptor rows in each polygon, or on all
 receptors that fall in any polygon. Polygons with fewer than \code{min_n} receptor
-rows return \code{NULL}. SIRAP input stores the result as an analysis and returns
+rows return \code{NULL}. SIRUP input stores the result as an analysis and returns
 the updated object.
 }

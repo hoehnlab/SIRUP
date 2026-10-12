@@ -1,7 +1,7 @@
 test_that("gap length helpers work", {
-  expect_equal(.sirap_max_gap_length("AA...TT..G"), 3L)
-  expect_equal(.sirap_opening_gap_length("...A.."), 3L)
-  expect_equal(.sirap_opening_gap_length("A.."), 0L)
+  expect_equal(.sirup_max_gap_length("AA...TT..G"), 3L)
+  expect_equal(.sirup_opening_gap_length("...A.."), 3L)
+  expect_equal(.sirup_opening_gap_length("A.."), 0L)
 })
 
 test_that("filterAirr filters by locus and lengths", {

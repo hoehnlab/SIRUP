@@ -63,7 +63,7 @@ b0a44d77d4d280ddddf8de526be38e98f737cb65bc3b0c50c2c72f495cf65350
 
 ## Tools and references
 
-The runs used R 4.5.2, SIRAP 0.0.0.9001, rrad 1.2.1, IgBLAST 1.22.0,
+The runs used R 4.5.2, SIRUP 0.0.0.9001, rrad 1.2.1, IgBLAST 1.22.0,
 pRESTO 0.7.9, Change-O 1.3.4, MUSCLE 3.8.1551 and vsearch 2.31.0.
 The runner's `--threads` setting was 1; MakeDb retained its own default worker
 count. This is a correctness test, not a performance benchmark.
@@ -86,12 +86,12 @@ comparisons. The runner rejects missing records, empty checkpoints, failed tools
 and mismatches with a nonzero exit status.
 
 Local evidence from these runs is under
-`/tmp/sirap-equivalence-input.7zVFnH/`: `bcr_results/` and `tcr_results/` contain
+`/tmp/sirup-equivalence-input.7zVFnH/`: `bcr_results/` and `tcr_results/` contain
 the selected FASTA, read IDs, both arms' outputs, `equivalence.tsv` and manifests.
 `prepare_inputs.R`, `run_equivalence.R`, and `input_provenance.rds` record the
 exact preparation and invocation. Per-reference checksums and database-building
 commands are in
-`/tmp/sirap-equivalence-resources.Ykgjfz/reference_manifest.json`.
+`/tmp/sirup-equivalence-resources.Ykgjfz/reference_manifest.json`.
 These temporary artifacts are local, not included in Git, and may be removed
 by operating-system cleanup. Preserve them separately before sharing or
 attempting an exact replay; the committed runner and this report persist.

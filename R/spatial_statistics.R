@@ -1,20 +1,20 @@
 
 #' Calculate global Moran's I for a spatial variable
 #'
-#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param object Seurat object with spatial images, or a SIRUP object.
 #' @param variable Feature or metadata column to analyze.
 #' @param variable_type One of `feature`, `metadata`, `receptor`, or `clone`.
 #'   Use `clone` to calculate Moran's I for a binary indicator marking spots
 #'   that contain a particular clone ID.
 #' @param value Optional metadata value to convert to a binary indicator.
 #' @param receptors AIRR-style receptor data frame. Required when
-#'   `variable_type = "receptor"` or `"clone"` unless `object` is a SIRAP
+#'   `variable_type = "receptor"` or `"clone"` unless `object` is a SIRUP
 #'   object.
 #' @param spatial_id Spatial ID column in `receptors`. Defaults to `NULL`; when
-#'   `object` is a SIRAP object, the stored receptor ID field is used.
+#'   `object` is a SIRUP object, the stored receptor ID field is used.
 #'   Pass this explicitly when using separate Seurat and receptor objects.
 #' @param clone Clone column in `receptors`; used only when
-#'   `variable_type = "clone"`. Defaults to `NULL`; when `object` is a SIRAP
+#'   `variable_type = "clone"`. Defaults to `NULL`; when `object` is a SIRUP
 #'   object, the stored receptor clone field is used when available.
 #' @param assay Optional assay to use when `variable_type = "feature"`.
 #' @param layer Seurat expression layer to fetch for features.
@@ -22,7 +22,7 @@
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRAP object metadata.
+#'   value must be supplied explicitly or by SIRUP object metadata.
 #' @param radius Optional distance radius defining neighborhoods.
 #' @param k Number of nearest neighbors when `radius` is `NULL`.
 #' @param alternative Alternative hypothesis passed to `spdep::moran.test()`.
@@ -44,7 +44,7 @@ spatialMoran <- function(object,
                          k = 6,
                          alternative = "greater") {
   .require_namespace("spdep")
-  dat <- .sirap_spatial_variable_values(
+  dat <- .sirup_spatial_variable_values(
     object = object,
     variable = variable,
     variable_type = variable_type,
@@ -60,9 +60,9 @@ spatialMoran <- function(object,
   )
   dat <- dat[is.finite(dat$value), , drop = FALSE]
   .check_spatial_values(dat$value)
-  groups <- .sirap_spatial_stat_groups(dat)
+  groups <- .sirup_spatial_stat_groups(dat)
   if (length(groups) > 1L) {
-    neighbors <- lapply(groups, function(group_dat) .sirap_spatial_neighbors(group_dat, radius = radius, k = k))
+    neighbors <- lapply(groups, function(group_dat) .sirup_spatial_neighbors(group_dat, radius = radius, k = k))
     weights <- lapply(neighbors, spdep::nb2listw, style = "W", zero.policy = TRUE)
     tests <- lapply(names(groups), function(name) {
       group_dat <- groups[[name]]
@@ -94,7 +94,7 @@ spatialMoran <- function(object,
     ))
   }
 
-  nb <- .sirap_spatial_neighbors(dat, radius = radius, k = k)
+  nb <- .sirup_spatial_neighbors(dat, radius = radius, k = k)
   listw <- spdep::nb2listw(nb, style = "W", zero.policy = TRUE)
   test <- spdep::moran.test(dat$value, listw, zero.policy = TRUE, alternative = alternative)
 
@@ -116,7 +116,7 @@ spatialMoran <- function(object,
 #' expression of one gene is associated with the neighboring expression of a
 #' second gene.
 #'
-#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param object Seurat object with spatial images, or a SIRUP object.
 #' @param x First feature or numeric metadata column to analyze.
 #' @param y Second feature or numeric metadata column to analyze.
 #' @param x_type Type of `x`: either `feature` or `metadata`.
@@ -126,7 +126,7 @@ spatialMoran <- function(object,
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before calculating neighborhoods. If `NULL`, the value must be
-#'   supplied explicitly or by SIRAP object metadata.
+#'   supplied explicitly or by SIRUP object metadata.
 #' @param radius Optional distance radius defining neighborhoods.
 #' @param k Number of nearest neighbors when `radius` is `NULL`. Use `k = 8`
 #'   for Visium HD, whose bins form a square grid, and `k = 6` for the
@@ -170,7 +170,7 @@ spatialLee <- function(object,
   y_type <- match.arg(y_type)
   method <- match.arg(method)
 
-  x_dat <- .sirap_spatial_variable_values(
+  x_dat <- .sirup_spatial_variable_values(
     object = object,
     variable = x,
     variable_type = x_type,
@@ -184,7 +184,7 @@ spatialLee <- function(object,
     image_scale = image_scale,
     swap_coords = swap_coords
   )
-  y_dat <- .sirap_spatial_variable_values(
+  y_dat <- .sirup_spatial_variable_values(
     object = object,
     variable = y,
     variable_type = y_type,
@@ -199,7 +199,7 @@ spatialLee <- function(object,
     swap_coords = swap_coords
   )
 
-  lee_by <- c("cell", "x", ".sirap_y", "image")
+  lee_by <- c("cell", "x", ".sirup_y", "image")
   if ("sample" %in% colnames(x_dat) && "sample" %in% colnames(y_dat)) {
     lee_by <- c("sample", lee_by)
   }
@@ -213,12 +213,12 @@ spatialLee <- function(object,
   .check_spatial_values(dat$value_x)
   .check_spatial_values(dat$value_y)
 
-  groups <- .sirap_spatial_stat_groups(dat)
+  groups <- .sirup_spatial_stat_groups(dat)
   if (length(groups) > 1L) {
     out <- lapply(groups, function(group_dat) {
       .check_spatial_values(group_dat$value_x)
       .check_spatial_values(group_dat$value_y)
-      .sirap_spatial_lee_one(
+      .sirup_spatial_lee_one(
         dat = group_dat,
         radius = radius,
         k = k,
@@ -255,7 +255,7 @@ spatialLee <- function(object,
     ))
   }
 
-  .sirap_spatial_lee_one(
+  .sirup_spatial_lee_one(
     dat = dat,
     radius = radius,
     k = k,
@@ -270,7 +270,7 @@ spatialLee <- function(object,
   )
 }
 
-.sirap_spatial_lee_one <- function(dat,
+.sirup_spatial_lee_one <- function(dat,
                                    radius,
                                    k,
                                    alternative,
@@ -281,7 +281,7 @@ spatialLee <- function(object,
                                    y,
                                    x_type = NULL,
                                    y_type = NULL) {
-  nb <- .sirap_spatial_neighbors(dat, radius = radius, k = k)
+  nb <- .sirup_spatial_neighbors(dat, radius = radius, k = k)
   listw <- spdep::nb2listw(nb, style = "W", zero.policy = TRUE)
   if (method == "mc") {
     # Permute the labels and recompute L, keeping the weights sparse. This is
@@ -356,20 +356,20 @@ spatialLee <- function(object,
 
 #' Calculate local Moran's I/LISA for a spatial variable
 #'
-#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param object Seurat object with spatial images, or a SIRUP object.
 #' @param variable Feature or metadata column to analyze.
 #' @param variable_type One of `feature`, `metadata`, `receptor`, or `clone`.
 #'   Use `clone` to calculate local Moran's I for a binary indicator marking
 #'   spots that contain a particular clone ID.
 #' @param value Optional metadata value to convert to a binary indicator.
 #' @param receptors AIRR-style receptor data frame. Required when
-#'   `variable_type = "receptor"` or `"clone"` unless `object` is a SIRAP
+#'   `variable_type = "receptor"` or `"clone"` unless `object` is a SIRUP
 #'   object.
 #' @param spatial_id Spatial ID column in `receptors`. Defaults to `NULL`; when
-#'   `object` is a SIRAP object, the stored receptor ID field is used.
+#'   `object` is a SIRUP object, the stored receptor ID field is used.
 #'   Pass this explicitly when using separate Seurat and receptor objects.
 #' @param clone Clone column in `receptors`; used only when
-#'   `variable_type = "clone"`. Defaults to `NULL`; when `object` is a SIRAP
+#'   `variable_type = "clone"`. Defaults to `NULL`; when `object` is a SIRUP
 #'   object, the stored receptor clone field is used when available.
 #' @param assay Optional assay to use when `variable_type = "feature"`.
 #' @param layer Seurat expression layer to fetch for features.
@@ -377,7 +377,7 @@ spatialLee <- function(object,
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRAP object metadata.
+#'   value must be supplied explicitly or by SIRUP object metadata.
 #' @param radius Optional distance radius defining local neighborhoods. When
 #'   `NULL`, k-nearest neighbors are used.
 #' @param k Number of nearest neighbors when `radius` is `NULL`.
@@ -399,7 +399,7 @@ spatialLocalMoran <- function(object,
                               k = 6) {
   .require_namespace("spdep")
 
-  dat <- .sirap_spatial_variable_values(
+  dat <- .sirup_spatial_variable_values(
     object = object,
     variable = variable,
     variable_type = variable_type,
@@ -415,20 +415,20 @@ spatialLocalMoran <- function(object,
   )
   dat <- dat[is.finite(dat$value), , drop = FALSE]
   .check_spatial_values(dat$value)
-  groups <- .sirap_spatial_stat_groups(dat)
+  groups <- .sirup_spatial_stat_groups(dat)
   if (length(groups) > 1L) {
     out <- lapply(groups, function(group_dat) {
       .check_spatial_values(group_dat$value)
-      .sirap_spatial_local_moran_one(group_dat, radius = radius, k = k)
+      .sirup_spatial_local_moran_one(group_dat, radius = radius, k = k)
     })
     return(dplyr::bind_rows(out))
   }
 
-  .sirap_spatial_local_moran_one(dat, radius = radius, k = k)
+  .sirup_spatial_local_moran_one(dat, radius = radius, k = k)
 }
 
-.sirap_spatial_local_moran_one <- function(dat, radius, k) {
-  nb <- .sirap_spatial_neighbors(dat, radius = radius, k = k)
+.sirup_spatial_local_moran_one <- function(dat, radius, k) {
+  nb <- .sirup_spatial_neighbors(dat, radius = radius, k = k)
   listw <- spdep::nb2listw(nb, style = "W", zero.policy = TRUE)
   lisa <- spdep::localmoran(dat$value, listw, zero.policy = TRUE)
   lisa <- as.data.frame(lisa)
@@ -444,7 +444,7 @@ spatialLocalMoran <- function(object,
   out
 }
 
-.sirap_spatial_stat_groups <- function(dat) {
+.sirup_spatial_stat_groups <- function(dat) {
   if (!"image" %in% colnames(dat)) {
     return(list(all = dat))
   }
@@ -463,14 +463,14 @@ spatialLocalMoran <- function(object,
 #' expected under random labeling. This is useful for asking whether clones
 #' localize within regions of interest such as germinal centers.
 #'
-#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param object Seurat object with spatial images, or a SIRUP object.
 #' @param receptors AIRR-style receptor data frame containing spatial IDs
-#'   and clone calls. May be omitted when `object` is a SIRAP object.
+#'   and clone calls. May be omitted when `object` is a SIRUP object.
 #' @param clone Column in `receptors` containing clone IDs. Defaults to
-#'   `NULL`; when `object` is a SIRAP object, the stored receptor clone field
+#'   `NULL`; when `object` is a SIRUP object, the stored receptor clone field
 #'   is used when available.
 #' @param spatial_id Column in `receptors` matching Seurat spot/cell spatial IDs.
-#'   Defaults to `NULL`; when `object` is a SIRAP object, the stored receptor
+#'   Defaults to `NULL`; when `object` is a SIRUP object, the stored receptor
 #'   spatial_id field is used. Pass this explicitly when using separate Seurat and
 #'   receptor objects.
 #' @param clone_val Optional clone ID values to test. Defaults to all clones
@@ -484,12 +484,12 @@ spatialLocalMoran <- function(object,
 #'   `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRAP object metadata.
+#'   value must be supplied explicitly or by SIRUP object metadata.
 #' @param x Coordinate column in `polygon`.
 #' @param y Coordinate column in `polygon`.
 #' @param polygon_id Optional polygon grouping column in `polygon`.
 #' @param include_boundary Include Seurat spots on polygon edges.
-#'   Ignored when `object` is a SIRAP object with stored polygons and `polygon`
+#'   Ignored when `object` is a SIRUP object with stored polygons and `polygon`
 #'   is `NULL`; in that case stored polygon annotations are used.
 #' @param min_spatial_ids Minimum number of spatial IDs containing a clone for
 #'   that clone to be tested.
@@ -500,8 +500,8 @@ spatialLocalMoran <- function(object,
 #' @param other_label Label used for non-target clone spatial IDs in each binary
 #'   test.
 #' @param use_stored_polygons Whether to run one join-count test per stored polygon
-#'   (e.g. per GC) in a SIRAP object. `NULL` (default) auto-detects: `TRUE` when a
-#'   SIRAP object has stored polygons and `polygon` is not supplied, otherwise
+#'   (e.g. per GC) in a SIRUP object. `NULL` (default) auto-detects: `TRUE` when a
+#'   SIRUP object has stored polygons and `polygon` is not supplied, otherwise
 #'   `FALSE`. Set `FALSE` to force one tissue-wide neighbor graph per spatial
 #'   sample (ignoring any stored polygons); set `TRUE` to require stored-polygon tests.
 #' @param return_data Return the spatial_id-level mark data used for each test.
@@ -529,23 +529,23 @@ spatialCloneJoinCount <- function(object,
                                   other_label = "Other",
                                   use_stored_polygons = NULL,
                                   return_data = FALSE) {
-  sirap_container <- if (isSIRAP(object)) object else NULL
-  auto_stored_polygons <- !is.null(sirap_container) &&
+  sirup_container <- if (isSIRUP(object)) object else NULL
+  auto_stored_polygons <- !is.null(sirup_container) &&
     is.null(polygon) &&
-    nrow(.sirap_polygons(sirap_container)) > 0L
+    nrow(.sirup_polygons(sirup_container)) > 0L
   if (is.null(use_stored_polygons)) {
     use_stored_polygons <- auto_stored_polygons
   } else {
     use_stored_polygons <- isTRUE(use_stored_polygons)
     if (use_stored_polygons &&
-        (is.null(sirap_container) || nrow(.sirap_polygons(sirap_container)) == 0L)) {
-      rlang::abort("`use_stored_polygons = TRUE` requires a SIRAP object with stored polygons.")
+        (is.null(sirup_container) || nrow(.sirup_polygons(sirup_container)) == 0L)) {
+      rlang::abort("`use_stored_polygons = TRUE` requires a SIRUP object with stored polygons.")
     }
   }
-  options <- .sirap_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
+  options <- .sirup_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
-  inputs <- .sirap_resolve_inputs(
+  inputs <- .sirup_resolve_inputs(
     object,
     receptors,
     spatial_id
@@ -553,18 +553,18 @@ spatialCloneJoinCount <- function(object,
   object <- inputs$object
   receptors <- inputs$receptors
   spatial_id <- inputs$spatial_id_col
-  sample_col <- .sirap_receptor_sample_col(receptors, inputs$receptor_fields, object)
+  sample_col <- .sirup_receptor_sample_col(receptors, inputs$receptor_fields, object)
   if (is.null(receptors)) {
-    rlang::abort("`receptors` is required when `object` is not a SIRAP object.")
+    rlang::abort("`receptors` is required when `object` is not a SIRUP object.")
   }
   if (is.null(clone) && !is.null(inputs$receptor_fields$clone)) {
     clone <- inputs$receptor_fields$clone
   }
   if (is.null(spatial_id)) {
-    rlang::abort("`spatial_id` is required when it cannot be resolved from a SIRAP object.")
+    rlang::abort("`spatial_id` is required when it cannot be resolved from a SIRUP object.")
   }
   if (is.null(clone)) {
-    rlang::abort("`clone` is required when it cannot be resolved from a SIRAP object.")
+    rlang::abort("`clone` is required when it cannot be resolved from a SIRUP object.")
   }
   .require_namespace("spdep")
   if (!is.numeric(min_spatial_ids) || length(min_spatial_ids) != 1L || is.na(min_spatial_ids) || min_spatial_ids < 1) {
@@ -573,8 +573,8 @@ spatialCloneJoinCount <- function(object,
   min_spatial_ids <- as.integer(min_spatial_ids)
 
   dat <- if (isTRUE(use_stored_polygons)) {
-    .sirap_joincount_receptor_data_stored_polygons(
-      object = sirap_container,
+    .sirup_joincount_receptor_data_stored_polygons(
+      object = sirup_container,
       receptors = receptors,
       clone_col = clone,
       spatial_id_col = spatial_id,
@@ -585,7 +585,7 @@ spatialCloneJoinCount <- function(object,
       sample_col = sample_col
     )
   } else {
-    .sirap_joincount_receptor_data(
+    .sirup_joincount_receptor_data(
     object = object,
     receptors = receptors,
     clone_col = clone,
@@ -602,14 +602,14 @@ spatialCloneJoinCount <- function(object,
     include_boundary = include_boundary
     )
   }
-  .check_required_cols(dat, c(clone, ".sirap_spatial_id", "x", ".sirap_y", "image", "polygon"), "receptors")
+  .check_required_cols(dat, c(clone, ".sirup_spatial_id", "x", ".sirup_y", "image", "polygon"), "receptors")
   dat <- dat[!is.na(dat[[clone]]) & nzchar(as.character(dat[[clone]])), , drop = FALSE]
   if (nrow(dat) == 0L) {
     rlang::abort("No receptor rows with clone IDs were found in the selected region(s).")
   }
 
   if (is.null(clone_val)) {
-    clone_key_cols <- c(.sirap_spatial_key_cols(dat), clone)
+    clone_key_cols <- c(.sirup_spatial_key_cols(dat), clone)
     clone_counts <- sort(table(unique(dat[, clone_key_cols, drop = FALSE])[[clone]]), decreasing = TRUE)
     clone_val <- names(clone_counts)[clone_counts >= min_spatial_ids]
   } else {
@@ -631,27 +631,27 @@ spatialCloneJoinCount <- function(object,
     group_key <- strsplit(group_name, "\\|\\|", fixed = FALSE)[[1L]]
     image <- group_key[[1L]]
     polygon_value <- group_key[[2L]]
-    site_cols <- unique(c(.sirap_spatial_key_cols(group_dat), "x", "y", ".sirap_y", "image", "polygon"))
+    site_cols <- unique(c(.sirup_spatial_key_cols(group_dat), "x", "y", ".sirup_y", "image", "polygon"))
     sites <- group_dat[, site_cols, drop = FALSE]
-    sites <- sites[!duplicated(.sirap_key_vector(sites)), , drop = FALSE]
+    sites <- sites[!duplicated(.sirup_key_vector(sites)), , drop = FALSE]
     if (nrow(sites) < 2L) {
       next
     }
-    nb <- .sirap_spatial_neighbors(sites, radius = radius, k = k)
+    nb <- .sirup_spatial_neighbors(sites, radius = radius, k = k)
     listw <- spdep::nb2listw(nb, style = "B", zero.policy = TRUE)
     neighbors[[group_name]] <- nb
     weights[[group_name]] <- listw
 
     for (clone_id in clone_val) {
-      clone_sites <- unique(group_dat[as.character(group_dat[[clone]]) == clone_id, .sirap_spatial_key_cols(group_dat), drop = FALSE])
-      clone_keys <- .sirap_key_vector(clone_sites)
+      clone_sites <- unique(group_dat[as.character(group_dat[[clone]]) == clone_id, .sirup_spatial_key_cols(group_dat), drop = FALSE])
+      clone_keys <- .sirup_key_vector(clone_sites)
       n_clone_spatial_ids <- length(clone_keys)
       if (n_clone_spatial_ids < min_spatial_ids || n_clone_spatial_ids == nrow(sites)) {
         next
       }
       local_other_label <- if (identical(clone_id, other_label)) paste0(other_label, "_background") else other_label
       sites$join_count_mark <- factor(
-        ifelse(.sirap_key_vector(sites) %in% clone_keys, clone_id, local_other_label),
+        ifelse(.sirup_key_vector(sites) %in% clone_keys, clone_id, local_other_label),
         levels = c(local_other_label, clone_id)
       )
       test <- spdep::joincount.test(
@@ -662,7 +662,7 @@ spatialCloneJoinCount <- function(object,
       )
       test_name <- paste(image, polygon_value, clone_id, sep = "||")
       tests[[test_name]] <- test
-      summaries[[test_name]] <- .sirap_joincount_summary_row(
+      summaries[[test_name]] <- .sirup_joincount_summary_row(
         test = test,
         clone_id = clone_id,
         image = image,
@@ -710,11 +710,11 @@ spatialCloneJoinCount <- function(object,
 #'
 #' @param join_count Output from [spatialCloneJoinCount()] created with
 #'   `return_data = TRUE`.
-#' @param object Seurat object with spatial images, or a SIRAP object.
+#' @param object Seurat object with spatial images, or a SIRUP object.
 #' @param clone_val Clone ID to plot.
 #' @param images Optional image names to include.
 #' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRAP objects. Defaults to `NULL`, which plots all samples.
+#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
 #' @param polygon_val Optional polygon IDs to include.
 #' @param polygon Optional polygon vertex data frame to draw over the tissue.
 #' @param image_scale Image scale passed to
@@ -733,7 +733,7 @@ spatialCloneJoinCount <- function(object,
 #' @param image_alpha Tissue image opacity.
 #' @param zoom Zoom the spatial panel to the spots used in the test.
 #' @param title Optional title for the combined plot.
-#' @param combine_sample_plots For multi-sample SIRAP objects, combine plots
+#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
 #'   from different spatial samples into one figure. Defaults to `FALSE`, so
 #'   multi-sample calls return a named list of per-sample plots.
 #' @return One combined ggplot object, or a named list of plots for
@@ -762,12 +762,12 @@ plotSpatialCloneJoinCount <- function(join_count,
                                       title = NULL,
                                       combine_sample_plots = FALSE) {
   .require_namespace("cowplot")
-  sample_id <- .sirap_plot_sample_id(object, sample_id)
-  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  sample_id <- .sirup_plot_sample_id(object, sample_id)
+  context <- .sirup_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
-  images <- .sirap_spatial_images(object, images = images, sample_id = sample_id)
+  images <- .sirup_spatial_images(object, images = images, sample_id = sample_id)
   if (!is.list(join_count) || is.null(join_count$summary)) {
     rlang::abort("`join_count` must be output from `spatialCloneJoinCount()`.")
   }
@@ -793,7 +793,7 @@ plotSpatialCloneJoinCount <- function(join_count,
   )
   .check_required_cols(
     mark_data,
-    c("clone_id", "image", "polygon", ".sirap_spatial_id", "x", ".sirap_y", "join_count_mark"),
+    c("clone_id", "image", "polygon", ".sirup_spatial_id", "x", ".sirup_y", "join_count_mark"),
     "join_count$data"
   )
 
@@ -812,18 +812,18 @@ plotSpatialCloneJoinCount <- function(join_count,
     rlang::abort("The selected clone was not found in the requested join-count result.")
   }
 
-  summary_data$.sirap_group <- paste(summary_data$image, summary_data$polygon, sep = "||")
-  mark_data$.sirap_group <- paste(mark_data$image, mark_data$polygon, sep = "||")
-  keep_groups <- intersect(summary_data$.sirap_group, unique(mark_data$.sirap_group))
-  summary_data <- summary_data[summary_data$.sirap_group %in% keep_groups, , drop = FALSE]
-  mark_data <- mark_data[mark_data$.sirap_group %in% keep_groups, , drop = FALSE]
-  summary_data$.sirap_label <- ifelse(
+  summary_data$.sirup_group <- paste(summary_data$image, summary_data$polygon, sep = "||")
+  mark_data$.sirup_group <- paste(mark_data$image, mark_data$polygon, sep = "||")
+  keep_groups <- intersect(summary_data$.sirup_group, unique(mark_data$.sirup_group))
+  summary_data <- summary_data[summary_data$.sirup_group %in% keep_groups, , drop = FALSE]
+  mark_data <- mark_data[mark_data$.sirup_group %in% keep_groups, , drop = FALSE]
+  summary_data$.sirup_label <- ifelse(
     summary_data$polygon == "all",
     summary_data$image,
     paste(summary_data$image, summary_data$polygon, sep = ": ")
   )
   image_samples <- vapply(unique(as.character(summary_data$image)), function(image) {
-    parsed <- .sirap_parse_spatial_image_label(image)
+    parsed <- .sirup_parse_spatial_image_label(image)
     if (is.null(parsed)) NA_character_ else parsed$sample
   }, character(1))
   plot_samples <- unique(stats::na.omit(image_samples))
@@ -861,7 +861,7 @@ plotSpatialCloneJoinCount <- function(join_count,
 
   polygon_data <- NULL
   if (!is.null(polygon)) {
-    polygon_data <- .sirap_polygon_plot_data(
+    polygon_data <- .sirup_polygon_plot_data(
       polygon = .as_data_frame(polygon),
       polygon_id = polygon_val,
       polygon_col = "polygon",
@@ -871,13 +871,13 @@ plotSpatialCloneJoinCount <- function(join_count,
   }
 
   spatial_plots <- lapply(keep_groups, function(group_name) {
-    group_data <- mark_data[mark_data$.sirap_group == group_name, , drop = FALSE]
+    group_data <- mark_data[mark_data$.sirup_group == group_name, , drop = FALSE]
     image_name <- as.character(group_data$image[[1L]])
     polygon_name <- as.character(group_data$polygon[[1L]])
-    group_data$.sirap_selected <- as.character(group_data$join_count_mark) == clone_val
+    group_data$.sirup_selected <- as.character(group_data$join_count_mark) == clone_val
 
     spatial <- tryCatch(
-      .sirap_spatial_data(
+      .sirup_spatial_data(
         object,
         image = image_name,
         image_scale = image_scale,
@@ -886,7 +886,7 @@ plotSpatialCloneJoinCount <- function(join_count,
       error = function(e) NULL
     )
     if (!is.null(spatial)) {
-      p <- .sirap_spatial_base(
+      p <- .sirup_spatial_base(
         plot_data = group_data,
         image = spatial$image,
         image_alpha = image_alpha,
@@ -894,18 +894,18 @@ plotSpatialCloneJoinCount <- function(join_count,
         view_data = spatial$coords
       )
     } else {
-      view_data <- .sirap_spatial_coordinate_table(
+      view_data <- .sirup_spatial_coordinate_table(
         object,
         images = image_name,
         image_scale = image_scale,
         swap_coords = swap_coords
       )
-      p <- ggplot2::ggplot(group_data, ggplot2::aes(x = .data$x, y = .data$.sirap_y)) +
+      p <- ggplot2::ggplot(group_data, ggplot2::aes(x = .data$x, y = .data$.sirup_y)) +
         ggplot2::theme_void()
       if (!isTRUE(zoom) && nrow(view_data) > 0L) {
         p <- p + ggplot2::coord_fixed(
           xlim = range(view_data$x, na.rm = TRUE),
-          ylim = range(view_data$.sirap_y, na.rm = TRUE),
+          ylim = range(view_data$.sirup_y, na.rm = TRUE),
           expand = FALSE
         )
       } else {
@@ -916,7 +916,7 @@ plotSpatialCloneJoinCount <- function(join_count,
     if (isTRUE(show_neighbors)) {
       nb <- join_count$neighbors[[group_name]]
       if (!is.null(nb)) {
-        edge_data <- .sirap_joincount_clone_edges(group_data, nb)
+        edge_data <- .sirup_joincount_clone_edges(group_data, nb)
         if (nrow(edge_data) > 0L) {
           p <- p + ggplot2::geom_segment(
             data = edge_data,
@@ -932,7 +932,7 @@ plotSpatialCloneJoinCount <- function(join_count,
     p <- p +
       ggplot2::geom_point(color = other_color, size = point_size, alpha = point_alpha) +
       ggplot2::geom_point(
-        data = group_data[group_data$.sirap_selected, , drop = FALSE],
+        data = group_data[group_data$.sirup_selected, , drop = FALSE],
         color = clone_color,
         size = point_size,
         alpha = point_alpha
@@ -945,36 +945,36 @@ plotSpatialCloneJoinCount <- function(join_count,
       if (nrow(this_polygon) > 0L) {
         p <- p + ggplot2::geom_path(
           data = this_polygon,
-          ggplot2::aes(x = .data$x, y = .data$.sirap_y, group = .data$polygon),
+          ggplot2::aes(x = .data$x, y = .data$.sirup_y, group = .data$polygon),
           inherit.aes = FALSE,
           color = polygon_color,
           linewidth = polygon_linewidth
         )
       }
     }
-    p + ggplot2::labs(title = summary_data$.sirap_label[match(group_name, summary_data$.sirap_group)])
+    p + ggplot2::labs(title = summary_data$.sirup_label[match(group_name, summary_data$.sirup_group)])
   })
   spatial_panel <- cowplot::plot_grid(plotlist = spatial_plots, ncol = 1, align = "v")
 
   count_data <- dplyr::bind_rows(
     data.frame(
-      .sirap_group = summary_data$.sirap_group,
-      .sirap_label = summary_data$.sirap_label,
+      .sirup_group = summary_data$.sirup_group,
+      .sirup_label = summary_data$.sirup_label,
       count_type = "Expected",
       join_count = summary_data$expected_join_count,
       stringsAsFactors = FALSE
     ),
     data.frame(
-      .sirap_group = summary_data$.sirap_group,
-      .sirap_label = summary_data$.sirap_label,
+      .sirup_group = summary_data$.sirup_group,
+      .sirup_label = summary_data$.sirup_label,
       count_type = "Observed",
       join_count = summary_data$observed_join_count,
       stringsAsFactors = FALSE
     )
   )
   count_data$count_type <- factor(count_data$count_type, levels = c("Expected", "Observed"))
-  annotation_data <- summary_data[, c(".sirap_group", ".sirap_label"), drop = FALSE]
-  annotation_data$.sirap_annotation <- paste0(
+  annotation_data <- summary_data[, c(".sirup_group", ".sirup_label"), drop = FALSE]
+  annotation_data$.sirup_annotation <- paste0(
     "z = ", formatC(summary_data$statistic, digits = 2, format = "f"),
     "\np = ", format.pval(summary_data$p_value, digits = 2, eps = 0.001),
     "\n", summary_data$n_clone_spatial_ids, "/", summary_data$n_spatial_ids, " clone-positive spots"
@@ -994,7 +994,7 @@ plotSpatialCloneJoinCount <- function(join_count,
     ) +
     ggplot2::geom_text(
       data = annotation_data,
-      ggplot2::aes(x = .data$x, y = .data$y, label = .data$.sirap_annotation),
+      ggplot2::aes(x = .data$x, y = .data$y, label = .data$.sirup_annotation),
       inherit.aes = FALSE,
       vjust = 0,
       size = 3.3
@@ -1005,7 +1005,7 @@ plotSpatialCloneJoinCount <- function(join_count,
     ggplot2::theme_minimal() +
     ggplot2::theme(panel.grid.major.x = ggplot2::element_blank())
   if (nrow(summary_data) > 1L) {
-    count_panel <- count_panel + ggplot2::facet_wrap(ggplot2::vars(.data$.sirap_label), ncol = 1)
+    count_panel <- count_panel + ggplot2::facet_wrap(ggplot2::vars(.data$.sirup_label), ncol = 1)
   }
 
   combined <- cowplot::plot_grid(
@@ -1027,11 +1027,11 @@ plotSpatialCloneJoinCount <- function(join_count,
 
 # Convert a join-count neighbor graph into line segments connecting selected
 # clone-positive neighboring spots for plotting.
-.sirap_joincount_clone_edges <- function(group_data, neighbors) {
+.sirup_joincount_clone_edges <- function(group_data, neighbors) {
   if (length(neighbors) != nrow(group_data)) {
     rlang::abort("The stored neighbor graph does not match `join_count$data`.")
   }
-  selected <- group_data$.sirap_selected
+  selected <- group_data$.sirup_selected
   edges <- vector("list", length(neighbors))
   edge_index <- 1L
   for (i in seq_along(neighbors)) {
@@ -1042,9 +1042,9 @@ plotSpatialCloneJoinCount <- function(join_count,
       if (j > i && isTRUE(selected[[j]])) {
         edges[[edge_index]] <- data.frame(
           x = group_data$x[[i]],
-          y = group_data$.sirap_y[[i]],
+          y = group_data$.sirup_y[[i]],
           xend = group_data$x[[j]],
-          yend = group_data$.sirap_y[[j]]
+          yend = group_data$.sirup_y[[j]]
         )
         edge_index <- edge_index + 1L
       }
@@ -1055,16 +1055,16 @@ plotSpatialCloneJoinCount <- function(join_count,
 
 #' Plot local Moran's I over a tissue image
 #'
-#' @param object SIRAP object, or a spatial Seurat object.
+#' @param object SIRUP object, or a spatial Seurat object.
 #' @param local_moran Output from `spatialLocalMoran()`.
 #' @param value_col Column to color. Defaults to `z_i`.
 #' @param images Optional Seurat image names.
 #' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRAP objects. Defaults to `NULL`, which plots all samples.
+#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRAP object metadata.
+#'   value must be supplied explicitly or by SIRUP object metadata.
 #' @param colors Three colors for low, midpoint, and high values.
 #' @param midpoint Color midpoint.
 #' @param point_size Point size.
@@ -1074,7 +1074,7 @@ plotSpatialCloneJoinCount <- function(join_count,
 #' @param zoom Zoom to plotted points.
 #' @param title Optional title.
 #' @param combine Combine image panels with patchwork.
-#' @param combine_sample_plots For multi-sample SIRAP objects, combine plots
+#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
 #'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
 #'   multi-sample calls return a named list of per-sample plots.
 #' @return A ggplot/patchwork object.
@@ -1096,15 +1096,15 @@ plotSpatialLocalMoran <- function(object,
                                   title = NULL,
                                   combine = TRUE,
                                   combine_sample_plots = FALSE) {
-  sample_id <- .sirap_plot_sample_id(object, sample_id)
-  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  sample_id <- .sirup_plot_sample_id(object, sample_id)
+  context <- .sirup_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
-  .check_required_cols(local_moran, c("cell", "x", ".sirap_y", value_col), "local_moran")
+  .check_required_cols(local_moran, c("cell", "x", ".sirup_y", value_col), "local_moran")
   plots <- list()
-  for (image in .sirap_spatial_images(object, images = images, sample_id = sample_id)) {
-    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
+  for (image in .sirup_spatial_images(object, images = images, sample_id = sample_id)) {
+    spatial <- .sirup_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
     plot_data <- local_moran[local_moran$image == image, , drop = FALSE]
     if (nrow(plot_data) == 0L) {
       next
@@ -1112,7 +1112,7 @@ plotSpatialLocalMoran <- function(object,
     if (isTRUE(order_points)) {
       plot_data <- plot_data[order(plot_data[[value_col]], na.last = TRUE), , drop = FALSE]
     }
-    plots[[image]] <- .sirap_spatial_base(
+    plots[[image]] <- .sirup_spatial_base(
       plot_data,
       spatial$image,
       image_alpha = image_alpha,
@@ -1135,12 +1135,12 @@ plotSpatialLocalMoran <- function(object,
       ggplot2::labs(title = title %||% paste("Local Moran's I z-score:", unique(plot_data$variable)[[1]]))
   }
 
-  .sirap_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
+  .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
 }
 
 #' Calculate Ripley's cross K for marked spatial points
 #'
-#' @param object SIRAP object, or a spatial Seurat object.
+#' @param object SIRUP object, or a spatial Seurat object.
 #' @param mark_col Metadata column containing point types.
 #' @param i First mark level to compare.
 #' @param j Second mark level to compare.
@@ -1151,7 +1151,7 @@ plotSpatialLocalMoran <- function(object,
 #' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
 #'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRAP object metadata.
+#'   value must be supplied explicitly or by SIRUP object metadata.
 #' @return List with observed K, optional envelope, plotting data, and point data.
 #' @export
 spatialRipleyCrossK <- function(object,
@@ -1163,7 +1163,7 @@ spatialRipleyCrossK <- function(object,
                                 r = NULL,
                                 image_scale = NULL,
                                 swap_coords = NULL) {
-  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  context <- .sirup_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
@@ -1174,9 +1174,9 @@ spatialRipleyCrossK <- function(object,
   }
 
   # Get the spatial coordinates
-  dat <- .sirap_spatial_coordinate_table(object, image_scale = image_scale, swap_coords = swap_coords)
-  marks <- .sirap_spatial_metadata_values(object, mark_col)
-  dat <- .sirap_merge_spatial_values(dat, marks)
+  dat <- .sirup_spatial_coordinate_table(object, image_scale = image_scale, swap_coords = swap_coords)
+  marks <- .sirup_spatial_metadata_values(object, mark_col)
+  dat <- .sirup_merge_spatial_values(dat, marks)
   dat$mark <- dat[[mark_col]]
   dat <- dat[!is.na(dat$mark), , drop = FALSE]
   if (!all(c(i, j) %in% dat$mark)) {
@@ -1191,11 +1191,11 @@ spatialRipleyCrossK <- function(object,
     image_data <- dat[dat$image == image, , drop = FALSE]
     window <- spatstat.geom::owin(
       xrange = range(image_data$x, na.rm = TRUE),
-      yrange = range(image_data$.sirap_y, na.rm = TRUE)
+      yrange = range(image_data$.sirup_y, na.rm = TRUE)
     )
     pp <- spatstat.geom::ppp(
       x = image_data$x,
-      y = image_data$.sirap_y,
+      y = image_data$.sirup_y,
       marks = image_data$mark,
       window = window,
       checkdup = FALSE
@@ -1223,9 +1223,9 @@ spatialRipleyCrossK <- function(object,
         # keeps the per-simulation curves needed for a pooled group envelope.
         savefuns = TRUE
       )
-      plot_data[[image]] <- .sirap_kcross_df(envelopes[[image]], image = image)
+      plot_data[[image]] <- .sirup_kcross_df(envelopes[[image]], image = image)
     } else {
-      plot_data[[image]] <- .sirap_kcross_df(k_obs, image = image)
+      plot_data[[image]] <- .sirup_kcross_df(k_obs, image = image)
     }
   }
 
@@ -1332,7 +1332,7 @@ plotRipleyCrossK <- function(kcross,
 }
 
 # Resolve feature, metadata, receptor, or clone values onto spatial coordinates.
-.sirap_spatial_variable_values <- function(object,
+.sirup_spatial_variable_values <- function(object,
                                            variable,
                                            variable_type,
                                            value,
@@ -1344,14 +1344,14 @@ plotRipleyCrossK <- function(kcross,
                                            images,
                                            image_scale,
                                            swap_coords) {
-  options <- .sirap_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
+  options <- .sirup_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
-  inputs <- .sirap_resolve_inputs(object, receptors, spatial_id_col)
+  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id_col)
   object <- inputs$object
   receptors <- inputs$receptors
   spatial_id_col <- inputs$spatial_id_col
-  sample_col <- .sirap_receptor_sample_col(receptors %||% data.frame(), inputs$receptor_fields, object)
+  sample_col <- .sirup_receptor_sample_col(receptors %||% data.frame(), inputs$receptor_fields, object)
   if (is.null(clone_col) && !is.null(inputs$receptor_fields$clone)) {
     clone_col <- inputs$receptor_fields$clone
   }
@@ -1360,20 +1360,20 @@ plotRipleyCrossK <- function(kcross,
 
   # Start from one row per spatial coordinate so all statistic modes share the
   # same neighbor graph construction.
-  dat <- .sirap_spatial_coordinate_table(object, images = images, image_scale = image_scale, swap_coords = swap_coords)
+  dat <- .sirup_spatial_coordinate_table(object, images = images, image_scale = image_scale, swap_coords = swap_coords)
 
   if (variable_type == "feature") {
     # Features are pulled from the requested expression layer and analyzed as
     # quantitative values.
-    expr <- .sirap_spatial_fetch_data(object, vars = variable, layer = layer, assay = assay)
-    dat <- .sirap_merge_spatial_values(dat, expr)
+    expr <- .sirup_spatial_fetch_data(object, vars = variable, layer = layer, assay = assay)
+    dat <- .sirup_merge_spatial_values(dat, expr)
     dat$value <- dat[[variable]]
     dat$variable <- variable
   } else if (variable_type == "metadata") {
     # Numeric/logical metadata are analyzed directly. Categorical metadata need
     # an explicit level so the statistic is a binary indicator.
-    meta <- .sirap_spatial_metadata_values(object, variable)
-    dat <- .sirap_merge_spatial_values(dat, meta)
+    meta <- .sirup_spatial_metadata_values(object, variable)
+    dat <- .sirup_merge_spatial_values(dat, meta)
     if (!is.null(value)) {
       dat$value <- as.integer(dat[[variable]] %in% value)
       dat$variable <- paste0(variable, "_", paste(value, collapse = "_"))
@@ -1390,15 +1390,15 @@ plotRipleyCrossK <- function(kcross,
       rlang::abort("`receptors` is required when `variable_type = 'receptor'`.")
     }
     if (is.null(spatial_id_col)) {
-      rlang::abort("`spatial_id` is required when it cannot be resolved from a SIRAP object.")
+      rlang::abort("`spatial_id` is required when it cannot be resolved from a SIRUP object.")
     }
     receptors <- .as_data_frame(receptors)
     .check_required_cols(receptors, spatial_id_col, "receptors")
-    receptors <- .sirap_add_receptor_spatial_keys(receptors, spatial_id_col, sample_col)
-    dat <- .sirap_add_coord_spatial_keys(dat)
-    receptor_keys <- unique(receptors[!is.na(receptors$.sirap_spatial_id), .sirap_spatial_key_cols(receptors), drop = FALSE])
-    dat_keys <- dat[, .sirap_spatial_key_cols(dat, receptor_keys), drop = FALSE]
-    dat$value <- as.integer(.sirap_key_vector(dat_keys) %in% .sirap_key_vector(receptor_keys))
+    receptors <- .sirup_add_receptor_spatial_keys(receptors, spatial_id_col, sample_col)
+    dat <- .sirup_add_coord_spatial_keys(dat)
+    receptor_keys <- unique(receptors[!is.na(receptors$.sirup_spatial_id), .sirup_spatial_key_cols(receptors), drop = FALSE])
+    dat_keys <- dat[, .sirup_spatial_key_cols(dat, receptor_keys), drop = FALSE]
+    dat$value <- as.integer(.sirup_key_vector(dat_keys) %in% .sirup_key_vector(receptor_keys))
     dat$variable <- variable
   } else {
     # Clone mode is a clone-specific receptor indicator: spots containing any
@@ -1407,24 +1407,24 @@ plotRipleyCrossK <- function(kcross,
       rlang::abort("`receptors` is required when `variable_type = 'clone'`.")
     }
     if (is.null(spatial_id_col)) {
-      rlang::abort("`spatial_id` is required when it cannot be resolved from a SIRAP object.")
+      rlang::abort("`spatial_id` is required when it cannot be resolved from a SIRUP object.")
     }
     if (is.null(clone_col)) {
-      rlang::abort("`clone` is required when it cannot be resolved from a SIRAP object.")
+      rlang::abort("`clone` is required when it cannot be resolved from a SIRUP object.")
     }
     receptors <- .as_data_frame(receptors)
     .check_required_cols(receptors, c(spatial_id_col, clone_col), "receptors")
-    receptors <- .sirap_add_receptor_spatial_keys(receptors, spatial_id_col, sample_col)
-    dat <- .sirap_add_coord_spatial_keys(dat)
+    receptors <- .sirup_add_receptor_spatial_keys(receptors, spatial_id_col, sample_col)
+    dat <- .sirup_add_coord_spatial_keys(dat)
     clone_ids <- as.character(value %||% variable)
     clone_ids <- unique(clone_ids[!is.na(clone_ids) & nzchar(clone_ids)])
     if (length(clone_ids) == 0L) {
       rlang::abort("`variable` or `value` must name at least one clone ID when `variable_type = 'clone'`.")
     }
-    receptor_keys <- receptors[as.character(receptors[[clone_col]]) %in% clone_ids, .sirap_spatial_key_cols(receptors), drop = FALSE]
-    receptor_keys <- unique(receptor_keys[!is.na(receptor_keys$.sirap_spatial_id), , drop = FALSE])
-    dat_keys <- dat[, .sirap_spatial_key_cols(dat, receptor_keys), drop = FALSE]
-    dat$value <- as.integer(.sirap_key_vector(dat_keys) %in% .sirap_key_vector(receptor_keys))
+    receptor_keys <- receptors[as.character(receptors[[clone_col]]) %in% clone_ids, .sirup_spatial_key_cols(receptors), drop = FALSE]
+    receptor_keys <- unique(receptor_keys[!is.na(receptor_keys$.sirup_spatial_id), , drop = FALSE])
+    dat_keys <- dat[, .sirup_spatial_key_cols(dat, receptor_keys), drop = FALSE]
+    dat$value <- as.integer(.sirup_key_vector(dat_keys) %in% .sirup_key_vector(receptor_keys))
     dat$variable <- paste0("clone_", paste(clone_ids, collapse = "_"))
   }
 
@@ -1432,19 +1432,19 @@ plotRipleyCrossK <- function(kcross,
   dat
 }
 
-.sirap_spatial_fetch_data <- function(object, vars, layer = "counts", assay = NULL) {
+.sirup_spatial_fetch_data <- function(object, vars, layer = "counts", assay = NULL) {
   vars <- unique(as.character(vars))
   fetch_one <- function(spatial, sample = NULL) {
     dat <- tryCatch(
-      .sirap_fetch_data(spatial, vars = vars, layer = layer, assay = assay),
+      .sirup_fetch_data(spatial, vars = vars, layer = layer, assay = assay),
       error = function(e) NULL
     )
     missing_vars <- character()
     if (is.null(dat)) {
-      dat <- data.frame(row.names = .sirap_spatial_fetch_cells(spatial))
+      dat <- data.frame(row.names = .sirup_spatial_fetch_cells(spatial))
       for (var in vars) {
         one <- tryCatch(
-          .sirap_fetch_data(spatial, vars = var, layer = layer, assay = assay),
+          .sirup_fetch_data(spatial, vars = var, layer = layer, assay = assay),
           error = function(e) NULL
         )
         if (is.null(one) || !var %in% colnames(one)) {
@@ -1465,14 +1465,14 @@ plotRipleyCrossK <- function(kcross,
       where <- if (is.null(sample)) "spatial object" else paste0("spatial sample '", sample, "'")
       rlang::warn(paste0(
         "Feature(s) not found in ", where, " for assay = ",
-        assay %||% .sirap_fetch_data_assay(spatial), ", layer = ", layer,
+        assay %||% .sirup_fetch_data_assay(spatial), ", layer = ", layer,
         ": ", paste(unique(missing_vars), collapse = ", "),
         ". Filling with NA for this section."
       ))
     }
     dat[, vars, drop = FALSE]
   }
-  if (.sirap_is_spatial_list(object)) {
+  if (.sirup_is_spatial_list(object)) {
     out <- lapply(names(object), function(sample) {
       dat <- fetch_one(object[[sample]], sample = sample)
       dat$cell <- rownames(dat)
@@ -1497,7 +1497,7 @@ plotRipleyCrossK <- function(kcross,
   out
 }
 
-.sirap_spatial_fetch_cells <- function(spatial) {
+.sirup_spatial_fetch_cells <- function(spatial) {
   cells <- tryCatch(colnames(spatial), error = function(e) character())
   if (length(cells) > 0L) {
     return(as.character(cells))
@@ -1509,8 +1509,8 @@ plotRipleyCrossK <- function(kcross,
   character()
 }
 
-.sirap_spatial_metadata_values <- function(object, variable) {
-  if (.sirap_is_spatial_list(object)) {
+.sirup_spatial_metadata_values <- function(object, variable) {
+  if (.sirup_is_spatial_list(object)) {
     out <- lapply(names(object), function(sample) {
       meta <- object[[sample]]@meta.data
       .check_required_cols(meta, variable, paste0("object[['", sample, "']]@meta.data"))
@@ -1529,39 +1529,39 @@ plotRipleyCrossK <- function(kcross,
   meta
 }
 
-.sirap_merge_spatial_values <- function(coords, values) {
+.sirup_merge_spatial_values <- function(coords, values) {
   if ("sample" %in% colnames(coords) && "sample" %in% colnames(values)) {
     return(merge(coords, values, by = c("sample", "cell"), all.x = TRUE, sort = FALSE))
   }
   merge(coords, values, by = "cell", all.x = TRUE, sort = FALSE)
 }
 
-.sirap_key_vector <- function(dat) {
-  if (".sirap_sample" %in% colnames(dat)) {
-    return(paste(as.character(dat$.sirap_sample), as.character(dat$.sirap_spatial_id), sep = "\r"))
+.sirup_key_vector <- function(dat) {
+  if (".sirup_sample" %in% colnames(dat)) {
+    return(paste(as.character(dat$.sirup_sample), as.character(dat$.sirup_spatial_id), sep = "\r"))
   }
-  as.character(dat$.sirap_spatial_id)
+  as.character(dat$.sirup_spatial_id)
 }
 
-#' Extract SIRAP spatial plotting coordinates
+#' Extract SIRUP spatial plotting coordinates
 #'
-#' Returns the spatial coordinate table used internally by SIRAP spatial
+#' Returns the spatial coordinate table used internally by SIRUP spatial
 #' statistics and plotting helpers. Coordinates are pulled from Seurat image
 #' coordinates when available, otherwise from coordinate columns in Seurat
-#' metadata. The `.sirap_y` column stores SIRAP's plotting y-coordinate.
+#' metadata. The `.sirup_y` column stores SIRUP's plotting y-coordinate.
 #'
 #' @param object A Seurat object.
 #' @param images Optional image names to include.
 #' @param image_scale Image scale used for Seurat image coordinates.
 #' @param swap_coords Whether to swap x/y coordinates before plotting.
-#' @return A data frame with at least `cell`, `x`, `y`, `.sirap_y`, and `image`.
+#' @return A data frame with at least `cell`, `x`, `y`, `.sirup_y`, and `image`.
 #' @export
 spatialCoordinateTable <- function(object,
                                    images = NULL,
                                    image_scale = NULL,
                                    swap_coords = NULL) {
-  context <- .sirap_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
-  .sirap_spatial_coordinate_table(
+  context <- .sirup_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
+  .sirup_spatial_coordinate_table(
     object = context$object,
     images = images,
     image_scale = context$image_scale,
@@ -1571,7 +1571,7 @@ spatialCoordinateTable <- function(object,
 
 #' Summarize spatial coordinate ranges
 #'
-#' @param object SIRAP object or spatial Seurat object.
+#' @param object SIRUP object or spatial Seurat object.
 #' @param by Summarize by spatial `sample` or by `image`.
 #' @param images Optional image or spatial sample names.
 #' @param image_scale Image scale used for Seurat image coordinates.
@@ -1591,7 +1591,7 @@ spatialCoordinateExtents <- function(object,
     swap_coords = swap_coords
   )
   if (!"sample" %in% colnames(coords)) {
-    coords$sample <- sirapSampleFromImage(coords$image)
+    coords$sample <- sirupSampleFromImage(coords$image)
     coords$sample[is.na(coords$sample)] <- "spatial"
   }
   group <- if (identical(by, "sample")) coords$sample else coords$image
@@ -1620,10 +1620,10 @@ spatialCoordinateExtents <- function(object,
 
 #' Summarize within-sample clone spatial spread
 #'
-#' @param object SIRAP object, or a spatial Seurat object when `receptors` is supplied.
-#' @param receptors Optional receptor table. Omitted for SIRAP input.
-#' @param clone Clone ID column. Defaults to the SIRAP clone field when present.
-#' @param spatial_id Receptor spatial ID column. Defaults to the SIRAP spatial ID field.
+#' @param object SIRUP object, or a spatial Seurat object when `receptors` is supplied.
+#' @param receptors Optional receptor table. Omitted for SIRUP input.
+#' @param clone Clone ID column. Defaults to the SIRUP clone field when present.
+#' @param spatial_id Receptor spatial ID column. Defaults to the SIRUP spatial ID field.
 #' @param clone_val Optional clone IDs to keep.
 #' @param images Optional image or spatial sample names.
 #' @param image_scale Image scale used for Seurat image coordinates.
@@ -1646,7 +1646,7 @@ spatialCloneSpread <- function(object,
                                swap_coords = NULL,
                                min_spatial_ids = 2L,
                                collapse_within_spot = FALSE) {
-  inputs <- .sirap_resolve_inputs(object, receptors, spatial_id)
+  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id)
   spatial <- inputs$object
   receptors <- .as_data_frame(inputs$receptors)
   spatial_id <- inputs$spatial_id_col
@@ -1654,26 +1654,26 @@ spatialCloneSpread <- function(object,
     clone <- inputs$receptor_fields$clone
   }
   if (is.null(clone)) {
-    rlang::abort("`clone` is required when it cannot be resolved from a SIRAP object.")
+    rlang::abort("`clone` is required when it cannot be resolved from a SIRUP object.")
   }
-  sample_col <- .sirap_receptor_sample_col(receptors, inputs$receptor_fields, spatial)
+  sample_col <- .sirup_receptor_sample_col(receptors, inputs$receptor_fields, spatial)
   .check_required_cols(receptors, c(spatial_id, clone), "receptors")
   coords <- spatialCoordinateTable(spatial, images = images, image_scale = image_scale, swap_coords = swap_coords)
   if (!"sample" %in% colnames(coords)) {
-    coords$sample <- sirapSampleFromImage(coords$image)
+    coords$sample <- sirupSampleFromImage(coords$image)
     coords$sample[is.na(coords$sample)] <- "spatial"
   }
-  coords <- .sirap_add_coord_spatial_keys(coords)
-  receptors <- .sirap_add_receptor_spatial_keys(receptors, spatial_id, sample_col)
+  coords <- .sirup_add_coord_spatial_keys(coords)
+  receptors <- .sirup_add_receptor_spatial_keys(receptors, spatial_id, sample_col)
   receptor_coords <- merge(
     receptors,
-    coords[, unique(c(.sirap_spatial_key_cols(coords), "cell", "sample", "x", "y", ".sirap_y", "image")), drop = FALSE],
-    by = .sirap_spatial_key_cols(receptors, coords),
+    coords[, unique(c(.sirup_spatial_key_cols(coords), "cell", "sample", "x", "y", ".sirup_y", "image")), drop = FALSE],
+    by = .sirup_spatial_key_cols(receptors, coords),
     all = FALSE,
     sort = FALSE
   )
-  if (".sirap_sample" %in% colnames(receptor_coords)) {
-    receptor_coords$sample <- as.character(receptor_coords$.sirap_sample)
+  if (".sirup_sample" %in% colnames(receptor_coords)) {
+    receptor_coords$sample <- as.character(receptor_coords$.sirup_sample)
   } else if ("sample.y" %in% colnames(receptor_coords)) {
     receptor_coords$sample <- as.character(receptor_coords$sample.y)
   } else if (!"sample" %in% colnames(receptor_coords)) {
@@ -1714,25 +1714,25 @@ spatialCloneSpread <- function(object,
 
 # Collect spatial coordinates from Seurat images when present; otherwise use
 # spatial coordinate columns stored in object metadata.
-.sirap_spatial_coordinate_table <- function(object, images = NULL, image_scale = NULL, swap_coords = NULL) {
-  if (.sirap_is_spatial_list(object)) {
-    image_scale <- .sirap_resolve_image_scale(image_scale)
-    swap_coords <- .sirap_resolve_swap_coords(swap_coords)
+.sirup_spatial_coordinate_table <- function(object, images = NULL, image_scale = NULL, swap_coords = NULL) {
+  if (.sirup_is_spatial_list(object)) {
+    image_scale <- .sirup_resolve_image_scale(image_scale)
+    swap_coords <- .sirup_resolve_swap_coords(swap_coords)
     if (is.null(image_scale)) {
-      rlang::abort("`image_scale` must be supplied explicitly or stored in a SIRAP object.")
+      rlang::abort("`image_scale` must be supplied explicitly or stored in a SIRUP object.")
     }
     if (is.null(swap_coords)) {
-      rlang::abort("`swap_coords` must be supplied explicitly or stored in a SIRAP object.")
+      rlang::abort("`swap_coords` must be supplied explicitly or stored in a SIRUP object.")
     }
-    coords <- lapply(.sirap_spatial_images(object, images = images), function(image) {
-      spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
+    coords <- lapply(.sirup_spatial_images(object, images = images), function(image) {
+      spatial <- .sirup_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
       out <- spatial$coords
       out$image <- image
       out
     })
     return(dplyr::bind_rows(coords))
   }
-  options <- .sirap_require_spatial_options(image_scale, swap_coords)
+  options <- .sirup_require_spatial_options(image_scale, swap_coords)
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
   .require_namespace("SeuratObject")
@@ -1741,11 +1741,11 @@ spatialCloneSpread <- function(object,
     error = function(e) character()
   )
   if (is.null(images) && length(image_names) == 0L) {
-    return(.sirap_metadata_coordinate_table(object))
+    return(.sirup_metadata_coordinate_table(object))
   }
 
-  coords <- lapply(.sirap_spatial_images(object, images = images), function(image) {
-    spatial <- .sirap_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
+  coords <- lapply(.sirup_spatial_images(object, images = images), function(image) {
+    spatial <- .sirup_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
     out <- spatial$coords
     out$image <- image
     out
@@ -1754,7 +1754,7 @@ spatialCloneSpread <- function(object,
 }
 
 # Fallback for image-free objects used in tests or non-Visium spatial datasets.
-.sirap_metadata_coordinate_table <- function(object) {
+.sirup_metadata_coordinate_table <- function(object) {
   meta <- object@meta.data
   x_col <- intersect(c("x", "imagecol", "pxl_col_in_fullres", "col", "array_col", "spatial_x"), colnames(meta))
   y_col <- intersect(c("y", "imagerow", "pxl_row_in_fullres", "row", "array_row", "spatial_y"), colnames(meta))
@@ -1774,17 +1774,17 @@ spatialCloneSpread <- function(object,
     stringsAsFactors = FALSE
   )
   coords <- coords[coords$cell %in% colnames(object), , drop = FALSE]
-  coords$.sirap_y <- -coords$y
+  coords$.sirup_y <- -coords$y
   coords
 }
 
 # Build an spdep neighbor graph either by distance radius or k-nearest
-# neighbors over SIRAP's plotting coordinate convention.
-.sirap_spatial_neighbors <- function(dat, radius = NULL, k = 6) {
+# neighbors over SIRUP's plotting coordinate convention.
+.sirup_spatial_neighbors <- function(dat, radius = NULL, k = 6) {
   if (nrow(dat) < 2L) {
     rlang::abort("At least two spatial points are required to build neighborhoods.")
   }
-  coords <- as.matrix(dat[, c("x", ".sirap_y")])
+  coords <- as.matrix(dat[, c("x", ".sirup_y")])
   if (!is.null(radius)) {
     spdep::dnearneigh(coords, d1 = 0, d2 = radius, longlat = FALSE)
   } else {
@@ -1804,7 +1804,7 @@ spatialCloneSpread <- function(object,
 
 # Join receptor clone calls to spatial coordinates and, when supplied, restrict
 # them to polygon regions before join-count testing.
-.sirap_joincount_receptor_data <- function(object,
+.sirup_joincount_receptor_data <- function(object,
                                            receptors,
                                            clone_col,
                                            spatial_id_col,
@@ -1820,7 +1820,7 @@ spatialCloneSpread <- function(object,
                                            include_boundary) {
   receptors <- .as_data_frame(receptors)
   .check_required_cols(receptors, c(spatial_id_col, clone_col), "receptors")
-  coords <- .sirap_spatial_coordinate_table(object, images = images, image_scale = image_scale, swap_coords = swap_coords)
+  coords <- .sirup_spatial_coordinate_table(object, images = images, image_scale = image_scale, swap_coords = swap_coords)
   coords <- coords[is.finite(coords$x) & is.finite(coords$y), , drop = FALSE]
   if (nrow(coords) == 0L) {
     rlang::abort("No finite spatial coordinates were found in `object`.")
@@ -1828,19 +1828,19 @@ spatialCloneSpread <- function(object,
 
   receptor_cols <- setdiff(
     colnames(receptors),
-    setdiff(c("cell", "x", "y", ".sirap_y", "image", "polygon", "sample"), c(spatial_id_col, clone_col, sample_col))
+    setdiff(c("cell", "x", "y", ".sirup_y", "image", "polygon", "sample"), c(spatial_id_col, clone_col, sample_col))
   )
   receptors <- receptors[, receptor_cols, drop = FALSE]
-  receptors <- .sirap_add_receptor_spatial_keys(receptors, spatial_id_col, sample_col)
-  coords <- .sirap_add_coord_spatial_keys(coords)
-  join_by <- .sirap_spatial_key_cols(receptors, coords)
+  receptors <- .sirup_add_receptor_spatial_keys(receptors, spatial_id_col, sample_col)
+  coords <- .sirup_add_coord_spatial_keys(coords)
+  join_by <- .sirup_spatial_key_cols(receptors, coords)
 
   if (is.null(polygon)) {
     region_coords <- coords
     region_coords$polygon <- "all"
     out <- merge(
       receptors,
-      .sirap_add_coord_spatial_keys(region_coords)[, c(join_by, "cell", "x", "y", ".sirap_y", "image", "polygon"), drop = FALSE],
+      .sirup_add_coord_spatial_keys(region_coords)[, c(join_by, "cell", "x", "y", ".sirup_y", "image", "polygon"), drop = FALSE],
       by = join_by,
       all.x = FALSE,
       all.y = FALSE,
@@ -1851,16 +1851,16 @@ spatialCloneSpread <- function(object,
 
   polygon <- .as_data_frame(polygon)
   .check_required_cols(polygon, c(x_col, y_col), "polygon")
-  polygon_specs <- .sirap_polygon_specs(polygon, polygon_id = polygon_id, polygon_col = polygon_col)
+  polygon_specs <- .sirup_polygon_specs(polygon, polygon_id = polygon_id, polygon_col = polygon_col)
   regions <- lapply(polygon_specs, function(spec) {
-    vertices <- .sirap_select_polygon_vertices(
+    vertices <- .sirup_select_polygon_vertices(
       polygon = polygon,
       polygon_id = spec$id,
       polygon_col = polygon_col,
       x_col = x_col,
       y_col = y_col
     )
-    inside <- .sirap_points_in_polygon(
+    inside <- .sirup_points_in_polygon(
       px = coords$x,
       py = coords$y,
       vx = vertices$x,
@@ -1874,7 +1874,7 @@ spatialCloneSpread <- function(object,
     region_coords$polygon <- as.character(if (isTRUE(spec$add_polygon_col)) spec$id else "polygon_1")
     merge(
       receptors,
-      .sirap_add_coord_spatial_keys(region_coords)[, c(join_by, "cell", "x", "y", ".sirap_y", "image", "polygon"), drop = FALSE],
+      .sirup_add_coord_spatial_keys(region_coords)[, c(join_by, "cell", "x", "y", ".sirup_y", "image", "polygon"), drop = FALSE],
       by = join_by,
       all.x = FALSE,
       all.y = FALSE,
@@ -1885,8 +1885,8 @@ spatialCloneSpread <- function(object,
 }
 
 # Join receptor clone calls to spatial coordinates by using polygon membership
-# that was already stored by addPolygons() on a SIRAP object.
-.sirap_joincount_receptor_data_stored_polygons <- function(object,
+# that was already stored by addPolygons() on a SIRUP object.
+.sirup_joincount_receptor_data_stored_polygons <- function(object,
                                                            receptors,
                                                            clone_col,
                                                            spatial_id_col,
@@ -1895,10 +1895,10 @@ spatialCloneSpread <- function(object,
                                                            image_scale,
                                                            swap_coords,
                                                            sample_col = NULL) {
-  validateSIRAP(object)
+  validateSIRUP(object)
   receptors <- .as_data_frame(receptors)
   .check_required_cols(receptors, c(spatial_id_col, clone_col), "receptors")
-  coords <- .sirap_spatial_coordinate_table(
+  coords <- .sirup_spatial_coordinate_table(
     getSpatial(object),
     images = images,
     image_scale = image_scale,
@@ -1917,15 +1917,15 @@ spatialCloneSpread <- function(object,
   }
   receptor_cols <- setdiff(
     colnames(receptors),
-    setdiff(c("cell", "x", "y", ".sirap_y", "image", "polygon", "sample"), c(spatial_id_col, clone_col, sample_col))
+    setdiff(c("cell", "x", "y", ".sirup_y", "image", "polygon", "sample"), c(spatial_id_col, clone_col, sample_col))
   )
   receptors <- receptors[, receptor_cols, drop = FALSE]
-  receptors <- .sirap_add_receptor_spatial_keys(receptors, spatial_id_col, sample_col)
-  coords <- .sirap_add_coord_spatial_keys(coords)
-  join_by <- .sirap_spatial_key_cols(receptors, coords)
+  receptors <- .sirup_add_receptor_spatial_keys(receptors, spatial_id_col, sample_col)
+  coords <- .sirup_add_coord_spatial_keys(coords)
+  join_by <- .sirup_spatial_key_cols(receptors, coords)
 
   regions <- lapply(polygon_ids, function(polygon_value) {
-    region_coords <- .sirap_stored_polygon_coords(
+    region_coords <- .sirup_stored_polygon_coords(
       coords = coords,
       spatial = getSpatial(object),
       polygon_value = polygon_value
@@ -1933,7 +1933,7 @@ spatialCloneSpread <- function(object,
     if (nrow(region_coords) == 0L) {
       return(data.frame())
     }
-    region_receptors <- .sirap_receptors_in_polygon(
+    region_receptors <- .sirup_receptors_in_polygon(
       receptors = receptors,
       polygon_value = polygon_value,
       polygon_id = "polygon_id"
@@ -1944,7 +1944,7 @@ spatialCloneSpread <- function(object,
     region_coords$polygon <- polygon_value
     merge(
       region_receptors,
-      .sirap_add_coord_spatial_keys(region_coords)[, c(join_by, "cell", "x", "y", ".sirap_y", "image", "polygon"), drop = FALSE],
+      .sirup_add_coord_spatial_keys(region_coords)[, c(join_by, "cell", "x", "y", ".sirup_y", "image", "polygon"), drop = FALSE],
       by = join_by,
       all.x = FALSE,
       all.y = FALSE,
@@ -1955,7 +1955,7 @@ spatialCloneSpread <- function(object,
 }
 
 # Convert spdep's join-count htest object into one stable summary row.
-.sirap_joincount_summary_row <- function(test,
+.sirup_joincount_summary_row <- function(test,
                                          clone_id,
                                          image,
                                          polygon,
@@ -1964,7 +1964,7 @@ spatialCloneSpread <- function(object,
                                          radius,
                                          k,
                                          alternative) {
-  htest <- .sirap_joincount_clone_htest(test, clone_id)
+  htest <- .sirup_joincount_clone_htest(test, clone_id)
   estimate <- htest$estimate %||% numeric()
   estimate_names <- names(estimate)
   get_estimate <- function(pattern, fallback_index) {
@@ -1998,7 +1998,7 @@ spatialCloneSpread <- function(object,
 
 # spdep may return either an htest or a list of htests depending on factor
 # levels; this extracts the htest for the requested clone.
-.sirap_joincount_clone_htest <- function(test, clone_id) {
+.sirup_joincount_clone_htest <- function(test, clone_id) {
   if (inherits(test, "htest")) {
     return(test)
   }
@@ -2021,7 +2021,7 @@ spatialCloneSpread <- function(object,
 }
 
 # Convert a spatstat Kcross object to a consistent plotting data frame.
-.sirap_kcross_df <- function(x, image) {
+.sirup_kcross_df <- function(x, image) {
   dat <- as.data.frame(x)
   theoretical_col <- intersect(c("theo", "theoretical"), colnames(dat))
   simulated_col <- intersect(c("mmean", "mean", "simulated", "simmean", theoretical_col), colnames(dat))

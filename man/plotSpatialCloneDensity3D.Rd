@@ -46,7 +46,7 @@ plotSpatialCloneDensity3D(
 \arguments{
 \item{dominance}{Object returned by \code{spatialCloneDominance()}.}
 
-\item{object}{Seurat object with spatial images, or a SIRAP object.}
+\item{object}{Seurat object with spatial images, or a SIRUP object.}
 
 \item{clone}{Column in \code{dominance$region_receptors} used to define clone
 groups. When omitted, the clone column recorded by
@@ -58,14 +58,14 @@ groups. When omitted, the clone column recorded by
 \item{images}{Optional Seurat image names to show.}
 
 \item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
+SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
 
 \item{image_scale}{Image scale passed to
 \code{SeuratObject::GetTissueCoordinates()}.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRAP object metadata.}
+value must be supplied explicitly or by SIRUP object metadata.}
 
 \item{polygon_val}{Optional polygon ID value(s) to select from the dominance
 object.}

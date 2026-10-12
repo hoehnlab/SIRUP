@@ -6,7 +6,7 @@
 # Check that each external tool exists. `execs` is a named character vector;
 # names are used in the error message. A tool passes if its expanded path is
 # an existing file or if it resolves on the PATH.
-.sirap_check_tools <- function(execs) {
+.sirup_check_tools <- function(execs) {
   found <- vapply(execs, function(x) {
     file.exists(path.expand(x)) || nzchar(Sys.which(x))
   }, logical(1))
@@ -25,7 +25,7 @@
 # so callers pass plain strings. `log` redirects stdout and stderr to one
 # file. `stdin`/`stdout` take file paths for redirection. Aborts on a
 # non-zero exit status and includes the log tail when a log exists.
-.sirap_run_command <- function(exec, args, log = NULL, stdin = "", stdout = "") {
+.sirup_run_command <- function(exec, args, log = NULL, stdin = "", stdout = "") {
   exec_path <- path.expand(exec)
   if (!file.exists(exec_path)) {
     exec_path <- exec
@@ -54,7 +54,7 @@
 # Build a regex character class that matches any pRESTO header delimiter or
 # whitespace. Values that contain one of these corrupt FASTA header parsing,
 # so validation must use the same `delimiters` the pipeline passes to pRESTO.
-.sirap_delims_regex_class <- function(delimiters) {
+.sirup_delims_regex_class <- function(delimiters) {
   # POSIX classes take no backslash escapes: `]` is literal only directly
   # after the opening `[`, and `-` only at the end. `^` cannot come first
   # because `[:space:]` always precedes the delimiter characters.
@@ -68,7 +68,7 @@
 # Classify a pipeline input. Returns "airr_df" for a data frame, "airr_tsv"
 # for a tabular file path, or "raw_reads" for a FASTA/FASTQ path (optionally
 # gzipped). Aborts for anything else.
-.sirap_detect_input_type <- function(input) {
+.sirup_detect_input_type <- function(input) {
   if (is.data.frame(input)) {
     return("airr_df")
   }
@@ -91,7 +91,7 @@
 }
 
 # Read an AIRR TSV into a data frame. fread handles gzipped files natively.
-.sirap_read_airr <- function(path) {
+.sirup_read_airr <- function(path) {
   if (!file.exists(path.expand(path))) {
     rlang::abort(paste0("AIRR file not found: ", path))
   }
@@ -103,7 +103,7 @@
 # receptor type, using the naming convention IG_V/IG_D/IG_J/IG_C and
 # TR_V/TR_D/TR_J. Any non-NULL override wins. The C-region database is only
 # used for `ig`.
-.sirap_igblast_db_paths <- function(igblast_db_dir = NULL,
+.sirup_igblast_db_paths <- function(igblast_db_dir = NULL,
                                     receptor = c("ig", "tr"),
                                     germline_db_v = NULL,
                                     germline_db_d = NULL,
@@ -142,7 +142,7 @@
 
 # Build the igblastn argument vector for one raw-read annotation run.
 # Pure function: it does not touch the filesystem.
-.sirap_igblast_args <- function(query_fasta,
+.sirup_igblast_args <- function(query_fasta,
                                 output_tsv,
                                 receptor = c("ig", "tr"),
                                 organism = "human",
@@ -179,7 +179,7 @@
 # cannot read gzip and only accepts FASTA, so this streams on disk with
 # gunzip and awk; it never loads sequences into R. A plain FASTA passes
 # through unchanged. FASTQ quality strings are dropped.
-.sirap_prepare_query_fasta <- function(input, output_dir, sample_name) {
+.sirup_prepare_query_fasta <- function(input, output_dir, sample_name) {
   input <- path.expand(input)
   if (!file.exists(input)) {
     rlang::abort(paste0("Input reads file not found: ", input))
@@ -194,18 +194,18 @@
   out_fasta <- file.path(output_dir, paste0(sample_name, "_input.fasta"))
   if (!is_fastq) {
     # Gzipped FASTA: stream-decompress only.
-    .sirap_run_command("gunzip", c("-c", input), stdout = out_fasta)
+    .sirup_run_command("gunzip", c("-c", input), stdout = out_fasta)
     return(out_fasta)
   }
   fastq <- input
   tmp_fastq <- NULL
   if (is_gz) {
     tmp_fastq <- file.path(output_dir, paste0(sample_name, "_input.fastq"))
-    .sirap_run_command("gunzip", c("-c", input), stdout = tmp_fastq)
+    .sirup_run_command("gunzip", c("-c", input), stdout = tmp_fastq)
     fastq <- tmp_fastq
   }
   # FASTQ to FASTA in one streaming pass; qualities are dropped.
-  .sirap_run_command(
+  .sirup_run_command(
     "awk",
     "NR % 4 == 1 { sub(/^@/, \">\"); print } NR % 4 == 2 { print }",
     stdin = fastq,
@@ -259,8 +259,8 @@ runIgblast <- function(input,
                        num_threads = 8,
                        extra_args = NULL) {
   receptor <- match.arg(receptor)
-  .sirap_check_tools(c(igblastn = igblast_exec))
-  dbs <- .sirap_igblast_db_paths(
+  .sirup_check_tools(c(igblastn = igblast_exec))
+  dbs <- .sirup_igblast_db_paths(
     igblast_db_dir = igblast_db_dir,
     receptor = receptor,
     germline_db_v = germline_db_v,
@@ -274,8 +274,8 @@ runIgblast <- function(input,
     dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   }
   sample_name <- tools::file_path_sans_ext(basename(output_tsv))
-  query_fasta <- .sirap_prepare_query_fasta(input, output_dir, sample_name)
-  args <- .sirap_igblast_args(
+  query_fasta <- .sirup_prepare_query_fasta(input, output_dir, sample_name)
+  args <- .sirup_igblast_args(
     query_fasta = query_fasta,
     output_tsv = output_tsv,
     receptor = receptor,
@@ -286,7 +286,7 @@ runIgblast <- function(input,
     extra_args = extra_args
   )
   log <- paste0(tools::file_path_sans_ext(output_tsv), ".log")
-  .sirap_run_command(igblast_exec, args, log = log)
+  .sirup_run_command(igblast_exec, args, log = log)
   invisible(output_tsv)
 }
 

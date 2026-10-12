@@ -20,7 +20,7 @@ NULL
 
 # Normalize tabular inputs used by internal helpers. Keep ordinary data frames
 # as base data frames, but turn data.table inputs into tibbles so data.table's
-# by-reference behavior and printing do not leak into SIRAP internals.
+# by-reference behavior and printing do not leak into SIRUP internals.
 .as_data_frame <- function(x) {
   if (tibble::is_tibble(x)) {
     x

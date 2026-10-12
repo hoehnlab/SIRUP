@@ -7,9 +7,9 @@
 spatialReceptorSummary(airr_df, spatial_id = "spatial_id_2um")
 }
 \arguments{
-\item{airr_df}{AIRR-style data frame or a SIRAP object.}
+\item{airr_df}{AIRR-style data frame or a SIRUP object.}
 
-\item{spatial_id}{Spatial ID column to count. When omitted for a SIRAP object,
+\item{spatial_id}{Spatial ID column to count. When omitted for a SIRUP object,
 the spatial ID field recorded in its metadata is used.}
 }
 \value{

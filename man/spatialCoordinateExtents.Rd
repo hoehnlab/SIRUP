@@ -13,7 +13,7 @@ spatialCoordinateExtents(
 )
 }
 \arguments{
-\item{object}{SIRAP object or spatial Seurat object.}
+\item{object}{SIRUP object or spatial Seurat object.}
 
 \item{by}{Summarize by spatial \code{sample} or by \code{image}.}
 

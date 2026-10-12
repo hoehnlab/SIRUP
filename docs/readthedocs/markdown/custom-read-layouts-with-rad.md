@@ -1,8 +1,8 @@
 # Custom read layouts and whitelists
 
 Custom read layouts and whitelists are configured in the standalone
-[rrad package](https://github.com/indianewok/rrad), before SIRAP processing.
-SIRAP consumes the resulting annotated FASTA; it does not register layouts,
+[rrad package](https://github.com/indianewok/rrad), before SIRUP processing.
+SIRUP consumes the resulting annotated FASTA; it does not register layouts,
 manage RAD binaries, or perform demultiplexing.
 
 Install rrad separately using the [preparation guide](demultiplexing-with-rad.html).
@@ -44,7 +44,7 @@ layout_path <- "prepared/custom-layout.csv"
 write.csv(layout, layout_path, row.names = FALSE, quote = FALSE)
 ```
 
-Pass the file path directly to rrad. No SIRAP registration step is needed.
+Pass the file path directly to rrad. No SIRUP registration step is needed.
 rrad also accepts supported seqspec YAML layouts; explicit local onlist paths
 can supply custom barcodes. Consult `?rrad::rad_demux` and the
 [RAD layout reference](https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md)
@@ -113,7 +113,7 @@ demux <- rrad::rad_demux(
 Omit `custom_whitelist` to use only the whitelist configured in your layout,
 or replace it with a path to your own trusted barcode file.
 
-## Hand the FASTA to SIRAP
+## Hand the FASTA to SIRUP
 
 ```r
 prepared <- rrad::rad_reformat(
@@ -127,7 +127,7 @@ prepared <- rrad::rad_reformat(
 This writes headers such as `read1|BARCODE=BC01|UMI=ACGT`. The barcode
 and UMI remain part of the identifier when the FASTA passes through IgBLAST.
 Use `prepared$artifacts$fasta` as `input` to
-`SIRAP::processSpatialSample()` with the IgBLAST installation, database,
+`SIRUP::processSpatialSample()` with the IgBLAST installation, database,
 and germline paths shown in the [preparation guide](demultiplexing-with-rad.html).
 Ordinary FASTA input receives the first IgBLAST pass before filtering and
 consensus; `input_type = "spatial_fasta"` is reserved for already annotated

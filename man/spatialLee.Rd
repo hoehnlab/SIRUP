@@ -24,7 +24,7 @@ spatialLee(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images, or a SIRAP object.}
+\item{object}{Seurat object with spatial images, or a SIRUP object.}
 
 \item{x}{First feature or numeric metadata column to analyze.}
 
@@ -44,7 +44,7 @@ spatialLee(
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before calculating neighborhoods. If \code{NULL}, the value must be
-supplied explicitly or by SIRAP object metadata.}
+supplied explicitly or by SIRUP object metadata.}
 
 \item{radius}{Optional distance radius defining neighborhoods.}
 

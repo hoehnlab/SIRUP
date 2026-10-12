@@ -1,40 +1,40 @@
-test_that(".sirap_detect_input_type classifies inputs", {
-  expect_equal(.sirap_detect_input_type(data.frame(x = 1)), "airr_df")
-  expect_equal(.sirap_detect_input_type("x.tsv"), "airr_tsv")
-  expect_equal(.sirap_detect_input_type("x.tsv.gz"), "airr_tsv")
-  expect_equal(.sirap_detect_input_type("x.txt"), "airr_tsv")
-  expect_equal(.sirap_detect_input_type("x.fa"), "raw_reads")
-  expect_equal(.sirap_detect_input_type("x.fasta"), "raw_reads")
-  expect_equal(.sirap_detect_input_type("x.fastq.gz"), "raw_reads")
-  expect_equal(.sirap_detect_input_type("x.fq"), "raw_reads")
-  expect_error(.sirap_detect_input_type("x.bam"), "Cannot detect")
-  expect_error(.sirap_detect_input_type(c("a.fa", "b.fa")), "single file path")
+test_that(".sirup_detect_input_type classifies inputs", {
+  expect_equal(.sirup_detect_input_type(data.frame(x = 1)), "airr_df")
+  expect_equal(.sirup_detect_input_type("x.tsv"), "airr_tsv")
+  expect_equal(.sirup_detect_input_type("x.tsv.gz"), "airr_tsv")
+  expect_equal(.sirup_detect_input_type("x.txt"), "airr_tsv")
+  expect_equal(.sirup_detect_input_type("x.fa"), "raw_reads")
+  expect_equal(.sirup_detect_input_type("x.fasta"), "raw_reads")
+  expect_equal(.sirup_detect_input_type("x.fastq.gz"), "raw_reads")
+  expect_equal(.sirup_detect_input_type("x.fq"), "raw_reads")
+  expect_error(.sirup_detect_input_type("x.bam"), "Cannot detect")
+  expect_error(.sirup_detect_input_type(c("a.fa", "b.fa")), "single file path")
 })
 
-test_that(".sirap_igblast_db_paths applies the naming convention and overrides", {
-  dbs <- .sirap_igblast_db_paths("/db", receptor = "ig")
+test_that(".sirup_igblast_db_paths applies the naming convention and overrides", {
+  dbs <- .sirup_igblast_db_paths("/db", receptor = "ig")
   expect_equal(dbs$v, file.path("/db", "IG_V"))
   expect_equal(dbs$d, file.path("/db", "IG_D"))
   expect_equal(dbs$j, file.path("/db", "IG_J"))
   expect_equal(dbs$c, file.path("/db", "IG_C"))
 
-  dbs <- .sirap_igblast_db_paths("/db", receptor = "tr")
+  dbs <- .sirup_igblast_db_paths("/db", receptor = "tr")
   expect_equal(dbs$v, file.path("/db", "TR_V"))
   expect_null(dbs$c)
 
-  dbs <- .sirap_igblast_db_paths("/db", receptor = "ig", germline_db_v = "/other/V")
+  dbs <- .sirup_igblast_db_paths("/db", receptor = "ig", germline_db_v = "/other/V")
   expect_equal(dbs$v, "/other/V")
   expect_equal(dbs$d, file.path("/db", "IG_D"))
 
   expect_error(
-    .sirap_igblast_db_paths(NULL, receptor = "ig"),
+    .sirup_igblast_db_paths(NULL, receptor = "ig"),
     "Cannot resolve germline database"
   )
 })
 
-test_that(".sirap_igblast_args builds the igblastn argument vector", {
-  dbs <- .sirap_igblast_db_paths("/db", receptor = "ig")
-  args <- .sirap_igblast_args(
+test_that(".sirup_igblast_args builds the igblastn argument vector", {
+  dbs <- .sirup_igblast_db_paths("/db", receptor = "ig")
+  args <- .sirup_igblast_args(
     query_fasta = "in.fasta",
     output_tsv = "out.tsv",
     receptor = "ig",
@@ -50,8 +50,8 @@ test_that(".sirap_igblast_args builds the igblastn argument vector", {
   expect_equal(args[which(args == "-num_threads") + 1L], "4")
   expect_equal(args[which(args == "-out") + 1L], "out.tsv")
 
-  dbs_tr <- .sirap_igblast_db_paths("/db", receptor = "tr")
-  args_tr <- .sirap_igblast_args(
+  dbs_tr <- .sirup_igblast_db_paths("/db", receptor = "tr")
+  args_tr <- .sirup_igblast_args(
     query_fasta = "in.fasta",
     output_tsv = "out.tsv",
     receptor = "tr",
@@ -64,7 +64,7 @@ test_that(".sirap_igblast_args builds the igblastn argument vector", {
   expect_equal(utils::tail(args_tr, 2L), c("-word_size", "9"))
 })
 
-test_that(".sirap_prepare_query_fasta streams fastq.gz to a plain fasta", {
+test_that(".sirup_prepare_query_fasta streams fastq.gz to a plain fasta", {
   skip_on_os("windows")
   dir <- withr::local_tempdir()
   fq <- file.path(dir, "reads.fastq")
@@ -83,7 +83,7 @@ test_that(".sirap_prepare_query_fasta streams fastq.gz to a plain fasta", {
   writeLines(readLines(fq), con)
   close(con)
 
-  out <- .sirap_prepare_query_fasta(fq_gz, dir, "reads")
+  out <- .sirup_prepare_query_fasta(fq_gz, dir, "reads")
   expect_true(file.exists(out))
   lines <- readLines(out)
   expect_equal(lines, c(
@@ -97,7 +97,7 @@ test_that(".sirap_prepare_query_fasta streams fastq.gz to a plain fasta", {
   # A plain fasta passes through with no copy.
   fa <- file.path(dir, "reads.fasta")
   writeLines(c(">read1", "ACGT"), fa)
-  expect_equal(.sirap_prepare_query_fasta(fa, dir, "x"), fa)
+  expect_equal(.sirup_prepare_query_fasta(fa, dir, "x"), fa)
 })
 
 test_that("parseRadSequenceIds splits RRAD tags", {
@@ -118,15 +118,15 @@ test_that("parseRadSequenceIds splits RRAD tags", {
   expect_equal(out_keep$sequence_id, airr$sequence_id)
 })
 
-test_that(".sirap_run_command aborts on failure with the log tail", {
+test_that(".sirup_run_command aborts on failure with the log tail", {
   skip_on_os("windows")
   dir <- withr::local_tempdir()
   log <- file.path(dir, "cmd.log")
   expect_error(
-    .sirap_run_command("false", character(0), log = log),
+    .sirup_run_command("false", character(0), log = log),
     "Command failed with status"
   )
-  expect_equal(.sirap_run_command("true", character(0)), 0L)
+  expect_equal(.sirup_run_command("true", character(0)), 0L)
 })
 
 test_that("runIgblast runs a stub executable and returns the output path", {
@@ -156,14 +156,14 @@ test_that("runIgblast runs a stub executable and returns the output path", {
     igblast_exec = stub
   )
   expect_equal(result, out_tsv)
-  airr <- .sirap_read_airr(out_tsv)
+  airr <- .sirup_read_airr(out_tsv)
   expect_equal(airr$sequence_id, "read1")
   expect_equal(airr$locus, "IGH")
 })
 
-test_that(".sirap_presto_commands builds the six pipeline commands", {
+test_that(".sirup_presto_commands builds the six pipeline commands", {
   paths <- .presto_paths("sample_spatial.fasta", 0.975, 0.51, "out")
-  commands <- .sirap_presto_commands(
+  commands <- .sirup_presto_commands(
     paths = paths,
     receptor = "ig",
     organism = "human",

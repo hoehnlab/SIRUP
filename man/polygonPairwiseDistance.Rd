@@ -14,7 +14,7 @@ polygonPairwiseDistance(
 )
 }
 \arguments{
-\item{object}{SIRAP object with stored polygons.}
+\item{object}{SIRUP object with stored polygons.}
 
 \item{polygons}{Optional polygon vertex table.}
 

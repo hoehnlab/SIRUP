@@ -42,11 +42,11 @@ plotReceptorsExpression(
 )
 }
 \arguments{
-\item{object}{Seurat object, or a SIRAP object containing both spatial and
+\item{object}{Seurat object, or a SIRUP object containing both spatial and
 receptor data.}
 
 \item{receptors}{AIRR-style receptor table containing a spatial ID and
-grouping column. May be omitted when \code{object} is a SIRAP object.}
+grouping column. May be omitted when \code{object} is a SIRUP object.}
 
 \item{group}{Column in \code{receptors} defining receptor groups, for example
 \code{"receptor_type"} with values \code{"BCR"} and \code{"TCR"}. Optional when \code{value}
@@ -57,7 +57,7 @@ receptors to draw.}
 Defaults to all non-missing values in \code{group}.}
 
 \item{spatial_id}{Column in \code{receptors} matching Seurat spot names. If
-\code{NULL}, the SIRAP spatial_id field is used or a spatial ID-like column is guessed.}
+\code{NULL}, the SIRUP spatial_id field is used or a spatial ID-like column is guessed.}
 
 \item{feature}{Gene or feature plotted beneath receptor-positive spots.}
 
@@ -116,7 +116,7 @@ appears on top. Receptor groups are drawn in \code{values} order.}
 \item{images}{Optional Seurat image names.}
 
 \item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
+SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
 
 \item{image_alpha}{Tissue image opacity.}
 
@@ -129,7 +129,7 @@ to \code{group}.}
 
 \item{combine}{Combine image panels with patchwork.}
 
-\item{combine_sample_plots}{For multi-sample SIRAP objects, combine plots
+\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
 from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
 multi-sample calls return a named list of per-sample plots.}
 }

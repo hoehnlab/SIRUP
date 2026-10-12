@@ -1,6 +1,6 @@
 test_that("plotReceptorsExpression layers grouped receptors over expression", {
   testthat::local_mocked_bindings(
-    .sirap_resolve_inputs = function(object, receptors = NULL, spatial_id = NULL) {
+    .sirup_resolve_inputs = function(object, receptors = NULL, spatial_id = NULL) {
       list(object = object, receptors = receptors, spatial_id_col = spatial_id)
     },
     .require_namespace = function(package) invisible(TRUE),
@@ -9,27 +9,27 @@ test_that("plotReceptorsExpression layers grouped receptors over expression", {
     .check_required_cols = function(x, cols, label) {
       stopifnot(all(cols %in% colnames(x)))
     },
-    .sirap_fetch_data = function(object, vars, layer, assay = NULL) {
+    .sirup_fetch_data = function(object, vars, layer, assay = NULL) {
       out <- data.frame(GENE = c(1, 2, 0), row.names = c("spot1", "spot2", "spot3"))
       colnames(out) <- vars
       out
     },
-    .sirap_spatial_images = function(object, images = NULL, sample_id = NULL) "image1",
-    .sirap_spatial_data = function(object, image, image_scale, swap_coords) {
+    .sirup_spatial_images = function(object, images = NULL, sample_id = NULL) "image1",
+    .sirup_spatial_data = function(object, image, image_scale, swap_coords) {
       list(
         coords = data.frame(
           cell = c("spot1", "spot2", "spot3"),
           x = c(1, 2, 3),
-          .sirap_y = c(1, 2, 3)
+          .sirup_y = c(1, 2, 3)
         ),
         image = NULL
       )
     },
-    .sirap_spatial_base = function(...) ggplot2::ggplot(),
-    .sirap_return_spatial_plots = function(plots, combine = TRUE, combine_sample_plots = FALSE) {
+    .sirup_spatial_base = function(...) ggplot2::ggplot(),
+    .sirup_return_spatial_plots = function(plots, combine = TRUE, combine_sample_plots = FALSE) {
       if (combine) plots[[1L]] else plots
     },
-    .package = "SIRAP"
+    .package = "SIRUP"
   )
 
   receptors <- data.frame(
@@ -56,7 +56,7 @@ test_that("plotReceptorsExpression layers grouped receptors over expression", {
   expect_identical(plot$layers[[2L]]$aes_params$colour, "blue")
   expect_identical(
     plot$layers[[3L]]$aes_params$colour,
-    SIRAP:::.sirap_average_colors(c("blue", "orange"))
+    SIRUP:::.sirup_average_colors(c("blue", "orange"))
   )
   expect_true(any(vapply(
     plot$scales$scales,
@@ -65,36 +65,36 @@ test_that("plotReceptorsExpression layers grouped receptors over expression", {
   )))
 })
 
-test_that(".sirap_combine_receptor_groups merges multi-group spots with a blended color", {
+test_that(".sirup_combine_receptor_groups merges multi-group spots with a blended color", {
   lookup <- data.frame(
     barcode = c("spot1", "spot2", "spot3", "spot3"),
-    .sirap_receptor_group = c("BCR", "TCR", "BCR", "TCR"),
+    .sirup_receptor_group = c("BCR", "TCR", "BCR", "TCR"),
     stringsAsFactors = FALSE
   )
-  res <- SIRAP:::.sirap_combine_receptor_groups(
+  res <- SIRUP:::.sirup_combine_receptor_groups(
     lookup, "barcode", c("BCR", "TCR"), c(BCR = "blue", TCR = "orange")
   )
 
   # One row per spot; the multi-group spot becomes the combined group.
   expect_identical(nrow(res$lookup), 3L)
-  expect_identical(levels(res$lookup$.sirap_receptor_group), c("BCR", "TCR", "BCR + TCR"))
+  expect_identical(levels(res$lookup$.sirup_receptor_group), c("BCR", "TCR", "BCR + TCR"))
   expect_identical(
-    as.character(res$lookup$.sirap_receptor_group[res$lookup$barcode == "spot3"]),
+    as.character(res$lookup$.sirup_receptor_group[res$lookup$barcode == "spot3"]),
     "BCR + TCR"
   )
   # Single groups keep their colors; the combination is the average.
   expect_identical(res$colors[["BCR"]], "blue")
   expect_identical(res$colors[["TCR"]], "orange")
-  expect_identical(res$colors[["BCR + TCR"]], SIRAP:::.sirap_average_colors(c("blue", "orange")))
+  expect_identical(res$colors[["BCR + TCR"]], SIRUP:::.sirup_average_colors(c("blue", "orange")))
 
   # overlap = a fixed color colors all combined spots with that color.
-  res_fixed <- SIRAP:::.sirap_combine_receptor_groups(
+  res_fixed <- SIRUP:::.sirup_combine_receptor_groups(
     lookup, "barcode", c("BCR", "TCR"), c(BCR = "blue", TCR = "orange"), overlap = "black"
   )
   expect_identical(res_fixed$colors[["BCR + TCR"]], "black")
   expect_identical(res_fixed$colors[["BCR"]], "blue")
   expect_error(
-    SIRAP:::.sirap_combine_receptor_groups(
+    SIRUP:::.sirup_combine_receptor_groups(
       lookup, "barcode", c("BCR", "TCR"), c(BCR = "blue", TCR = "orange"), overlap = "not_a_color"
     ),
     "overlap"
@@ -105,7 +105,7 @@ test_that(".sirap_combine_receptor_groups merges multi-group spots with a blende
 # the expression layer maps fill.
 expression_receptor_fill_values <- function(plot) {
   layers <- Filter(function(l) any(c("colour", "color") %in% names(l$mapping)), plot$layers)
-  sort(as.numeric(layers[[1]]$data$.sirap_count))
+  sort(as.numeric(layers[[1]]$data$.sirup_count))
 }
 
 test_that("plotReceptorsExpression colours receptors by a continuous value", {
@@ -120,7 +120,7 @@ test_that("plotReceptorsExpression colours receptors by a continuous value", {
     nrow = 2, ncol = 4, sparse = TRUE
   )
   dimnames(counts) <- list(c("AICDA", "geneB"), paste0("cell", 1:4))
-  object <- sirap_test_seurat(counts = counts)
+  object <- sirup_test_seurat(counts = counts)
   object$x <- c(0, 1, 2, 3)
   object$y <- c(0, 1, 1, 0)
 
@@ -188,7 +188,7 @@ test_that("receptor spatial plots keep duplicate barcodes separated by sample", 
   skip_if_not_installed("Matrix")
 
   make_section <- function() {
-    object <- sirap_test_seurat(
+    object <- sirup_test_seurat(
       counts = matrix(
         c(1, 2, 3, 4),
         nrow = 1,
@@ -199,7 +199,7 @@ test_that("receptor spatial plots keep duplicate barcodes separated by sample", 
     object$y <- c(0, 0, 0, 0)
     object
   }
-  sirap <- createSIRAP(
+  sirup <- createSIRUP(
     spatial = list(section_a = make_section(), section_b = make_section()),
     receptors = data.frame(
       barcode = c("cell1", "cell1"),
@@ -215,7 +215,7 @@ test_that("receptor spatial plots keep duplicate barcodes separated by sample", 
   )
 
   grouped <- plotReceptors(
-    sirap,
+    sirup,
     group = "receptor_type",
     group_val = c("BCR", "TCR"),
     colors = c(BCR = "blue", TCR = "orange"),
@@ -223,11 +223,11 @@ test_that("receptor spatial plots keep duplicate barcodes separated by sample", 
   )
   expect_equal(names(grouped), c("section_a", "section_b"))
   grouped_data <- lapply(grouped, function(plot) plot$layers[[1L]]$data)
-  expect_equal(as.character(grouped_data[["section_a"]]$.sirap_receptor_group), "BCR")
-  expect_equal(as.character(grouped_data[["section_b"]]$.sirap_receptor_group), "TCR")
+  expect_equal(as.character(grouped_data[["section_a"]]$.sirup_receptor_group), "BCR")
+  expect_equal(as.character(grouped_data[["section_b"]]$.sirup_receptor_group), "TCR")
 
   grouped_section_b <- plotReceptors(
-    sirap,
+    sirup,
     group = "receptor_type",
     group_val = c("BCR", "TCR"),
     colors = c(BCR = "blue", TCR = "orange"),
@@ -236,12 +236,12 @@ test_that("receptor spatial plots keep duplicate barcodes separated by sample", 
   )
   expect_equal(names(grouped_section_b), "section_b")
   expect_equal(
-    as.character(grouped_section_b[["section_b"]]$layers[[1L]]$data$.sirap_receptor_group),
+    as.character(grouped_section_b[["section_b"]]$layers[[1L]]$data$.sirup_receptor_group),
     "TCR"
   )
 
   counted <- plotReceptorsExpression(
-    sirap,
+    sirup,
     feature = "AICDA",
     value = "count",
     combine = FALSE

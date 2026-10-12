@@ -18,13 +18,13 @@ spatialCloneSpread(
 )
 }
 \arguments{
-\item{object}{SIRAP object, or a spatial Seurat object when \code{receptors} is supplied.}
+\item{object}{SIRUP object, or a spatial Seurat object when \code{receptors} is supplied.}
 
-\item{receptors}{Optional receptor table. Omitted for SIRAP input.}
+\item{receptors}{Optional receptor table. Omitted for SIRUP input.}
 
-\item{clone}{Clone ID column. Defaults to the SIRAP clone field when present.}
+\item{clone}{Clone ID column. Defaults to the SIRUP clone field when present.}
 
-\item{spatial_id}{Receptor spatial ID column. Defaults to the SIRAP spatial ID field.}
+\item{spatial_id}{Receptor spatial ID column. Defaults to the SIRUP spatial ID field.}
 
 \item{clone_val}{Optional clone IDs to keep.}
 

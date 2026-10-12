@@ -56,7 +56,7 @@ The method follows the SPaCeD repository by H. J. Melton et al.
 (https://github.com/hjm2217/spaced) and its use of a REPAIR model matrix
 (https://github.com/almaan/star-repair; modified SPaCeD notes reference
 https://github.com/Floraliu7/star-repair). The original SPaCeD spatial term
-was computed with \code{spatstat::pppdist(type = "mat")}; SIRAP's default spatial
+was computed with \code{spatstat::pppdist(type = "mat")}; SIRUP's default spatial
 term uses sparse clone-by-barcode matrices. For Visium HD, use the Space
 Ranger 8um barcodes as the native spatial bins rather than adding another
 coordinate downsampling step.

@@ -33,14 +33,14 @@ plotSpatialCloneJoinCount(
 \item{join_count}{Output from \code{\link[=spatialCloneJoinCount]{spatialCloneJoinCount()}} created with
 \code{return_data = TRUE}.}
 
-\item{object}{Seurat object with spatial images, or a SIRAP object.}
+\item{object}{Seurat object with spatial images, or a SIRUP object.}
 
 \item{clone_val}{Clone ID to plot.}
 
 \item{images}{Optional image names to include.}
 
 \item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRAP objects. Defaults to \code{NULL}, which plots all samples.}
+SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
 
 \item{polygon_val}{Optional polygon IDs to include.}
 
@@ -76,7 +76,7 @@ the selected clone.}
 
 \item{title}{Optional title for the combined plot.}
 
-\item{combine_sample_plots}{For multi-sample SIRAP objects, combine plots
+\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
 from different spatial samples into one figure. Defaults to \code{FALSE}, so
 multi-sample calls return a named list of per-sample plots.}
 }

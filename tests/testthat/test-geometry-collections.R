@@ -13,7 +13,7 @@ test_that("polygon repair keeps polygonal pieces from geometry collections", {
     )))
   }
 
-  repaired <- .sirap_repair_polygon_sfc(intersection_fun(NULL, NULL))
+  repaired <- .sirup_repair_polygon_sfc(intersection_fun(NULL, NULL))
 
   expect_false(is.null(repaired))
   expect_gt(length(repaired), 0L)

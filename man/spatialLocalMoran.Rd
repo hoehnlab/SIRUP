@@ -22,7 +22,7 @@ spatialLocalMoran(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images, or a SIRAP object.}
+\item{object}{Seurat object with spatial images, or a SIRUP object.}
 
 \item{variable}{Feature or metadata column to analyze.}
 
@@ -33,15 +33,15 @@ spots that contain a particular clone ID.}
 \item{value}{Optional metadata value to convert to a binary indicator.}
 
 \item{receptors}{AIRR-style receptor data frame. Required when
-\code{variable_type = "receptor"} or \code{"clone"} unless \code{object} is a SIRAP
+\code{variable_type = "receptor"} or \code{"clone"} unless \code{object} is a SIRUP
 object.}
 
 \item{spatial_id}{Spatial ID column in \code{receptors}. Defaults to \code{NULL}; when
-\code{object} is a SIRAP object, the stored receptor ID field is used.
+\code{object} is a SIRUP object, the stored receptor ID field is used.
 Pass this explicitly when using separate Seurat and receptor objects.}
 
 \item{clone}{Clone column in \code{receptors}; used only when
-\code{variable_type = "clone"}. Defaults to \code{NULL}; when \code{object} is a SIRAP
+\code{variable_type = "clone"}. Defaults to \code{NULL}; when \code{object} is a SIRUP
 object, the stored receptor clone field is used when available.}
 
 \item{assay}{Optional assay to use when \code{variable_type = "feature"}.}
@@ -54,7 +54,7 @@ object, the stored receptor clone field is used when available.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRAP object metadata.}
+value must be supplied explicitly or by SIRUP object metadata.}
 
 \item{radius}{Optional distance radius defining local neighborhoods. When
 \code{NULL}, k-nearest neighbors are used.}

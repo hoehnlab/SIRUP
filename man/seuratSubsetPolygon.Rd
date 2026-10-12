@@ -32,7 +32,7 @@ evaluated independently.}
 
 \item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
 axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRAP object metadata.}
+value must be supplied explicitly or by SIRUP object metadata.}
 
 \item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
 exists.}

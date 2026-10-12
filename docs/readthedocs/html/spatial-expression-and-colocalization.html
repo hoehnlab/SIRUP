@@ -330,10 +330,10 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <p>This vignette shows how to plot gene expression and receptor locations over a spatial tissue image, then test spatial autocorrelation and receptor/gene colocalization. The examples use CD3E with TCRs and MS4A1 with BCRs.</p>
 <p>For now, this vignette uses the full local thymus dataset from the walkthrough. We should replace this with a small packaged toy dataset later.</p>
-<p>This read-the-docs version can be rendered in two modes. By default, code is shown but not evaluated. To generate plots from the full dataset, render on the cluster with <code>SIRAP_RENDER_PLOTS=true</code>.</p>
+<p>This read-the-docs version can be rendered in two modes. By default, code is shown but not evaluated. To generate plots from the full dataset, render on the cluster with <code>SIRUP_RENDER_PLOTS=true</code>.</p>
 <div id="setup" class="section level2">
 <h2>Setup</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SIRAP)</a>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SIRUP)</a>
 <a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">library</span>(dplyr)</a>
 <a class="sourceLine" id="cb1-3" data-line-number="3"><span class="kw">library</span>(ggplot2)</a>
 <a class="sourceLine" id="cb1-4" data-line-number="4"><span class="kw">library</span>(cowplot)</a>
@@ -345,7 +345,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb1-10" data-line-number="10">sampleLower &lt;-<span class="st"> </span><span class="kw">tolower</span>(sampleId)</a>
 <a class="sourceLine" id="cb1-11" data-line-number="11"></a>
 <a class="sourceLine" id="cb1-12" data-line-number="12">thymusDir &lt;-<span class="st"> </span><span class="kw">normalizePath</span>(<span class="st">&quot;/dartfs/rc/lab/H/HoehnK/Hunter/Thymus_VisiumHD&quot;</span>, <span class="dt">mustWork =</span> <span class="ot">TRUE</span>)</a>
-<a class="sourceLine" id="cb1-13" data-line-number="13">outDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(thymusDir, <span class="st">&quot;SIRAP_walkthrough&quot;</span>, sampleId)</a>
+<a class="sourceLine" id="cb1-13" data-line-number="13">outDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(thymusDir, <span class="st">&quot;SIRUP_walkthrough&quot;</span>, sampleId)</a>
 <a class="sourceLine" id="cb1-14" data-line-number="14">finalAirrDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(outDir, <span class="st">&quot;03_final_spatial_airr&quot;</span>)</a>
 <a class="sourceLine" id="cb1-15" data-line-number="15">plotDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(outDir, <span class="st">&quot;plots&quot;</span>)</a>
 <a class="sourceLine" id="cb1-16" data-line-number="16"><span class="kw">dir.create</span>(plotDir, <span class="dt">recursive =</span> <span class="ot">TRUE</span>, <span class="dt">showWarnings =</span> <span class="ot">FALSE</span>)</a>
@@ -361,7 +361,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">bcr_spots &lt;-<span class="st"> </span><span class="kw">unique</span>(bcrTopBarcode<span class="op">$</span>barcode_8um)</a>
 <a class="sourceLine" id="cb2-2" data-line-number="2">tcr_spots &lt;-<span class="st"> </span><span class="kw">unique</span>(tcrTopBarcode<span class="op">$</span>barcode_8um)</a>
 <a class="sourceLine" id="cb2-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb2-4" data-line-number="4">thymus[[<span class="st">&quot;sirap_receptor_type&quot;</span>]] &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">case_when</span>(</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">thymus[[<span class="st">&quot;sirup_receptor_type&quot;</span>]] &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">case_when</span>(</a>
 <a class="sourceLine" id="cb2-5" data-line-number="5">  <span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>bcr_spots <span class="op">&amp;</span><span class="st"> </span><span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>tcr_spots <span class="op">~</span><span class="st"> &quot;BCR + TCR&quot;</span>,</a>
 <a class="sourceLine" id="cb2-6" data-line-number="6">  <span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>bcr_spots <span class="op">~</span><span class="st"> &quot;BCR&quot;</span>,</a>
 <a class="sourceLine" id="cb2-7" data-line-number="7">  <span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>tcr_spots <span class="op">~</span><span class="st"> &quot;TCR&quot;</span>,</a>
@@ -510,13 +510,13 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">cd3e_counts &lt;-<span class="st"> </span>Seurat<span class="op">::</span><span class="kw">FetchData</span>(thymus, <span class="dt">vars =</span> <span class="st">&quot;CD3E&quot;</span>, <span class="dt">layer =</span> <span class="st">&quot;counts&quot;</span>)</a>
 <a class="sourceLine" id="cb7-2" data-line-number="2">ms4a1_counts &lt;-<span class="st"> </span>Seurat<span class="op">::</span><span class="kw">FetchData</span>(thymus, <span class="dt">vars =</span> <span class="st">&quot;MS4A1&quot;</span>, <span class="dt">layer =</span> <span class="st">&quot;counts&quot;</span>)</a>
 <a class="sourceLine" id="cb7-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb7-4" data-line-number="4">thymus[[<span class="st">&quot;sirap_cd3e_tcr_mark&quot;</span>]] &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">case_when</span>(</a>
+<a class="sourceLine" id="cb7-4" data-line-number="4">thymus[[<span class="st">&quot;sirup_cd3e_tcr_mark&quot;</span>]] &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">case_when</span>(</a>
 <a class="sourceLine" id="cb7-5" data-line-number="5">  <span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>tcr_spots <span class="op">~</span><span class="st"> &quot;TCR&quot;</span>,</a>
 <a class="sourceLine" id="cb7-6" data-line-number="6">  cd3e_counts[<span class="kw">colnames</span>(thymus), <span class="st">&quot;CD3E&quot;</span>] <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span> <span class="op">~</span><span class="st"> &quot;CD3E+&quot;</span>,</a>
 <a class="sourceLine" id="cb7-7" data-line-number="7">  <span class="ot">TRUE</span> <span class="op">~</span><span class="st"> </span><span class="ot">NA_character_</span></a>
 <a class="sourceLine" id="cb7-8" data-line-number="8">)</a>
 <a class="sourceLine" id="cb7-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb7-10" data-line-number="10">thymus[[<span class="st">&quot;sirap_ms4a1_bcr_mark&quot;</span>]] &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">case_when</span>(</a>
+<a class="sourceLine" id="cb7-10" data-line-number="10">thymus[[<span class="st">&quot;sirup_ms4a1_bcr_mark&quot;</span>]] &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">case_when</span>(</a>
 <a class="sourceLine" id="cb7-11" data-line-number="11">  <span class="kw">colnames</span>(thymus) <span class="op">%in%</span><span class="st"> </span>bcr_spots <span class="op">~</span><span class="st"> &quot;BCR&quot;</span>,</a>
 <a class="sourceLine" id="cb7-12" data-line-number="12">  ms4a1_counts[<span class="kw">colnames</span>(thymus), <span class="st">&quot;MS4A1&quot;</span>] <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span> <span class="op">~</span><span class="st"> &quot;MS4A1+&quot;</span>,</a>
 <a class="sourceLine" id="cb7-13" data-line-number="13">  <span class="ot">TRUE</span> <span class="op">~</span><span class="st"> </span><span class="ot">NA_character_</span></a>
@@ -525,7 +525,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb8-2" data-line-number="2"></a>
 <a class="sourceLine" id="cb8-3" data-line-number="3">cd3eTcrK &lt;-<span class="st"> </span><span class="kw">spatialRipleyCrossK</span>(</a>
 <a class="sourceLine" id="cb8-4" data-line-number="4">  thymus,</a>
-<a class="sourceLine" id="cb8-5" data-line-number="5">  <span class="dt">mark_col =</span> <span class="st">&quot;sirap_cd3e_tcr_mark&quot;</span>,</a>
+<a class="sourceLine" id="cb8-5" data-line-number="5">  <span class="dt">mark_col =</span> <span class="st">&quot;sirup_cd3e_tcr_mark&quot;</span>,</a>
 <a class="sourceLine" id="cb8-6" data-line-number="6">  <span class="dt">i =</span> <span class="st">&quot;TCR&quot;</span>,</a>
 <a class="sourceLine" id="cb8-7" data-line-number="7">  <span class="dt">j =</span> <span class="st">&quot;CD3E+&quot;</span>,</a>
 <a class="sourceLine" id="cb8-8" data-line-number="8">  <span class="dt">nsim =</span> ripleyNsim,</a>
@@ -540,7 +540,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb8-17" data-line-number="17"></a>
 <a class="sourceLine" id="cb8-18" data-line-number="18">ms4a1BcrK &lt;-<span class="st"> </span><span class="kw">spatialRipleyCrossK</span>(</a>
 <a class="sourceLine" id="cb8-19" data-line-number="19">  thymus,</a>
-<a class="sourceLine" id="cb8-20" data-line-number="20">  <span class="dt">mark_col =</span> <span class="st">&quot;sirap_ms4a1_bcr_mark&quot;</span>,</a>
+<a class="sourceLine" id="cb8-20" data-line-number="20">  <span class="dt">mark_col =</span> <span class="st">&quot;sirup_ms4a1_bcr_mark&quot;</span>,</a>
 <a class="sourceLine" id="cb8-21" data-line-number="21">  <span class="dt">i =</span> <span class="st">&quot;BCR&quot;</span>,</a>
 <a class="sourceLine" id="cb8-22" data-line-number="22">  <span class="dt">j =</span> <span class="st">&quot;MS4A1+&quot;</span>,</a>
 <a class="sourceLine" id="cb8-23" data-line-number="23">  <span class="dt">nsim =</span> ripleyNsim,</a>

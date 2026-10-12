@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_statistics.R
 \name{spatialCoordinateTable}
 \alias{spatialCoordinateTable}
-\title{Extract SIRAP spatial plotting coordinates}
+\title{Extract SIRUP spatial plotting coordinates}
 \usage{
 spatialCoordinateTable(
   object,
@@ -21,11 +21,11 @@ spatialCoordinateTable(
 \item{swap_coords}{Whether to swap x/y coordinates before plotting.}
 }
 \value{
-A data frame with at least \code{cell}, \code{x}, \code{y}, \code{.sirap_y}, and \code{image}.
+A data frame with at least \code{cell}, \code{x}, \code{y}, \code{.sirup_y}, and \code{image}.
 }
 \description{
-Returns the spatial coordinate table used internally by SIRAP spatial
+Returns the spatial coordinate table used internally by SIRUP spatial
 statistics and plotting helpers. Coordinates are pulled from Seurat image
 coordinates when available, otherwise from coordinate columns in Seurat
-metadata. The \code{.sirap_y} column stores SIRAP's plotting y-coordinate.
+metadata. The \code{.sirup_y} column stores SIRUP's plotting y-coordinate.
 }

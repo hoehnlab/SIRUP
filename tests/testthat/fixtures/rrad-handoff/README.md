@@ -11,7 +11,7 @@ rrad::rad_reformat(
 )
 ```
 
-The second read deliberately has a barcode but no UMI. SIRAP's automated
+The second read deliberately has a barcode but no UMI. SIRUP's automated
 tests consume this fixed output without installing rrad. External IgBLAST
 and pRESTO calls are mocked in the handoff tests; these tests verify metadata
 preservation and pipeline ordering, not biological annotation accuracy.

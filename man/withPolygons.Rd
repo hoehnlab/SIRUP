@@ -15,14 +15,14 @@ withPolygons(
 )
 }
 \arguments{
-\item{receptors}{A SIRAP object or an AIRR-style receptor data frame.}
+\item{receptors}{A SIRUP object or an AIRR-style receptor data frame.}
 
 \item{.f}{Function to apply.}
 
 \item{...}{Additional arguments passed to \code{.f}.}
 
 \item{polygons}{Optional polygon table used to define the output polygon
-order. When \code{NULL}, polygon IDs are taken from the SIRAP object or from
+order. When \code{NULL}, polygon IDs are taken from the SIRUP object or from
 \code{polygon_id} values already present in \code{receptors}.}
 
 \item{polygon_id}{Primary polygon assignment column in \code{receptors}.}

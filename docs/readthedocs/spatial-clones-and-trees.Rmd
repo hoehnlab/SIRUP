@@ -8,12 +8,12 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
-sirap_render_plots <- identical(Sys.getenv("SIRAP_RENDER_PLOTS"), "true")
+sirup_render_plots <- identical(Sys.getenv("SIRUP_RENDER_PLOTS"), "true")
 
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  eval = sirap_render_plots
+  eval = sirup_render_plots
 )
 ```
 
@@ -26,12 +26,12 @@ We should replace this with a small packaged toy dataset later.
 
 This read-the-docs version can be rendered in two modes. By default, code is
 shown but not evaluated. To generate plots from the full dataset, render on the
-cluster with `SIRAP_RENDER_PLOTS=true`.
+cluster with `SIRUP_RENDER_PLOTS=true`.
 
 ## Setup
 
 ```{r setup, echo = FALSE}
-library(SIRAP)
+library(SIRUP)
 library(dplyr)
 library(ggplot2)
 library(cowplot)
@@ -47,7 +47,7 @@ sampleLower <- tolower(sampleId)
 nproc <- 8
 
 thymusDir <- normalizePath("/dartfs/rc/lab/H/HoehnK/Hunter/Thymus_VisiumHD", mustWork = TRUE)
-outDir <- file.path(thymusDir, "SIRAP_walkthrough", sampleId)
+outDir <- file.path(thymusDir, "SIRUP_walkthrough", sampleId)
 finalAirrDir <- file.path(outDir, "03_final_spatial_airr")
 plotDir <- file.path(outDir, "plots")
 dir.create(plotDir, recursive = TRUE, showWarnings = FALSE)
@@ -67,8 +67,8 @@ tcrTopBarcode <- airr::read_rearrangement(finalTCRPath)
 
 ## Call BCR and TCR Clones
 
-SIRAP does not wrap `scoper` clone calling. Use `scoper` directly, then pass the
-resulting data frames to SIRAP plotting functions.
+SIRUP does not wrap `scoper` clone calling. Use `scoper` directly, then pass the
+resulting data frames to SIRUP plotting functions.
 
 ```{r call-clones}
 bcrClones <- scoper::hierarchicalClones(
@@ -166,7 +166,7 @@ cowplot::plot_grid(plotlist = tcrClonePlots, ncol = 2)
 
 ## Build BCR Trees with Dowser
 
-SIRAP keeps tree building in `dowser`, then focuses on coloring and pairing
+SIRUP keeps tree building in `dowser`, then focuses on coloring and pairing
 trees with spatial plots.
 
 ```{r build-bcr-trees}
@@ -267,7 +267,7 @@ cowplot::plot_grid(
 )
 ```
 
-If you want SIRAP to choose a separate cluster number for each tree, set
+If you want SIRUP to choose a separate cluster number for each tree, set
 `k = "auto"` and adjust `k_range` or `improvement_threshold` as needed.
 
 ```{r tree-tip-clusters-auto}

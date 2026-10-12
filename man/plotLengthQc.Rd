@@ -7,7 +7,7 @@
 plotLengthQc(airr_df, bin_width = 5, title = NULL)
 }
 \arguments{
-\item{airr_df}{AIRR-style data frame or a SIRAP object.}
+\item{airr_df}{AIRR-style data frame or a SIRUP object.}
 
 \item{bin_width}{Width of histogram bins.}
 

@@ -13,7 +13,7 @@ polygonCentroids(
 )
 }
 \arguments{
-\item{object}{SIRAP object with stored polygons, or a polygon vertex table.}
+\item{object}{SIRUP object with stored polygons, or a polygon vertex table.}
 
 \item{polygons}{Optional polygon vertex table. When supplied, \code{object} may be
 omitted or used only for context.}
