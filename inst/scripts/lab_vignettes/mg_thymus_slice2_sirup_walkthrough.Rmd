@@ -36,7 +36,7 @@ hunter_dir <- "/Volumes/HoehnK/Hunter"
 
 chinmay_dir <- "/Volumes/HoehnK/Chinmay"
 
-sirup_dir <- file.path(hunter_dir, "spatial_bcr_tcr_package", "SIRAP")
+sirup_dir <- file.path(hunter_dir, "spatial_bcr_tcr_package", "SIRUP")
 thymus_dir <- file.path(hunter_dir, "Thymus_Spatial")
 walkthrough_dir <- file.path(thymus_dir, "sirap_lab_vignette", "mg_thymus_slice2")
 dir.create(walkthrough_dir, recursive = TRUE, showWarnings = FALSE)

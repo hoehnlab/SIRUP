@@ -8,7 +8,7 @@
 # receptors/spatial data for a chosen sample, makes a couple of plots that either
 # select one section (images=) or facet across both, and saves the object.
 #
-# Run with the package loaded:  devtools::load_all("SIRAP")  (or library(SIRUP)).
+# Run with the package loaded:  devtools::load_all("SIRUP")  (or library(SIRUP)).
 # ---------------------------------------------------------------------------
 
 setwd("/Volumes/HoehnK/Hunter/spatial_bcr_tcr_package/")
@@ -16,7 +16,7 @@ setwd("/Volumes/HoehnK/Hunter/spatial_bcr_tcr_package/")
 suppressPackageStartupMessages({
   library(dplyr); library(stringr); library(scoper); library(ggplot2); library(Seurat)
 })
-devtools::load_all("SIRAP")
+devtools::load_all("SIRUP")
 
 repo <- "/Volumes/HoehnK/Hunter/spatial_bcr_tcr_package"
 out_dir <- file.path(repo, "analysis", "fig_3_bcr_multisample", "demo")
