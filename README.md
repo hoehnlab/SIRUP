@@ -1,6 +1,6 @@
 # SIRUP
 
-Spatial Immune Receptor Utilities and Processing: how sweet is that?
+Spatial Immune Receptor Utilities Package: how sweet is that?
 
 `SIRUP` is an R package-in-progress for long-read spatial immune receptor
 sequencing data. Its processing pipeline starts from prepared, demultiplexed

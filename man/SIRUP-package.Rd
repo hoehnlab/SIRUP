@@ -4,7 +4,7 @@
 \name{SIRUP-package}
 \alias{SIRUP}
 \alias{SIRUP-package}
-\title{SIRUP: Spatial Immune Receptor Utilities and Processing}
+\title{SIRUP: Spatial Immune Receptor Utilities Package}
 \description{
 A consolidated toolkit for long-read spatial immune receptor sequencing.
 SIRUP takes demultiplexed reads from the companion RRAD package and runs
