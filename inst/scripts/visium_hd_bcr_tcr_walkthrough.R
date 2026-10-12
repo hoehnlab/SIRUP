@@ -8,7 +8,7 @@
 #
 # I recommend running this one section at a time.
 #
-#   setwd("/Volumes/HoehnK/Hunter/spatial_bcr_tcr_package/SIRAP")
+#   setwd("/Volumes/HoehnK/Hunter/spatial_bcr_tcr_package/SIRUP")
 #   devtools::load_all()
 #   source("inst/scripts/visium_hd_bcr_tcr_walkthrough.R")
 ###############################################################################

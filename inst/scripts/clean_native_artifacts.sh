@@ -12,9 +12,9 @@ between macOS and Linux/Discovery builds.
 By default this is a dry run. Pass --delete to remove matching files.
 
 Examples:
-  SIRAP/inst/scripts/clean_native_artifacts.sh
-  SIRAP/inst/scripts/clean_native_artifacts.sh --delete
-  SIRAP/inst/scripts/clean_native_artifacts.sh --delete SIRAP
+  SIRUP/inst/scripts/clean_native_artifacts.sh
+  SIRUP/inst/scripts/clean_native_artifacts.sh --delete
+  SIRUP/inst/scripts/clean_native_artifacts.sh --delete SIRUP
 EOF
 }
 
@@ -44,12 +44,12 @@ while [ "$#" -gt 0 ]; do
 done
 
 if [ -z "$package_dir" ]; then
-  if [ -d "SIRAP/src" ]; then
-    package_dir="SIRAP"
+  if [ -d "SIRUP/src" ]; then
+    package_dir="SIRUP"
   elif [ -d "src" ] && [ -f "DESCRIPTION" ]; then
     package_dir="."
   else
-    package_dir="SIRAP"
+    package_dir="SIRUP"
   fi
 fi
 
