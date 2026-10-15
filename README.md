@@ -1,219 +1,225 @@
 # SIRUP
 
-Spatial Immune Receptor Utilities Package: how sweet is that?
+**S**patial **I**mmune **R**eceptor **U**tilities **P**ackage
 
-`SIRUP` is an R package-in-progress for long-read spatial immune receptor
-sequencing data. Its processing pipeline starts from prepared, demultiplexed
-FASTA reads with barcode annotations and runs a first IgBLAST pass, read
-filtering, clustering within each barcode, consensus generation, and a second
-IgBLAST pass on the consensus sequences. It collects reusable pieces from the
-existing thymus BCR/TCR analysis scripts into package functions for:
+SIRUP is an R package for spatial adaptive immune receptor repertoire
+sequencing (spAIRR-seq). It works with B cell receptor (BCR) and T cell
+receptor (TCR) sequences that carry a spatial barcode, together with spatial
+gene expression from the same tissue section. It supports 10x Visium and
+Visium HD.
 
-- processing prepared FASTA reads through IgBLAST and pRESTO
-- AIRR TSV reading/writing
-- receptor length and productivity QC
-- Visium HD 2 um to 8 um/16 um barcode mapping
-- adding tissue coordinates (`barcode`, `x`, `y`)
-- generating pRESTO/IgBLAST shell scripts for barcode-cluster consensus calling
-- collapsing consensus calls to top sequences per barcode
-- validated SIRUP objects pairing a spatial Seurat object with a tibble-backed
-  AIRR-style receptor table
-- lightweight clone/spatial visualization helpers
-- spatial polygon selection and clonal dominance summaries
+SIRUP covers three stages:
 
-## Development install
+1. **Process.** Turn demultiplexed long reads into consensus receptor
+   sequences. IgBLAST and pRESTO build an AIRR rearrangement table with one
+   spatial ID per sequence.
+2. **Integrate.** Put the receptor table and the spatial Seurat object into
+   one validated SIRUP object. One object can hold several tissue sections,
+   bulk AIRR-seq, and blood.
+3. **Analyze and visualize.** Draw tissue regions, measure clonal dominance
+   and diversity, test spatial patterns, and show lineage trees on the tissue.
 
-```r
-install.packages("remotes")
-remotes::install_local("/path/to/SIRUP")
-```
+SIRUP is in active development. Function names and arguments can change
+before the first release.
 
-Processing requires IgBLAST, its reference databases, the pRESTO/Change-O tools,
-vsearch, and muscle. Configure their paths for your installation; see
-`?processSpatialSample` and `?runIgblast`.
+## Installation
 
-## Prepare FASTA, then process it in SIRUP
-
-Demultiplexing and read-layout/whitelist setup happen upstream of SIRUP.
-The standalone [rrad package](https://github.com/indianewok/rrad) is one way
-to prepare those reads. Install it separately when using the preparation
-example below; SIRUP does not require rrad to process an existing FASTA.
+Install SIRUP from GitHub:
 
 ```r
-# Separate upstream preparation with rrad:
-demux <- rrad::rad_demux(
-  layout = "five_prime", # choose the layout matching your library
-  fastq = "reads.fq.gz",
-  out_dir = "prepared",
-  output = "sample"
-)
-rrad::rad_reformat(
-  demux,
-  output_fastq = "prepared/sample-igblast.fasta",
-  to_fasta = TRUE,
-  header_format = "presto"
-)
-
-# SIRUP begins at the prepared FASTA and runs both IgBLAST passes:
-result <- SIRUP::processSpatialSample(
-  input = "prepared/sample-igblast.fasta",
-  output_dir = "processed",
-  receptor = "ig",
-  igblast_db_dir = "/path/to/igblast/database",
-  igblast_base = "/path/to/igblast",
-  germline_glob = "/path/to/germlines/imgt/human/vdj/imgt_human_*.fasta"
-)
+if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
+remotes::install_github("hjm2217/SIRUP")
 ```
 
-The preparation writes headers such as `read1|BARCODE=BC01|UMI=ACGT`, keeping
-barcode information inside the identifier retained by IgBLAST. Ordinary FASTA
-input runs the first annotation pass automatically. Use
-`input_type = "spatial_fasta"` only for a FASTA already annotated, filtered,
-and formatted for within-barcode consensus; that entry point skips the first
-IgBLAST pass.
+Most analyses also use Seurat, packages from the
+[Immcantation](https://immcantation.readthedocs.io) framework, and spatial
+statistics packages. These are suggested, not required. Install the ones that
+you need:
 
-See [Preparing FASTA with rrad for SIRUP](docs/readthedocs/markdown/demultiplexing-with-rad.md)
-for the input contract, whitelist downloads, and Visium HD preparation, and
-[Custom read layouts and whitelists](docs/readthedocs/markdown/custom-read-layouts-with-rad.md)
-for custom upstream preparation.
+```r
+install.packages(c(
+  "Seurat", "airr", "alakazam", "scoper", "shazam", "dowser",
+  "spdep", "spatstat.explore", "spatstat.geom", "spatstat.random",
+  "cowplot", "patchwork"
+))
+BiocManager::install("ggtree")
+```
 
-## Minimal preprocessing example
+### Tools for read processing
+
+You need these command-line tools only to process raw reads. You do not need
+them to analyze an AIRR table that you already have.
+
+- [IgBLAST](https://ncbi.github.io/igblast/) (`igblastn`) and IMGT germline
+  references
+- [pRESTO and Change-O](https://immcantation.readthedocs.io)
+  (`pip install presto changeo`)
+- [vsearch](https://github.com/torognes/vsearch) and
+  [MUSCLE](https://drive5.com/muscle/)
+
+The [Immcantation Docker image](https://immcantation.readthedocs.io/en/stable/docker/intro.html)
+contains all of them.
+
+Demultiplexing happens before SIRUP, in the separate
+[rrad](https://github.com/indianewok/rrad) package. rrad finds and corrects
+the spatial barcode and UMI of each read, and writes a FASTA file that SIRUP
+reads.
+
+## Quick start
+
+SIRUP includes a small spAIRR-seq data set: two Visium sections of a
+myasthenia gravis thymus that contains ectopic germinal centers. This example
+loads one section, calls clones, adds the germinal-center outlines, and
+measures clonal dominance in each one.
 
 ```r
 library(SIRUP)
+extdata <- system.file("extdata", package = "SIRUP")
 
-m1_bcr_heavy <- data.table::fread("igblast_bcr.tsv")
-m1_bcr_heavy <- extractSpatialIds(
-  m1_bcr_heavy,
+# Spatial gene expression (Seurat) and BCR consensus sequences (AIRR)
+thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
+bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz"))
+
+# Move the spot barcode out of sequence_id, and keep high-quality sequences
+bcrs <- extractSpatialIds(
+  bcrs,
   id = "sequence_id",
-  spatial_id = "barcode_2um",
-  regex = "[0-9]+_[0-9]+$",
-  prefix = "s_002um_",
+  spatial_id = "barcode_10x",
+  regex = ",([ACGT]{16})$",
   suffix = "-1"
 )
-m1_bcr_heavy <- filterAirr(
-  m1_bcr_heavy,
-  locus_val = "IGH",
-  spatial_id = "barcode_2um",
-  add_spatial_sequence_id = TRUE
-)
-```
-
-## Run pRESTO/IgBLAST consensus calling
-
-```r
-processSpatialSample(
-  input = "m1/igblast_bcr_pass_length_spatial_id.fasta",
-  input_type = "spatial_fasta", # already annotated and filtered
-  output_dir = "m1/processed",
-  receptor = "ig",
-  germline_glob = "/path/to/germlines/imgt/human/vdj/imgt_human_*.fasta"
-)
-```
-
-## Post-consensus filtering sketch
-
-```r
-processed <- airr::read_rearrangement("processed_db-pass.tsv")
-processed <- extractSpatialIds(
-  processed,
-  id = "sequence_id",
-  spatial_id = "barcode_2um",
-  regex = ",([^,]+)"
-)
-processed <- filterAirr(
-  processed,
+bcrs <- filterAirr(
+  bcrs,
   locus_val = "IGH",
   min_v_length = 250,
   min_j_length = 30,
   min_junction_length = 10,
   productive_only = TRUE,
-  min_consensus_count = 2,
-  spatial_id = "barcode_2um"
+  min_consensus_count = NULL,
+  spatial_id = "barcode_10x"
 )
-bc_map <- readSpatialIdMapping("barcode_mappings.parquet")
-processed <- processed |>
-  dplyr::mutate(barcode_2um_swapped = sub("^(.*_)(\\d+)_(\\d+)(-\\d+)$", "\\1\\3_\\2\\4", barcode_2um)) |>
-  dplyr::left_join(
-    bc_map |> dplyr::select(square_002um, square_008um, square_016um),
-    by = c("barcode_2um_swapped" = "square_002um")
-  ) |>
-  dplyr::rename(barcode_8um = square_008um, barcode_16um = square_016um)
-top_per_barcode <- collapseTopConsensusPerSpatialId(processed, ties = "all")
-```
+bcrs <- bcrs[!grepl("[^ACGT]", bcrs$junction), ]
 
-## Pair spatial and receptor data
-
-`createSIRUP()` records the relationship between a spatial Seurat object and
-an AIRR-style receptor table. The receptor component is stored as a tibble, and
-unmatched bulk or other nonspatial receptor rows are retained.
-
-```r
+# Pair the receptors with the tissue
 sirup <- createSIRUP(
-  spatial = seurat_object,
-  receptors = cloned_receptors,
-  spatial_id = "barcode_8um",
-  clone = "clone_id",
-  image_scale = "hires",
+  spatial = thymus,
+  receptors = bcrs,
+  spatial_id = "barcode_10x",
+  image_scale = "lowres",
   swap_coords = FALSE
 )
 
-sirup
-getReceptors(sirup)
-listAnalyses(sirup)
-
-# Work with the receptor table directly when an external function needs it.
-clone_counts <- dplyr::count(
-  getReceptors(sirup),
-  clone_id,
-  sort = TRUE
+# Run any function on the receptor table, here clone calling with scoper
+sirup <- updateReceptors(
+  sirup,
+  scoper::hierarchicalClones,
+  threshold = 0.1,
+  summarize_clones = FALSE
 )
 
-# Store a derived result with the data that produced it.
-sirup <- setAnalysis(sirup, "clone_counts", clone_counts)
-getAnalysis(sirup, "clone_counts")
-
-plotReceptors(
-  object = sirup,
-  group = "clone_id"
+# Add the germinal-center outlines and plot them on the H&E image
+sirup <- addPolygons(
+  sirup,
+  polygons_path = file.path(extdata, "mg_thymus_slice2_gc_polygons.csv")
 )
+plotSpatialPolygons(sirup)
 
-spatialExpressionPlot(
-  object = sirup,
-  features = "MS4A1"
-)
+# Fraction of each germinal center's BCRs that belongs to each clone
+dominance <- spatialCloneDominance(object = sirup)
+plotSpatialPolygonPies(dominance = dominance, object = sirup, top_n = 5)$page_1
 
-spatialReceptorSummary(sirup)
+# Keep the result with the data, and save everything to one file
+sirup <- setAnalysis(sirup, "gc_dominance", dominance)
+saveSIRUP(sirup, "mg_thymus_slice2.sirup.rds")
 ```
 
-Read-only plotting, spatial-analysis, and receptor-summary functions accept a
-SIRUP object directly. Functions continue to accept separate Seurat and
-receptor objects, so existing workflows remain supported.
+## Process your own reads
 
-The component helpers work with functions from SIRUP, other packages, or your
-own code:
+`processSpatialSample()` runs the full pipeline on one sample. It starts from
+the rrad FASTA, a read-level AIRR table, or a FASTA that is already filtered:
 
-- `updateReceptors()`, `updateSpatial()`, and `updateAnalysis()` put the result
-  back into a returned SIRUP object.
-- `getReceptors()`, `getSpatial()`, and `getAnalysis()` return stored data
-  when a function should inspect it without modifying the SIRUP object.
-- `setAnalysis()`, `getAnalysis()`, `listAnalyses()`, and `removeAnalysis()`
-  manage arbitrary derived results, including Dowser clones or trees and
-  spatial statistics.
-
-This means clone calling or germline creation can be run directly against the
-stored receptor table, for example
-`updateReceptors(sirup, scoper::hierarchicalClones, ...)`. A conventional
-`clone_id` column added by the function is recorded automatically.
-
-## Save and load a SIRUP object
-
-`saveSIRUP()` writes a validated object to a single RDS file and `readSIRUP()`
-reads it back. Unlike a bare `saveRDS()`/`readRDS()`, this pair validates on
-write, records the SIRUP and Seurat versions used, upgrades older objects to the
-current schema, warns on version drift, and re-validates on read.
+| Step | Tool | What it does |
+|---|---|---|
+| 1 | IgBLAST | Annotates each read with V(D)J genes and a constant region |
+| 2 | `filterAirr()` | Removes reads that are not receptors or are too short |
+| 3 | pRESTO `ClusterSets.py` | Groups the reads of each spot by sequence identity |
+| 4 | pRESTO `AlignSets.py` | Aligns the reads in each group |
+| 5 | pRESTO `BuildConsensus.py` | Builds one consensus sequence per group |
+| 6 | IgBLAST and Change-O `MakeDb.py` | Annotates the consensus sequences and writes the AIRR table |
 
 ```r
-saveSIRUP(sirup, "m1.sirup.rds")
-sirup <- readSIRUP("m1.sirup.rds")
+result <- processSpatialSample(
+  input = "prepared/sample-igblast.fasta",
+  output_dir = "processed/bcr",
+  receptor = "ig",            # "tr" for TCRs
+  igblast_db_dir = "/path/to/igblast/database",
+  igblast_base = "/path/to/igblast",
+  germline_glob = "/path/to/germlines/imgt/human/vdj/imgt_human_IG*.fasta",
+  identity = 1.0,             # 0.99 for TCRs
+  consensus_freq = 0.51,
+  nproc = 8
+)
 ```
+
+Use `umi_support = TRUE` to build one consensus per molecule first. Use
+`processSpatialSamples()` to run several samples with the same settings. For
+Visium HD, `readSpatialIdMapping()` maps 2 µm barcodes to 8 µm and 16 µm bins.
+The processing vignette explains each option.
+
+## Functions by task
+
+| Task | Functions |
+|---|---|
+| Process reads | `processSpatialSample()`, `processSpatialSamples()`, `runIgblast()`, `parseRadSequenceIds()` |
+| Clean AIRR tables | `extractSpatialIds()`, `filterAirr()`, `plotLengthQc()`, `addSequenceQualityMetrics()`, `collapseTopConsensusPerSpatialId()`, `collapseIdenticalNeighbors()`, `readSpatialIdMapping()` |
+| Build and manage objects | `createSIRUP()`, `mergeSIRUP()`, `subsetSIRUP()`, `validateSIRUP()`, `spatialSamples()`, `saveSIRUP()`, `readSIRUP()` |
+| Access and change data | `getSpatial()`, `getReceptors()`, `updateSpatial()`, `updateReceptors()`, `setAnalysis()`, `getAnalysis()`, `listAnalyses()` |
+| Plot on the tissue | `spatialExpressionPlot()`, `spatialExpressionBlendPlot()`, `spatialDiscretePlot()`, `plotReceptors()`, `plotReceptorsExpression()` |
+| Tissue regions | `selectSpatialPolygons()`, `addPolygons()`, `getPolygons()`, `plotSpatialPolygons()`, `withPolygons()`, `expandPolygons()` |
+| Regional repertoires | `polygonReceptorSummary()`, `spatialCloneDominance()`, `plotSpatialPolygonPies()`, `polygonDiversity()`, `polygonAbundance()`, `plotSpatialCloneDensity3D()` |
+| Spatial statistics | `spatialMoran()`, `spatialLocalMoran()`, `spatialLee()`, `spatialRipleyCrossK()`, `spatialCloneJoinCount()`, `spatialCloneSpread()` |
+| Lineage trees | `formatSpatialClones()`, `getSpatialTrees()`, `plotSpatialCloneTreePairs()`, `spatialCloneTreePairsToPDF()`, `tipPatristicMatrix()` |
+| Heavy-light chain pairing | `pairHeavyLightSpaced()`, `buildSpacedCloneTable()`, `spacedSpatialAffinity()` |
+
+SIRUP does not wrap every AIRR tool. Use `updateReceptors()` to run functions
+from scoper, dowser, shazam, or your own code on the stored receptor table.
+SIRUP validates the object again after each change.
+
+## Documentation
+
+The vignettes use the example data and run from start to finish. Install with
+`build_vignettes = TRUE` to read them in R:
+
+```r
+remotes::install_github("hjm2217/SIRUP", build_vignettes = TRUE)
+browseVignettes("SIRUP")
+```
+
+| Vignette | Topic |
+|---|---|
+| `vignette("SIRUP")` | Get started: the SIRUP object, plots, and a first regional analysis |
+| `vignette("processing")` | Reads to AIRR tables with IgBLAST and pRESTO |
+| `vignette("regions")` | Tissue regions, clonal dominance, and diversity |
+| `vignette("spatial-statistics")` | Moran's I, Lee's L, Ripley's cross K, and join counts |
+| `vignette("clones-and-trees")` | Clones, germlines, and lineage trees on the tissue |
+| `vignette("multisample")` | Several sections, bulk AIRR-seq, and blood |
+
+More guides are in [`docs/readthedocs`](docs/readthedocs):
+
+- [Preparing FASTA with rrad](docs/readthedocs/markdown/demultiplexing-with-rad.md)
+- [Custom read layouts and whitelists](docs/readthedocs/markdown/custom-read-layouts-with-rad.md)
+- [SPaCeD heavy-light chain pairing](docs/readthedocs/markdown/spaced-pairing.md)
+
+## Citation
+
+The SIRUP manuscript is in preparation. Until it is published, please cite
+this repository.
+
+## Authors
+
+- Hunter J. Melton (maintainer)
+- Chinmay Vaidya
+
+## License
+
+MIT. See [LICENSE](LICENSE).
