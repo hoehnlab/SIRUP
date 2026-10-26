@@ -933,6 +933,8 @@ print.summary.sirup <- function(x, ...) {
     "Receptor IDs:",
     "Matched IDs:",
     "Matched records:",
+    "Image scale:",
+    "Swap coords:",
     "Stored analyses:"
   )
   values <- c(
@@ -942,6 +944,8 @@ print.summary.sirup <- function(x, ...) {
     paste0(format(x$n_matched_ids, big.mark = ","), " (",
            formatC(100 * x$id_match_rate, format = "f", digits = 1), "%)"),
     format(x$n_matched_records, big.mark = ","),
+    .sirup_format_summary_option(x$image_scale),
+    .sirup_format_summary_option(x$swap_coords),
     format(x$n_analyses, big.mark = ",")
   )
   if (!is.null(x$n_polygons) && x$n_polygons > 0L) {
@@ -961,6 +965,26 @@ print.summary.sirup <- function(x, ...) {
     print(samples, row.names = FALSE)
   }
   invisible(x)
+}
+
+.sirup_format_summary_option <- function(x) {
+  if (is.null(x)) {
+    return("<unset>")
+  }
+  if (is.list(x) && !is.data.frame(x)) {
+    values <- unlist(x, recursive = FALSE, use.names = TRUE)
+  } else {
+    values <- x
+  }
+  values <- as.vector(values, mode = "any")
+  value_names <- names(unlist(x, recursive = FALSE, use.names = TRUE))
+  formatted <- as.character(values)
+  if (!is.null(value_names) && length(value_names) == length(formatted) &&
+      any(!is.na(value_names) & nzchar(value_names))) {
+    named <- !is.na(value_names) & nzchar(value_names)
+    formatted[named] <- paste0(value_names[named], "=", formatted[named])
+  }
+  paste(formatted, collapse = ", ")
 }
 
 # Validate the optional named analysis list. Unique names make retrieval and

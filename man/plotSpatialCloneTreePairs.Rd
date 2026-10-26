@@ -32,6 +32,7 @@ plotSpatialCloneTreePairs(
   tip_stroke = 0.3,
   treescale_fontsize = 3.88,
   treescale = NULL,
+  treescale_position = c("bottomleft", "topleft", "midleft"),
   spatial_tip_size = 1.6,
   spatial_tip_alpha = 1,
   order_points = FALSE,
@@ -131,6 +132,10 @@ other (solid) shapes colour the whole marker as before.}
 \item{treescale_fontsize}{Font size for the tree scale bar label.}
 
 \item{treescale}{Backward-compatible alias for \code{scale}.}
+
+\item{treescale_position}{Where to draw the tree scale bar: \code{"bottomleft"}
+(default, ggtree default position), \code{"topleft"} (near the root, at the top of
+the tip range), or \code{"midleft"} (near the root, halfway down the tip range).}
 
 \item{spatial_tip_size}{Size of spatial tip points.}
 

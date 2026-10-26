@@ -1286,7 +1286,7 @@ plotRipleyCrossK <- function(kcross,
         color = "Simulated",
         linetype = "Simulated"
       ),
-      size = 0.8
+      linewidth = 0.8
     ) +
     ggplot2::geom_line(
       ggplot2::aes(
@@ -1294,7 +1294,7 @@ plotRipleyCrossK <- function(kcross,
         color = "Observed",
         linetype = "Observed"
       ),
-      size = 0.9
+      linewidth = 0.9
     ) +
     ggplot2::scale_color_manual(
       values = c("Observed" = observed_color, "Simulated" = simulated_color),
@@ -1647,6 +1647,7 @@ spatialCloneSpread <- function(object,
                                min_spatial_ids = 2L,
                                collapse_within_spot = FALSE) {
   inputs <- .sirup_resolve_inputs(object, receptors, spatial_id)
+  spatial_source <- if (isSIRUP(object)) object else inputs$object
   spatial <- inputs$object
   receptors <- .as_data_frame(inputs$receptors)
   spatial_id <- inputs$spatial_id_col
@@ -1658,7 +1659,7 @@ spatialCloneSpread <- function(object,
   }
   sample_col <- .sirup_receptor_sample_col(receptors, inputs$receptor_fields, spatial)
   .check_required_cols(receptors, c(spatial_id, clone), "receptors")
-  coords <- spatialCoordinateTable(spatial, images = images, image_scale = image_scale, swap_coords = swap_coords)
+  coords <- spatialCoordinateTable(spatial_source, images = images, image_scale = image_scale, swap_coords = swap_coords)
   if (!"sample" %in% colnames(coords)) {
     coords$sample <- sirupSampleFromImage(coords$image)
     coords$sample[is.na(coords$sample)] <- "spatial"

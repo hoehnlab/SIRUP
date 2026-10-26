@@ -6,7 +6,7 @@
 \usage{
 seuratSubsetPolygon(
   object,
-  polygon,
+  polygon = NULL,
   images = NULL,
   image_scale = NULL,
   swap_coords = NULL,
@@ -23,7 +23,8 @@ seuratSubsetPolygon(
 
 \item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
 \code{y} columns by default. If a \code{polygon} column is present, each polygon is
-evaluated independently.}
+evaluated independently. If \code{object} is a SIRUP object and \code{polygon} is
+omitted, the object's stored polygons are used.}
 
 \item{images}{Optional Seurat image names to use for spatial coordinates.}
 
