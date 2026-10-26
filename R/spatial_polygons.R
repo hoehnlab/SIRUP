@@ -2057,7 +2057,8 @@ plotSpatialPolygonPies <- function(dominance,
 #' @param object Seurat object with spatial coordinates.
 #' @param polygon Data frame of polygon vertices in order. Must contain `x` and
 #'   `y` columns by default. If a `polygon` column is present, each polygon is
-#'   evaluated independently.
+#'   evaluated independently. If `object` is a SIRUP object and `polygon` is
+#'   omitted, the object's stored polygons are used.
 #' @param images Optional Seurat image names to use for spatial coordinates.
 #' @param image_scale Image scale passed to
 #'   `SeuratObject::GetTissueCoordinates()`.
@@ -2077,7 +2078,7 @@ plotSpatialPolygonPies <- function(dominance,
 #'   with `metadata` appended to `@meta.data`.
 #' @export
 seuratSubsetPolygon <- function(object,
-                                polygon,
+                                polygon = NULL,
                                 images = NULL,
                                 image_scale = NULL,
                                 swap_coords = NULL,
@@ -2100,12 +2101,27 @@ seuratSubsetPolygon <- function(object,
     metadata = metadata,
     include_boundary = include_boundary
   )
-  keep_cells <- rownames(annotated@meta.data)[!is.na(annotated@meta.data[[metadata]])]
-  keep_cells <- keep_cells[keep_cells %in% colnames(annotated)]
-  if (length(keep_cells) == 0L) {
+  subset_one <- function(spatial) {
+    keep_cells <- rownames(spatial@meta.data)[!is.na(spatial@meta.data[[metadata]])]
+    keep_cells <- keep_cells[keep_cells %in% colnames(spatial)]
+    if (length(keep_cells) == 0L) {
+      return(NULL)
+    }
+    suppressWarnings(spatial[, keep_cells], classes = "validationWarning")
+  }
+  if (.sirup_is_spatial_list(annotated)) {
+    out <- lapply(annotated, subset_one)
+    out <- out[!vapply(out, is.null, logical(1))]
+    if (length(out) == 0L) {
+      rlang::abort("No Seurat spatial IDs were found inside the selected polygon(s).")
+    }
+    return(out)
+  }
+  subset <- subset_one(annotated)
+  if (is.null(subset)) {
     rlang::abort("No Seurat spatial IDs were found inside the selected polygon(s).")
   }
-  suppressWarnings(annotated[, keep_cells], classes = "validationWarning")
+  subset
 }
 
 #' Assign polygon IDs to spatial metadata
@@ -4602,17 +4618,19 @@ summarizePolygonDiversity <- function(object,
   out
 }
 
-# Decide the order of the side-by-side pie charts. `"receptors"` orders the
-# polygons by their total receptor count (most first); ties break by the polygon
-# map label. `"polygon"` keeps the numbered map order. Returns the polygon
-# labels in the chosen order.
+# Decide the order of the polygon pie charts. `"receptors"` orders the polygons
+# by their total receptor count (most first); ties break by the displayed map
+# label. `"polygon"` keeps the numbered map order. Returns stable polygon IDs,
+# not display labels, so equal labels from different samples remain distinct.
 .sirup_pie_polygon_order <- function(pie_data, pie_order = c("receptors", "polygon")) {
   pie_order <- match.arg(pie_order)
   if (identical(pie_order, "polygon")) {
-    return(unique(pie_data$polygon_label))
+    return(unique(as.character(pie_data$polygon)))
   }
-  totals <- tapply(pie_data$n, pie_data$polygon_label, sum)
-  names(totals)[order(-totals, suppressWarnings(as.integer(names(totals))))]
+  totals <- tapply(pie_data$n, pie_data$polygon, sum)
+  label_lookup <- stats::setNames(as.character(pie_data$polygon_label), as.character(pie_data$polygon))
+  labels <- unname(label_lookup[names(totals)])
+  names(totals)[order(-totals, suppressWarnings(as.integer(labels)), labels, names(totals))]
 }
 
 .sirup_polygon_centers <- function(polygon_plot_data, polygons) {
@@ -4636,10 +4654,11 @@ summarizePolygonDiversity <- function(object,
 }
 
 .sirup_dominance_only_polygon_pies <- function(pie_data, fill_values, label_size, pie_order) {
-  ordered_labels <- .sirup_pie_polygon_order(pie_data, pie_order)
-  pie_groups <- split(pie_data, factor(pie_data$polygon_label, levels = ordered_labels))
+  ordered_polygons <- .sirup_pie_polygon_order(pie_data, pie_order)
+  pie_groups <- split(pie_data, factor(as.character(pie_data$polygon), levels = ordered_polygons))
   pie_plots <- lapply(pie_groups, function(dat) {
     local_levels <- unique(as.character(dat$level))
+    legend_ncol <- max(1L, min(4L, ceiling(length(local_levels) / 4)))
     ggplot2::ggplot(dat, ggplot2::aes(fill = .data$level)) +
       ggplot2::geom_rect(
         ggplot2::aes(xmin = 0.5, xmax = 1.5, ymin = .data$ymin, ymax = .data$ymax),
@@ -4652,9 +4671,16 @@ summarizePolygonDiversity <- function(object,
         x = 1.25, inherit.aes = TRUE, size = label_size
       ) +
       ggplot2::scale_fill_manual(values = fill_values[local_levels], limits = local_levels, drop = TRUE) +
+      ggplot2::guides(fill = ggplot2::guide_legend(title = NULL, ncol = legend_ncol, byrow = TRUE)) +
       ggplot2::theme_void(base_size = 8) +
       ggplot2::theme(
-        legend.position = "none",
+        legend.position = "bottom",
+        legend.text = ggplot2::element_text(size = 5),
+        legend.key.size = grid::unit(0.12, "in"),
+        legend.spacing.x = grid::unit(0.03, "in"),
+        legend.spacing.y = grid::unit(0.01, "in"),
+        legend.margin = ggplot2::margin(0, 0, 0, 0),
+        legend.box.margin = ggplot2::margin(0, 0, 0, 0),
         plot.title = ggplot2::element_text(size = 8, hjust = 0.5),
         plot.margin = ggplot2::margin(2, 2, 2, 2)
       ) +
@@ -4671,10 +4697,13 @@ summarizePolygonDiversity <- function(object,
 # .sirup_polygon_pie_summary so each bar keeps its own per-polygon ordering, and a
 # numeric x position so geom_rect can place one bar per polygon.
 .sirup_stacked_bar_polygon_dominance <- function(pie_data, fill_values, label_size, pie_order) {
-  ordered_labels <- .sirup_pie_polygon_order(pie_data, pie_order)
-  pie_data$polygon_label <- factor(pie_data$polygon_label, levels = ordered_labels)
-  pie_data$.sirup_xpos <- as.integer(pie_data$polygon_label)
+  ordered_polygons <- .sirup_pie_polygon_order(pie_data, pie_order)
+  label_lookup <- stats::setNames(as.character(pie_data$polygon_label), as.character(pie_data$polygon))
+  ordered_labels <- unname(label_lookup[ordered_polygons])
+  pie_data$.sirup_polygon <- factor(as.character(pie_data$polygon), levels = ordered_polygons)
+  pie_data$.sirup_xpos <- as.integer(pie_data$.sirup_polygon)
   local_levels <- unique(as.character(pie_data$level))
+  legend_ncol <- max(1L, min(4L, ceiling(length(local_levels) / 4)))
   ggplot2::ggplot(pie_data) +
     ggplot2::geom_rect(
       ggplot2::aes(
@@ -4689,6 +4718,7 @@ summarizePolygonDiversity <- function(object,
       inherit.aes = FALSE, size = label_size
     ) +
     ggplot2::scale_fill_manual(values = fill_values[local_levels], limits = local_levels, drop = TRUE) +
+    ggplot2::guides(fill = ggplot2::guide_legend(title = NULL, ncol = legend_ncol, byrow = TRUE)) +
     ggplot2::scale_x_continuous(
       breaks = seq_along(ordered_labels), labels = ordered_labels,
       expand = ggplot2::expansion(add = 0.6)
@@ -4697,9 +4727,17 @@ summarizePolygonDiversity <- function(object,
       labels = function(z) paste0(z * 100, "%"),
       expand = ggplot2::expansion(mult = c(0, 0.02))
     ) +
-    ggplot2::labs(x = NULL, y = "% of BCRs") +
+    ggplot2::labs(x = NULL, y = "% of BCRs", fill = NULL) +
     ggplot2::theme_bw(base_size = 8) +
-    ggplot2::theme(legend.position = "none", panel.grid = ggplot2::element_blank())
+    ggplot2::theme(
+      legend.position = "bottom",
+      legend.text = ggplot2::element_text(size = 6),
+      legend.key.size = grid::unit(0.14, "in"),
+      legend.spacing.x = grid::unit(0.04, "in"),
+      legend.spacing.y = grid::unit(0.01, "in"),
+      legend.margin = ggplot2::margin(0, 0, 0, 0),
+      panel.grid = ggplot2::element_blank()
+    )
 }
 
 .sirup_side_by_side_polygon_pies <- function(object,
@@ -4722,11 +4760,24 @@ summarizePolygonDiversity <- function(object,
   map_polygon_data <- polygon_plot_data
   polygon_labels <- stats::setNames(centers$polygon_label, centers$polygon)
   map_polygon_data$polygon_label <- unname(polygon_labels[as.character(map_polygon_data$polygon)])
+  plot_object <- object
+  plot_sample_id <- sample_id
+  if (!is.null(sample_id) && .sirup_is_spatial_list(object)) {
+    missing_samples <- setdiff(as.character(sample_id), names(object))
+    if (length(missing_samples) > 0L) {
+      rlang::abort(paste0(
+        "`sample_id` not found in spatial samples: ",
+        paste(missing_samples, collapse = ", ")
+      ))
+    }
+    plot_object <- object[as.character(sample_id)]
+    plot_sample_id <- NULL
+  }
   map_plots <- plotSpatialPolygons(
-    object = object,
+    object = plot_object,
     polygon = map_polygon_data,
     images = images,
-    sample_id = sample_id,
+    sample_id = plot_sample_id,
     image_scale = image_scale,
     swap_coords = swap_coords,
     polygon_id = "polygon",
@@ -4740,11 +4791,11 @@ summarizePolygonDiversity <- function(object,
     combine_sample_plots = combine_sample_plots
   )
 
-  ordered_labels <- .sirup_pie_polygon_order(pie_data, pie_order)
+  ordered_polygons <- .sirup_pie_polygon_order(pie_data, pie_order)
 
   build_pie_plots <- function(dat) {
-    local_order <- ordered_labels[ordered_labels %in% unique(as.character(dat$polygon_label))]
-    pie_groups <- split(dat, factor(dat$polygon_label, levels = local_order))
+    local_order <- ordered_polygons[ordered_polygons %in% unique(as.character(dat$polygon))]
+    pie_groups <- split(dat, factor(as.character(dat$polygon), levels = local_order))
     lapply(pie_groups, function(dat) {
       local_levels <- unique(as.character(dat$level))
       legend_ncol <- max(1L, min(4L, ceiling(length(local_levels) / 4)))

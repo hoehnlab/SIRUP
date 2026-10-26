@@ -22,3 +22,5 @@
 ^\.smbdelete.*
 ^\.git$
 ^\.gitignore$
+^data-raw$
+^vignettes/polygon_selection_screenshots$

@@ -636,7 +636,7 @@ test_that("polygon plots filter tagged polygons per spatial sample", {
   expect_equal(unique(as.character(section_b_plot[["section_b"]]$data$polygon)), "b_gc")
 })
 
-test_that("spatial clipped polygon pies filter tagged polygons per spatial sample", {
+test_that("polygon pies filter tagged polygons per spatial sample", {
   skip_if_not_installed("SeuratObject")
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("sf")
@@ -672,6 +672,14 @@ test_that("spatial clipped polygon pies filter tagged polygons per spatial sampl
     stringsAsFactors = FALSE
   )
   dominance <- spatialCloneDominance(x, polygon = polygons)
+
+  side_by_side <- plotSpatialPolygonPies(dominance, x)
+  expect_equal(names(side_by_side), c("section_a", "section_b"))
+  expect_false(is.null(side_by_side[["section_a"]]))
+  expect_false(is.null(side_by_side[["section_b"]]))
+
+  side_by_side_b <- plotSpatialPolygonPies(dominance, x, sample_id = "section_b")
+  expect_false(is.null(side_by_side_b))
 
   plot_a <- plotSpatialPolygonPies(dominance, x, mode = "spatial_clipped", images = "section_a")
   plot_b <- plotSpatialPolygonPies(dominance, x, mode = "spatial_clipped", images = "section_b")
@@ -937,8 +945,9 @@ test_that(".sirup_spatial_base crops to spatial barcodes by default", {
 
 test_that("side-by-side pies order polygons by receptor count", {
   # Polygon 1 = 12 receptors, polygon 2 = 70, polygon 3 = 16. The default
-  # "receptors" order shows the most-populated polygon first (2, 3, 1); each
-  # pie keeps its map label. "polygon" keeps the numbered map order (1, 2, 3).
+  # "receptors" order shows the most-populated polygon first; each pie keeps
+  # its map label. "polygon" keeps the numbered map order. The helper returns
+  # stable polygon IDs, not display labels.
   pie_data <- data.frame(
     polygon = c("GC1", "GC2", "GC3"),
     polygon_label = c("1", "2", "3"),
@@ -948,28 +957,30 @@ test_that("side-by-side pies order polygons by receptor count", {
 
   expect_equal(
     .sirup_pie_polygon_order(pie_data, "receptors"),
-    c("2", "3", "1")
+    c("GC2", "GC3", "GC1")
   )
   expect_equal(
     .sirup_pie_polygon_order(pie_data, "polygon"),
-    c("1", "2", "3")
+    c("GC1", "GC2", "GC3")
   )
 
   # Several clones per polygon: the totals per polygon drive the order.
   multi <- data.frame(
+    polygon = c("GC1", "GC1", "GC2", "GC3", "GC3"),
     polygon_label = c("1", "1", "2", "3", "3"),
     n = c(5L, 7L, 70L, 10L, 6L),
     stringsAsFactors = FALSE
   )
-  expect_equal(.sirup_pie_polygon_order(multi, "receptors"), c("2", "3", "1"))
+  expect_equal(.sirup_pie_polygon_order(multi, "receptors"), c("GC2", "GC3", "GC1"))
 
   # A tie in receptor count breaks by the polygon label, ascending.
   tied <- data.frame(
+    polygon = c("GC1", "GC2", "GC3"),
     polygon_label = c("1", "2", "3"),
     n = c(20L, 20L, 5L),
     stringsAsFactors = FALSE
   )
-  expect_equal(.sirup_pie_polygon_order(tied, "receptors"), c("1", "2", "3"))
+  expect_equal(.sirup_pie_polygon_order(tied, "receptors"), c("GC1", "GC2", "GC3"))
 })
 
 test_that("stacked polygon dominance bars use clean polygon labels", {
@@ -999,6 +1010,35 @@ test_that("stacked polygon dominance bars use clean polygon labels", {
     pie_order = "polygon"
   )
   expect_equal(p$scales$get_scales("x")$labels, c("1", "2"))
+})
+
+test_that("stacked polygon dominance bars keep same-numbered polygons distinct", {
+  skip_if_not_installed("ggplot2")
+
+  region_bcrs <- data.frame(
+    polygon = c("section_a::5", "section_b::5"),
+    polygon_label = c("5", "5"),
+    clone_id = c("A", "B"),
+    stringsAsFactors = FALSE
+  )
+
+  pie_data <- .sirup_polygon_pie_summary(
+    region_bcrs,
+    fill = "clone_id",
+    top_n = NULL,
+    label_top_n = 1L,
+    other_label = "Other"
+  )
+  p <- .sirup_stacked_bar_polygon_dominance(
+    pie_data,
+    fill_values = c(A = "#111111", B = "#222222"),
+    label_size = 3,
+    pie_order = "polygon"
+  )
+
+  x_scale <- p$scales$get_scales("x")
+  expect_equal(x_scale$breaks, 1:2)
+  expect_equal(x_scale$labels, c("5", "5"))
 })
 
 test_that("expandPolygons moves vertices outward from the centroid", {

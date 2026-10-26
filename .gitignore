@@ -15,3 +15,7 @@ ai/**/.env
 .vscode/
 ai/
 CLAUDE.md
+
+# Locally rendered vignettes
+vignettes/*.html
+vignettes/*_files/

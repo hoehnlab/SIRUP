@@ -937,6 +937,16 @@ test_that("collapseIdenticalNeighbors updates SIRUP objects", {
 
   set.seed(1)
   x <- make_collapse_test_sirup()
+  x$receptors <- dplyr::bind_rows(
+    getReceptors(x),
+    data.frame(
+      spot = "bulk1",
+      sequence_alignment = "GGGG",
+      consensus_count = 10L,
+      locus = "IGH",
+      stringsAsFactors = FALSE
+    )
+  )
   collapsed <- collapseIdenticalNeighbors(
     x,
     sequence = "sequence_alignment",
@@ -945,9 +955,9 @@ test_that("collapseIdenticalNeighbors updates SIRUP objects", {
   )
 
   expect_s3_class(collapsed, "sirup")
-  expect_equal(nrow(getReceptors(collapsed)), 3)
+  expect_equal(nrow(getReceptors(collapsed)), 4)
   expect_false("cell1" %in% getReceptors(collapsed)$spot)
-  expect_true(all(c("cell2", "cell13", "cell25") %in% getReceptors(collapsed)$spot))
+  expect_true(all(c("cell2", "cell13", "cell25", "bulk1") %in% getReceptors(collapsed)$spot))
   expect_identical(collapsed$metadata$receptor_fields$spatial_id, "spot")
 })
 
@@ -1146,7 +1156,7 @@ test_that("SIRUP summaries align values and report stored polygons", {
   )
   expect_output(
     print(summary(x)),
-    "(?s)  Spatial IDs:\\s+4.*  Receptor records:\\s+3.*  Polygons:\\s+2",
+    "(?s)  Spatial IDs:\\s+4.*  Receptor records:\\s+3.*  Image scale:\\s+hires.*  Swap coords:\\s+FALSE.*  Polygons:\\s+2",
     perl = TRUE
   )
 })
@@ -1182,12 +1192,34 @@ test_that("multi-sample SIRUP summaries include per-sample counts", {
   expect_equal(out$samples$n_receptor_records, c(1, 2))
   expect_equal(out$samples$n_receptor_ids, c(1, 2))
   expect_equal(out$samples$n_matched_ids, c(1, 2))
+  expect_equal(out$image_scale, "hires")
+  expect_false(out$swap_coords)
   expect_output(
     print(x),
     "(?s)Samples:\\s+2\\nSpatial ID field: barcode\\nSample ID field: sample\\nClone ID field:\\s+clone_id",
     perl = TRUE
   )
-  expect_output(print(out), "Per-sample summary")
+  expect_output(print(out), "(?s)Image scale:\\s+hires.*Swap coords:\\s+FALSE.*Per-sample summary", perl = TRUE)
+
+  x_named <- createSIRUP(
+    spatial = list(section_a = make_section(), section_b = make_section()),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1", "cell2"),
+      sample = c("section_a", "section_b", "section_b"),
+      clone_id = c("A", "B", "C"),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample = "sample",
+    clone = "clone_id",
+    image_scale = c(section_a = "hires", section_b = "lowres"),
+    swap_coords = c(section_a = FALSE, section_b = TRUE)
+  )
+  expect_output(
+    print(summary(x_named)),
+    "(?s)Image scale:\\s+section_a=hires, section_b=lowres.*Swap coords:\\s+section_a=FALSE, section_b=TRUE",
+    perl = TRUE
+  )
 })
 
 test_that("legacy top-level schema objects are rejected", {
