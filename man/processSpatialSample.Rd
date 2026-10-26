@@ -34,6 +34,7 @@ processSpatialSample(
   parse_act = "set",
   consensus_min_count = 1,
   umi_support = FALSE,
+  umi_weight = TRUE,
   umi_field = "umi",
   umi_identity = 0.95,
   min_umi_support = 2,
@@ -144,8 +145,15 @@ barcode-UMI cluster yields one consensus carrying \code{cc_bc_umi} (its reads,
 counted before the productive subset) and \code{n_productive_reads} (the reads
 the consensus was built from; a cluster with none is discarded). The
 barcode step then runs with \verb{BuildConsensus -n 1} and sums both fields, and
-\code{min_umi_support} replaces the read floor. Needs an AIRR table with \code{umi}
-and \code{productive} columns.}
+\code{min_umi_support} replaces the read floor. Each consensus is written
+\code{n_productive_reads} times, so one read is one vote in the barcode
+consensus. A short read from one molecule then cannot trim the consensus of
+many full-length reads. Because of this, \code{consensus_count} counts reads, not
+molecules. Needs an AIRR table with \code{umi} and \code{productive} columns.}
+
+\item{umi_weight}{With \code{umi_support}, write each molecule consensus once per
+productive read, so one read is one vote in the barcode consensus. Set
+\code{FALSE} to write each molecule once, so one UMI cluster is one vote.}
 
 \item{umi_field}{Column holding the UMI, used with \code{umi_support}.}
 
