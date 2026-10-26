@@ -162,5 +162,5 @@ rrad::rad_reformat(
 Coordinate rewriting and pRESTO header formatting are separate calls. The
 second call places the coordinate-derived `BC:Z` value in `BARCODE`, for
 example `s_002um_00001_00002-1`. Pass this FASTA to `processSpatialSample()`
-as above. See [Visium HD processing](visium-hd-processing.html) for downstream
+as above. See [Process reads into spatial AIRR tables](processing.html) for downstream
 spatial annotation and analysis.

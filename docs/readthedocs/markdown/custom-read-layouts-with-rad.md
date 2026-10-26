@@ -1,34 +1,35 @@
-# Custom read layouts and whitelists
+Custom read layouts and whitelists
+================
 
 Custom read layouts and whitelists are configured in the standalone
-[rrad package](https://github.com/indianewok/rrad), before SIRUP processing.
-SIRUP consumes the resulting annotated FASTA; it does not register layouts,
-manage RAD binaries, or perform demultiplexing.
+[rrad package](https://github.com/indianewok/rrad), before SIRUP
+processing. SIRUP consumes the resulting annotated FASTA; it does not
+register layouts, manage RAD binaries, or perform demultiplexing.
 
-Install rrad separately using the [preparation guide](demultiplexing-with-rad.html).
-These examples are not evaluated during rendering and require reads that
-match your chosen assay.
+Install rrad separately using the [preparation
+guide](demultiplexing-with-rad.html). These examples are not evaluated
+during rendering and require reads that match your chosen assay.
 
 ## Describe the read structure
 
-A layout CSV contains one ordered row per sequence element. Static elements
-provide known anchors; variable elements describe the barcode, UMI, or
-biological read extracted between those anchors.
+A layout CSV contains one ordered row per sequence element. Static
+elements provide known anchors; variable elements describe the barcode,
+UMI, or biological read extracted between those anchors.
 
-| Column | Meaning |
-| --- | --- |
-| `id` | Unique element name. |
-| `seq` | Sequence for a static element; blank for a variable element. |
+| Column            | Meaning                                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| `id`              | Unique element name.                                                                                   |
+| `seq`             | Sequence for a static element; blank for a variable element.                                           |
 | `expected_length` | Length of a fixed-width variable element, such as a barcode or UMI; leave an unconstrained read blank. |
-| `type` | `static` or `variable`. |
-| `class` | Extraction role such as `barcode`, `umi`, or `read`, or an anchor class such as `linker`. |
-| `whitelist` | Barcode kit key or local whitelist path for a barcode element; otherwise blank. |
+| `type`            | `static` or `variable`.                                                                                |
+| `class`           | Extraction role such as `barcode`, `umi`, or `read`, or an anchor class such as `linker`.              |
+| `whitelist`       | Barcode kit key or local whitelist path for a barcode element; otherwise blank.                        |
 
 This illustrative structure is primer, 16-base barcode, 10-base UMI,
 biological read, reverse primer. Replace the sequences and lengths with
 those for your experiment.
 
-```r
+``` r
 dir.create("prepared", recursive = TRUE, showWarnings = FALSE)
 layout <- data.frame(
   id = c("primer", "barcode", "umi", "read", "reverse_primer"),
@@ -44,15 +45,16 @@ layout_path <- "prepared/custom-layout.csv"
 write.csv(layout, layout_path, row.names = FALSE, quote = FALSE)
 ```
 
-Pass the file path directly to rrad. No SIRUP registration step is needed.
-rrad also accepts supported seqspec YAML layouts; explicit local onlist paths
-can supply custom barcodes. Consult `?rrad::rad_demux` and the
-[RAD layout reference](https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md)
+Pass the file path directly to rrad. No SIRUP registration step is
+needed. rrad also accepts supported seqspec YAML layouts; explicit local
+onlist paths can supply custom barcodes. Consult `?rrad::rad_demux` and
+the [RAD layout
+reference](https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md)
 for orientation, compound barcodes, and the full layout schema.
 
 ## Check a pilot demultiplexing run
 
-```r
+``` r
 pilot <- rrad::rad_demux(
   layout = layout_path,
   fastq = "my_reads.fq.gz",
@@ -69,21 +71,23 @@ pilot$log
 ```
 
 rrad prepares the layout and position map within demultiplexing. Inspect
-these artifacts and the passing reads against the expected structure, then
-adjust the layout if needed. The `max_reads` limit controls demultiplexing;
-the internal position-map calibration can sample up to 50,000 input reads.
-Use a small input file when bounding all pilot work is important.
+these artifacts and the passing reads against the expected structure,
+then adjust the layout if needed. The `max_reads` limit controls
+demultiplexing; the internal position-map calibration can sample up to
+50,000 input reads. Use a small input file when bounding all pilot work
+is important.
 
 ## Supply a whitelist
 
-A layout can reference a built-in kit or a local whitelist. At the run level,
-`kit` and `global_whitelist` are alternatives; `custom_whitelist` supplies
-the trusted/sample barcode set. `auto_whitelist = TRUE` discovers that set
-automatically and is an alternative to `custom_whitelist`.
+A layout can reference a built-in kit or a local whitelist. At the run
+level, `kit` and `global_whitelist` are alternatives; `custom_whitelist`
+supplies the trusted/sample barcode set. `auto_whitelist = TRUE`
+discovers that set automatically and is an alternative to
+`custom_whitelist`.
 
 To scan separately around an assay-specific anchor:
 
-```r
+``` r
 scan <- rrad::rad_scan_wl(
   input = "my_reads.fq.gz",
   adapter_seq = "CTACACGACGCTCTTCCGATCT",
@@ -94,13 +98,13 @@ scan <- rrad::rad_scan_wl(
 scan$artifacts$whitelist
 ```
 
-Inspect the scan results before using the selected barcode set. For paired
-barcodes, `rrad::rad_scan_wl()` supports `bc1_whitelist` and `bc2_whitelist`
-together, with the extraction lengths and offsets configured for the assay.
-Large built-in resources are downloaded by rrad on first use and cached;
-custom local files are used directly.
+Inspect the scan results before using the selected barcode set. For
+paired barcodes, `rrad::rad_scan_wl()` supports `bc1_whitelist` and
+`bc2_whitelist` together, with the extraction lengths and offsets
+configured for the assay. Large built-in resources are downloaded by
+rrad on first use and cached; custom local files are used directly.
 
-```r
+``` r
 demux <- rrad::rad_demux(
   layout = layout_path,
   fastq = "my_reads.fq.gz",
@@ -110,12 +114,12 @@ demux <- rrad::rad_demux(
 )
 ```
 
-Omit `custom_whitelist` to use only the whitelist configured in your layout,
-or replace it with a path to your own trusted barcode file.
+Omit `custom_whitelist` to use only the whitelist configured in your
+layout, or replace it with a path to your own trusted barcode file.
 
 ## Hand the FASTA to SIRUP
 
-```r
+``` r
 prepared <- rrad::rad_reformat(
   demux,
   output_fastq = "prepared/sample-igblast.fasta",
@@ -125,10 +129,11 @@ prepared <- rrad::rad_reformat(
 ```
 
 This writes headers such as `read1|BARCODE=BC01|UMI=ACGT`. The barcode
-and UMI remain part of the identifier when the FASTA passes through IgBLAST.
-Use `prepared$artifacts$fasta` as `input` to
+and UMI remain part of the identifier when the FASTA passes through
+IgBLAST. Use `prepared$artifacts$fasta` as `input` to
 `SIRUP::processSpatialSample()` with the IgBLAST installation, database,
-and germline paths shown in the [preparation guide](demultiplexing-with-rad.html).
-Ordinary FASTA input receives the first IgBLAST pass before filtering and
-consensus; `input_type = "spatial_fasta"` is reserved for already annotated
-and filtered consensus input.
+and germline paths shown in the [preparation
+guide](demultiplexing-with-rad.html). Ordinary FASTA input receives the
+first IgBLAST pass before filtering and consensus; `input_type =
+"spatial_fasta"` is reserved for already annotated and filtered
+consensus input.

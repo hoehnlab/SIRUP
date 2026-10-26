@@ -1,0 +1,426 @@
+---
+title: "Several sections, bulk AIRR-seq, and blood"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Several sections, bulk AIRR-seq, and blood}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  dpi = 96,
+  dev = "jpeg",
+  dev.args = list(quality = 90),
+  out.width = "100%",
+  eval = requireNamespace("Seurat", quietly = TRUE) &&
+    requireNamespace("airr", quietly = TRUE) &&
+    requireNamespace("scoper", quietly = TRUE)
+)
+imgt_dir <- path.expand(Sys.getenv("SIRUP_IMGT_DIR"))
+has_trees <- nzchar(imgt_dir) && dir.exists(imgt_dir) &&
+  requireNamespace("dowser", quietly = TRUE) &&
+  requireNamespace("ggtree", quietly = TRUE) &&
+  requireNamespace("cowplot", quietly = TRUE)
+```
+
+Most studies have more than one tissue section. You may have several
+sections from one donor, bulk AIRR-seq of the same tissue, or blood from
+other time points. If
+you call clones on all of them together, one clone ID means the same lineage
+in every sample. You can then ask where a clone was seen.
+
+One SIRUP object can hold all of this:
+
+* `spatial` can be a named list of Seurat objects, one per section.
+* The receptor table holds the rows from every section and every bulk sample.
+  A `sample` column tells SIRUP which section each row belongs to.
+* Rows whose `sample` does not name a section stay in the table as nonspatial
+  rows. SIRUP does not put them on a tissue, but clone calling, trees, and
+  your own summaries can use them.
+
+This vignette follows Figure 5 of the SIRUP paper. The MG thymus data come
+from a patient who had a thymectomy. Besides the two Visium sections, there is
+bulk BCR-seq of the thymus, and of blood taken at the thymectomy and 12 months
+later. We ask which eGC clones also appear in the blood.
+
+## Set up
+
+```{r libraries, message = FALSE, warning = FALSE}
+library(SIRUP)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r load}
+extdata <- system.file("extdata", package = "SIRUP")
+
+spatial <- list(
+  mg_thymus_slice1 = readRDS(file.path(extdata, "mg_thymus_slice1_spatial.rds")),
+  mg_thymus_slice2 = readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
+)
+
+read_bcrs <- function(file, sample, compartment) {
+  airr::read_rearrangement(file.path(extdata, file)) %>%
+    mutate(sample = sample, compartment = compartment)
+}
+
+sections <- bind_rows(
+  read_bcrs("mg_thymus_slice1_bcr.tsv.gz", "mg_thymus_slice1", "thymus_slice1"),
+  read_bcrs("mg_thymus_slice2_bcr.tsv.gz", "mg_thymus_slice2", "thymus_slice2")
+) %>%
+  extractSpatialIds(
+    id = "sequence_id",
+    spatial_id = "barcode_10x",
+    regex = ",([ACGT]{16})$",
+    suffix = "-1"
+  )
+
+bulk <- bind_rows(
+  read_bcrs("mg_thymus_bulk_thymus_1.tsv.gz", "bulk_thymus_1", "bulk_thymus"),
+  read_bcrs("mg_thymus_bulk_thymus_2.tsv.gz", "bulk_thymus_2", "bulk_thymus"),
+  read_bcrs("mg_thymus_bulk_blood_month0_1.tsv.gz", "bulk_blood_month0_1", "blood_month0"),
+  read_bcrs("mg_thymus_bulk_blood_month0_2.tsv.gz", "bulk_blood_month0_2", "blood_month0"),
+  read_bcrs("mg_thymus_bulk_blood_month12_1.tsv.gz", "bulk_blood_month12_1", "blood_month12"),
+  read_bcrs("mg_thymus_bulk_blood_month12_2.tsv.gz", "bulk_blood_month12_2", "blood_month12")
+)
+
+bcrs <- bind_rows(sections, bulk) %>%
+  mutate(sequence_id = paste(sample, gsub(",", "_", sequence_id), sep = "_")) %>%
+  filterAirr(
+    locus_val = "IGH",
+    min_v_length = 250,
+    min_j_length = 30,
+    min_junction_length = 10,
+    productive_only = TRUE,
+    min_consensus_count = NULL
+  ) %>%
+  filter(!grepl("[^ACGT]", junction))
+
+count(bcrs, compartment, sample)
+```
+
+`read_bcrs()` reads one AIRR file and adds two columns: `sample` and
+`compartment`. After the barcodes come out of the section IDs, the code makes
+each `sequence_id` unique and tree-safe. It puts the sample name in front,
+because IDs repeat between files, and it replaces the comma with `_`, because
+dowser renames tree tips that contain a comma. The spatial rows get a `sample` that
+matches the names of the `spatial` list. The bulk and blood rows have their
+own sample names and no barcode.
+
+To keep the package small, the bulk files hold a subset of the bulk data: the
+blood sequences of clones seen in a section, and up to 10 bulk thymus
+sequences of each clone that reaches the blood.
+
+## Create a multi-sample object
+
+Give `createSIRUP()` the named list and the `sample` column:
+
+```{r create}
+sirup <- createSIRUP(
+  spatial = spatial,
+  receptors = bcrs,
+  spatial_id = "barcode_10x",
+  sample = "sample",
+  image_scale = "lowres",
+  swap_coords = FALSE
+)
+
+sirup
+spatialSamples(sirup)
+```
+
+Visium barcodes repeat between sections: `AAACAAGTATCTCCCA-1` exists in both.
+SIRUP matches each receptor to a spot by the pair of sample and barcode, so
+the two sections never mix.
+
+If the sections need different image settings, give named values:
+`image_scale = c(mg_thymus_slice1 = "hires", mg_thymus_slice2 = "lowres")`.
+
+## Get one sample
+
+The accessors take a `sample` argument:
+
+```{r accessors}
+getSpatial(sirup, "mg_thymus_slice1")
+nrow(getReceptors(sirup, "mg_thymus_slice1"))
+nrow(getReceptors(sirup))
+```
+
+`filterSample()` returns a new SIRUP object with one section. It drops the
+nonspatial rows:
+
+```{r filter-sample}
+slice1 <- filterSample(sirup, "mg_thymus_slice1")
+slice1
+```
+
+`subsetSIRUP()` gives finer control. It can keep a set of spots, a set of
+receptor rows, and, with `keep_nonspatial_receptors = TRUE`, the bulk rows.
+
+To go the other way, `mergeSIRUP()` combines single-section objects into a
+multi-sample object. It adds a sample column with the names you give:
+
+```{r merge}
+slice2 <- filterSample(sirup, "mg_thymus_slice2")
+merged <- mergeSIRUP(
+  slice1, slice2,
+  samples = c("mg_thymus_slice1", "mg_thymus_slice2"),
+  sample_field = "sample"
+)
+merged
+```
+
+## Add polygons for each section
+
+Give `addPolygons()` a named vector of polygon files, one per section:
+
+```{r polygons}
+sirup <- addPolygons(sirup, polygons_path = c(
+  mg_thymus_slice1 = file.path(extdata, "mg_thymus_slice1_gc_polygons.csv"),
+  mg_thymus_slice2 = file.path(extdata, "mg_thymus_slice2_gc_polygons.csv")
+))
+
+getPolygons(sirup)
+```
+
+Both files number their eGCs from 1, so SIRUP adds the sample to each polygon
+ID: `mg_thymus_slice1::1` and `mg_thymus_slice2::1` are different regions.
+
+## Plot several sections
+
+By default, a spatial plot of a multi-sample object returns a list with one
+plot per section. Set `combine_sample_plots = TRUE` to get one combined
+figure, or give `sample_id` to plot one section:
+
+```{r plots, fig.width = 9, fig.height = 4.5}
+plotSpatialPolygons(sirup, zoom = TRUE, combine_sample_plots = TRUE)
+```
+
+```{r plot-one}
+spatialExpressionPlot(
+  sirup,
+  features = "AICDA",
+  assay = "alra",
+  layer = "data",
+  sample_id = "mg_thymus_slice1",
+  title = "AICDA, section 1"
+)
+```
+
+## Call clones across all samples
+
+Call clones on the whole receptor table, so that one clone ID covers the
+sections, the bulk thymus, and the blood:
+
+```{r clones, message = FALSE}
+sirup <- updateReceptors(
+  sirup,
+  scoper::hierarchicalClones,
+  threshold = 0.1,
+  summarize_clones = FALSE,
+  nproc = 1
+)
+dplyr::n_distinct(getReceptors(sirup)$clone_id)
+```
+
+## Where was each clone seen?
+
+Each row has a `compartment`. For each clone, count its sequences in each
+compartment, and record the eGCs that hold it:
+
+```{r presence}
+clones <- getReceptors(sirup) %>%
+  group_by(clone_id) %>%
+  summarise(
+    in_section = any(compartment %in% c("thymus_slice1", "thymus_slice2")),
+    n_egc = sum(!is.na(polygon_id)),
+    egcs = paste(sort(unique(na.omit(polygon_id))), collapse = ", "),
+    n_bulk_thymus = sum(compartment == "bulk_thymus"),
+    n_blood_month0 = sum(compartment == "blood_month0"),
+    n_blood_month12 = sum(compartment == "blood_month12")
+  ) %>%
+  mutate(
+    in_egc = n_egc > 0,
+    in_blood = n_blood_month0 + n_blood_month12 > 0
+  )
+
+count(clones, in_egc, in_blood)
+```
+
+Most clones stay in the thymus. A few eGC clones also appear in the blood.
+The paper calls these clones exported. Fisher's exact test compares the eGC
+clones with the other clones of the sections:
+
+```{r fisher}
+section_clones <- filter(clones, in_section)
+fisher.test(table(section_clones$in_egc, section_clones$in_blood))
+```
+
+Count, for each eGC, the clones it holds and the clones that reach the blood:
+
+```{r per-egc}
+getReceptors(sirup) %>%
+  filter(!is.na(polygon_id)) %>%
+  distinct(polygon_id, clone_id) %>%
+  left_join(select(clones, clone_id, in_blood), by = "clone_id") %>%
+  group_by(polygon_id) %>%
+  summarise(n_clones = n(), n_exported = sum(in_blood)) %>%
+  arrange(desc(n_exported))
+```
+
+The example data hold a subset of the bulk data, and the clones come from
+that subset. For the full analysis, see Figure 5 of the SIRUP paper.
+
+## Clonal dominance in every section
+
+Regional functions work on all sections at once. The dominance table has a
+`sample` column and the full `polygon_id`:
+
+```{r dominance}
+dominance <- spatialCloneDominance(object = sirup, locus_val = "IGH")
+
+dominance$dominance %>%
+  group_by(polygon_id) %>%
+  slice_max(proportion, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(sample, polygon_id, clone_id, n_receptors, proportion) %>%
+  head()
+```
+
+Most plotting functions return a named list with one plot per section:
+
+```{r region-receptors}
+region_plots <- plotSpatialRegionReceptors(
+  dominance = dominance,
+  object = sirup,
+  top_n = 8,
+  point_size = 1.5,
+  zoom = TRUE
+)
+names(region_plots)
+region_plots$mg_thymus_slice1
+```
+
+`plotSpatialPolygonPies()` also works on all sections at once. Give
+`sample_id` to draw the pies of one section next to its map:
+
+```{r pies, fig.width = 9, fig.height = 6}
+pies <- plotSpatialPolygonPies(
+  dominance = dominance,
+  object = sirup,
+  fill = "clone_id",
+  top_n = 5,
+  sample_id = "mg_thymus_slice1"
+)
+pies$page_1
+```
+
+## A tree with blood tips
+
+A lineage tree can mix spatial and bulk sequences. Pick an exported eGC clone
+with blood sequences from both time points:
+
+```{r pick-clone}
+exported <- clones %>%
+  filter(in_egc, n_blood_month0 > 0, n_blood_month12 > 0) %>%
+  mutate(n_total = n_egc + n_bulk_thymus + n_blood_month0 + n_blood_month12) %>%
+  filter(n_total <= 100) %>%
+  arrange(desc(n_blood_month0 + n_blood_month12))
+exported
+
+tree_clone <- exported$clone_id[[1]]
+tree_section <- sub("::.*$", "", exported$egcs[[1]])
+tree_section
+```
+
+Make its germline with `dowser::createGermlines()`, then build its tree. As in
+`vignette("clones-and-trees", package = "SIRUP")`, the germline step needs
+the IMGT references in the folder that `SIRUP_IMGT_DIR` names, and the tree
+chunks run only when that folder exists. Keep `compartment` in `traits`, so
+we can set the tip shapes by compartment:
+
+```{r tree, eval = has_trees}
+tree_sirup <- updateReceptors(sirup, dplyr::filter, clone_id == tree_clone)
+tree_sirup <- updateReceptors(
+  tree_sirup,
+  dowser::createGermlines,
+  references = dowser::readIMGT(imgt_dir),
+  id = "sequence_id"
+)
+tree_sirup <- formatSpatialClones(
+  tree_sirup,
+  id = "sequence_id",
+  traits = c("barcode_10x", "sample", "compartment", "polygon_id")
+)
+tree_sirup <- getSpatialTrees(tree_sirup)
+trees <- getAnalysis(tree_sirup, "trees")
+```
+
+`plotSpatialCloneTreePairs()` puts the spatial tips on their sections. Bulk
+and blood tips appear in the tree only. Here `shape_by` sets one shape per
+compartment and `color_by` colors the tips by tree cluster:
+
+```{r tree-plot, eval = has_trees, fig.width = 10, fig.height = 6}
+trees <- clusterTreesTips(trees, k = "auto", id = "sequence_id", k_range = 1:6)
+
+pair <- plotSpatialCloneTreePairs(
+  trees,
+  object = sirup,
+  id = "sequence_id",
+  color_by = "tree_cluster",
+  shape_by = "compartment",
+  shape_values = c(
+    thymus_slice1 = 21, thymus_slice2 = 21, bulk_thymus = 22,
+    blood_month0 = 24, blood_month12 = 23
+  ),
+  zoom = TRUE,
+  polygons = TRUE,
+  polygon_alpha = 0,
+  polygon_color = "black"
+)
+
+names(pair)
+```
+
+The list has one element per clone. When the tips of a clone fall in more
+than one section, it has one element per clone and section instead, named
+`<clone>::<sample>`, and each one pairs the full tree with the map of one
+section. Each element also holds a `legend` for the tip shapes and colors.
+Show the section that holds the eGC tips:
+
+```{r tree-plot-show, eval = has_trees, fig.width = 10, fig.height = 7}
+key <- paste0(tree_clone, "::", tree_section)
+if (!key %in% names(pair)) key <- tree_clone
+section_pair <- pair[[key]]
+
+cowplot::plot_grid(
+  cowplot::plot_grid(section_pair$tree, section_pair$spatial_clone, rel_widths = c(1.3, 1)),
+  section_pair$legend,
+  ncol = 1,
+  rel_heights = c(1, section_pair$legend_rel_height)
+)
+```
+
+Circles are tips from a section, squares are bulk thymus, triangles are blood
+at the thymectomy, and diamonds are blood 12 months later.
+
+## Save the object
+
+```{r save}
+path <- file.path(tempdir(), "mg_thymus.sirup.rds")
+saveSIRUP(sirup, path)
+readSIRUP(path)
+```
+
+## Session information
+
+```{r session-info}
+sessionInfo()
+```
