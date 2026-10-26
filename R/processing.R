@@ -273,8 +273,14 @@ filterAirr <- function(airr_df,
 #'   counted before the productive subset) and `n_productive_reads` (the reads
 #'   the consensus was built from; a cluster with none is discarded). The
 #'   barcode step then runs with `BuildConsensus -n 1` and sums both fields, and
-#'   `min_umi_support` replaces the read floor. Needs an AIRR table with `umi`
-#'   and `productive` columns.
+#'   `min_umi_support` replaces the read floor. Each consensus is written
+#'   `n_productive_reads` times, so one read is one vote in the barcode
+#'   consensus. A short read from one molecule then cannot trim the consensus of
+#'   many full-length reads. Because of this, `consensus_count` counts reads, not
+#'   molecules. Needs an AIRR table with `umi` and `productive` columns.
+#' @param umi_weight With `umi_support`, write each molecule consensus once per
+#'   productive read, so one read is one vote in the barcode consensus. Set
+#'   `FALSE` to write each molecule once, so one UMI cluster is one vote.
 #' @param umi_field Column holding the UMI, used with `umi_support`.
 #' @param umi_identity Cluster identity for the barcode-UMI step. Looser than
 #'   the barcode step on purpose, so error-bearing reads of one molecule group.
@@ -331,6 +337,7 @@ processSpatialSample <- function(input,
                                  parse_act = "set",
                                  consensus_min_count = 1,
                                  umi_support = FALSE,
+                                 umi_weight = TRUE,
                                  umi_field = "umi",
                                  umi_identity = 0.95,
                                  min_umi_support = 2,
@@ -507,6 +514,7 @@ processSpatialSample <- function(input,
         cluster_field = cluster_field,
         umi_field = umi_field,
         umi_identity = umi_identity,
+        umi_weight = umi_weight,
         consensus_freq = consensus_freq,
         consensus_min_count = consensus_min_count,
         consensus_max_error = consensus_max_error,
@@ -917,12 +925,15 @@ collapseIdenticalNeighbors <- function(object,
   .check_required_cols(tissue_positions, c("cell", "x", "y"), "spatial coordinates")
 
   if (!is.null(sample_col) && sample_col %in% colnames(data) && "sample" %in% colnames(tissue_positions)) {
+    spatial_samples <- unique(stats::na.omit(as.character(tissue_positions$sample)))
+    receptor_samples <- as.character(data[[sample_col]])
     samples <- intersect(
-      unique(stats::na.omit(as.character(data[[sample_col]]))),
-      unique(stats::na.omit(as.character(tissue_positions$sample)))
+      unique(stats::na.omit(receptor_samples)),
+      spatial_samples
     )
+    unmatched_samples <- data[is.na(receptor_samples) | !receptor_samples %in% spatial_samples, , drop = FALSE]
     if (length(samples) == 0L) {
-      rlang::abort("No receptor sample values matched names in the spatial coordinate table.")
+      return(unmatched_samples)
     }
     out <- lapply(samples, function(sample) {
       sample_data <- data[as.character(data[[sample_col]]) == sample, , drop = FALSE]
@@ -938,9 +949,10 @@ collapseIdenticalNeighbors <- function(object,
         num_neighbors_non_boundary = num_neighbors_non_boundary
       )
     })
-    return(dplyr::bind_rows(out))
+    return(dplyr::bind_rows(c(out, list(unmatched_samples))))
   }
 
+  original_cols <- colnames(data)
   temp <- .collapse_identical_neighbors_temp_cols(data)
   data[[temp$spatial_id]] <- as.character(data[[spatial_id_col]])
   if (!is.null(sample_col) && sample_col %in% colnames(data) && "sample" %in% colnames(tissue_positions)) {
@@ -964,6 +976,11 @@ collapseIdenticalNeighbors <- function(object,
   } else {
     temp$spatial_id
   }
+  receptor_key <- .sirup_key_vector(.sirup_collapse_key_table(data, temp))
+  tissue_key <- .sirup_key_vector(.sirup_collapse_key_table(tissue_positions, temp))
+  matched <- receptor_key %in% tissue_key
+  unmatched <- data[!matched, original_cols, drop = FALSE]
+  data <- data[matched, , drop = FALSE]
   data <- merge(
     data,
     tissue_positions,
@@ -973,7 +990,7 @@ collapseIdenticalNeighbors <- function(object,
     sort = FALSE
   )
   if (nrow(data) == 0L) {
-    rlang::abort("No receptor IDs matched finite spatial coordinates in `seurat_object`.")
+    return(unmatched)
   }
 
   # A spatial_id can contain duplicate rows for the same sequence. Collapse those
@@ -1066,6 +1083,7 @@ collapseIdenticalNeighbors <- function(object,
 
   if (n < 2L) {
     result <- data[, setdiff(colnames(data), unlist(temp, use.names = FALSE)), drop = FALSE]
+    result <- dplyr::bind_rows(result, unmatched)
     cli::cli_alert_success("Done! Fewer than two sequence-positive spots were found, so no neighboring spots were collapsed.")
     return(result)
   }
@@ -1197,9 +1215,10 @@ collapseIdenticalNeighbors <- function(object,
   all_keys <- paste(data$.sirup_collapse_key, data[[temp$sequence]], sep = "___")
   result <- data[all_keys %in% keep_keys, ]
   result <- result[, setdiff(colnames(result), c(unlist(temp, use.names = FALSE), ".sirup_collapse_key")), drop = FALSE]
+  result <- dplyr::bind_rows(result, unmatched)
   n_result_pretty <- scales::comma(nrow(result))
-  n_data_pretty <- scales::comma(nrow(data))
-  n_removed_pretty <- scales::comma(nrow(data) - nrow(result))
+  n_data_pretty <- scales::comma(nrow(data) + nrow(unmatched))
+  n_removed_pretty <- scales::comma(nrow(data) + nrow(unmatched) - nrow(result))
 
   cli::cli_progress_done()
   cli::cli_alert_success(
@@ -1420,4 +1439,696 @@ collapseIdenticalNeighbors <- function(object,
   lens[m == -1L] <- 0L
   out[keep] <- as.integer(lens)
   out
+}
+.datatable.aware = TRUE
+
+#' Write a data.table of sequences to FASTQ/FASTA
+#'
+#' @param df data.table or data.frame with at least `seq` (and `qual` for
+#'   fastq). The header column is chosen by `header_col`.
+#' @param fn output path.
+#' @param type one of `"fq"`, `"fastq"`, `"fa"`, `"fasta"`.
+#' @param header_col column name to use as the record header. Defaults to
+#'   `"id"`. Pass `"full_id"` to write the full header instead.
+#' @param append append to an existing file?
+#' @param nthreads `data.table::fwrite` thread count.
+#' @return Invisibly returns `fn`.
+#' @export
+writeFastqas <- function(df, fn, type = "fq", header_col = "id",
+                          append = FALSE, nthreads = 1) {
+  type <- .fastqas_normalize_type(type)
+  if (!header_col %in% names(df)) {
+    stop("header_col '", header_col, "' not found in df. ",
+         "Use header_col = 'id' or 'full_id'.")
+  }
+  if (!"seq" %in% names(df)) stop("`df` must have a `seq` column.")
+  prefix  <- if (type == "fq") "@" else ">"
+  headers <- paste0(prefix, sub("^[@>]", "", df[[header_col]]))
+  if (type == "fq") {
+    if (!"qual" %in% names(df)) stop("FASTQ output requires a `qual` column.")
+    out <- tibble::tibble(header = headers,
+                          seq    = df$seq,
+                          plus   = "+",
+                          qual   = df$qual)
+  } else {
+    out <- tibble::tibble(header = headers,
+                          seq    = df$seq)
+  }
+  flat <- as.character(t(as.matrix(out)))
+  data.table::fwrite(
+    data.table::data.table(line = flat),
+    file = fn, compress = "auto", col.names = FALSE,
+    quote = FALSE, append = append, nThread = nthreads
+  )
+  invisible(fn)
+}
+
+#' Run garbage collection and request OS memory cleanup
+#'
+#' Calls [gc()] and, on macOS, requests memory cleanup with the system `purge`
+#' command when it is available.
+#'
+#' @return Invisibly returns `NULL`.
+#' @export
+aggc <- function() {
+  gc()
+  sysname <- Sys.info()[["sysname"]]
+  if (sysname == "Darwin") {  
+    # macOS
+    system("purge", ignore.stdout = TRUE, ignore.stderr = TRUE)
+  }
+  invisible(NULL)
+}
+
+#' Probability of observing a subsequence by chance
+#'
+#' Calculates the chance of seeing at least one exact subsequence of length
+#' `subsequence_length` in a random nucleotide sequence of length
+#' `sequence_length`, assuming independent bases with equal probability.
+#'
+#' @param subsequence_length Length of the queried subsequence.
+#' @param sequence_length Length of the sequence being searched.
+#' @return Numeric vector of probabilities.
+#' @export
+substringOdds<-function(subsequence_length, sequence_length){
+  return((mapply(sequence_length, subsequence_length, FUN = 
+                   function(seq_len, sub_seq){
+                     1-(1-(0.25)^sub_seq)^(seq_len-sub_seq+1)
+  }, USE.NAMES = FALSE, SIMPLIFY = TRUE)))
+}
+
+# Shared FASTQ/FASTA header contract for writeFastqas:
+#   - `id`      always present; short id (everything before first space),
+#               with no leading `@` (fastq) or `>` (fasta).
+#   - `full_id` present only when `full_id = TRUE`; full header (name +
+#               comment) with no leading `@`/`>`.
+#   - `seq`     always present.
+#   - `qual`    present for fastq.
+#   - Column order: id, full_id (if requested), seq, qual (if fastq).
+#
+# `type` accepts "fq" / "fastq" / "fa" / "fasta".
+
+.fastqas_normalize_type <- function(type) {
+  type <- match.arg(type, c("fq", "fastq", "fa", "fasta"))
+  if (type %in% c("fa", "fasta")) "fa" else "fq"
+}
+# Helpers and exported functions for the raw-read IgBLAST step of the
+# spatial processing pipeline. Prepared reads come from the rrad package as
+# FASTA/FASTQ files, optionally gzipped, with headers like
+# `id|BARCODE=YYY|UMI=XXX`.
+
+# Check that each external tool exists. `execs` is a named character vector;
+# names are used in the error message. A tool passes if its expanded path is
+# an existing file or if it resolves on the PATH.
+.sirup_check_tools <- function(execs) {
+  found <- vapply(execs, function(x) {
+    file.exists(path.expand(x)) || nzchar(Sys.which(x))
+  }, logical(1))
+  if (any(!found)) {
+    missing <- execs[!found]
+    rlang::abort(paste0(
+      "External tool", if (length(missing) == 1L) "" else "s", " not found: ",
+      paste0(names(missing), " (", missing, ")", collapse = ", "),
+      ". Install the tool or pass its full path."
+    ))
+  }
+  invisible(TRUE)
+}
+
+# Run one external command with system2. Every argument is shell-quoted here,
+# so callers pass plain strings. `log` redirects stdout and stderr to one
+# file. `stdin`/`stdout` take file paths for redirection. Aborts on a
+# non-zero exit status and includes the log tail when a log exists.
+.sirup_run_command <- function(exec, args, log = NULL, stdin = "", stdout = "") {
+  exec_path <- path.expand(exec)
+  if (!file.exists(exec_path)) {
+    exec_path <- exec
+  }
+  args <- as.character(args)
+  shown <- paste(c(exec, args), collapse = " ")
+  message("$ ", shown)
+  if (!is.null(log)) {
+    stdout <- log
+    stderr <- log
+  } else {
+    stderr <- ""
+  }
+  status <- system2(exec_path, shQuote(args), stdout = stdout, stderr = stderr, stdin = stdin)
+  if (!identical(status, 0L)) {
+    detail <- ""
+    if (!is.null(log) && file.exists(log)) {
+      tail_lines <- utils::tail(readLines(log, warn = FALSE), 10L)
+      detail <- paste0("\nLog tail (", log, "):\n", paste(tail_lines, collapse = "\n"))
+    }
+    rlang::abort(paste0("Command failed with status ", status, ": ", shown, detail))
+  }
+  invisible(status)
+}
+
+# Build a regex character class that matches any pRESTO header delimiter or
+# whitespace. Values that contain one of these corrupt FASTA header parsing,
+# so validation must use the same `delimiters` the pipeline passes to pRESTO.
+.sirup_delims_regex_class <- function(delimiters) {
+  # POSIX classes take no backslash escapes: `]` is literal only directly
+  # after the opening `[`, and `-` only at the end. `^` cannot come first
+  # because `[:space:]` always precedes the delimiter characters.
+  delimiters <- unique(delimiters)
+  lead <- if ("]" %in% delimiters) "]" else ""
+  trail <- if ("-" %in% delimiters) "-" else ""
+  middle <- setdiff(delimiters, c("]", "-"))
+  paste0("[", lead, "[:space:]", paste(middle, collapse = ""), trail, "]")
+}
+
+# Classify a pipeline input. Returns "airr_df" for a data frame, "airr_tsv"
+# for a tabular file path, or "raw_reads" for a FASTA/FASTQ path (optionally
+# gzipped). Aborts for anything else.
+.sirup_detect_input_type <- function(input) {
+  if (is.data.frame(input)) {
+    return("airr_df")
+  }
+  if (!is.character(input) || length(input) != 1L || is.na(input)) {
+    rlang::abort("`input` must be a data frame or a single file path.")
+  }
+  base <- sub("\\.gz$", "", input, ignore.case = TRUE)
+  ext <- tolower(tools::file_ext(base))
+  if (ext %in% c("tsv", "tab", "txt")) {
+    return("airr_tsv")
+  }
+  if (ext %in% c("fa", "fasta", "fna", "fq", "fastq")) {
+    return("raw_reads")
+  }
+  rlang::abort(paste0(
+    "Cannot detect the input type from extension '.", ext, "'. ",
+    "Accepted: .tsv/.tab/.txt for AIRR tables, ",
+    ".fa/.fasta/.fna/.fq/.fastq for reads (each optionally .gz)."
+  ))
+}
+
+# Read an AIRR TSV into a data frame. fread handles gzipped files natively.
+.sirup_read_airr <- function(path) {
+  if (!file.exists(path.expand(path))) {
+    rlang::abort(paste0("AIRR file not found: ", path))
+  }
+  out <- data.table::fread(path.expand(path), sep = "\t", header = TRUE, data.table = FALSE)
+  out
+}
+
+# Resolve IgBLAST germline database paths from a database directory and the
+# receptor type, using the naming convention IG_V/IG_D/IG_J/IG_C and
+# TR_V/TR_D/TR_J. Any non-NULL override wins. The C-region database is only
+# used for `ig`.
+.sirup_igblast_db_paths <- function(igblast_db_dir = NULL,
+                                    receptor = c("ig", "tr"),
+                                    germline_db_v = NULL,
+                                    germline_db_d = NULL,
+                                    germline_db_j = NULL,
+                                    c_region_db = NULL) {
+  receptor <- match.arg(receptor)
+  prefix <- toupper(receptor)
+  from_dir <- function(segment) {
+    if (is.null(igblast_db_dir)) {
+      return(NULL)
+    }
+    file.path(path.expand(igblast_db_dir), paste0(prefix, "_", segment))
+  }
+  dbs <- list(
+    v = if (!is.null(germline_db_v)) path.expand(germline_db_v) else from_dir("V"),
+    d = if (!is.null(germline_db_d)) path.expand(germline_db_d) else from_dir("D"),
+    j = if (!is.null(germline_db_j)) path.expand(germline_db_j) else from_dir("J"),
+    c = if (receptor == "ig") {
+      if (!is.null(c_region_db)) path.expand(c_region_db) else from_dir("C")
+    } else {
+      NULL
+    }
+  )
+  needed <- c("v", "d", "j")
+  missing <- needed[vapply(dbs[needed], is.null, logical(1))]
+  if (length(missing) > 0L) {
+    rlang::abort(paste0(
+      "Cannot resolve germline database", if (length(missing) == 1L) "" else "s",
+      " for segment", if (length(missing) == 1L) "" else "s", " ",
+      paste(toupper(missing), collapse = ", "),
+      ". Provide `igblast_db_dir` or the per-segment paths."
+    ))
+  }
+  dbs
+}
+
+# Build the igblastn argument vector for one raw-read annotation run.
+# Pure function: it does not touch the filesystem.
+.sirup_igblast_args <- function(query_fasta,
+                                output_tsv,
+                                receptor = c("ig", "tr"),
+                                organism = "human",
+                                dbs,
+                                aux_file = NULL,
+                                num_threads = 8,
+                                extra_args = NULL) {
+  receptor <- match.arg(receptor)
+  seqtype <- if (receptor == "ig") "Ig" else "TCR"
+  args <- c(
+    "-query", path.expand(query_fasta),
+    "-ig_seqtype", seqtype,
+    "-organism", organism,
+    "-germline_db_V", dbs$v,
+    "-germline_db_D", dbs$d,
+    "-germline_db_J", dbs$j
+  )
+  if (!is.null(dbs$c)) {
+    args <- c(args, "-c_region_db", dbs$c)
+  }
+  if (!is.null(aux_file)) {
+    args <- c(args, "-auxiliary_data", path.expand(aux_file))
+  }
+  args <- c(
+    args,
+    "-outfmt", "19",
+    "-num_threads", as.character(num_threads),
+    "-out", path.expand(output_tsv)
+  )
+  c(args, extra_args)
+}
+
+# Normalize raw reads to a plain FASTA that igblastn can read. igblastn
+# cannot read gzip and only accepts FASTA, so this streams on disk with
+# gunzip and awk; it never loads sequences into R. A plain FASTA passes
+# through unchanged. FASTQ quality strings are dropped.
+.sirup_prepare_query_fasta <- function(input, output_dir, sample_name) {
+  input <- path.expand(input)
+  if (!file.exists(input)) {
+    rlang::abort(paste0("Input reads file not found: ", input))
+  }
+  is_gz <- grepl("\\.gz$", input, ignore.case = TRUE)
+  base <- sub("\\.gz$", "", input, ignore.case = TRUE)
+  ext <- tolower(tools::file_ext(base))
+  is_fastq <- ext %in% c("fq", "fastq")
+  if (!is_gz && !is_fastq) {
+    return(input)
+  }
+  out_fasta <- file.path(output_dir, paste0(sample_name, "_input.fasta"))
+  if (!is_fastq) {
+    # Gzipped FASTA: stream-decompress only.
+    .sirup_run_command("gunzip", c("-c", input), stdout = out_fasta)
+    return(out_fasta)
+  }
+  fastq <- input
+  tmp_fastq <- NULL
+  if (is_gz) {
+    tmp_fastq <- file.path(output_dir, paste0(sample_name, "_input.fastq"))
+    .sirup_run_command("gunzip", c("-c", input), stdout = tmp_fastq)
+    fastq <- tmp_fastq
+  }
+  # FASTQ to FASTA in one streaming pass; qualities are dropped.
+  .sirup_run_command(
+    "awk",
+    "NR % 4 == 1 { sub(/^@/, \">\"); print } NR % 4 == 2 { print }",
+    stdin = fastq,
+    stdout = out_fasta
+  )
+  if (!is.null(tmp_fastq)) {
+    unlink(tmp_fastq)
+  }
+  out_fasta
+}
+
+#' Annotate raw reads with IgBLAST
+#'
+#' Runs `igblastn` on raw reads and writes an AIRR rearrangement table
+#' (`-outfmt 19`). The input can be FASTA or FASTQ, optionally gzipped.
+#' Gzipped and FASTQ inputs are first normalized to a plain FASTA next to
+#' `output_tsv` (FASTQ quality strings are dropped, because igblastn only
+#' accepts FASTA). One receptor locus group runs per call: `ig` uses the
+#' `IG_V`/`IG_D`/`IG_J`/`IG_C` databases, `tr` uses `TR_V`/`TR_D`/`TR_J`.
+#'
+#' Database paths come from `igblast_db_dir` plus the naming convention
+#' above. Per-segment arguments override the convention. igblastn output is
+#' logged to `<output_tsv stem>.log`.
+#'
+#' @param input Path to a FASTA/FASTQ file, optionally gzipped.
+#' @param output_tsv Path for the AIRR TSV that igblastn writes.
+#' @param receptor Either `ig` for BCR or `tr` for TCR.
+#' @param organism Organism passed to `igblastn -organism`.
+#' @param igblast_db_dir Directory that holds the germline databases named
+#'   `IG_V`, `IG_D`, `IG_J`, `IG_C`, `TR_V`, `TR_D`, `TR_J`.
+#' @param igblast_exec Path to the `igblastn` executable.
+#' @param aux_file Optional path passed to `-auxiliary_data`.
+#' @param germline_db_v,germline_db_d,germline_db_j Optional per-segment
+#'   database paths. Each overrides the `igblast_db_dir` convention.
+#' @param c_region_db Optional C-region database path (`ig` only).
+#' @param num_threads Threads passed to `-num_threads`.
+#' @param extra_args Optional character vector of extra igblastn arguments.
+#' @return The path to `output_tsv`, invisibly.
+#' @export
+runIgblast <- function(input,
+                       output_tsv,
+                       receptor = c("ig", "tr"),
+                       organism = "human",
+                       igblast_db_dir = NULL,
+                       igblast_exec = "~/software/igblast/bin/igblastn",
+                       aux_file = NULL,
+                       germline_db_v = NULL,
+                       germline_db_d = NULL,
+                       germline_db_j = NULL,
+                       c_region_db = NULL,
+                       num_threads = 8,
+                       extra_args = NULL) {
+  receptor <- match.arg(receptor)
+  .sirup_check_tools(c(igblastn = igblast_exec))
+  dbs <- .sirup_igblast_db_paths(
+    igblast_db_dir = igblast_db_dir,
+    receptor = receptor,
+    germline_db_v = germline_db_v,
+    germline_db_d = germline_db_d,
+    germline_db_j = germline_db_j,
+    c_region_db = c_region_db
+  )
+  output_tsv <- path.expand(output_tsv)
+  output_dir <- dirname(output_tsv)
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+  }
+  sample_name <- tools::file_path_sans_ext(basename(output_tsv))
+  query_fasta <- .sirup_prepare_query_fasta(input, output_dir, sample_name)
+  args <- .sirup_igblast_args(
+    query_fasta = query_fasta,
+    output_tsv = output_tsv,
+    receptor = receptor,
+    organism = organism,
+    dbs = dbs,
+    aux_file = aux_file,
+    num_threads = num_threads,
+    extra_args = extra_args
+  )
+  log <- paste0(tools::file_path_sans_ext(output_tsv), ".log")
+  .sirup_run_command(igblast_exec, args, log = log)
+  invisible(output_tsv)
+}
+
+#' Parse rrad tags out of AIRR sequence IDs
+#'
+#' Parses `id|BARCODE=YYY|UMI=XXX`, written by
+#' `rrad::rad_reformat(..., to_fasta = TRUE, header_format = "presto")`.
+#' Legacy `|barcode:YYY|umi:XXX` tags are also accepted; field names are
+#' case-insensitive. Existing `barcode` and `umi` columns are preserved when
+#' a tag is absent. Conflicting values or repeated tags raise an error.
+#' Missing UMIs are allowed. With `strip = TRUE`, the ID column is replaced
+#' with the bare read ID. For other header formats, see [extractSpatialIds()].
+#'
+#' Metadata must be inside the identifier, before any whitespace, to survive
+#' IgBLAST. SAM-style comments from unformatted RAD output should be converted
+#' upstream with `header_format = "presto"` before annotation.
+#'
+#' @param airr_df AIRR-style data frame.
+#' @param id Column that contains the read identifiers.
+#' @param strip Replace the ID column with the part before the first `|` or
+#'   whitespace character.
+#' @return The data frame with `umi` and `barcode` columns added.
+#' @export
+parseRadSequenceIds <- function(airr_df, id = "sequence_id", strip = TRUE) {
+  .check_required_cols(airr_df, id, "airr_df")
+  out <- .as_data_frame(airr_df)
+  ids <- as.character(out[[id]])
+  for (field in c("barcode", "umi")) {
+    # Tags end at the next `|` or at whitespace: a FASTA description after
+    # the identifier is not part of the tag value.
+    rx <- stringr::regex(
+      paste0("\\|", field, "[=:]([^|[:space:]]*)"),
+      ignore_case = TRUE
+    )
+    repeated <- which(stringr::str_count(ids, rx) > 1L)
+    if (length(repeated)) {
+      rlang::abort(paste0("Duplicate `", field, "` tag at row ", repeated[[1L]], "."))
+    }
+    value <- stringr::str_match(ids, rx)[, 2]
+    present <- !is.na(value) & nzchar(value)
+    invalid <- which(present & grepl("[=,[:space:]]", value))
+    if (length(invalid)) {
+      rlang::abort(paste0(
+        "The `", field, "` tag contains a delimiter or whitespace at row ",
+        invalid[[1L]], "."
+      ))
+    }
+    existing <- if (field %in% colnames(out)) {
+      as.character(out[[field]])
+    } else {
+      rep(NA_character_, nrow(out))
+    }
+    conflict <- which(present & !is.na(existing) & nzchar(existing) & value != existing)
+    if (length(conflict)) {
+      rlang::abort(paste0(
+        "Conflicting `", field, "` values in the sequence ID and AIRR column at row ",
+        conflict[[1L]], "."
+      ))
+    }
+    existing[present] <- value[present]
+    out[[field]] <- existing
+  }
+  if (strip) {
+    out[[id]] <- sub("[|[:space:]].*$", "", ids)
+  }
+  out
+}
+# UMI-aware pre-consensus stage for processSpatialSample(umi_support = TRUE).
+#
+# The default pipeline clusters reads by spatial barcode only. Two reads of one
+# molecule that differ by a sequencing error therefore cluster apart at
+# `identity = 1.0`, and each is dropped as a singleton by the
+# `BuildConsensus -n` floor. This stage groups reads by barcode AND UMI first,
+# at a relaxed identity, so those reads support each other before the barcode
+# step runs.
+#
+# Per (barcode, UMI) cluster it records:
+#   cc_bc_umi           reads in the cluster, counted BEFORE the productive
+#                       subset, so support is not deflated by error-bearing
+#                       reads that the consensus would have corrected
+#   n_productive_reads  productive reads, which is what the consensus is built
+#                       from. A cluster with none is discarded.
+#
+# Both travel into the barcode stage as header fields and are summed there with
+# `BuildConsensus --act sum`, which is what the `min_umi_support` floor uses.
+
+# Read a FASTA into a data frame of id and seq. Only used for the small
+# intermediate files this stage writes, not for raw read data.
+.sirup_read_fasta <- function(path) {
+  lines <- readLines(path, warn = FALSE)
+  lines <- lines[nzchar(lines)]
+  if (length(lines) == 0L) {
+    return(data.frame(id = character(), seq = character(), stringsAsFactors = FALSE))
+  }
+  is_header <- startsWith(lines, ">")
+  ids <- sub("^>", "", lines[is_header])
+  grp <- cumsum(is_header)
+  seqs <- vapply(
+    split(lines[!is_header], grp[!is_header]),
+    function(x) paste(x, collapse = ""),
+    character(1)
+  )
+  seqs <- seqs[as.character(seq_along(ids))]
+  data.frame(id = ids, seq = unname(ifelse(is.na(seqs), "", seqs)),
+             stringsAsFactors = FALSE)
+}
+
+# Pull one `field=value` annotation out of pRESTO-style FASTA headers. The match
+# allows start-of-string as well as `|`, because the leading token is the
+# sequence ID itself (written here as `sequence_id=<id>`) rather than a
+# delimited annotation. pRESTO upper-cases annotation keys on output, so the
+# match is case-insensitive.
+.sirup_header_field <- function(ids, field) {
+  m <- stringr::str_match(ids, paste0("(?i)(?:^|[|])", field, "=([^|]*)"))
+  m[, 2]
+}
+
+# Weight each molecule consensus by its read support for the barcode stage.
+# BuildConsensus gives every record one vote, and its `--maxgap`, `--freq` and
+# `--maxerror` calls count records. A molecule built from 7 reads would count as
+# much as a molecule built from 1 read, so one short read could trim the
+# consensus of several full-length molecules. Write each consensus
+# `n_productive_reads` times instead, so one vote is one read, as before the UMI
+# stage. Only the first copy carries `cc_bc_umi` and `n_productive_reads`; the
+# other copies carry 0. The `--act sum` totals are then unchanged.
+.sirup_replicate_by_support <- function(grp, seq, barcode, cc_bc_umi,
+                                        n_productive_reads, c_call = NULL,
+                                        cluster_field,
+                                        copies = n_productive_reads) {
+  reps <- pmax(as.integer(rep_len(copies, length(grp))), 1L)
+  i <- rep(seq_along(grp), reps)
+  copy <- sequence(reps)
+  first <- copy == 1L
+  id <- paste0(
+    "sequence_id=", grp[i], ifelse(first, "", paste0("_r", copy)),
+    "|", cluster_field, "=", barcode[i],
+    "|cc_bc_umi=", ifelse(first, cc_bc_umi[i], 0L),
+    "|n_productive_reads=", ifelse(first, n_productive_reads[i], 0L),
+    if (!is.null(c_call)) paste0("|c_call=", c_call[i]) else ""
+  )
+  data.frame(id = id, seq = seq[i], stringsAsFactors = FALSE)
+}
+
+# Build one consensus per (barcode, UMI) cluster and return the FASTA that the
+# barcode stage should consume, plus the per-consensus support counts.
+.sirup_umi_consensus <- function(df,
+                                 output_dir,
+                                 sample_name,
+                                 receptor,
+                                 cluster_field,
+                                 umi_field,
+                                 umi_identity,
+                                 umi_weight = TRUE,
+                                 consensus_freq,
+                                 consensus_min_count,
+                                 consensus_max_error,
+                                 consensus_max_gap,
+                                 delimiters,
+                                 muscle_exec,
+                                 nproc,
+                                 fasta_sequence_col,
+                                 id_col,
+                                 c_call_col = "c_call",
+                                 align_log = NULL,
+                                 consensus_log = NULL) {
+  .check_required_cols(df, c(cluster_field, umi_field, id_col, fasta_sequence_col), "airr_df")
+  if (!"productive" %in% colnames(df)) {
+    rlang::abort("`umi_support = TRUE` needs a `productive` column to pick the reads to build each UMI consensus from.")
+  }
+
+  barcode <- as.character(df[[cluster_field]])
+  umi <- as.character(df[[umi_field]])
+  bad_umi <- is.na(umi) | !nzchar(umi)
+  if (all(bad_umi)) {
+    rlang::abort(paste0("`", umi_field, "` is empty for every row, so there is nothing to group on."))
+  }
+  if (any(bad_umi)) {
+    rlang::warn(paste0(sum(bad_umi), " of ", length(umi), " rows have no `",
+                       umi_field, "`. Dropping them."))
+    df <- df[!bad_umi, , drop = FALSE]
+    barcode <- barcode[!bad_umi]
+    umi <- umi[!bad_umi]
+  }
+  delim_class <- .sirup_delims_regex_class(delimiters)
+  if (any(grepl(delim_class, umi))) {
+    rlang::abort(paste0("`", umi_field, "` contains a pRESTO delimiter."))
+  }
+
+  read_id <- as.character(df[[id_col]])
+  bc_umi <- paste0(barcode, "_", umi)
+
+  # --- 1. cluster within barcode + UMI at the relaxed identity ------------
+  stage1_fasta <- file.path(output_dir, sprintf("%s_%s_umi_reads.fasta", sample_name, receptor))
+  writeFastqas(
+    data.frame(id = paste0("sequence_id=", read_id, "|bc_umi=", bc_umi),
+               seq = df[[fasta_sequence_col]], stringsAsFactors = FALSE),
+    fn = stage1_fasta, type = "fa", header_col = "id"
+  )
+  message("UMI stage: ", nrow(df), " reads in ", length(unique(bc_umi)), " barcode-UMI pairs")
+
+  cluster_fasta <- sub("\\.fasta$", sprintf("_ident_%s_cluster-pass.fasta", umi_identity), stage1_fasta)
+  .sirup_run_command("ClusterSets.py", c(
+    "set", "-s", path.expand(stage1_fasta), "-f", "bc_umi", "-k", "cluster",
+    "--ident", as.character(umi_identity), "--cluster", "vsearch",
+    "--delim", delimiters, "--nproc", as.character(nproc),
+    "-o", path.expand(cluster_fasta)
+  ))
+
+  # --- 2. count support, then keep the productive reads -------------------
+  clustered <- .sirup_read_fasta(cluster_fasta)
+  key <- data.frame(
+    read_id = .sirup_header_field(clustered$id, "sequence_id"),
+    bc_umi = .sirup_header_field(clustered$id, "bc_umi"),
+    cluster = .sirup_header_field(clustered$id, "cluster"),
+    stringsAsFactors = FALSE
+  )
+  key$grp <- paste0(key$bc_umi, "_", key$cluster)
+  idx <- match(key$read_id, read_id)
+  if (anyNA(idx)) {
+    rlang::abort("ClusterSets output holds read IDs that are absent from the input table.")
+  }
+  productive <- df$productive[idx]
+  productive <- !is.na(productive) & productive %in% c(TRUE, "TRUE", "T")
+
+  cc_bc_umi <- as.integer(table(key$grp)[key$grp])
+  n_prod <- as.integer(tapply(productive, key$grp, sum)[key$grp])
+  keep <- productive & n_prod > 0L
+  n_groups <- length(unique(key$grp))
+  message("UMI stage: ", n_groups, " barcode-UMI clusters; ",
+          length(unique(key$grp[n_prod == 0L])), " have no productive read and are dropped")
+  if (!any(keep)) {
+    rlang::abort("No barcode-UMI cluster holds a productive read.")
+  }
+
+  align_in <- file.path(output_dir, sprintf("%s_%s_umi_productive.fasta", sample_name, receptor))
+  writeFastqas(
+    data.frame(id = paste0("sequence_id=", key$read_id[keep], "|bc_umi_cluster=", key$grp[keep]),
+               seq = clustered$seq[keep], stringsAsFactors = FALSE),
+    fn = align_in, type = "fa", header_col = "id"
+  )
+
+  # --- 3. align and build one consensus per barcode-UMI cluster -----------
+  # -n 1 on purpose: a cluster of one read still carries its support forward,
+  # and the barcode stage decides whether the summed support is enough.
+  aligned <- sub("\\.fasta$", "_align-pass.fasta", align_in)
+  .sirup_run_command("AlignSets.py", c(
+    "muscle", "-s", path.expand(align_in),
+    if (is.null(align_log)) NULL else c("--log", path.expand(align_log)),
+    "--delim", delimiters, "--nproc", as.character(nproc),
+    "--bf", "bc_umi_cluster", "--exec", path.expand(muscle_exec)
+  ))
+
+  umi_consensus <- file.path(output_dir, sprintf("%s_%s_umi_consensus.fasta", sample_name, receptor))
+  .sirup_run_command("BuildConsensus.py", c(
+    "-s", path.expand(aligned), "-o", path.expand(umi_consensus),
+    if (is.null(consensus_log)) NULL else c("--log", path.expand(consensus_log)),
+    "--nproc", as.character(nproc), "-n", "1", "-q", "20",
+    "--freq", as.character(consensus_freq), "--bf", "bc_umi_cluster",
+    "--maxerror", as.character(consensus_max_error),
+    "--maxgap", as.character(consensus_max_gap),
+    "--fasta", "--delim", delimiters
+  ))
+
+  # --- 4. hand the barcode stage one record per molecule ------------------
+  cons <- .sirup_read_fasta(umi_consensus)
+  cons$grp <- sub("[|].*$", "", cons$id)
+  per_grp <- data.frame(
+    grp = key$grp, cc_bc_umi = cc_bc_umi, n_productive_reads = n_prod,
+    barcode = barcode[idx], stringsAsFactors = FALSE
+  )
+  per_grp <- per_grp[!duplicated(per_grp$grp), , drop = FALSE]
+  if (c_call_col %in% colnames(df)) {
+    calls <- as.character(df[[c_call_col]])[idx]
+    calls[is.na(calls) | !nzchar(calls)] <- "NA"
+    # Majority call among the reads of the cluster, ties broken alphabetically,
+    # matching how BuildConsensus resolves a copy field.
+    tab <- as.data.frame(table(key$grp, calls), stringsAsFactors = FALSE)
+    names(tab) <- c("grp", "call", "n")
+    tab <- tab[tab$n > 0, , drop = FALSE]
+    tab <- tab[order(tab$grp, -tab$n, tab$call), , drop = FALSE]
+    tab <- tab[!duplicated(tab$grp), , drop = FALSE]
+    per_grp$c_call <- tab$call[match(per_grp$grp, tab$grp)]
+  }
+  m <- match(cons$grp, per_grp$grp)
+  if (anyNA(m)) {
+    rlang::abort("The UMI consensus FASTA holds groups that were never counted.")
+  }
+  out <- per_grp[m, , drop = FALSE]
+  records <- .sirup_replicate_by_support(
+    grp = cons$grp, seq = cons$seq, barcode = out$barcode,
+    cc_bc_umi = out$cc_bc_umi, n_productive_reads = out$n_productive_reads,
+    c_call = out$c_call, cluster_field = cluster_field,
+    copies = if (isTRUE(umi_weight)) out$n_productive_reads else 1L
+  )
+  spatial_fasta <- file.path(output_dir, sprintf("%s_%s_spatial.fasta", sample_name, receptor))
+  writeFastqas(records, fn = spatial_fasta, type = "fa", header_col = "id")
+
+  message("UMI stage: wrote ", nrow(cons), " molecule consensuses (", nrow(records),
+          " records after weighting by support) to ", spatial_fasta)
+  message("UMI stage: reads per molecule, median ", stats::median(out$cc_bc_umi),
+          ", ", round(100 * mean(out$cc_bc_umi >= 2), 1), "% with 2 or more")
+  list(
+    spatial_fasta = spatial_fasta,
+    umi_reads_fasta = stage1_fasta,
+    umi_cluster_fasta = cluster_fasta,
+    umi_consensus_fasta = umi_consensus,
+    n_reads = nrow(df),
+    n_groups = n_groups,
+    n_molecules = nrow(cons)
+  )
 }
