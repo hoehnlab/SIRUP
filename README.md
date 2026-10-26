@@ -5,8 +5,7 @@
 SIRUP is an R package for spatial adaptive immune receptor repertoire
 sequencing (spAIRR-seq). It works with B cell receptor (BCR) and T cell
 receptor (TCR) sequences that carry a spatial barcode, together with spatial
-gene expression from the same tissue section. It supports 10x Visium and
-Visium HD.
+gene expression from the same tissue section.
 
 SIRUP covers three stages:
 
