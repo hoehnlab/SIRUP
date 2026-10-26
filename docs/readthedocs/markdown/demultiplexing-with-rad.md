@@ -1,39 +1,41 @@
-# Preparing FASTA with rrad for SIRUP
+Preparing FASTA with rrad for SIRUP
+================
 
-This guide prepares demultiplexed reads with the standalone
-[rrad package](https://github.com/indianewok/rrad), then passes an annotated
-FASTA file to SIRUP. Demultiplexing, layouts, whitelist discovery, and read
-reformatting are upstream steps. SIRUP begins with that file and performs
-IgBLAST annotation, filtering, clustering within barcodes, consensus generation,
-and IgBLAST annotation of the consensus sequences.
+This guide prepares demultiplexed reads with the standalone [rrad
+package](https://github.com/indianewok/rrad), then passes an annotated
+FASTA file to SIRUP. Demultiplexing, layouts, whitelist discovery, and
+read reformatting are upstream steps. SIRUP begins with that file and
+performs IgBLAST annotation, filtering, clustering within barcodes,
+consensus generation, and IgBLAST annotation of the consensus sequences.
 
 The examples are not evaluated during rendering: supply your own reads,
 output paths, and reference databases.
 
 ## Install the preparation tool separately
 
-```r
+``` r
 install.packages("remotes")
 remotes::install_github("indianewok/rrad@v1.2.1")
 ```
 
-`rrad` is public and compiles its embedded RAD engine as part of R package
-installation. It does not require a separate RAD executable. SIRUP can process
-an existing prepared FASTA without installing rrad.
+`rrad` is public and compiles its embedded RAD engine as part of R
+package installation. It does not require a separate RAD executable.
+SIRUP can process an existing prepared FASTA without installing rrad.
 
-Small built-in resources are included in rrad. Large whitelists are downloaded
-by rrad when first requested, checked against their pinned size and SHA-256
-digest, and cached for reuse. Prepare a machine for offline work with
-`rrad::rad_download_whitelists()`; see the
-[rrad documentation](https://github.com/indianewok/rrad) for cache settings.
+Small built-in resources are included in rrad. Large whitelists are
+downloaded by rrad when first requested, checked against their pinned
+size and SHA-256 digest, and cached for reuse. Prepare a machine for
+offline work with `rrad::rad_download_whitelists()`; see the [rrad
+documentation](https://github.com/indianewok/rrad) for cache settings.
 
 ## Demultiplex your reads
 
-Choose a layout that matches the library; `five_prime` below is an example.
-For an assay with a different structure, pass your own CSV or seqspec file as
-described in [Custom read layouts and whitelists](custom-read-layouts-with-rad.html).
+Choose a layout that matches the library; `five_prime` below is an
+example. For an assay with a different structure, pass your own CSV or
+seqspec file as described in [Custom read layouts and
+whitelists](custom-read-layouts-with-rad.html).
 
-```r
+``` r
 demux <- rrad::rad_demux(
   layout = "five_prime",
   fastq = "reads.fq.gz",
@@ -45,15 +47,15 @@ demux$artifacts$fastq
 demux$stats
 ```
 
-The result identifies the exact output files and records the embedded engine
-used. Optional arguments include `kit`, `global_whitelist`,
-`custom_whitelist`, `auto_whitelist`, `max_reads`, `chunk_size`, and `threads`.
-Builds without OpenMP use one effective thread. Use `?rrad::rad_demux` for
-supported settings and their defaults.
+The result identifies the exact output files and records the embedded
+engine used. Optional arguments include `kit`, `global_whitelist`,
+`custom_whitelist`, `auto_whitelist`, `max_reads`, `chunk_size`, and
+`threads`. Builds without OpenMP use one effective thread. Use
+`?rrad::rad_demux` for supported settings and their defaults.
 
 ## Write an IgBLAST-ready FASTA
 
-```r
+``` r
 prepared <- rrad::rad_reformat(
   demux,
   output_fastq = "prepared/sample-igblast.fasta",
@@ -65,31 +67,32 @@ prepared$artifacts$fasta
 ```
 
 Despite the argument name `output_fastq`, this writes FASTA when
-`to_fasta = TRUE`. The explicit destination keeps the demultiplexed FASTQ.
-The output has a whitespace-free identifier such as:
+`to_fasta = TRUE`. The explicit destination keeps the demultiplexed
+FASTQ. The output has a whitespace-free identifier such as:
 
-```text
+``` text
 >read1|BARCODE=BC01|UMI=ACGT
 ACGTACGT
 ```
 
-`BARCODE` uses the nonempty spatial `BC:Z` tag when present, otherwise the
-corrected `CB:Z` tag. `UMI` comes from `UB:Z`; missing tags are omitted.
-Reads need a usable barcode for spatial clustering. SIRUP recognizes this
-canonical header form and the older `read1|umi:ACGT|barcode:BC01` form.
+`BARCODE` uses the nonempty spatial `BC:Z` tag when present, otherwise
+the corrected `CB:Z` tag. `UMI` comes from `UB:Z`; missing tags are
+omitted. Reads need a usable barcode for spatial clustering. SIRUP
+recognizes this canonical header form and the older
+`read1|umi:ACGT|barcode:BC01` form.
 
-Use `header_format = "presto"` explicitly: conversion to FASTA alone keeps
-SAM-style tags in the comment after whitespace, where IgBLAST does not retain
-them as part of the query identifier.
+Use `header_format = "presto"` explicitly: conversion to FASTA alone
+keeps SAM-style tags in the comment after whitespace, where IgBLAST does
+not retain them as part of the query identifier.
 
 ## Begin SIRUP processing from FASTA
 
-Configure IgBLAST and its databases, pRESTO/Change-O, vsearch, and muscle before
-running this step. The example uses BCR databases named `IG_V`, `IG_D`,
-`IG_J`, and `IG_C` under `igblast_db_dir`. Per-segment path overrides are
-available in `?SIRUP::processSpatialSample`.
+Configure IgBLAST and its databases, pRESTO/Change-O, vsearch, and
+muscle before running this step. The example uses BCR databases named
+`IG_V`, `IG_D`, `IG_J`, and `IG_C` under `igblast_db_dir`. Per-segment
+path overrides are available in `?SIRUP::processSpatialSample`.
 
-```r
+``` r
 result <- SIRUP::processSpatialSample(
   input = "prepared/sample-igblast.fasta",
   output_dir = "processed",
@@ -105,26 +108,28 @@ result <- SIRUP::processSpatialSample(
 result$db_pass
 ```
 
-Ordinary FASTA input is detected automatically and receives the first IgBLAST
-pass. SIRUP then filters the AIRR calls, writes barcode-annotated spatial
-FASTA, groups reads within each barcode, builds consensus sequences, and runs
-a second IgBLAST pass before writing the final AIRR table.
+Ordinary FASTA input is detected automatically and receives the first
+IgBLAST pass. SIRUP then filters the AIRR calls, writes
+barcode-annotated spatial FASTA, groups reads within each barcode,
+builds consensus sequences, and runs a second IgBLAST pass before
+writing the final AIRR table.
 
-`input_type = "spatial_fasta"` is only for FASTA already annotated, filtered,
-and prepared for consensus. It skips the first IgBLAST/filtering stage; do
-not select it merely because newly demultiplexed reads are in FASTA format.
-An existing AIRR table or TSV is another entry point after initial annotation.
+`input_type = "spatial_fasta"` is only for FASTA already annotated,
+filtered, and prepared for consensus. It skips the first
+IgBLAST/filtering stage; do not select it merely because newly
+demultiplexed reads are in FASTA format. An existing AIRR table or TSV
+is another entry point after initial annotation.
 
 Use `receptor = "tr"` with the matching TCR databases for a TCR run.
 Demultiplexing does not choose the IgBLAST receptor mode.
 
 ## Visium HD preparation
 
-For the supported Visium HD paired-barcode layout, select the appropriate
-layout and correct both barcode parts upstream. Confirm the layout matches
-the experiment on a pilot subset before a full run.
+For the supported Visium HD paired-barcode layout, select the
+appropriate layout and correct both barcode parts upstream. Confirm the
+layout matches the experiment on a pilot subset before a full run.
 
-```r
+``` r
 spatial_demux <- rrad::rad_demux(
   layout = "visium_hd",
   fastq = "spatial_reads.fq.gz",
@@ -148,8 +153,8 @@ rrad::rad_reformat(
 )
 ```
 
-Coordinate rewriting and pRESTO header formatting are separate calls. The
-second call places the coordinate-derived `BC:Z` value in `BARCODE`, for
-example `s_002um_00001_00002-1`. Pass this FASTA to `processSpatialSample()`
-as above. See [Visium HD processing](visium-hd-processing.html) for downstream
-spatial annotation and analysis.
+Coordinate rewriting and pRESTO header formatting are separate calls.
+The second call places the coordinate-derived `BC:Z` value in `BARCODE`,
+for example `s_002um_00001_00002-1`. Pass this FASTA to
+`processSpatialSample()` as above. See [Process reads into spatial AIRR
+tables](processing.html) for downstream spatial annotation and analysis.

@@ -12,7 +12,7 @@
 
 
 
-<title>Demultiplexing Long Reads with RAD from R</title>
+<title>Preparing FASTA with rrad for SIRUP</title>
 
 
 <style type="text/css">
@@ -324,214 +324,94 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 
-<h1 class="title toc-ignore">Demultiplexing Long Reads with RAD from R</h1>
+<h1 class="title toc-ignore">Preparing FASTA with rrad for SIRUP</h1>
 
 
 
-<p>This vignette drives the <a href="https://github.com/indianewok/rad"><code>rad</code></a> command-line demultiplexer from R using SIRUP’s <code>rad*()</code> wrappers. It is the upstream step that produces the demultiplexed, barcode-corrected reads the rest of the package builds on: the <a href="visium-hd-processing.html">Visium HD processing guide</a> <em>starts from</em> RAD output, and this guide shows how to get there.</p>
-<p>SIRUP does not vendor or reimplement rad — every wrapper shells out to the same <code>rad</code> binary you would call from a terminal, so you get rad’s exact behavior with R-friendly argument handling, path resolution, and error reporting. The wrappers covered here are <code>radPath()</code>, <code>radList()</code>, <code>radPrep()</code>, <code>radScanWl()</code>, <code>radDemux()</code>, <code>radReformat()</code>, and the one-call <code>radRun()</code>, plus <code>radSrcPath()</code> and <code>updateRad()</code> for building rad from source.</p>
-<p>Unlike the other guides, this one uses rad’s <strong>public simulated test dataset</strong>, so the whole thing is runnable on any machine that has a built <code>rad</code> binary — no private data required.</p>
-<p>This guide intentionally does not evaluate code during rendering, even in the read-the-docs version, because every step shells out to the external <code>rad</code> binary, downloads data, and writes files.</p>
-<div id="setup" class="section level2">
-<h2>Setup</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(SIRUP)</a>
-<a class="sourceLine" id="cb1-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="co"># Everything in this guide writes under one scratch directory.</span></a>
-<a class="sourceLine" id="cb1-4" data-line-number="4">runDir &lt;-<span class="st"> </span><span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;rad_demo&quot;</span>)</a>
-<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="kw">dir.create</span>(runDir, <span class="dt">recursive =</span> <span class="ot">TRUE</span>, <span class="dt">showWarnings =</span> <span class="ot">FALSE</span>)</a>
-<a class="sourceLine" id="cb1-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb1-7" data-line-number="7">nproc &lt;-<span class="st"> </span><span class="dv">4</span></a></code></pre></div>
+<p>This guide prepares demultiplexed reads with the standalone <a href="https://github.com/indianewok/rrad">rrad package</a>, then passes an annotated FASTA file to SIRUP. Demultiplexing, layouts, whitelist discovery, and read reformatting are upstream steps. SIRUP begins with that file and performs IgBLAST annotation, filtering, clustering within barcodes, consensus generation, and IgBLAST annotation of the consensus sequences.</p>
+<p>The examples are not evaluated during rendering: supply your own reads, output paths, and reference databases.</p>
+<div id="install-the-preparation-tool-separately" class="section level2">
+<h2>Install the preparation tool separately</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">install.packages</span>(<span class="st">&quot;remotes&quot;</span>)</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">remotes<span class="op">::</span><span class="kw">install_github</span>(<span class="st">&quot;indianewok/rrad@v1.2.1&quot;</span>)</a></code></pre></div>
+<p><code>rrad</code> is public and compiles its embedded RAD engine as part of R package installation. It does not require a separate RAD executable. SIRUP can process an existing prepared FASTA without installing rrad.</p>
+<p>Small built-in resources are included in rrad. Large whitelists are downloaded by rrad when first requested, checked against their pinned size and SHA-256 digest, and cached for reuse. Prepare a machine for offline work with <code>rrad::rad_download_whitelists()</code>; see the <a href="https://github.com/indianewok/rrad">rrad documentation</a> for cache settings.</p>
 </div>
-<div id="point-r-at-the-rad-binary" class="section level2">
-<h2>Point R at the rad Binary</h2>
-<p>Every wrapper calls <code>radPath()</code> to find the <code>rad</code> executable. The resolution order is: an explicit <code>rad =</code> argument, then <code>getOption(&quot;SIRUP.rad_path&quot;)</code>, then the <code>SIRUP_RAD_PATH</code> environment variable, then <code>Sys.which(&quot;rad&quot;)</code> (i.e. rad on your <code>PATH</code>). Confirm R can see rad before running anything else.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">radPath</span>()</a>
-<a class="sourceLine" id="cb2-2" data-line-number="2"><span class="co">#&gt; &quot;/Users/you/code/rad/build/rad&quot;</span></a></code></pre></div>
-<p>If rad is not on your <code>PATH</code>, point SIRUP at it once per session and every wrapper will pick it up:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">options</span>(<span class="dt">SIRUP.rad_path =</span> <span class="st">&quot;/path/to/rad/build/rad&quot;</span>)</a>
-<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="co"># or, in your shell before launching R:</span></a>
-<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="co">#   export SIRUP_RAD_PATH=/path/to/rad/build/rad</span></a></code></pre></div>
-<p>Don’t have rad built yet? If you have a git clone of the <a href="https://github.com/indianewok/rad">rad repo</a>, <code>updateRad()</code> will pull the latest commit and (re)build the binary for you. <code>radSrcPath()</code> finds the source tree the same way <code>radPath()</code> finds the binary (explicit argument, <code>options(SIRUP.rad_src=)</code>, <code>SIRUP_RAD_SRC</code>, or by walking up from the binary’s location). Building rad needs <code>git</code>, <code>cmake</code>, and a C++17 compiler on <code>PATH</code> — see rad’s <a href="https://github.com/indianewok/rad/blob/main/docs/installation.md">installation guide</a> for the one-line dependency install on macOS / conda.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">updateRad</span>(<span class="dt">path =</span> <span class="st">&quot;/path/to/rad&quot;</span>)  <span class="co"># git pull --ff-only + cmake build</span></a></code></pre></div>
+<div id="demultiplex-your-reads" class="section level2">
+<h2>Demultiplex your reads</h2>
+<p>Choose a layout that matches the library; <code>five_prime</code> below is an example. For an assay with a different structure, pass your own CSV or seqspec file as described in <a href="custom-read-layouts-with-rad.html">Custom read layouts and whitelists</a>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">demux &lt;-<span class="st"> </span>rrad<span class="op">::</span><span class="kw">rad_demux</span>(</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">  <span class="dt">layout =</span> <span class="st">&quot;five_prime&quot;</span>,</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">  <span class="dt">fastq =</span> <span class="st">&quot;reads.fq.gz&quot;</span>,</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">  <span class="dt">out_dir =</span> <span class="st">&quot;prepared&quot;</span>,</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">  <span class="dt">output =</span> <span class="st">&quot;sample&quot;</span></a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">)</a>
+<a class="sourceLine" id="cb2-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb2-8" data-line-number="8">demux<span class="op">$</span>artifacts<span class="op">$</span>fastq</a>
+<a class="sourceLine" id="cb2-9" data-line-number="9">demux<span class="op">$</span>stats</a></code></pre></div>
+<p>The result identifies the exact output files and records the embedded engine used. Optional arguments include <code>kit</code>, <code>global_whitelist</code>, <code>custom_whitelist</code>, <code>auto_whitelist</code>, <code>max_reads</code>, <code>chunk_size</code>, and <code>threads</code>. Builds without OpenMP use one effective thread. Use <code>?rrad::rad_demux</code> for supported settings and their defaults.</p>
 </div>
-<div id="inspect-layouts-and-whitelists" class="section level2">
-<h2>Inspect Layouts and Whitelists</h2>
-<p>rad ships read-layout templates and barcode whitelists by <em>key</em>. <code>radList()</code> prints the registered keys and the file each one resolves to — start here so you know what to pass as <code>layout =</code> and <code>kit =</code>.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">radList</span>(<span class="dt">layouts =</span> <span class="ot">TRUE</span>)<span class="op">$</span>stdout</a>
-<a class="sourceLine" id="cb5-2" data-line-number="2"><span class="co">#&gt; [layouts]</span></a>
-<a class="sourceLine" id="cb5-3" data-line-number="3"><span class="co">#&gt; five_prime          .../resources/read_layout/five_prime_read_layout.csv</span></a>
-<a class="sourceLine" id="cb5-4" data-line-number="4"><span class="co">#&gt; three_prime         .../resources/read_layout/three_prime_read_layout.csv</span></a>
-<a class="sourceLine" id="cb5-5" data-line-number="5"><span class="co">#&gt; sctagger            .../resources/read_layout/sctagger_sim_read_layout.csv</span></a>
-<a class="sourceLine" id="cb5-6" data-line-number="6"><span class="co">#&gt; splitseq            .../resources/read_layout/splitseq_read_layout.csv</span></a>
-<a class="sourceLine" id="cb5-7" data-line-number="7"><span class="co">#&gt; visium              .../resources/read_layout/visium_three_prime_read_layout.csv</span></a>
-<a class="sourceLine" id="cb5-8" data-line-number="8"><span class="co">#&gt; visium_hd           .../resources/read_layout/visium_hd_read_layout.csv</span></a>
-<a class="sourceLine" id="cb5-9" data-line-number="9"><span class="co">#&gt; nanopore_rapid_bc   .../resources/read_layout/nanopore_bulk_rapid_bc_read_layout.csv</span></a>
-<a class="sourceLine" id="cb5-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb5-11" data-line-number="11"><span class="kw">radList</span>(<span class="dt">whitelists =</span> <span class="ot">TRUE</span>)<span class="op">$</span>stdout</a>
-<a class="sourceLine" id="cb5-12" data-line-number="12"><span class="co">#&gt; [whitelists]</span></a>
-<a class="sourceLine" id="cb5-13" data-line-number="13"><span class="co">#&gt; 10x_3v1 10x_3v2 10x_3v3 10x_3v3.1 10x_3HTv3.1 10x_3v4</span></a>
-<a class="sourceLine" id="cb5-14" data-line-number="14"><span class="co">#&gt; 10x_5v1 10x_5v2 10x_5HTv2 10x_5v3</span></a>
-<a class="sourceLine" id="cb5-15" data-line-number="15"><span class="co">#&gt; 10x_Vis_V1 ... 10x_Vis_V5</span></a>
-<a class="sourceLine" id="cb5-16" data-line-number="16"><span class="co">#&gt; splitseq_bc1 splitseq_bc2 visium_hd_bc1 visium_hd_bc2</span></a></code></pre></div>
-<p><code>radList()</code> returns the listing as a string in <code>$stdout</code> (it captures by default), so you can also grep it programmatically. Quick layout/kit pairings: <code>three_prime</code> + <code>10x_3v3</code> for a 10x 3’ library, <code>five_prime</code> + <code>10x_5v3</code> for 10x 5’, <code>splitseq</code> + <code>splitseq_bc1</code>/<code>splitseq_bc2</code>, <code>visium</code> + <code>10x_Vis_V1</code>..<code>V5</code>. Note the underscores — rad expects <code>&quot;10x_3v3&quot;</code>, not <code>&quot;10xv3&quot;</code>. For an unusual chemistry, pass a path to your own layout CSV instead of a key; the <a href="custom-read-layouts-with-rad.html">Custom Read Layouts</a> guide walks through writing and validating one from R, and rad’s <a href="https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md">layouts-and-whitelists guide</a> documents the CSV schema (<code>id, seq, expected_length, type, class, whitelist</code>).</p>
+<div id="write-an-igblast-ready-fasta" class="section level2">
+<h2>Write an IgBLAST-ready FASTA</h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">prepared &lt;-<span class="st"> </span>rrad<span class="op">::</span><span class="kw">rad_reformat</span>(</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">  demux,</a>
+<a class="sourceLine" id="cb3-3" data-line-number="3">  <span class="dt">output_fastq =</span> <span class="st">&quot;prepared/sample-igblast.fasta&quot;</span>,</a>
+<a class="sourceLine" id="cb3-4" data-line-number="4">  <span class="dt">to_fasta =</span> <span class="ot">TRUE</span>,</a>
+<a class="sourceLine" id="cb3-5" data-line-number="5">  <span class="dt">header_format =</span> <span class="st">&quot;presto&quot;</span></a>
+<a class="sourceLine" id="cb3-6" data-line-number="6">)</a>
+<a class="sourceLine" id="cb3-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb3-8" data-line-number="8">prepared<span class="op">$</span>artifacts<span class="op">$</span>fasta</a></code></pre></div>
+<p>Despite the argument name <code>output_fastq</code>, this writes FASTA when <code>to_fasta = TRUE</code>. The explicit destination keeps the demultiplexed FASTQ. The output has a whitespace-free identifier such as:</p>
+<pre class="text"><code>&gt;read1|BARCODE=BC01|UMI=ACGT
+ACGTACGT</code></pre>
+<p><code>BARCODE</code> uses the nonempty spatial <code>BC:Z</code> tag when present, otherwise the corrected <code>CB:Z</code> tag. <code>UMI</code> comes from <code>UB:Z</code>; missing tags are omitted. Reads need a usable barcode for spatial clustering. SIRUP recognizes this canonical header form and the older <code>read1|umi:ACGT|barcode:BC01</code> form.</p>
+<p>Use <code>header_format = &quot;presto&quot;</code> explicitly: conversion to FASTA alone keeps SAM-style tags in the comment after whitespace, where IgBLAST does not retain them as part of the query identifier.</p>
 </div>
-<div id="get-the-example-reads" class="section level2">
-<h2>Get the Example Reads</h2>
-<p>rad publishes a small simulated scTagger long-read dataset: ~98,873 reads from 50 known cells, with each read’s true 16 bp barcode embedded in its header. It is the ideal thing to demultiplex first.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">testFastq &lt;-<span class="st"> </span><span class="kw">file.path</span>(runDir, <span class="st">&quot;test.fq.gz&quot;</span>)</a>
-<a class="sourceLine" id="cb6-2" data-line-number="2"><span class="kw">download.file</span>(</a>
-<a class="sourceLine" id="cb6-3" data-line-number="3">  <span class="st">&quot;https://github.com/indianewok/rad/releases/download/test-data-v1/shuffled_S_lr_synth.fq.gz&quot;</span>,</a>
-<a class="sourceLine" id="cb6-4" data-line-number="4">  <span class="dt">destfile =</span> testFastq,</a>
-<a class="sourceLine" id="cb6-5" data-line-number="5">  <span class="dt">mode =</span> <span class="st">&quot;wb&quot;</span></a>
-<a class="sourceLine" id="cb6-6" data-line-number="6">)</a></code></pre></div>
+<div id="begin-sirup-processing-from-fasta" class="section level2">
+<h2>Begin SIRUP processing from FASTA</h2>
+<p>Configure IgBLAST and its databases, pRESTO/Change-O, vsearch, and muscle before running this step. The example uses BCR databases named <code>IG_V</code>, <code>IG_D</code>, <code>IG_J</code>, and <code>IG_C</code> under <code>igblast_db_dir</code>. Per-segment path overrides are available in <code>?SIRUP::processSpatialSample</code>.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">result &lt;-<span class="st"> </span>SIRUP<span class="op">::</span><span class="kw">processSpatialSample</span>(</a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">  <span class="dt">input =</span> <span class="st">&quot;prepared/sample-igblast.fasta&quot;</span>,</a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">  <span class="dt">output_dir =</span> <span class="st">&quot;processed&quot;</span>,</a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">  <span class="dt">receptor =</span> <span class="st">&quot;ig&quot;</span>,</a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">  <span class="dt">organism =</span> <span class="st">&quot;human&quot;</span>,</a>
+<a class="sourceLine" id="cb5-6" data-line-number="6">  <span class="dt">igblast_db_dir =</span> <span class="st">&quot;/path/to/igblast/database&quot;</span>,</a>
+<a class="sourceLine" id="cb5-7" data-line-number="7">  <span class="dt">igblast_base =</span> <span class="st">&quot;/path/to/igblast&quot;</span>,</a>
+<a class="sourceLine" id="cb5-8" data-line-number="8">  <span class="dt">muscle_exec =</span> <span class="st">&quot;/path/to/muscle&quot;</span>,</a>
+<a class="sourceLine" id="cb5-9" data-line-number="9">  <span class="dt">germline_glob =</span> <span class="st">&quot;/path/to/germlines/imgt/human/vdj/imgt_human_*.fasta&quot;</span>,</a>
+<a class="sourceLine" id="cb5-10" data-line-number="10">  <span class="dt">nproc =</span> <span class="dv">8</span></a>
+<a class="sourceLine" id="cb5-11" data-line-number="11">)</a>
+<a class="sourceLine" id="cb5-12" data-line-number="12"></a>
+<a class="sourceLine" id="cb5-13" data-line-number="13">result<span class="op">$</span>db_pass</a></code></pre></div>
+<p>Ordinary FASTA input is detected automatically and receives the first IgBLAST pass. SIRUP then filters the AIRR calls, writes barcode-annotated spatial FASTA, groups reads within each barcode, builds consensus sequences, and runs a second IgBLAST pass before writing the final AIRR table.</p>
+<p><code>input_type = &quot;spatial_fasta&quot;</code> is only for FASTA already annotated, filtered, and prepared for consensus. It skips the first IgBLAST/filtering stage; do not select it merely because newly demultiplexed reads are in FASTA format. An existing AIRR table or TSV is another entry point after initial annotation.</p>
+<p>Use <code>receptor = &quot;tr&quot;</code> with the matching TCR databases for a TCR run. Demultiplexing does not choose the IgBLAST receptor mode.</p>
 </div>
-<div id="check-the-read-layout" class="section level2">
-<h2>Check the Read Layout</h2>
-<p>Before demultiplexing, have rad parse the layout and show you how it will interpret each read. <code>read_layout = TRUE</code> just prints the structure; nothing is written.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="kw">radPrep</span>(<span class="dt">layout =</span> <span class="st">&quot;sctagger&quot;</span>, <span class="dt">read_layout =</span> <span class="ot">TRUE</span>)</a></code></pre></div>
-<p>Adding <code>position_map = TRUE</code> samples reads and estimates where each layout element actually lands, with misalignment statistics. This mode needs a FASTQ and an output base path; rad writes <code>&lt;output&gt;_layout.csv</code> and <code>&lt;output&gt;_position_map.csv</code>, which demux will reuse on later runs to the same directory.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="kw">radPrep</span>(</a>
-<a class="sourceLine" id="cb8-2" data-line-number="2">  <span class="dt">layout       =</span> <span class="st">&quot;sctagger&quot;</span>,</a>
-<a class="sourceLine" id="cb8-3" data-line-number="3">  <span class="dt">position_map =</span> <span class="ot">TRUE</span>,</a>
-<a class="sourceLine" id="cb8-4" data-line-number="4">  <span class="dt">fastq        =</span> testFastq,</a>
-<a class="sourceLine" id="cb8-5" data-line-number="5">  <span class="dt">output       =</span> <span class="kw">file.path</span>(runDir, <span class="st">&quot;sctagger_prep&quot;</span>),</a>
-<a class="sourceLine" id="cb8-6" data-line-number="6">  <span class="dt">threads      =</span> nproc</a>
-<a class="sourceLine" id="cb8-7" data-line-number="7">)</a></code></pre></div>
-</div>
-<div id="discover-barcodes-de-novo-optional" class="section level2">
-<h2>Discover Barcodes De Novo (Optional)</h2>
-<p><code>radScanWl()</code> scans a FASTQ for the barcodes sitting immediately downstream of an adapter/primer and writes a whitelist (<code>&lt;output_prefix&gt;.csv</code> and <code>.txt</code>). For the scTagger reads the anchoring primer is <code>CTACACGACGCTCTTCCGATCT</code> and the barcode is 16 bp. Passing <code>whitelist = &quot;10x_3v3&quot;</code> validates the discovered barcodes against that kit. On this dataset you should recover the 50 true cell barcodes.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="kw">radScanWl</span>(</a>
-<a class="sourceLine" id="cb9-2" data-line-number="2">  <span class="dt">adapter_seq    =</span> <span class="st">&quot;CTACACGACGCTCTTCCGATCT&quot;</span>,</a>
-<a class="sourceLine" id="cb9-3" data-line-number="3">  <span class="dt">input          =</span> testFastq,</a>
-<a class="sourceLine" id="cb9-4" data-line-number="4">  <span class="dt">barcode_length =</span> <span class="dv">16</span>,</a>
-<a class="sourceLine" id="cb9-5" data-line-number="5">  <span class="dt">whitelist      =</span> <span class="st">&quot;10x_3v3&quot;</span>,</a>
-<a class="sourceLine" id="cb9-6" data-line-number="6">  <span class="dt">output_prefix  =</span> <span class="kw">file.path</span>(runDir, <span class="st">&quot;scan&quot;</span>),</a>
-<a class="sourceLine" id="cb9-7" data-line-number="7">  <span class="dt">threads        =</span> nproc</a>
-<a class="sourceLine" id="cb9-8" data-line-number="8">)</a>
-<a class="sourceLine" id="cb9-9" data-line-number="9"><span class="co">#&gt; ... Final barcodes (TRUE): 50</span></a></code></pre></div>
-<p><code>radScanWl()</code> also drives rad’s split-barcode mode (BC1 + BC2) — set <code>bc1_whitelist</code> (and optionally <code>bc2_whitelist</code>, <code>umi_length</code>, <code>offset_min</code>, <code>offset_max</code>) to scan paired barcodes such as Visium HD. (Internally the wrapper emits <code>--whitelist=KIT</code> rather than a space-separated value, working around a rad option-parsing quirk so you don’t have to think about it.)</p>
-</div>
-<div id="demultiplex" class="section level2">
-<h2>Demultiplex</h2>
-<p><code>radDemux()</code> is the main event: it loads the layout and whitelists, runs rad’s chunked alignment/extraction, corrects each barcode, and writes the passing reads with corrected <code>CB:Z</code> (cell barcode) and <code>UB:Z</code> (UMI) tags in every header. The <code>sctagger</code> layout already names <code>10x_3v3</code> as its default whitelist, so the minimal run needs only a layout, a FASTQ, an output directory, and a prefix.</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="kw">radDemux</span>(</a>
-<a class="sourceLine" id="cb10-2" data-line-number="2">  <span class="dt">layout  =</span> <span class="st">&quot;sctagger&quot;</span>,</a>
-<a class="sourceLine" id="cb10-3" data-line-number="3">  <span class="dt">fastq   =</span> testFastq,</a>
-<a class="sourceLine" id="cb10-4" data-line-number="4">  <span class="dt">out_dir =</span> runDir,</a>
-<a class="sourceLine" id="cb10-5" data-line-number="5">  <span class="dt">output  =</span> <span class="st">&quot;demo&quot;</span>,</a>
-<a class="sourceLine" id="cb10-6" data-line-number="6">  <span class="dt">threads =</span> nproc</a>
-<a class="sourceLine" id="cb10-7" data-line-number="7">)</a></code></pre></div>
-<p>This writes <code>demo.fq.gz</code> (the corrected, tagged reads) plus the whitelist summaries <code>demo_whitelist_true.csv</code> and <code>demo_whitelist_global.csv</code> under <code>runDir</code>. On this dataset roughly <strong>33,700 reads pass</strong> the filter, ~71% of them an exact <code>CB:Z</code> match to the barcode in the read header.</p>
-<p>When you have a trusted list of real barcodes, hand it to rad as a custom whitelist to sharpen correction. The scTagger headers carry the ground-truth barcode (<code>@&lt;16bp&gt;-&lt;counter&gt;</code>), so you can build one in a couple of lines of shell and pass it through:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="co"># Pull the 50 ground-truth barcodes out of the read headers:</span></a>
-<a class="sourceLine" id="cb11-2" data-line-number="2"><span class="co">#   gunzip -c test.fq.gz | awk 'NR%4==1{sub(/^@/,&quot;&quot;);sub(/-.*/,&quot;&quot;);print}' \</span></a>
-<a class="sourceLine" id="cb11-3" data-line-number="3"><span class="co">#     | sort -u | (echo barcode; cat) &gt; true_50.csv</span></a>
-<a class="sourceLine" id="cb11-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb11-5" data-line-number="5"><span class="kw">radDemux</span>(</a>
-<a class="sourceLine" id="cb11-6" data-line-number="6">  <span class="dt">layout           =</span> <span class="st">&quot;sctagger&quot;</span>,</a>
-<a class="sourceLine" id="cb11-7" data-line-number="7">  <span class="dt">fastq            =</span> testFastq,</a>
-<a class="sourceLine" id="cb11-8" data-line-number="8">  <span class="dt">kit              =</span> <span class="st">&quot;10x_3v3&quot;</span>,</a>
-<a class="sourceLine" id="cb11-9" data-line-number="9">  <span class="dt">custom_whitelist =</span> <span class="kw">file.path</span>(runDir, <span class="st">&quot;true_50.csv&quot;</span>),</a>
-<a class="sourceLine" id="cb11-10" data-line-number="10">  <span class="dt">out_dir          =</span> runDir,</a>
-<a class="sourceLine" id="cb11-11" data-line-number="11">  <span class="dt">output           =</span> <span class="st">&quot;demo_true&quot;</span>,</a>
-<a class="sourceLine" id="cb11-12" data-line-number="12">  <span class="dt">threads          =</span> nproc</a>
-<a class="sourceLine" id="cb11-13" data-line-number="13">)</a>
-<a class="sourceLine" id="cb11-14" data-line-number="14"><span class="co">#&gt; ~55,700 reads pass, ~99.9% exact CB:Z match, 50 unique CBs</span></a></code></pre></div>
-<p>Other knobs worth knowing (all optional arguments to <code>radDemux()</code>):</p>
-<ul>
-<li><code>bc_correction_mode = &quot;offensive&quot;</code> (default) or <code>&quot;defensive&quot;</code> — how aggressively rad reassigns near-miss barcodes.</li>
-<li><code>joint_bc_mode = &quot;strict&quot;</code> — for paired barcodes (e.g. Visium HD), require <em>all</em> barcode parts to pass. Default is permissive.</li>
-<li><code>global_whitelist =</code> — a custom global whitelist CSV, as an alternative to a bundled <code>kit</code>.</li>
-<li><code>whitelist_mutation</code> / <code>generated_mutation</code> — edit-distance search space (rad default 2 each).</li>
-<li><code>write_dbg = TRUE</code> — also emit <code>*_dbg.sig.gz</code>, <code>*_dbg.csv.gz</code>, <code>*_dbg.fq.gz</code>, and a <code>*.metrics.tsv</code> for inspecting why reads were kept or dropped.</li>
-<li><code>max_reads</code>, <code>chunk_size</code>, <code>log_file</code> — throughput and logging controls.</li>
-</ul>
-<p>Every wrapper returns an invisible list with <code>status</code>, <code>stdout</code>, <code>stderr</code>, and the <code>command</code> it ran. Pass <code>capture = TRUE</code> to collect rad’s console output into that list instead of streaming it live — handy in scripts and reports:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1">res &lt;-<span class="st"> </span><span class="kw">radDemux</span>(</a>
-<a class="sourceLine" id="cb12-2" data-line-number="2">  <span class="dt">layout =</span> <span class="st">&quot;sctagger&quot;</span>, <span class="dt">fastq =</span> testFastq,</a>
-<a class="sourceLine" id="cb12-3" data-line-number="3">  <span class="dt">out_dir =</span> runDir, <span class="dt">output =</span> <span class="st">&quot;demo&quot;</span>, <span class="dt">threads =</span> nproc,</a>
-<a class="sourceLine" id="cb12-4" data-line-number="4">  <span class="dt">capture =</span> <span class="ot">TRUE</span></a>
-<a class="sourceLine" id="cb12-5" data-line-number="5">)</a>
-<a class="sourceLine" id="cb12-6" data-line-number="6">res<span class="op">$</span>status        <span class="co"># 0 on success</span></a>
-<a class="sourceLine" id="cb12-7" data-line-number="7"><span class="kw">cat</span>(res<span class="op">$</span>stdout)   <span class="co"># rad's full console output</span></a></code></pre></div>
-<p>A non-zero exit aborts with an informative error by default; set <code>check = FALSE</code> on the low-level path only if you want to inspect failures yourself.</p>
-</div>
-<div id="reformat-the-output" class="section level2">
-<h2>Reformat the Output</h2>
-<p><code>radReformat()</code> post-processes a demuxed FASTQ. Two common operations:</p>
-<p>Collapse each header down to <code>QNAME_CB_UB</code> so the barcode and UMI travel with the read name through tools that only keep the identifier. <code>--reformat-header</code> rewrites the file in place:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="kw">radReformat</span>(</a>
-<a class="sourceLine" id="cb13-2" data-line-number="2">  <span class="dt">fastq           =</span> <span class="kw">file.path</span>(runDir, <span class="st">&quot;demo.fq.gz&quot;</span>),</a>
-<a class="sourceLine" id="cb13-3" data-line-number="3">  <span class="dt">reformat_header =</span> <span class="ot">TRUE</span>,</a>
-<a class="sourceLine" id="cb13-4" data-line-number="4">  <span class="dt">threads         =</span> nproc</a>
-<a class="sourceLine" id="cb13-5" data-line-number="5">)</a></code></pre></div>
-<p>Or split the reads into one <code>.fq.gz</code> per cell barcode (keyed off the <code>CB:Z</code> tag), which requires an output directory:</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="kw">radReformat</span>(</a>
-<a class="sourceLine" id="cb14-2" data-line-number="2">  <span class="dt">fastq    =</span> <span class="kw">file.path</span>(runDir, <span class="st">&quot;demo.fq.gz&quot;</span>),</a>
-<a class="sourceLine" id="cb14-3" data-line-number="3">  <span class="dt">split_bc =</span> <span class="ot">TRUE</span>,</a>
-<a class="sourceLine" id="cb14-4" data-line-number="4">  <span class="dt">out_dir  =</span> <span class="kw">file.path</span>(runDir, <span class="st">&quot;by_barcode&quot;</span>),</a>
-<a class="sourceLine" id="cb14-5" data-line-number="5">  <span class="dt">threads  =</span> nproc</a>
-<a class="sourceLine" id="cb14-6" data-line-number="6">)</a></code></pre></div>
-<p>Use <code>reformat_delim = &quot; &quot;</code> to join headers with a space instead of an underscore.</p>
-</div>
-<div id="one-call-pipeline" class="section level2">
-<h2>One-Call Pipeline</h2>
-<p><code>radRun()</code> chains <code>radPrep()</code> → <code>radDemux()</code> → (optionally) <code>radReformat()</code> in one call, sharing <code>out_dir</code> and <code>threads</code> across steps. Extra named arguments are forwarded to <code>radDemux()</code>. This is the convenient front door once you know your layout and kit.</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1">result &lt;-<span class="st"> </span><span class="kw">radRun</span>(</a>
-<a class="sourceLine" id="cb15-2" data-line-number="2">  <span class="dt">layout          =</span> <span class="st">&quot;sctagger&quot;</span>,</a>
-<a class="sourceLine" id="cb15-3" data-line-number="3">  <span class="dt">fastq           =</span> testFastq,</a>
-<a class="sourceLine" id="cb15-4" data-line-number="4">  <span class="dt">out_dir         =</span> runDir,</a>
-<a class="sourceLine" id="cb15-5" data-line-number="5">  <span class="dt">output          =</span> <span class="st">&quot;demo&quot;</span>,</a>
-<a class="sourceLine" id="cb15-6" data-line-number="6">  <span class="dt">threads         =</span> nproc,</a>
-<a class="sourceLine" id="cb15-7" data-line-number="7">  <span class="dt">do_reformat     =</span> <span class="ot">TRUE</span>,</a>
-<a class="sourceLine" id="cb15-8" data-line-number="8">  <span class="dt">reformat_header =</span> <span class="ot">TRUE</span></a>
-<a class="sourceLine" id="cb15-9" data-line-number="9">)</a>
-<a class="sourceLine" id="cb15-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb15-11" data-line-number="11">result<span class="op">$</span>prep      <span class="co"># radPrep() result</span></a>
-<a class="sourceLine" id="cb15-12" data-line-number="12">result<span class="op">$</span>demux     <span class="co"># radDemux() result</span></a>
-<a class="sourceLine" id="cb15-13" data-line-number="13">result<span class="op">$</span>reformat  <span class="co"># radReformat() result (NULL if do_reformat = FALSE)</span></a></code></pre></div>
-</div>
-<div id="visium-hd-bcrtcr-the-spatial-case" class="section level2">
-<h2>Visium HD BCR/TCR — the Spatial Case</h2>
-<p>The reason SIRUP exists is the wonky end of rad’s range: long-read targeted enrichment of BCR/TCR from <strong>Visium HD</strong> data, where each read carries a <em>paired</em> spatial barcode (BC1 + BC2) instead of a single cell barcode. The flow is the same wrappers with a spatial layout and a couple of HD-specific switches.</p>
-<p>The <code>visium_hd</code> layout already names <code>visium_hd_bc1</code> and <code>visium_hd_bc2</code> as the whitelists for its two barcode elements and flags them as a joint barcode, so you don’t pass a <code>kit</code> — just switch on <code>joint_bc_mode = &quot;strict&quot;</code> so a read is only kept when <em>both</em> barcode halves correct cleanly:</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1">visiumFastq &lt;-<span class="st"> &quot;spatial_bcr_tcr_reads.fq.gz&quot;</span>  <span class="co"># your enriched long reads</span></a>
-<a class="sourceLine" id="cb16-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb16-3" data-line-number="3"><span class="kw">radDemux</span>(</a>
-<a class="sourceLine" id="cb16-4" data-line-number="4">  <span class="dt">layout        =</span> <span class="st">&quot;visium_hd&quot;</span>,</a>
-<a class="sourceLine" id="cb16-5" data-line-number="5">  <span class="dt">fastq         =</span> visiumFastq,</a>
-<a class="sourceLine" id="cb16-6" data-line-number="6">  <span class="dt">joint_bc_mode =</span> <span class="st">&quot;strict&quot;</span>,   <span class="co"># require BOTH paired-barcode halves to correct</span></a>
-<a class="sourceLine" id="cb16-7" data-line-number="7">  <span class="dt">out_dir       =</span> <span class="st">&quot;visium_hd_run&quot;</span>,</a>
-<a class="sourceLine" id="cb16-8" data-line-number="8">  <span class="dt">output        =</span> <span class="st">&quot;spatial&quot;</span>,</a>
-<a class="sourceLine" id="cb16-9" data-line-number="9">  <span class="dt">threads       =</span> nproc</a>
-<a class="sourceLine" id="cb16-10" data-line-number="10">)</a></code></pre></div>
-<p>Then rewrite the headers in coordinate mode so the spatial barcode becomes a tissue coordinate downstream. <code>coordinate = TRUE</code> uses rad’s default mode (<code>vizHD-v1</code>); <code>bin_size</code> sets the target bin in microns (rad default 2 µm — the finest Visium HD grid):</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" data-line-number="1"><span class="kw">radReformat</span>(</a>
-<a class="sourceLine" id="cb17-2" data-line-number="2">  <span class="dt">fastq      =</span> <span class="st">&quot;visium_hd_run/spatial.fq.gz&quot;</span>,</a>
-<a class="sourceLine" id="cb17-3" data-line-number="3">  <span class="dt">coordinate =</span> <span class="ot">TRUE</span>,   <span class="co"># or coordinate = &quot;vizHD-v1&quot;</span></a>
-<a class="sourceLine" id="cb17-4" data-line-number="4">  <span class="dt">bin_size   =</span> <span class="dv">2</span>,</a>
-<a class="sourceLine" id="cb17-5" data-line-number="5">  <span class="dt">threads    =</span> nproc</a>
-<a class="sourceLine" id="cb17-6" data-line-number="6">)</a></code></pre></div>
-<p>The Visium HD layout and its paired-barcode whitelists are <strong>experimental</strong> — validate on a pilot before scaling up.</p>
-<p>From here the demultiplexed reads carry their 2 µm spatial barcode in the read header. They go through your aligner / IgBLAST step (outside rad and SIRUP) to produce AIRR-style rearrangement tables, at which point the <a href="visium-hd-processing.html">Visium HD processing guide</a> takes over: <code>extractSpatialBarcodes()</code> lifts the barcode back out of the <code>sequence_id</code>, <code>filterAirr()</code> does length/locus QC, and the 2 µm barcode is remapped to the 8 µm/16 µm grid for plotting.</p>
-</div>
-<div id="keeping-rad-up-to-date" class="section level2">
-<h2>Keeping rad Up to Date</h2>
-<p>rad moves quickly, and newer builds grow capabilities beyond the ones wrapped here — for example a <code>correct-umi</code> subcommand for per-cell UMI correction, and support for seqspec YAML layout files in <code>prep</code>/<code>demux</code>. <code>updateRad()</code> keeps your binary current:</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" data-line-number="1"><span class="kw">updateRad</span>()                 <span class="co"># git pull --ff-only + rebuild if the commit changed</span></a>
-<a class="sourceLine" id="cb18-2" data-line-number="2"><span class="kw">updateRad</span>(<span class="dt">force_rebuild =</span> <span class="ot">TRUE</span>)</a></code></pre></div>
-<p>Any rad subcommand — wrapped or not — is reachable: <code>radHelp(&quot;demux&quot;)</code> prints a subcommand’s help from R, and the wrappers accept extra raw CLI tokens through <code>...</code> for flags SIRUP hasn’t surfaced yet.</p>
-</div>
-<div id="where-to-next" class="section level2">
-<h2>Where to Next</h2>
-<ul>
-<li><a href="custom-read-layouts-with-rad.html">Custom read layouts</a> — describe a wonky or non-standard read structure of your own and run this same pipeline on it.</li>
-<li><a href="visium-hd-processing.html">Visium HD processing</a> — pick up from RAD output: spatial barcodes through pRESTO/IgBLAST to spatial AIRR tables.</li>
-<li><a href="spatial-clones-and-trees.html">Spatial clones and BCR trees</a> — call clones and build lineage trees over tissue.</li>
-<li><a href="spatial-expression-and-colocalization.html">Spatial expression and colocalization</a> — plot expression and test spatial autocorrelation.</li>
-<li>rad’s own docs: <a href="https://github.com/indianewok/rad/blob/main/docs/installation.md">installation</a>, <a href="https://github.com/indianewok/rad/blob/main/docs/cli-reference.md">CLI reference</a>, <a href="https://github.com/indianewok/rad/blob/main/docs/layouts-and-whitelists.md">layouts and whitelists</a>.</li>
-</ul>
+<div id="visium-hd-preparation" class="section level2">
+<h2>Visium HD preparation</h2>
+<p>For the supported Visium HD paired-barcode layout, select the appropriate layout and correct both barcode parts upstream. Confirm the layout matches the experiment on a pilot subset before a full run.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">spatial_demux &lt;-<span class="st"> </span>rrad<span class="op">::</span><span class="kw">rad_demux</span>(</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">  <span class="dt">layout =</span> <span class="st">&quot;visium_hd&quot;</span>,</a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">  <span class="dt">fastq =</span> <span class="st">&quot;spatial_reads.fq.gz&quot;</span>,</a>
+<a class="sourceLine" id="cb6-4" data-line-number="4">  <span class="dt">out_dir =</span> <span class="st">&quot;prepared&quot;</span>,</a>
+<a class="sourceLine" id="cb6-5" data-line-number="5">  <span class="dt">output =</span> <span class="st">&quot;spatial&quot;</span>,</a>
+<a class="sourceLine" id="cb6-6" data-line-number="6">  <span class="dt">joint_bc_mode =</span> <span class="st">&quot;strict&quot;</span></a>
+<a class="sourceLine" id="cb6-7" data-line-number="7">)</a>
+<a class="sourceLine" id="cb6-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb6-9" data-line-number="9">coordinates &lt;-<span class="st"> </span>rrad<span class="op">::</span><span class="kw">rad_reformat</span>(</a>
+<a class="sourceLine" id="cb6-10" data-line-number="10">  spatial_demux,</a>
+<a class="sourceLine" id="cb6-11" data-line-number="11">  <span class="dt">output_fastq =</span> <span class="st">&quot;prepared/spatial-coordinate.fq.gz&quot;</span>,</a>
+<a class="sourceLine" id="cb6-12" data-line-number="12">  <span class="dt">coordinate =</span> <span class="st">&quot;vizHD-v1&quot;</span>,</a>
+<a class="sourceLine" id="cb6-13" data-line-number="13">  <span class="dt">bin_size =</span> <span class="dv">2</span></a>
+<a class="sourceLine" id="cb6-14" data-line-number="14">)</a>
+<a class="sourceLine" id="cb6-15" data-line-number="15"></a>
+<a class="sourceLine" id="cb6-16" data-line-number="16">rrad<span class="op">::</span><span class="kw">rad_reformat</span>(</a>
+<a class="sourceLine" id="cb6-17" data-line-number="17">  coordinates<span class="op">$</span>artifacts<span class="op">$</span>fastq,</a>
+<a class="sourceLine" id="cb6-18" data-line-number="18">  <span class="dt">output_fastq =</span> <span class="st">&quot;prepared/spatial-igblast.fasta&quot;</span>,</a>
+<a class="sourceLine" id="cb6-19" data-line-number="19">  <span class="dt">to_fasta =</span> <span class="ot">TRUE</span>,</a>
+<a class="sourceLine" id="cb6-20" data-line-number="20">  <span class="dt">header_format =</span> <span class="st">&quot;presto&quot;</span></a>
+<a class="sourceLine" id="cb6-21" data-line-number="21">)</a></code></pre></div>
+<p>Coordinate rewriting and pRESTO header formatting are separate calls. The second call places the coordinate-derived <code>BC:Z</code> value in <code>BARCODE</code>, for example <code>s_002um_00001_00002-1</code>. Pass this FASTA to <code>processSpatialSample()</code> as above. See <a href="processing.html">Process reads into spatial AIRR tables</a> for downstream spatial annotation and analysis.</p>
 </div>
 
 
