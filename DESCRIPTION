@@ -18,12 +18,13 @@ Description: Spatial Immune Receptor Utilities Package. A consolidated
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-SystemRequirements: NCBI IgBLAST (igblastn), pRESTO/Change-O Python tools
-    (ClusterSets.py, ParseHeaders.py, AlignSets.py, BuildConsensus.py,
-    AssignGenes.py, MakeDb.py), vsearch, muscle
+SystemRequirements: NCBI IgBLAST (igblastn), pRESTO Python tools
+    (ClusterSets.py, ParseHeaders.py, AlignSets.py, BuildConsensus.py),
+    vsearch, muscle
 Depends:
     R (>= 4.1.0)
 Imports:
+    airrblast,
     cli,
     data.table,
     dplyr,
@@ -75,6 +76,7 @@ Suggests:
     stats,
     testthat (>= 3.0.0),
     withr
+Remotes: hoehnlab/airrblast
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.1.0
 VignetteBuilder: knitr

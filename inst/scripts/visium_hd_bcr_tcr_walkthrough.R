@@ -199,8 +199,9 @@ head(tcrLengthSpatial)
 # ---- Run pRESTO and IgBLAST from R ------------------------------------------
 
 # This is the command-line part of the original workflow, wrapped in R:
-# ClusterSets.py -> ParseHeaders.py -> AlignSets.py -> BuildConsensus.py ->
-# AssignGenes.py -> MakeDb.py. The command output prints to the R console.
+# ClusterSets.py -> ParseHeaders.py -> AlignSets.py -> BuildConsensus.py, then
+# airrblast::assignGenes() and addGaps() for the gene calls. The command output
+# prints to the R console.
 
 # Presto and IgBLAST settings and locations
 identityThreshold <- 0.975 # How similar sequences have to be to be clustered together by pRESTO within same barcode
@@ -255,7 +256,7 @@ if (!exists("bcrPrestoPaths")) {
   )
   bcrPrestoPaths <- list(
     consensus = bcrConsensusFasta,
-    fmt7 = sub("\\.fasta$", "_igblast.fmt7", bcrConsensusFasta),
+    igblast_tsv = sub("\\.fasta$", "_igblast.tsv", bcrConsensusFasta),
     db_pass = sub("\\.fasta$", "_igblast_db-pass.tsv", bcrConsensusFasta)
   )
 }
@@ -271,7 +272,7 @@ if (!exists("tcrPrestoPaths")) {
   )
   tcrPrestoPaths <- list(
     consensus = tcrConsensusFasta,
-    fmt7 = sub("\\.fasta$", "_igblast.fmt7", tcrConsensusFasta),
+    igblast_tsv = sub("\\.fasta$", "_igblast.tsv", tcrConsensusFasta),
     db_pass = sub("\\.fasta$", "_igblast_db-pass.tsv", tcrConsensusFasta)
   )
 }

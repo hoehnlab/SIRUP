@@ -95,10 +95,11 @@ them as part of the query identifier.
 
 ## Begin SIRUP processing from FASTA
 
-Configure IgBLAST and its databases, pRESTO/Change-O, vsearch, and muscle before
-running this step. The example uses BCR databases named `IG_V`, `IG_D`,
-`IG_J`, and `IG_C` under `igblast_db_dir`. Per-segment path overrides are
-available in `?SIRUP::processSpatialSample`.
+Configure IgBLAST, pRESTO, vsearch, and muscle before running this step. SIRUP
+runs IgBLAST through the airrblast package. Build the IgBLAST databases one
+time with `airrblast::downloadIMGT()` and `airrblast::imgtToIgblast()`. The
+`database/` and `fasta/` folders must be in `igblast_base`, or in the folder
+that you give as `igblast_refs`.
 
 ```{r process-fasta}
 result <- SIRUP::processSpatialSample(
@@ -106,10 +107,9 @@ result <- SIRUP::processSpatialSample(
   output_dir = "processed",
   receptor = "ig",
   organism = "human",
-  igblast_db_dir = "/path/to/igblast/database",
   igblast_base = "/path/to/igblast",
   muscle_exec = "/path/to/muscle",
-  germline_glob = "/path/to/germlines/imgt/human/vdj/imgt_human_*.fasta",
+  imgt_dir = "/path/to/imgt",
   nproc = 8
 )
 
@@ -119,7 +119,8 @@ result$db_pass
 Ordinary FASTA input is detected automatically and receives the first IgBLAST
 pass. SIRUP then filters the AIRR calls, writes barcode-annotated spatial
 FASTA, groups reads within each barcode, builds consensus sequences, and runs
-a second IgBLAST pass before writing the final AIRR table.
+a second IgBLAST pass before writing the final AIRR table. The first pass does
+not search a constant-region database, so it writes no `c_call` column.
 
 `input_type = "spatial_fasta"` is only for FASTA already annotated, filtered,
 and prepared for consensus. It skips the first IgBLAST/filtering stage; do

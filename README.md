@@ -50,14 +50,16 @@ You need these command-line tools only to process raw reads. You do not need
 them to analyze an AIRR table that you already have.
 
 - [IgBLAST](https://ncbi.github.io/igblast/) (`igblastn`) and IMGT germline
-  references
-- [pRESTO and Change-O](https://immcantation.readthedocs.io)
-  (`pip install presto changeo`)
+  references. The [airrblast](https://github.com/hoehnlab/airrblast) R package
+  runs IgBLAST for SIRUP. SIRUP installs airrblast. Use
+  `airrblast::downloadIMGT()` and `airrblast::imgtToIgblast()` to build the
+  IgBLAST databases one time.
+- [pRESTO](https://immcantation.readthedocs.io) (`pip install presto`)
 - [vsearch](https://github.com/torognes/vsearch) and
   [MUSCLE](https://drive5.com/muscle/)
 
 The [Immcantation Docker image](https://immcantation.readthedocs.io/en/stable/docker/intro.html)
-contains all of them.
+contains most of these tools. Install airrblast in the container.
 
 Demultiplexing happens before SIRUP, in the separate
 [rrad](https://github.com/indianewok/rrad) package. rrad finds and corrects
@@ -139,26 +141,36 @@ the rrad FASTA, a read-level AIRR table, or a FASTA that is already filtered:
 
 | Step | Tool | What it does |
 |---|---|---|
-| 1 | IgBLAST | Annotates each read with V(D)J genes and a constant region |
+| 1 | IgBLAST (`airrblast::assignGenes()`) | Annotates each read with V(D)J genes |
 | 2 | `filterAirr()` | Removes reads that are not receptors or are too short |
 | 3 | pRESTO `ClusterSets.py` | Groups the reads of each spot by sequence identity |
 | 4 | pRESTO `AlignSets.py` | Aligns the reads in each group |
 | 5 | pRESTO `BuildConsensus.py` | Builds one consensus sequence per group |
-| 6 | IgBLAST and Change-O `MakeDb.py` | Annotates the consensus sequences and writes the AIRR table |
+| 6 | `airrblast::assignGenes()` and `addGaps()` | Annotates the consensus sequences, adds the IMGT gaps, and writes the AIRR table |
 
 ```r
 result <- processSpatialSample(
   input = "prepared/sample-igblast.fasta",
   output_dir = "processed/bcr",
   receptor = "ig",            # "tr" for TCRs
-  igblast_db_dir = "/path/to/igblast/database",
   igblast_base = "/path/to/igblast",
-  germline_glob = "/path/to/germlines/imgt/human/vdj/imgt_human_IG*.fasta",
+  imgt_dir = "/path/to/imgt",
   identity = 1.0,             # 0.99 for TCRs
   consensus_freq = 0.51,
   nproc = 8
 )
 ```
+
+`igblast_base` is the IgBLAST folder. It holds `bin/igblastn`, `internal_data/`,
+`optional_file/`, and the `database/` and `fasta/` folders from
+`airrblast::imgtToIgblast()`. If `database/` and `fasta/` are in another
+folder, set `igblast_refs`. `imgt_dir` is the IMGT folder that
+`airrblast::downloadIMGT()` wrote. It holds the gapped germlines in
+`<imgt_dir>/human/vdj`.
+
+`runIgblast()` calls `airrblast::assignGenes()`. That function does not search
+a constant-region database. A table made from raw reads therefore has no
+`c_call` column.
 
 Use `umi_support = TRUE` to build one consensus per molecule first. Use
 `processSpatialSamples()` to run several samples with the same settings. For

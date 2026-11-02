@@ -1,5 +1,13 @@
 #!/usr/bin/env Rscript
 # A real external-tool comparison. Sourcing this file defines helpers only.
+#
+# HISTORICAL. This script checks that the rrad-based workflow gives the same
+# output as the older workflow, at every checkpoint including the final db_pass.
+# It needs a SIRUP checkout from before SIRUP used airrblast for gene assignment
+# (pass that checkout with --sirup-repo). On the current SIRUP it does not run:
+# processSpatialSample() no longer has the igblast_db_dir, aux_file, germline_db_*,
+# c_region_db and igblast_exec arguments, and its db_pass table is not expected
+# to equal the Change-O table (see the airrblast comparison notes).
 
 equivalence_compare <- function(expected, actual) {
   expected <- as.data.frame(expected, stringsAsFactors = FALSE)

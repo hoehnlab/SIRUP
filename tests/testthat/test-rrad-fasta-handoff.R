@@ -21,6 +21,22 @@
   out
 }
 
+# airrblast needs IgBLAST, so the tests replace its two functions. assignGenes() returns
+# one valid row; addGaps() returns its input. `record` is called with the arguments of
+# assignGenes() so a test can check what SIRUP passed.
+.mock_airrblast <- function(record = NULL, env = parent.frame()) {
+  testthat::local_mocked_bindings(
+    assignGenes = function(file, locus, ...) {
+      if (!is.null(record)) record(file = file, locus = locus)
+      data.frame(sequence_id = "r|CONSCOUNT=1", v_call = "V", j_call = "J", productive = TRUE,
+                 sequence_alignment = "ACGT", junction = "TGT", stringsAsFactors = FALSE)
+    },
+    addGaps = function(db, ...) db,
+    .package = "airrblast",
+    .env = env
+  )
+}
+
 test_that("current rrad FASTA headers and legacy tags give the same metadata", {
   fixture <- test_path("fixtures", "rrad-handoff", "canonical.fasta")
   lines <- readLines(fixture)
@@ -94,7 +110,7 @@ test_that("tags stop at whitespace, so FASTA descriptions are not tag content", 
   expect_equal(empty_tag$barcode, NA_character_)
 })
 
-test_that("rrad FASTA enters the read annotation pass before all six consensus commands", {
+test_that("rrad FASTA enters the read annotation pass before the pRESTO commands and gene assignment", {
   fixture <- test_path("fixtures", "rrad-handoff", "canonical.fasta")
   work <- withr::local_tempdir(pattern = "sirup handoff ")
   germline <- file.path(work, "germline reference.fasta")
@@ -102,6 +118,10 @@ test_that("rrad FASTA enters the read annotation pass before all six consensus c
   observed <- new.env(parent = emptyenv())
   observed$steps <- character()
   observed$commands <- list()
+  .mock_airrblast(record = function(file, locus) {
+    observed$steps <- c(observed$steps, "airrblast")
+    observed$commands[["airrblast"]] <- list(consensus = file, receptor = locus)
+  })
   testthat::local_mocked_bindings(
     runIgblast = function(input, output_tsv, ...) {
       observed$steps <- c(observed$steps, "read_igblast")
@@ -123,13 +143,12 @@ test_that("rrad FASTA enters the read annotation pass before all six consensus c
     input = fixture,
     output_dir = work,
     receptor = "tr",
-    igblast_db_dir = work,
-    germline_glob = germline,
+    imgt_dir = work,
     nproc = 2
   )
   expect_equal(observed$steps, c(
     "read_igblast", "ClusterSets.py", "ParseHeaders.py", "AlignSets.py",
-    "BuildConsensus.py", "AssignGenes.py", "MakeDb.py"
+    "BuildConsensus.py", "airrblast"
   ))
   expect_equal(result$n_raw, 2L)
   expect_equal(result$n_filtered, 2L)
@@ -141,16 +160,17 @@ test_that("rrad FASTA enters the read annotation pass before all six consensus c
   expect_match(spatial[[3L]], "barcode=TTGA", ignore.case = TRUE)
   expect_equal(spatial[c(2L, 4L)], filtered$sequence_alignment)
   expect_false(any(spatial[c(2L, 4L)] == filtered$sequence))
-  second_pass <- observed$commands[["AssignGenes.py"]]
-  expect_equal(second_pass[match("-s", second_pass) + 1L], result$consensus)
-  expect_equal(second_pass[match("--loci", second_pass) + 1L], "tr")
-  expect_false(fixture %in% second_pass)
+  second_pass <- observed$commands[["airrblast"]]
+  expect_equal(second_pass$consensus, result$consensus)
+  expect_equal(second_pass$receptor, "TR")
+  expect_false(fixture %in% unlist(second_pass))
 })
 
 test_that("AIRR input keeps existing metadata and skips the raw read pass", {
   work <- withr::local_tempdir()
   germline <- file.path(work, "reference.fasta")
   writeLines(c(">reference", strrep("ACGT", 30)), germline)
+  .mock_airrblast()
   testthat::local_mocked_bindings(
     runIgblast = function(...) stop("AIRR input must skip read-level IgBLAST"),
     .sirup_check_tools = function(...) invisible(TRUE),
@@ -160,7 +180,7 @@ test_that("AIRR input keeps existing metadata and skips the raw read pass", {
   result <- processSpatialSample(
     input = .rrad_handoff_airr("plain-read", "AACC", "TGCA"),
     output_dir = work,
-    germline_glob = germline
+    imgt_dir = work
   )
   filtered <- data.table::fread(result$filtered_airr)
   expect_null(result$raw_airr)
@@ -182,7 +202,7 @@ test_that("missing barcodes in surviving reads fail before consensus", {
           c("good", "missing"), c("AACC", missing_barcode)
         ),
         output_dir = work,
-        germline_glob = file.path(work, "unused.fasta")
+        imgt_dir = work
       ),
       "[Bb]arcode|[Ss]patial"
     )
@@ -193,6 +213,7 @@ test_that("reads removed by quality filtering need no spatial barcode", {
   work <- withr::local_tempdir()
   germline <- file.path(work, "reference.fasta")
   writeLines(c(">reference", strrep("ACGT", 30)), germline)
+  .mock_airrblast()
   testthat::local_mocked_bindings(
     .sirup_check_tools = function(...) invisible(TRUE),
     .sirup_run_command = function(...) invisible(0L),
@@ -203,7 +224,7 @@ test_that("reads removed by quality filtering need no spatial barcode", {
   result <- processSpatialSample(
     input = airr,
     output_dir = work,
-    germline_glob = germline
+    imgt_dir = work
   )
   expect_equal(result$n_raw, 2L)
   expect_equal(result$n_filtered, 1L)
@@ -214,6 +235,7 @@ test_that("explicit NULL count overrides keep singleton reads", {
   work <- withr::local_tempdir()
   germline <- file.path(work, "reference.fasta")
   writeLines(c(">reference", strrep("ACGT", 30)), germline)
+  .mock_airrblast()
   testthat::local_mocked_bindings(
     .sirup_check_tools = function(...) invisible(TRUE),
     .sirup_run_command = function(...) invisible(0L),
@@ -227,7 +249,7 @@ test_that("explicit NULL count overrides keep singleton reads", {
     result <- processSpatialSample(
       input = airr,
       output_dir = file.path(work, name),
-      germline_glob = germline,
+      imgt_dir = work,
       filter_args = overrides
     )
     data.table::fread(result$filtered_airr)$sequence_id
@@ -259,7 +281,7 @@ test_that("NULL is rejected for filter parameters that cannot be NULL", {
       processSpatialSample(
         input = airr,
         output_dir = work,
-        germline_glob = file.path(work, "unused.fasta"),
+        imgt_dir = work,
         filter_args = bad
       ),
       "cannot be NULL"
@@ -271,6 +293,7 @@ test_that("invalid_spatial_ids = 'drop' removes bad rows with a warning", {
   work <- withr::local_tempdir()
   germline <- file.path(work, "reference.fasta")
   writeLines(c(">reference", strrep("ACGT", 30)), germline)
+  .mock_airrblast()
   testthat::local_mocked_bindings(
     .sirup_check_tools = function(...) invisible(TRUE),
     .sirup_run_command = function(...) invisible(0L),
@@ -283,7 +306,7 @@ test_that("invalid_spatial_ids = 'drop' removes bad rows with a warning", {
     result <- processSpatialSample(
       input = airr,
       output_dir = work,
-      germline_glob = germline,
+      imgt_dir = work,
       invalid_spatial_ids = "drop"
     ),
     "1 of 3"
@@ -305,7 +328,7 @@ test_that("the abort for invalid barcodes reports a count", {
         c("good", "bad1", "bad2"), c("AACC", NA_character_, "")
       ),
       output_dir = work,
-      germline_glob = file.path(work, "unused.fasta")
+      imgt_dir = work
     ),
     "2 of 3"
   )
@@ -324,7 +347,7 @@ test_that("duplicate spatial FASTA headers abort before writing", {
     processSpatialSample(
       input = airr,
       output_dir = work,
-      germline_glob = file.path(work, "unused.fasta")
+      imgt_dir = work
     ),
     "[Dd]uplicate"
   )

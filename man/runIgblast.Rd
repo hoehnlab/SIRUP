@@ -9,55 +9,41 @@ runIgblast(
   output_tsv,
   receptor = c("ig", "tr"),
   organism = "human",
-  igblast_db_dir = NULL,
-  igblast_exec = "~/software/igblast/bin/igblastn",
-  aux_file = NULL,
-  germline_db_v = NULL,
-  germline_db_d = NULL,
-  germline_db_j = NULL,
-  c_region_db = NULL,
-  num_threads = 8,
-  extra_args = NULL
+  igblast_base = "~/software/igblast",
+  igblast_refs = NULL,
+  num_threads = 8
 )
 }
 \arguments{
-\item{input}{Path to a FASTA/FASTQ file, optionally gzipped.}
+\item{input}{Path to a FASTA/FASTQ file, optionally gzipped. A plain FASTA
+must end in \code{.fasta} or \code{.fa}.}
 
-\item{output_tsv}{Path for the AIRR TSV that igblastn writes.}
+\item{output_tsv}{Path for the AIRR TSV. It must end in \code{.tsv}.}
 
 \item{receptor}{Either \code{ig} for BCR or \code{tr} for TCR.}
 
-\item{organism}{Organism passed to \code{igblastn -organism}.}
+\item{organism}{\code{human}, \code{mouse}, or \code{rhesus_monkey}.}
 
-\item{igblast_db_dir}{Directory that holds the germline databases named
-\code{IG_V}, \code{IG_D}, \code{IG_J}, \code{IG_C}, \code{TR_V}, \code{TR_D}, \code{TR_J}.}
+\item{igblast_base}{IgBLAST installation folder. It must hold
+\code{bin/igblastn}, \code{internal_data}, and \code{optional_file}.}
 
-\item{igblast_exec}{Path to the \code{igblastn} executable.}
+\item{igblast_refs}{Folder with the IgBLAST \verb{database/} and \verb{fasta/}
+folders (the \code{refs} argument of \code{airrblast::assignGenes()}). When
+\code{NULL}, uses \code{igblast_base}.}
 
-\item{aux_file}{Optional path passed to \code{-auxiliary_data}.}
-
-\item{germline_db_v, germline_db_d, germline_db_j}{Optional per-segment
-database paths. Each overrides the \code{igblast_db_dir} convention.}
-
-\item{c_region_db}{Optional C-region database path (\code{ig} only).}
-
-\item{num_threads}{Threads passed to \code{-num_threads}.}
-
-\item{extra_args}{Optional character vector of extra igblastn arguments.}
+\item{num_threads}{Threads passed to \code{assignGenes()} as \code{nproc}.}
 }
 \value{
 The path to \code{output_tsv}, invisibly.
 }
 \description{
-Runs \code{igblastn} on raw reads and writes an AIRR rearrangement table
-(\verb{-outfmt 19}). The input can be FASTA or FASTQ, optionally gzipped.
+Runs \code{airrblast::assignGenes()} on raw reads and writes an AIRR
+rearrangement table. The input can be FASTA or FASTQ, optionally gzipped.
 Gzipped and FASTQ inputs are first normalized to a plain FASTA next to
 \code{output_tsv} (FASTQ quality strings are dropped, because igblastn only
-accepts FASTA). One receptor locus group runs per call: \code{ig} uses the
-\code{IG_V}/\code{IG_D}/\code{IG_J}/\code{IG_C} databases, \code{tr} uses \code{TR_V}/\code{TR_D}/\code{TR_J}.
+accepts FASTA). One receptor group runs per call: \code{ig} or \code{tr}.
 }
 \details{
-Database paths come from \code{igblast_db_dir} plus the naming convention
-above. Per-segment arguments override the convention. igblastn output is
-logged to \verb{<output_tsv stem>.log}.
+\code{assignGenes()} does not search the C-region database, so raw-read tables
+have no \code{c_call} from this step.
 }

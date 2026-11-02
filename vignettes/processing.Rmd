@@ -48,12 +48,12 @@ molecule. The processing has two parts:
 
 | Step | Tool | What it does |
 |---|---|---|
-| 1 | IgBLAST | Annotates each read with V(D)J genes and a constant region |
+| 1 | IgBLAST (`airrblast::assignGenes()`) | Annotates each read with V(D)J genes |
 | 2 | `filterAirr()` | Removes reads that are not receptors or are too short to use |
 | 3 | pRESTO `ClusterSets.py` | Groups the reads of each spot by sequence identity (vsearch) |
 | 4 | pRESTO `AlignSets.py` | Aligns the reads in each group (MUSCLE) |
 | 5 | pRESTO `BuildConsensus.py` | Builds one consensus sequence per group |
-| 6 | IgBLAST and Change-O `MakeDb.py` | Annotates the consensus sequences and writes the AIRR table |
+| 6 | `airrblast::assignGenes()` and `addGaps()` | Annotates the consensus sequences, adds the IMGT gaps, and writes the AIRR table |
 
 Long-read sequencing has a high error rate. A consensus of several reads
 removes most random errors. The spot barcode stays in the sequence header
@@ -65,28 +65,46 @@ You need these programs on your computer or cluster:
 
 * **IgBLAST** (`igblastn`) from NCBI, with its `internal_data` and
   `optional_file` folders.
-* **IMGT germline references**, both as IgBLAST databases and as FASTA files
-  for Change-O. The Immcantation scripts `fetch_imgtdb.sh` and
-  `imgt2igblast.sh` download and convert them.
-* **pRESTO** and **Change-O** (`pip install presto changeo`).
+* **IMGT germline references**, both as IgBLAST databases and as gapped FASTA
+  files. The [airrblast](https://github.com/hoehnlab/airrblast) package
+  downloads and converts them (see below).
+* **pRESTO** (`pip install presto`).
 * **vsearch**, which `ClusterSets.py` calls.
 * **MUSCLE**, which `AlignSets.py` calls. The SIRUP paper used MUSCLE 3.8.31.
 
 The [Immcantation Docker image](https://immcantation.readthedocs.io) contains
-all of them. If you use it, run R inside the container.
+most of them. If you use it, run R inside the container and install airrblast.
 
 Make sure R can find the programs:
 
 ```{r check-tools, eval = FALSE}
 Sys.which(c(
-  "igblastn", "ClusterSets.py", "ParseHeaders.py", "AlignSets.py",
-  "BuildConsensus.py", "AssignGenes.py", "MakeDb.py", "vsearch"
+  "ClusterSets.py", "ParseHeaders.py", "AlignSets.py", "BuildConsensus.py",
+  "vsearch"
 ))
+file.exists(file.path("~/share/igblast", "bin", "igblastn"))
 ```
 
 An empty string means R cannot find that program. Add its folder to `PATH`,
-or give its full path to `processSpatialSample()` (`igblast_base`,
-`igblast_exec`, `muscle_exec`).
+or give its full path to `processSpatialSample()` (`muscle_exec`). SIRUP runs
+IgBLAST through airrblast. It always uses `<igblast_base>/bin/igblastn`.
+
+### Build the IgBLAST databases
+
+SIRUP installs the airrblast package. Use it one time to download the IMGT
+germlines and build the IgBLAST databases:
+
+```{r build-refs, eval = FALSE}
+library(airrblast)
+downloadIMGT("~/share/imgt", organism = "human")
+imgtToIgblast("~/share/imgt", "~/share/igblast_refs", igblast = "~/share/igblast")
+```
+
+`imgtToIgblast()` writes the `database/` and `fasta/` folders into
+`~/share/igblast_refs`. Give that folder to `processSpatialSample()` as
+`igblast_refs`. If you leave `igblast_refs` out, SIRUP looks for those folders
+in `igblast_base`. Give the IMGT folder as `imgt_dir`. airrblast supports
+human, mouse, and rhesus monkey.
 
 ## Demultiplex with rrad
 
@@ -217,9 +235,9 @@ result <- processSpatialSample(
   output_dir = "processed/bcr",
   receptor = "ig",
   organism = "human",
-  igblast_db_dir = "~/share/igblast/database",
   igblast_base = "~/share/igblast",
-  germline_glob = "~/share/germlines/imgt/human/vdj/imgt_human_IG*.fasta",
+  igblast_refs = "~/share/igblast_refs",
+  imgt_dir = "~/share/imgt",
   muscle_exec = "~/bin/muscle3.8.31_i86linux64",
   identity = 1.0,
   consensus_freq = 0.51,
@@ -230,8 +248,10 @@ result <- processSpatialSample(
 result$db_pass
 ```
 
-Use `receptor = "tr"` and the TR germline files for TCRs. Run BCRs and TCRs
-as separate calls.
+Use `receptor = "tr"` for TCRs. Run BCRs and TCRs as separate calls.
+
+`runIgblast()` calls `airrblast::assignGenes()`, which does not search a
+constant-region database. A table made from raw reads has no `c_call` column.
 
 ### With UMI support
 
@@ -304,8 +324,9 @@ processSpatialSamples(
   inputs = c("prepared/slice1.fasta", "prepared/slice2.fasta"),
   output_dirs = c("processed/slice1", "processed/slice2"),
   receptor = "ig",
-  igblast_db_dir = "~/share/igblast/database",
-  germline_glob = "~/share/germlines/imgt/human/vdj/imgt_human_IG*.fasta",
+  igblast_base = "~/share/igblast",
+  igblast_refs = "~/share/igblast_refs",
+  imgt_dir = "~/share/imgt",
   nproc = 8
 )
 ```
