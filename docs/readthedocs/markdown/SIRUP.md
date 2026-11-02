@@ -52,9 +52,10 @@ install.packages(c(
 BiocManager::install("ggtree")
 ```
 
-The processing step also needs command-line tools: IgBLAST, pRESTO and
-Change-O, vsearch, and MUSCLE. You need them only to process raw reads.
-The processing vignette tells you how to set them up.
+The processing step also needs command-line tools: IgBLAST, pRESTO,
+vsearch, and MUSCLE. The airrblast R package, which SIRUP installs, runs
+IgBLAST. You need them only to process raw reads. The processing
+vignette tells you how to set them up.
 
 ## The example data
 
