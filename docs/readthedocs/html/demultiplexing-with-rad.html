@@ -369,21 +369,20 @@ ACGTACGT</code></pre>
 </div>
 <div id="begin-sirup-processing-from-fasta" class="section level2">
 <h2>Begin SIRUP processing from FASTA</h2>
-<p>Configure IgBLAST and its databases, pRESTO/Change-O, vsearch, and muscle before running this step. The example uses BCR databases named <code>IG_V</code>, <code>IG_D</code>, <code>IG_J</code>, and <code>IG_C</code> under <code>igblast_db_dir</code>. Per-segment path overrides are available in <code>?SIRUP::processSpatialSample</code>.</p>
+<p>Configure IgBLAST, pRESTO, vsearch, and muscle before running this step. SIRUP runs IgBLAST through the airrblast package. Build the IgBLAST databases one time with <code>airrblast::downloadIMGT()</code> and <code>airrblast::imgtToIgblast()</code>. The <code>database/</code> and <code>fasta/</code> folders must be in <code>igblast_base</code>, or in the folder that you give as <code>igblast_refs</code>.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">result &lt;-<span class="st"> </span>SIRUP<span class="op">::</span><span class="kw">processSpatialSample</span>(</a>
 <a class="sourceLine" id="cb5-2" data-line-number="2">  <span class="dt">input =</span> <span class="st">&quot;prepared/sample-igblast.fasta&quot;</span>,</a>
 <a class="sourceLine" id="cb5-3" data-line-number="3">  <span class="dt">output_dir =</span> <span class="st">&quot;processed&quot;</span>,</a>
 <a class="sourceLine" id="cb5-4" data-line-number="4">  <span class="dt">receptor =</span> <span class="st">&quot;ig&quot;</span>,</a>
 <a class="sourceLine" id="cb5-5" data-line-number="5">  <span class="dt">organism =</span> <span class="st">&quot;human&quot;</span>,</a>
-<a class="sourceLine" id="cb5-6" data-line-number="6">  <span class="dt">igblast_db_dir =</span> <span class="st">&quot;/path/to/igblast/database&quot;</span>,</a>
-<a class="sourceLine" id="cb5-7" data-line-number="7">  <span class="dt">igblast_base =</span> <span class="st">&quot;/path/to/igblast&quot;</span>,</a>
-<a class="sourceLine" id="cb5-8" data-line-number="8">  <span class="dt">muscle_exec =</span> <span class="st">&quot;/path/to/muscle&quot;</span>,</a>
-<a class="sourceLine" id="cb5-9" data-line-number="9">  <span class="dt">germline_glob =</span> <span class="st">&quot;/path/to/germlines/imgt/human/vdj/imgt_human_*.fasta&quot;</span>,</a>
-<a class="sourceLine" id="cb5-10" data-line-number="10">  <span class="dt">nproc =</span> <span class="dv">8</span></a>
-<a class="sourceLine" id="cb5-11" data-line-number="11">)</a>
-<a class="sourceLine" id="cb5-12" data-line-number="12"></a>
-<a class="sourceLine" id="cb5-13" data-line-number="13">result<span class="op">$</span>db_pass</a></code></pre></div>
-<p>Ordinary FASTA input is detected automatically and receives the first IgBLAST pass. SIRUP then filters the AIRR calls, writes barcode-annotated spatial FASTA, groups reads within each barcode, builds consensus sequences, and runs a second IgBLAST pass before writing the final AIRR table.</p>
+<a class="sourceLine" id="cb5-6" data-line-number="6">  <span class="dt">igblast_base =</span> <span class="st">&quot;/path/to/igblast&quot;</span>,</a>
+<a class="sourceLine" id="cb5-7" data-line-number="7">  <span class="dt">muscle_exec =</span> <span class="st">&quot;/path/to/muscle&quot;</span>,</a>
+<a class="sourceLine" id="cb5-8" data-line-number="8">  <span class="dt">imgt_dir =</span> <span class="st">&quot;/path/to/imgt&quot;</span>,</a>
+<a class="sourceLine" id="cb5-9" data-line-number="9">  <span class="dt">nproc =</span> <span class="dv">8</span></a>
+<a class="sourceLine" id="cb5-10" data-line-number="10">)</a>
+<a class="sourceLine" id="cb5-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb5-12" data-line-number="12">result<span class="op">$</span>db_pass</a></code></pre></div>
+<p>Ordinary FASTA input is detected automatically and receives the first IgBLAST pass. SIRUP then filters the AIRR calls, writes barcode-annotated spatial FASTA, groups reads within each barcode, builds consensus sequences, and runs a second IgBLAST pass before writing the final AIRR table. The first pass does not search a constant-region database, so it writes no <code>c_call</code> column.</p>
 <p><code>input_type = &quot;spatial_fasta&quot;</code> is only for FASTA already annotated, filtered, and prepared for consensus. It skips the first IgBLAST/filtering stage; do not select it merely because newly demultiplexed reads are in FASTA format. An existing AIRR table or TSV is another entry point after initial annotation.</p>
 <p>Use <code>receptor = &quot;tr&quot;</code> with the matching TCR databases for a TCR run. Demultiplexing does not choose the IgBLAST receptor mode.</p>
 </div>
