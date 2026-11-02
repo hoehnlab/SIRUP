@@ -81,8 +81,8 @@ if (!requireNamespace("ggtree", quietly = TRUE)) {
 }
 ```
 
-The processing step also needs command-line tools: IgBLAST, pRESTO and
-Change-O, vsearch, and MUSCLE. You need them only to process raw reads. The
+The processing step also needs command-line tools: IgBLAST, pRESTO, vsearch,
+and MUSCLE. The airrblast R package, which SIRUP installs, runs IgBLAST. You need them only to process raw reads. The
 processing vignette tells you how to set them up.
 
 ## The example data

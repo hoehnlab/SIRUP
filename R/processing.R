@@ -148,8 +148,8 @@ filterAirr <- function(airr_df,
 #'   rrad package. Export rrad FASTA with `to_fasta = TRUE` and
 #'   `header_format = "presto"` so barcode/UMI tags remain in the IgBLAST
 #'   identifier. The function first annotates the reads with
-#'   [runIgblast()] (`igblastn -outfmt 19`), which needs `igblast_db_dir`
-#'   (or the per-segment database paths).
+#'   [runIgblast()] (`airrblast::assignGenes()`), which needs `igblast_base`
+#'   and `igblast_refs`.
 #' * An AIRR table: a `.tsv` path or a data frame. The raw IgBLAST step is
 #'   skipped. A data frame input requires `output_dir`.
 #' * A pRESTO-ready spatial FASTA (`input_type = "spatial_fasta"`): the
@@ -188,13 +188,15 @@ filterAirr <- function(airr_df,
 #'   fields in the FASTA header that should be carried forward and copied to the consensus file,
 #'   `consensus_copy_fields` specifies the field names and `consensus_copy_action` specifies how
 #'   to copy them (majority, first, last, or all).
-#' * `AssignGenes.py igblast` assigns V(D)J gene annotations using IgBLAST. Takes either `ig` or `tr`
-#'   as the argument to `receptor` (for bcr/tcr respectively). Takes `organism` as the argument to
-#'   specify the species (e.g., human, mouse, etc.). `igblast_base` specifies the path to the IgBLAST
-#'   installation, and `igblast_exec` can be provided if the igblast executable is not located in
-#'   the `bin/igblastn` path beneath `igblast_base`.
-#' * `MakeDb.py igblast` converts IgBLAST output to an AIRR-style TSV using the specified IMGT
-#'   germline reference `germline_glob`.
+#' * `airrblast::assignGenes()` assigns V(D)J genes with IgBLAST. It replaces `AssignGenes.py`.
+#'   Takes either `ig` or `tr` as the argument to `receptor` (for bcr/tcr respectively). Takes
+#'   `organism` as the argument to specify the species (human, mouse, or rhesus_monkey).
+#'   `igblast_base` is the IgBLAST installation (it must hold `bin/igblastn`), and `igblast_refs`
+#'   is the folder with the IgBLAST `database/` and `fasta/` folders.
+#' * `airrblast::addGaps()` adds the IMGT-gapped sequences from the germlines in `imgt_dir`.
+#'   SIRUP then reads the pRESTO header fields into columns, as `MakeDb.py --extended` did,
+#'   and keeps the sequences that have a V call, a J call, a productive flag, an aligned sequence,
+#'   and a junction. The result is the `db_pass` table.
 #'
 #' Each command is printed before it is run, and any non-zero exit status stops
 #' the function with the failing command in the error message. All commands
@@ -213,13 +215,6 @@ filterAirr <- function(airr_df,
 #'   straight to the consensus pipeline.
 #'   Newly demultiplexed rrad FASTA should use `"auto"` or `"raw_reads"`:
 #'   `"spatial_fasta"` skips the first read-level V(D)J annotation and filtering.
-#' @param igblast_db_dir Directory with the raw-step germline databases
-#'   (`IG_V`, `IG_D`, `IG_J`, `IG_C`, `TR_V`, `TR_D`, `TR_J`). See
-#'   [runIgblast()].
-#' @param aux_file Optional path passed to `igblastn -auxiliary_data`.
-#' @param germline_db_v,germline_db_d,germline_db_j,c_region_db Optional
-#'   per-segment database paths that override the `igblast_db_dir`
-#'   convention.
 #' @param filter_args Named list of [filterAirr()] overrides. Pipeline
 #'   defaults: `complete_vdj = TRUE`, `min_consensus_count = NULL`,
 #'   `spatial_id = "barcode"`, `add_spatial_sequence_id = TRUE`,
@@ -238,13 +233,13 @@ filterAirr <- function(airr_df,
 #' @param identity Cluster identity threshold passed to `ClusterSets.py`.
 #' @param consensus_freq Consensus frequency threshold passed to
 #'   `BuildConsensus.py`.
-#' @param germline_glob IMGT germline glob passed to `MakeDb.py -r`.
-#' @param igblast_base Path passed to `AssignGenes.py igblast -b`.
-#' @param igblast_exec Optional path passed to `AssignGenes.py --exec`. When
-#'   `NULL`, defaults to `file.path(igblast_base, "bin", "igblastn")`.
+#' @param germline_glob Optional. Only used to find `imgt_dir` when that is
+#'   `NULL`: a glob such as `<imgt_dir>/human/vdj/imgt_human_*.fasta`.
+#' @param igblast_base IgBLAST installation folder, passed to
+#'   `airrblast::assignGenes()` as `igblast`. It must hold `bin/igblastn`.
 #' @param muscle_exec Path passed to `AlignSets.py --exec`.
 #' @param nproc Number of processors for the raw IgBLAST step, pRESTO, and
-#'   AssignGenes.
+#'   gene assignment.
 #' @param cluster_field FASTA header field used for within-spot clustering.
 #'   The pipeline writes headers keyed by this name; the default `"barcode"`
 #'   uses the parsed rrad `BARCODE` field. Override it for other spatial ID fields, for
@@ -285,7 +280,7 @@ filterAirr <- function(airr_df,
 #' @param umi_identity Cluster identity for the barcode-UMI step. Looser than
 #'   the barcode step on purpose, so error-bearing reads of one molecule group.
 #' @param min_umi_support Lowest summed `cc_bc_umi` a barcode consensus needs.
-#'   Applied after `MakeDb.py`, writing a filtered copy beside `db_pass`, so a
+#'   Applied after gene assignment, writing a filtered copy beside `db_pass`, so a
 #'   run can be re-thresholded without reprocessing.
 #' @param consensus_copy_fields Optional fields passed to `BuildConsensus.py
 #'   --cf`. With `umi_support`, `CC_BC_UMI` and `N_PRODUCTIVE_READS` are
@@ -296,6 +291,13 @@ filterAirr <- function(airr_df,
 #'   `BuildConsensus.py --maxerror`.
 #' @param consensus_max_gap Maximum gap fraction passed to
 #'   `BuildConsensus.py --maxgap`.
+#' @param igblast_refs Folder that holds the IgBLAST `database/` and `fasta/`
+#'   folders (the `refs` argument of `airrblast::assignGenes()`). When `NULL`,
+#'   uses `igblast_base`.
+#' @param imgt_dir IMGT folder with gapped germlines at
+#'   `<imgt_dir>/<organism>/vdj` (the `gapdb` argument of
+#'   `airrblast::addGaps()`). When `NULL`, it is taken from `germline_glob`,
+#'   which must then point into a `<organism>/vdj` folder.
 #' @param skip_existing Skip a pipeline command when its output already exists
 #'   and is not empty. Use this to restart an interrupted run, or to reuse one
 #'   clustering and alignment pass across several `consensus_freq` values,
@@ -313,21 +315,16 @@ processSpatialSample <- function(input,
                                  receptor = c("ig", "tr"),
                                  organism = "human",
                                  input_type = c("auto", "raw_reads", "airr", "spatial_fasta"),
-                                 igblast_db_dir = NULL,
-                                 aux_file = NULL,
-                                 germline_db_v = NULL,
-                                 germline_db_d = NULL,
-                                 germline_db_j = NULL,
-                                 c_region_db = NULL,
                                  filter_args = list(),
                                  invalid_spatial_ids = c("abort", "drop"),
                                  fasta_sequence_col = "sequence_alignment",
                                  sample_name = NULL,
                                  identity = 0.975,
                                  consensus_freq = 0.51,
-                                 germline_glob,
+                                 germline_glob = NULL,
+                                 igblast_refs = NULL,
+                                 imgt_dir = NULL,
                                  igblast_base = "~/software/igblast",
-                                 igblast_exec = NULL,
                                  muscle_exec = "~/software/muscle3.8.31_i86linux64",
                                  nproc = 8,
                                  cluster_field = "barcode",
@@ -354,12 +351,27 @@ processSpatialSample <- function(input,
   if (length(cluster_field) != 1L || is.na(cluster_field) || !nzchar(cluster_field)) {
     rlang::abort("`cluster_field` must name one FASTA header field, for example `barcode` or `barcode_8um`.")
   }
-  if (missing(germline_glob)) {
-    rlang::abort("`germline_glob` is required. It names the IMGT germline FASTA files for `MakeDb.py -r`.")
+  if (is.null(imgt_dir)) {
+    # addGaps() reads <imgt_dir>/<organism>/vdj, so a glob such as
+    # "/x/imgt/human/vdj/imgt_human_*.fasta" gives "/x/imgt".
+    if (is.null(germline_glob)) {
+      rlang::abort("Give `imgt_dir` or `germline_glob`.")
+    }
+    vdj <- dirname(path.expand(germline_glob))
+    if (!identical(basename(vdj), "vdj") || !identical(basename(dirname(vdj)), organism)) {
+      rlang::abort(paste0(
+        "Cannot infer `imgt_dir` from `germline_glob` (", germline_glob, "). ",
+        "The glob must point into `<imgt_dir>/", organism, "/vdj`. ",
+        "Set `imgt_dir` instead."
+      ))
+    }
+    imgt_dir <- dirname(dirname(vdj))
   }
-  if (is.null(igblast_exec)) {
-    igblast_exec <- file.path(igblast_base, "bin", "igblastn")
+  if (is.null(igblast_refs)) {
+    igblast_refs <- igblast_base
   }
+  # assignGenes() always runs <igblast>/bin/igblastn.
+  igblast_exec <- file.path(igblast_base, "bin", "igblastn")
 
   if (isTRUE(umi_support) && identical(input_type, "spatial_fasta")) {
     rlang::abort("`umi_support = TRUE` needs an AIRR table, because the UMI and productive columns are read from it.")
@@ -406,13 +418,8 @@ processSpatialSample <- function(input,
         output_tsv = raw_airr_tsv,
         receptor = receptor,
         organism = organism,
-        igblast_db_dir = igblast_db_dir,
-        igblast_exec = igblast_exec,
-        aux_file = aux_file,
-        germline_db_v = germline_db_v,
-        germline_db_d = germline_db_d,
-        germline_db_j = germline_db_j,
-        c_region_db = c_region_db,
+        igblast_base = igblast_base,
+        igblast_refs = igblast_refs,
         num_threads = nproc
       )
       airr <- .sirup_read_airr(raw_airr_tsv)
@@ -545,11 +552,6 @@ processSpatialSample <- function(input,
     }
   }
 
-  germline_files <- Sys.glob(path.expand(germline_glob))
-  if (length(germline_files) == 0L) {
-    rlang::abort(paste0("`germline_glob` matched no files: ", germline_glob))
-  }
-
   # With UMI support the read floor moves off BuildConsensus: every molecule
   # consensus is kept (-n 1) and the summed `cc_bc_umi` decides afterwards.
   barcode_min_count <- consensus_min_count
@@ -574,9 +576,6 @@ processSpatialSample <- function(input,
     organism = organism,
     identity = identity,
     consensus_freq = consensus_freq,
-    germline_files = germline_files,
-    igblast_base = igblast_base,
-    igblast_exec = igblast_exec,
     muscle_exec = muscle_exec,
     nproc = nproc,
     cluster_field = cluster_field,
@@ -608,12 +607,89 @@ processSpatialSample <- function(input,
     .sirup_run_command(cmd$exec, cmd$args)
   }
 
+  if (skip_existing && file.exists(paths$db_pass) && file.info(paths$db_pass)$size > 0) {
+    message("Skipping airrblast: output exists (", paths$db_pass, ").")
+  } else {
+    # Gene assignment. assignGenes() runs IgBLAST and replaces AssignGenes.py.
+    # addGaps() adds the IMGT-gapped sequences. With the header and filter steps
+    # below, it replaces MakeDb.py.
+    locus <- c(ig = "Ig", tr = "TR")[[receptor]]
+    assigned <- airrblast::assignGenes(
+      file = path.expand(paths$consensus),
+      igblast = path.expand(igblast_base),
+      refs = path.expand(igblast_refs),
+      organism = organism,
+      outfile = path.expand(paths$igblast_tsv),
+      nproc = nproc,
+      locus = locus,
+      return = TRUE,
+      verbose = FALSE
+    )
+    if (nrow(assigned) == 0L) {
+      rlang::abort(paste0("IgBLAST returned no rows for ", paths$consensus, "."))
+    }
+    db <- as.data.frame(
+      airrblast::addGaps(
+        assigned,
+        gapdb = path.expand(imgt_dir),
+        organism = organism,
+        locus = locus,
+        nproc = nproc
+      ),
+      stringsAsFactors = FALSE
+    )
+
+    # Read the pRESTO header fields, as MakeDb.py --extended did. The text before
+    # the first `|` becomes `sequence_id`. Each `KEY=value` field after it becomes
+    # a lower-case column and replaces any column of the same name that IgBLAST
+    # wrote. CONSCOUNT and DUPCOUNT become `consensus_count` and `duplicate_count`,
+    # as in Change-O. This uses the pRESTO default delimiters.
+    header <- as.character(db$sequence_id)
+    if (any(grepl("|", header, fixed = TRUE))) {
+      parts <- strsplit(header, "|", fixed = TRUE)
+      fields <- unlist(lapply(parts, function(x) x[-1L]), use.names = FALSE)
+      if (any(!grepl("=", fields, fixed = TRUE))) {
+        # MakeDb.py gives up on the whole file here and keeps the headers as they are.
+        rlang::warn("Some consensus headers have fields without `=`. Headers are left unparsed.")
+      } else {
+        db$sequence_id <- vapply(parts, function(x) if (length(x)) x[[1L]] else "", character(1))
+        header_row <- rep(seq_along(parts), lengths(parts) - 1L)
+        header_key <- tolower(sub("=.*$", "", fields))
+        header_value <- sub("^[^=]*=([^=]*).*$", "\\1", fields)
+        header_key[header_key == "conscount"] <- "consensus_count"
+        header_key[header_key == "dupcount"] <- "duplicate_count"
+        for (k in unique(header_key)) {
+          hit <- header_key == k
+          col <- if (k %in% names(db)) as.character(db[[k]]) else rep(NA_character_, nrow(db))
+          col[header_row[hit]] <- header_value[hit]
+          db[[k]] <- col
+        }
+      }
+    }
+
+    # Keep the sequences that have a V call, a J call, a productive flag, an
+    # aligned sequence, and a junction. This is MakeDb.py's check without the
+    # test that the junction lies inside the gapped sequence.
+    keep <- !is.na(db$productive)
+    for (col in c("v_call", "j_call", "sequence_alignment", "junction")) {
+      keep <- keep & !is.na(db[[col]]) & nzchar(as.character(db[[col]])) & as.character(db[[col]]) != "None"
+    }
+    message("airrblast: ", sum(keep), " of ", nrow(db), " sequences passed -> ", paths$db_pass)
+    db <- db[keep, , drop = FALSE]
+
+    # MakeDb.py wrote logical columns as T/F.
+    for (col in names(db)[vapply(db, is.logical, logical(1))]) {
+      db[[col]] <- ifelse(is.na(db[[col]]), NA_character_, ifelse(db[[col]], "T", "F"))
+    }
+    data.table::fwrite(db, paths$db_pass, sep = "\t", quote = FALSE, na = "")
+  }
+
   db_pass_umi <- NULL
   if (isTRUE(umi_support) && file.exists(paths$db_pass)) {
     db <- .sirup_read_airr(paths$db_pass)
     sup_col <- intersect(c("cc_bc_umi", "CC_BC_UMI"), colnames(db))
     if (length(sup_col) == 0L) {
-      rlang::warn("MakeDb wrote no `cc_bc_umi` column, so the `min_umi_support` floor was not applied.")
+      rlang::warn("The gene-assignment table has no `cc_bc_umi` column, so the `min_umi_support` floor was not applied.")
     } else {
       support <- suppressWarnings(as.numeric(db[[sup_col[[1L]]]]))
       keep <- !is.na(support) & support >= min_umi_support
@@ -1280,31 +1356,26 @@ collapseIdenticalNeighbors <- function(object,
       stem, identity, cluster_field, consensus_freq, consensus_min_count
     )
   )
-  fmt7 <- sub("\\.fasta$", "_igblast.fmt7", consensus)
-  db_pass <- sub("_igblast\\.fmt7$", "_igblast_db-pass.tsv", fmt7)
+  igblast_tsv <- sub("\\.fasta$", "_igblast.tsv", consensus)
+  db_pass <- sub("\\.fasta$", "_igblast_db-pass.tsv", consensus)
   list(
     input = input_fasta,
     cluster = cluster,
     reheader = reheader,
     aligned = aligned,
     consensus = consensus,
-    fmt7 = fmt7,
+    igblast_tsv = igblast_tsv,
     db_pass = db_pass
   )
 }
 
-# Build the six pRESTO/Change-O commands for the consensus pipeline as
+# Build the pRESTO commands for the consensus pipeline as
 # exec/args pairs for system2. Pure function: it does not run anything.
-# `germline_files` is the expanded IMGT germline file list for MakeDb.py -r
-# (globs must expand in R because the runner quotes every argument).
 .sirup_presto_commands <- function(paths,
                                    receptor,
                                    organism,
                                    identity,
                                    consensus_freq,
-                                   germline_files,
-                                   igblast_base,
-                                   igblast_exec,
                                    muscle_exec,
                                    nproc,
                                    cluster_field,
@@ -1327,7 +1398,7 @@ collapseIdenticalNeighbors <- function(object,
     consensus_copy_args <- c("--cf", consensus_copy_fields, "--act", consensus_copy_action)
   }
 
-  list(
+  commands <- list(
     # Cluster reads per spatial ID, then preserve the spatial_id-cluster
     # grouping in the FASTA headers used by alignment and consensus calling.
     list(exec = "ClusterSets.py", out = paths$cluster, args = c(
@@ -1358,8 +1429,7 @@ collapseIdenticalNeighbors <- function(object,
       "--bf", parse_key,
       "--exec", path.expand(muscle_exec)
     )),
-    # Build consensus sequences from aligned spatial_id-cluster groups, assign
-    # V(D)J genes with IgBLAST, then make an AIRR-style database table.
+    # Build consensus sequences from aligned spatial_id-cluster groups.
     list(exec = "BuildConsensus.py", out = paths$consensus, args = c(
       "-s", path.expand(paths$aligned),
       "-o", path.expand(paths$consensus),
@@ -1374,25 +1444,12 @@ collapseIdenticalNeighbors <- function(object,
       "--fasta",
       delim_args,
       consensus_copy_args
-    )),
-    list(exec = "AssignGenes.py", out = paths$fmt7, args = c(
-      "igblast",
-      "-s", path.expand(paths$consensus),
-      "-b", path.expand(igblast_base),
-      "--organism", organism,
-      "--loci", receptor,
-      "--format", "blast",
-      "--exec", path.expand(igblast_exec),
-      "--nproc", as.character(nproc)
-    )),
-    list(exec = "MakeDb.py", out = paths$db_pass, args = c(
-      "igblast",
-      "-i", path.expand(paths$fmt7),
-      "-s", path.expand(paths$consensus),
-      "-r", germline_files,
-      "--extended"
     ))
   )
+
+  # Gene assignment is not a shell command: processSpatialSample() runs
+  # airrblast::assignGenes() and addGaps() after these.
+  commands
 }
 
 # Return the longest gap run in each aligned receptor sequence. Vectorised: the
@@ -1633,82 +1690,6 @@ substringOdds<-function(subsequence_length, sequence_length){
   out
 }
 
-# Resolve IgBLAST germline database paths from a database directory and the
-# receptor type, using the naming convention IG_V/IG_D/IG_J/IG_C and
-# TR_V/TR_D/TR_J. Any non-NULL override wins. The C-region database is only
-# used for `ig`.
-.sirup_igblast_db_paths <- function(igblast_db_dir = NULL,
-                                    receptor = c("ig", "tr"),
-                                    germline_db_v = NULL,
-                                    germline_db_d = NULL,
-                                    germline_db_j = NULL,
-                                    c_region_db = NULL) {
-  receptor <- match.arg(receptor)
-  prefix <- toupper(receptor)
-  from_dir <- function(segment) {
-    if (is.null(igblast_db_dir)) {
-      return(NULL)
-    }
-    file.path(path.expand(igblast_db_dir), paste0(prefix, "_", segment))
-  }
-  dbs <- list(
-    v = if (!is.null(germline_db_v)) path.expand(germline_db_v) else from_dir("V"),
-    d = if (!is.null(germline_db_d)) path.expand(germline_db_d) else from_dir("D"),
-    j = if (!is.null(germline_db_j)) path.expand(germline_db_j) else from_dir("J"),
-    c = if (receptor == "ig") {
-      if (!is.null(c_region_db)) path.expand(c_region_db) else from_dir("C")
-    } else {
-      NULL
-    }
-  )
-  needed <- c("v", "d", "j")
-  missing <- needed[vapply(dbs[needed], is.null, logical(1))]
-  if (length(missing) > 0L) {
-    rlang::abort(paste0(
-      "Cannot resolve germline database", if (length(missing) == 1L) "" else "s",
-      " for segment", if (length(missing) == 1L) "" else "s", " ",
-      paste(toupper(missing), collapse = ", "),
-      ". Provide `igblast_db_dir` or the per-segment paths."
-    ))
-  }
-  dbs
-}
-
-# Build the igblastn argument vector for one raw-read annotation run.
-# Pure function: it does not touch the filesystem.
-.sirup_igblast_args <- function(query_fasta,
-                                output_tsv,
-                                receptor = c("ig", "tr"),
-                                organism = "human",
-                                dbs,
-                                aux_file = NULL,
-                                num_threads = 8,
-                                extra_args = NULL) {
-  receptor <- match.arg(receptor)
-  seqtype <- if (receptor == "ig") "Ig" else "TCR"
-  args <- c(
-    "-query", path.expand(query_fasta),
-    "-ig_seqtype", seqtype,
-    "-organism", organism,
-    "-germline_db_V", dbs$v,
-    "-germline_db_D", dbs$d,
-    "-germline_db_J", dbs$j
-  )
-  if (!is.null(dbs$c)) {
-    args <- c(args, "-c_region_db", dbs$c)
-  }
-  if (!is.null(aux_file)) {
-    args <- c(args, "-auxiliary_data", path.expand(aux_file))
-  }
-  args <- c(
-    args,
-    "-outfmt", "19",
-    "-num_threads", as.character(num_threads),
-    "-out", path.expand(output_tsv)
-  )
-  c(args, extra_args)
-}
-
 # Normalize raw reads to a plain FASTA that igblastn can read. igblastn
 # cannot read gzip and only accepts FASTA, so this streams on disk with
 # gunzip and awk; it never loads sequences into R. A plain FASTA passes
@@ -1753,55 +1734,39 @@ substringOdds<-function(subsequence_length, sequence_length){
 
 #' Annotate raw reads with IgBLAST
 #'
-#' Runs `igblastn` on raw reads and writes an AIRR rearrangement table
-#' (`-outfmt 19`). The input can be FASTA or FASTQ, optionally gzipped.
+#' Runs `airrblast::assignGenes()` on raw reads and writes an AIRR
+#' rearrangement table. The input can be FASTA or FASTQ, optionally gzipped.
 #' Gzipped and FASTQ inputs are first normalized to a plain FASTA next to
 #' `output_tsv` (FASTQ quality strings are dropped, because igblastn only
-#' accepts FASTA). One receptor locus group runs per call: `ig` uses the
-#' `IG_V`/`IG_D`/`IG_J`/`IG_C` databases, `tr` uses `TR_V`/`TR_D`/`TR_J`.
+#' accepts FASTA). One receptor group runs per call: `ig` or `tr`.
 #'
-#' Database paths come from `igblast_db_dir` plus the naming convention
-#' above. Per-segment arguments override the convention. igblastn output is
-#' logged to `<output_tsv stem>.log`.
+#' `assignGenes()` does not search the C-region database, so raw-read tables
+#' have no `c_call` from this step.
 #'
-#' @param input Path to a FASTA/FASTQ file, optionally gzipped.
-#' @param output_tsv Path for the AIRR TSV that igblastn writes.
+#' @param input Path to a FASTA/FASTQ file, optionally gzipped. A plain FASTA
+#'   must end in `.fasta` or `.fa`.
+#' @param output_tsv Path for the AIRR TSV. It must end in `.tsv`.
 #' @param receptor Either `ig` for BCR or `tr` for TCR.
-#' @param organism Organism passed to `igblastn -organism`.
-#' @param igblast_db_dir Directory that holds the germline databases named
-#'   `IG_V`, `IG_D`, `IG_J`, `IG_C`, `TR_V`, `TR_D`, `TR_J`.
-#' @param igblast_exec Path to the `igblastn` executable.
-#' @param aux_file Optional path passed to `-auxiliary_data`.
-#' @param germline_db_v,germline_db_d,germline_db_j Optional per-segment
-#'   database paths. Each overrides the `igblast_db_dir` convention.
-#' @param c_region_db Optional C-region database path (`ig` only).
-#' @param num_threads Threads passed to `-num_threads`.
-#' @param extra_args Optional character vector of extra igblastn arguments.
+#' @param organism `human`, `mouse`, or `rhesus_monkey`.
+#' @param igblast_base IgBLAST installation folder. It must hold
+#'   `bin/igblastn`, `internal_data`, and `optional_file`.
+#' @param igblast_refs Folder with the IgBLAST `database/` and `fasta/`
+#'   folders (the `refs` argument of `airrblast::assignGenes()`). When
+#'   `NULL`, uses `igblast_base`.
+#' @param num_threads Threads passed to `assignGenes()` as `nproc`.
 #' @return The path to `output_tsv`, invisibly.
 #' @export
 runIgblast <- function(input,
                        output_tsv,
                        receptor = c("ig", "tr"),
                        organism = "human",
-                       igblast_db_dir = NULL,
-                       igblast_exec = "~/software/igblast/bin/igblastn",
-                       aux_file = NULL,
-                       germline_db_v = NULL,
-                       germline_db_d = NULL,
-                       germline_db_j = NULL,
-                       c_region_db = NULL,
-                       num_threads = 8,
-                       extra_args = NULL) {
+                       igblast_base = "~/software/igblast",
+                       igblast_refs = NULL,
+                       num_threads = 8) {
   receptor <- match.arg(receptor)
-  .sirup_check_tools(c(igblastn = igblast_exec))
-  dbs <- .sirup_igblast_db_paths(
-    igblast_db_dir = igblast_db_dir,
-    receptor = receptor,
-    germline_db_v = germline_db_v,
-    germline_db_d = germline_db_d,
-    germline_db_j = germline_db_j,
-    c_region_db = c_region_db
-  )
+  if (is.null(igblast_refs)) {
+    igblast_refs <- igblast_base
+  }
   output_tsv <- path.expand(output_tsv)
   output_dir <- dirname(output_tsv)
   if (!dir.exists(output_dir)) {
@@ -1809,18 +1774,17 @@ runIgblast <- function(input,
   }
   sample_name <- tools::file_path_sans_ext(basename(output_tsv))
   query_fasta <- .sirup_prepare_query_fasta(input, output_dir, sample_name)
-  args <- .sirup_igblast_args(
-    query_fasta = query_fasta,
-    output_tsv = output_tsv,
-    receptor = receptor,
+  airrblast::assignGenes(
+    file = query_fasta,
+    igblast = path.expand(igblast_base),
+    refs = path.expand(igblast_refs),
     organism = organism,
-    dbs = dbs,
-    aux_file = aux_file,
-    num_threads = num_threads,
-    extra_args = extra_args
+    outfile = output_tsv,
+    nproc = num_threads,
+    locus = c(ig = "Ig", tr = "TR")[[receptor]],
+    return = FALSE,
+    verbose = FALSE
   )
-  log <- paste0(tools::file_path_sans_ext(output_tsv), ".log")
-  .sirup_run_command(igblast_exec, args, log = log)
   invisible(output_tsv)
 }
 

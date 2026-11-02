@@ -11,59 +11,6 @@ test_that(".sirup_detect_input_type classifies inputs", {
   expect_error(.sirup_detect_input_type(c("a.fa", "b.fa")), "single file path")
 })
 
-test_that(".sirup_igblast_db_paths applies the naming convention and overrides", {
-  dbs <- .sirup_igblast_db_paths("/db", receptor = "ig")
-  expect_equal(dbs$v, file.path("/db", "IG_V"))
-  expect_equal(dbs$d, file.path("/db", "IG_D"))
-  expect_equal(dbs$j, file.path("/db", "IG_J"))
-  expect_equal(dbs$c, file.path("/db", "IG_C"))
-
-  dbs <- .sirup_igblast_db_paths("/db", receptor = "tr")
-  expect_equal(dbs$v, file.path("/db", "TR_V"))
-  expect_null(dbs$c)
-
-  dbs <- .sirup_igblast_db_paths("/db", receptor = "ig", germline_db_v = "/other/V")
-  expect_equal(dbs$v, "/other/V")
-  expect_equal(dbs$d, file.path("/db", "IG_D"))
-
-  expect_error(
-    .sirup_igblast_db_paths(NULL, receptor = "ig"),
-    "Cannot resolve germline database"
-  )
-})
-
-test_that(".sirup_igblast_args builds the igblastn argument vector", {
-  dbs <- .sirup_igblast_db_paths("/db", receptor = "ig")
-  args <- .sirup_igblast_args(
-    query_fasta = "in.fasta",
-    output_tsv = "out.tsv",
-    receptor = "ig",
-    organism = "human",
-    dbs = dbs,
-    aux_file = "/aux/human_gl.aux",
-    num_threads = 4
-  )
-  expect_equal(args[which(args == "-ig_seqtype") + 1L], "Ig")
-  expect_equal(args[which(args == "-c_region_db") + 1L], file.path("/db", "IG_C"))
-  expect_equal(args[which(args == "-auxiliary_data") + 1L], "/aux/human_gl.aux")
-  expect_equal(args[which(args == "-outfmt") + 1L], "19")
-  expect_equal(args[which(args == "-num_threads") + 1L], "4")
-  expect_equal(args[which(args == "-out") + 1L], "out.tsv")
-
-  dbs_tr <- .sirup_igblast_db_paths("/db", receptor = "tr")
-  args_tr <- .sirup_igblast_args(
-    query_fasta = "in.fasta",
-    output_tsv = "out.tsv",
-    receptor = "tr",
-    dbs = dbs_tr,
-    extra_args = c("-word_size", "9")
-  )
-  expect_equal(args_tr[which(args_tr == "-ig_seqtype") + 1L], "TCR")
-  expect_false("-c_region_db" %in% args_tr)
-  expect_false("-auxiliary_data" %in% args_tr)
-  expect_equal(utils::tail(args_tr, 2L), c("-word_size", "9"))
-})
-
 test_that(".sirup_prepare_query_fasta streams fastq.gz to a plain fasta", {
   skip_on_os("windows")
   dir <- withr::local_tempdir()
@@ -129,39 +76,35 @@ test_that(".sirup_run_command aborts on failure with the log tail", {
   expect_equal(.sirup_run_command("true", character(0)), 0L)
 })
 
-test_that("runIgblast runs a stub executable and returns the output path", {
-  skip_on_os("windows")
+test_that("runIgblast passes the plain FASTA and locus to airrblast::assignGenes", {
   dir <- withr::local_tempdir()
-  stub <- file.path(dir, "igblastn_stub.sh")
-  writeLines(c(
-    "#!/bin/sh",
-    "out=\"\"",
-    "while [ $# -gt 0 ]; do",
-    "  if [ \"$1\" = \"-out\" ]; then out=\"$2\"; shift; fi",
-    "  shift",
-    "done",
-    "printf 'sequence_id\\tlocus\\nread1\\tIGH\\n' > \"$out\""
-  ), stub)
-  Sys.chmod(stub, "0755")
-
   fa <- file.path(dir, "reads.fasta")
   writeLines(c(">read1", "ACGT"), fa)
   out_tsv <- file.path(dir, "out", "reads_igblast.tsv")
-
+  seen <- list()
+  testthat::local_mocked_bindings(
+    assignGenes = function(file, igblast, refs, organism, outfile, nproc, locus, ...) {
+      seen <<- list(file = file, igblast = igblast, refs = refs, organism = organism,
+                    outfile = outfile, nproc = nproc, locus = locus)
+      writeLines(c("sequence_id\tlocus", "read1\tIGH"), outfile)
+      invisible(NULL)
+    },
+    .package = "airrblast"
+  )
   result <- runIgblast(
-    input = fa,
-    output_tsv = out_tsv,
-    receptor = "ig",
-    igblast_db_dir = "/db",
-    igblast_exec = stub
+    input = fa, output_tsv = out_tsv, receptor = "tr",
+    igblast_base = "/ig", num_threads = 3
   )
   expect_equal(result, out_tsv)
-  airr <- .sirup_read_airr(out_tsv)
-  expect_equal(airr$sequence_id, "read1")
-  expect_equal(airr$locus, "IGH")
+  expect_equal(seen$file, fa)
+  expect_equal(seen$igblast, "/ig")
+  expect_equal(seen$refs, "/ig")
+  expect_equal(seen$locus, "TR")
+  expect_equal(seen$nproc, 3)
+  expect_equal(.sirup_read_airr(out_tsv)$sequence_id, "read1")
 })
 
-test_that(".sirup_presto_commands builds the six pipeline commands", {
+test_that(".sirup_presto_commands builds the four pRESTO commands", {
   paths <- .presto_paths("sample_spatial.fasta", 0.975, 0.51, "out")
   commands <- .sirup_presto_commands(
     paths = paths,
@@ -169,9 +112,6 @@ test_that(".sirup_presto_commands builds the six pipeline commands", {
     organism = "human",
     identity = 0.975,
     consensus_freq = 0.51,
-    germline_files = c("/g/imgt_human_IGHV.fasta", "/g/imgt_human_IGHJ.fasta"),
-    igblast_base = "/software/igblast",
-    igblast_exec = "/software/igblast/bin/igblastn",
     muscle_exec = "/software/muscle",
     nproc = 2,
     cluster_field = "barcode",
@@ -187,8 +127,7 @@ test_that(".sirup_presto_commands builds the six pipeline commands", {
   )
   execs <- vapply(commands, function(cmd) cmd$exec, character(1))
   expect_equal(execs, c(
-    "ClusterSets.py", "ParseHeaders.py", "AlignSets.py",
-    "BuildConsensus.py", "AssignGenes.py", "MakeDb.py"
+    "ClusterSets.py", "ParseHeaders.py", "AlignSets.py", "BuildConsensus.py"
   ))
 
   cluster_args <- commands[[1]]$args
@@ -204,10 +143,4 @@ test_that(".sirup_presto_commands builds the six pipeline commands", {
   consensus_args <- commands[[4]]$args
   expect_equal(consensus_args[which(consensus_args == "--freq") + 1L], "0.51")
   expect_false("--cf" %in% consensus_args)
-
-  makedb_args <- commands[[6]]$args
-  r_pos <- which(makedb_args == "-r")
-  expect_equal(makedb_args[r_pos + 1L], "/g/imgt_human_IGHV.fasta")
-  expect_equal(makedb_args[r_pos + 2L], "/g/imgt_human_IGHJ.fasta")
-  expect_true("--extended" %in% makedb_args)
 })

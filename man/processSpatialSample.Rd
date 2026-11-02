@@ -10,21 +10,16 @@ processSpatialSample(
   receptor = c("ig", "tr"),
   organism = "human",
   input_type = c("auto", "raw_reads", "airr", "spatial_fasta"),
-  igblast_db_dir = NULL,
-  aux_file = NULL,
-  germline_db_v = NULL,
-  germline_db_d = NULL,
-  germline_db_j = NULL,
-  c_region_db = NULL,
   filter_args = list(),
   invalid_spatial_ids = c("abort", "drop"),
   fasta_sequence_col = "sequence_alignment",
   sample_name = NULL,
   identity = 0.975,
   consensus_freq = 0.51,
-  germline_glob,
+  germline_glob = NULL,
+  igblast_refs = NULL,
+  imgt_dir = NULL,
   igblast_base = "~/software/igblast",
-  igblast_exec = NULL,
   muscle_exec = "~/software/muscle3.8.31_i86linux64",
   nproc = 8,
   cluster_field = "barcode",
@@ -65,16 +60,6 @@ straight to the consensus pipeline.
 Newly demultiplexed rrad FASTA should use \code{"auto"} or \code{"raw_reads"}:
 \code{"spatial_fasta"} skips the first read-level V(D)J annotation and filtering.}
 
-\item{igblast_db_dir}{Directory with the raw-step germline databases
-(\code{IG_V}, \code{IG_D}, \code{IG_J}, \code{IG_C}, \code{TR_V}, \code{TR_D}, \code{TR_J}). See
-\code{\link[=runIgblast]{runIgblast()}}.}
-
-\item{aux_file}{Optional path passed to \code{igblastn -auxiliary_data}.}
-
-\item{germline_db_v, germline_db_d, germline_db_j, c_region_db}{Optional
-per-segment database paths that override the \code{igblast_db_dir}
-convention.}
-
 \item{filter_args}{Named list of \code{\link[=filterAirr]{filterAirr()}} overrides. Pipeline
 defaults: \code{complete_vdj = TRUE}, \code{min_consensus_count = NULL},
 \code{spatial_id = "barcode"}, \code{add_spatial_sequence_id = TRUE},
@@ -99,17 +84,25 @@ input file name without extension, or \code{"sample"} for data frames.}
 \item{consensus_freq}{Consensus frequency threshold passed to
 \code{BuildConsensus.py}.}
 
-\item{germline_glob}{IMGT germline glob passed to \code{MakeDb.py -r}.}
+\item{germline_glob}{Optional. Only used to find \code{imgt_dir} when that is
+\code{NULL}: a glob such as \verb{<imgt_dir>/human/vdj/imgt_human_*.fasta}.}
 
-\item{igblast_base}{Path passed to \verb{AssignGenes.py igblast -b}.}
+\item{igblast_refs}{Folder that holds the IgBLAST \verb{database/} and \verb{fasta/}
+folders (the \code{refs} argument of \code{airrblast::assignGenes()}). When \code{NULL},
+uses \code{igblast_base}.}
 
-\item{igblast_exec}{Optional path passed to \code{AssignGenes.py --exec}. When
-\code{NULL}, defaults to \code{file.path(igblast_base, "bin", "igblastn")}.}
+\item{imgt_dir}{IMGT folder with gapped germlines at
+\verb{<imgt_dir>/<organism>/vdj} (the \code{gapdb} argument of
+\code{airrblast::addGaps()}). When \code{NULL}, it is taken from \code{germline_glob},
+which must then point into a \verb{<organism>/vdj} folder.}
+
+\item{igblast_base}{IgBLAST installation folder, passed to
+\code{airrblast::assignGenes()} as \code{igblast}. It must hold \code{bin/igblastn}.}
 
 \item{muscle_exec}{Path passed to \code{AlignSets.py --exec}.}
 
 \item{nproc}{Number of processors for the raw IgBLAST step, pRESTO, and
-AssignGenes.}
+gene assignment.}
 
 \item{cluster_field}{FASTA header field used for within-spot clustering.
 The pipeline writes headers keyed by this name; the default \code{"barcode"}
@@ -161,7 +154,7 @@ productive read, so one read is one vote in the barcode consensus. Set
 the barcode step on purpose, so error-bearing reads of one molecule group.}
 
 \item{min_umi_support}{Lowest summed \code{cc_bc_umi} a barcode consensus needs.
-Applied after \code{MakeDb.py}, writing a filtered copy beside \code{db_pass}, so a
+Applied after gene assignment, writing a filtered copy beside \code{db_pass}, so a
 run can be re-thresholded without reprocessing.}
 
 \item{consensus_copy_fields}{Optional fields passed to \code{BuildConsensus.py --cf}. With \code{umi_support}, \code{CC_BC_UMI} and \code{N_PRODUCTIVE_READS} are
@@ -202,8 +195,8 @@ and one receptor locus group (\code{ig} or \code{tr}). The \code{input} can be o
 rrad package. Export rrad FASTA with \code{to_fasta = TRUE} and
 \code{header_format = "presto"} so barcode/UMI tags remain in the IgBLAST
 identifier. The function first annotates the reads with
-\code{\link[=runIgblast]{runIgblast()}} (\verb{igblastn -outfmt 19}), which needs \code{igblast_db_dir}
-(or the per-segment database paths).
+\code{\link[=runIgblast]{runIgblast()}} (\code{airrblast::assignGenes()}), which needs \code{igblast_base}
+and \code{igblast_refs}.
 \item An AIRR table: a \code{.tsv} path or a data frame. The raw IgBLAST step is
 skipped. A data frame input requires \code{output_dir}.
 \item A pRESTO-ready spatial FASTA (\code{input_type = "spatial_fasta"}): the
@@ -244,13 +237,15 @@ character is assigned. Optionally logs results to \code{consensus_log}. If there
 fields in the FASTA header that should be carried forward and copied to the consensus file,
 \code{consensus_copy_fields} specifies the field names and \code{consensus_copy_action} specifies how
 to copy them (majority, first, last, or all).
-\item \verb{AssignGenes.py igblast} assigns V(D)J gene annotations using IgBLAST. Takes either \code{ig} or \code{tr}
-as the argument to \code{receptor} (for bcr/tcr respectively). Takes \code{organism} as the argument to
-specify the species (e.g., human, mouse, etc.). \code{igblast_base} specifies the path to the IgBLAST
-installation, and \code{igblast_exec} can be provided if the igblast executable is not located in
-the \code{bin/igblastn} path beneath \code{igblast_base}.
-\item \verb{MakeDb.py igblast} converts IgBLAST output to an AIRR-style TSV using the specified IMGT
-germline reference \code{germline_glob}.
+\item \code{airrblast::assignGenes()} assigns V(D)J genes with IgBLAST. It replaces \code{AssignGenes.py}.
+Takes either \code{ig} or \code{tr} as the argument to \code{receptor} (for bcr/tcr respectively). Takes
+\code{organism} as the argument to specify the species (human, mouse, or rhesus_monkey).
+\code{igblast_base} is the IgBLAST installation (it must hold \code{bin/igblastn}), and \code{igblast_refs}
+is the folder with the IgBLAST \verb{database/} and \verb{fasta/} folders.
+\item \code{airrblast::addGaps()} adds the IMGT-gapped sequences from the germlines in \code{imgt_dir}.
+SIRUP then reads the pRESTO header fields into columns, as \code{MakeDb.py --extended} did,
+and keeps the sequences that have a V call, a J call, a productive flag, an aligned sequence,
+and a junction. The result is the \code{db_pass} table.
 }
 
 Each command is printed before it is run, and any non-zero exit status stops
