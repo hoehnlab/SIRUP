@@ -55,7 +55,7 @@ Install SIRUP from GitHub:
 
 ```{r install, eval = FALSE}
 if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
-if (!requireNamespace("SIRUP", quietly = TRUE)) remotes::install_github("hjm2217/SIRUP")
+if (!requireNamespace("SIRUP", quietly = TRUE)) remotes::install_github("hoehnlab/SIRUP")
 devtools::load_all("/Volumes/HoehnK/Hunter/spatial_bcr_tcr_package/SIRUP") 
 ```
 

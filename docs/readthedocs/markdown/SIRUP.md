@@ -36,7 +36,7 @@ Install SIRUP from GitHub:
 
 ``` r
 install.packages("remotes")
-remotes::install_github("hjm2217/SIRUP")
+remotes::install_github("hoehnlab/SIRUP")
 ```
 
 SIRUP uses Seurat objects for spatial expression. Most analysis

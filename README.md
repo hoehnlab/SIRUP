@@ -38,7 +38,7 @@ installs the Bioconductor packages that SIRUP needs, such as ggtree:
 
 ```r
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-BiocManager::install("hjm2217/SIRUP")
+BiocManager::install("hoehnlab/SIRUP")
 ```
 
 TODO: CRAN
