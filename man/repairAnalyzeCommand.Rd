@@ -2,7 +2,7 @@
 % Please edit documentation in R/spaced_pairing.R
 \name{repairAnalyzeCommand}
 \alias{repairAnalyzeCommand}
-\title{Construct a REPAIR analyze command for SPaCeD}
+\title{Make the REPAIR analyze command}
 \usage{
 repairAnalyzeCommand(
   input_path,
@@ -18,29 +18,40 @@ repairAnalyzeCommand(
 )
 }
 \arguments{
-\item{input_path}{REPAIR input TSV path.}
+\item{input_path}{Path of the REPAIR input TSV file.}
 
-\item{output_dir}{REPAIR output directory.}
+\item{output_dir}{Directory for the REPAIR output.}
 
-\item{a_pattern}{Heavy clone column regex.}
+\item{a_pattern}{Regular expression for the heavy clone columns (default
+\code{"^heavy"}).}
 
-\item{b_pattern}{Light clone column regex.}
+\item{b_pattern}{Regular expression for the light clone columns (default
+\code{"^light"}).}
 
-\item{mxo}{Maximum number of output candidates passed to \verb{repair analyze}.}
+\item{mxo}{Largest number of candidates in the output, passed to
+\verb{repair analyze} (default 2).}
 
-\item{x}{REPAIR \code{x} argument passed to \verb{repair analyze}.}
+\item{x}{The \code{x} argument of \verb{repair analyze} (default 1).}
 
-\item{b}{REPAIR \code{b} argument passed to \verb{repair analyze}.}
+\item{b}{The \code{b} argument of \verb{repair analyze} (default 100).}
 
-\item{nb}{REPAIR \code{nb} argument passed to \verb{repair analyze}.}
+\item{nb}{The \code{nb} argument of \verb{repair analyze} (default 1).}
 
-\item{min_counts}{Minimum count threshold passed to \verb{repair analyze}.}
+\item{min_counts}{Smallest count, passed to \verb{repair analyze}. If \code{NULL}, the
+function does not pass it.}
 
-\item{repair_bin}{REPAIR executable.}
+\item{repair_bin}{REPAIR program (default \code{"repair"}).}
 }
 \value{
-Shell command string.
+The command, as a character string.
 }
 \description{
-Construct a REPAIR analyze command for SPaCeD
+\code{repairAnalyzeCommand} makes the shell command that runs \verb{repair analyze} on
+the REPAIR input file. It does not run the command.
+}
+\examples{
+repairAnalyzeCommand("repair_input.tsv", "repair_output")
+}
+\seealso{
+\code{\link[=writeRepairInputMatrix]{writeRepairInputMatrix()}}, \code{\link[=checkSpacedRepair]{checkSpacedRepair()}}
 }

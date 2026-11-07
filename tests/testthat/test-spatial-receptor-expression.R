@@ -109,8 +109,6 @@ expression_receptor_fill_values <- function(plot) {
 }
 
 test_that("plotReceptorsExpression colours receptors by a continuous value", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("Matrix")
 
   counts <- Matrix::Matrix(
     c(
@@ -184,8 +182,6 @@ test_that("plotReceptorsExpression colours receptors by a continuous value", {
 })
 
 test_that("receptor spatial plots keep duplicate barcodes separated by sample", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("Matrix")
 
   make_section <- function() {
     object <- sirup_test_seurat(

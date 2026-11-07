@@ -19,17 +19,12 @@ knitr::opts_chunk$set(
   dev = "jpeg",
   dev.args = list(quality = 90),
   out.width = "100%",
-  eval = requireNamespace("Seurat", quietly = TRUE) &&
-    requireNamespace("airr", quietly = TRUE) &&
-    requireNamespace("scoper", quietly = TRUE)
+  eval = requireNamespace("Seurat", quietly = TRUE)
 )
 has_shazam <- requireNamespace("shazam", quietly = TRUE)
 imgt_dir <- path.expand(Sys.getenv("SIRUP_IMGT_DIR"))
-has_imgt <- nzchar(imgt_dir) && dir.exists(imgt_dir) && has_shazam &&
-  requireNamespace("dowser", quietly = TRUE)
-has_trees <- has_imgt &&
-  requireNamespace("ggtree", quietly = TRUE) &&
-  requireNamespace("cowplot", quietly = TRUE)
+has_imgt <- nzchar(imgt_dir) && dir.exists(imgt_dir) && has_shazam
+has_trees <- has_imgt
 ```
 
 A clone is a group of B or T cells that descend from one ancestor cell and
@@ -43,19 +38,8 @@ Immcantation tools (scoper, dowser, shazam) on the receptor table inside the
 SIRUP object. It then adds the spatial part: clone maps, trees paired with
 tissue plots, and distances between tips in and between regions.
 
-This vignette uses MG thymus section 2 and its eGC polygons. You need the
-Immcantation packages to run it:
-
-```{r install, eval = FALSE}
-packages <- c("scoper", "dowser", "shazam", "alakazam", "cowplot")
-missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
-if (length(missing) > 0) install.packages(missing)
-
-if (!requireNamespace("ggtree", quietly = TRUE)) {
-  if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-  BiocManager::install("ggtree")
-}
-```
+This vignette uses MG thymus section 2 and its eGC polygons. SIRUP installs
+the Immcantation packages that it needs, such as scoper, dowser, and alakazam.
 
 ## Set up
 

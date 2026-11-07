@@ -24,7 +24,6 @@ test_that("point-in-polygon includes boundary points when requested", {
 })
 
 test_that("polygon assignment annotates spatial metadata and receptor tables", {
-  skip_if_not_installed("SeuratObject")
   spatial <- sirup_test_seurat(
     counts = matrix(
       1,
@@ -96,7 +95,6 @@ test_that("polygon assignment can use receptor coordinate columns directly", {
 })
 
 test_that("overlapping polygon assignment keeps flags and chooses smallest polygon", {
-  skip_if_not_installed("SeuratObject")
   spatial <- sirup_test_seurat(
     counts = matrix(
       1,
@@ -277,7 +275,6 @@ test_that("polygon plotting data preserves polygon groups and flips plotting y",
 })
 
 test_that("plotSpatialPolygons colors stored polygons by an analysis column", {
-  skip_if_not_installed("SeuratObject")
   spatial <- sirup_test_seurat(
     counts = matrix(
       1,
@@ -379,7 +376,6 @@ test_that("plotSpatialPolygons colors stored polygons by an analysis column", {
 })
 
 test_that("plotSpatialPolygons can place labels outside polygons", {
-  skip_if_not_installed("SeuratObject")
   spatial <- sirup_test_seurat(
     counts = matrix(
       1,
@@ -591,8 +587,6 @@ test_that("3D clone density data groups clones and builds surfaces", {
 })
 
 test_that("polygon plots filter tagged polygons per spatial sample", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("ggplot2")
 
   make_spatial <- function() {
     spatial <- sirup_test_seurat(
@@ -637,9 +631,6 @@ test_that("polygon plots filter tagged polygons per spatial sample", {
 })
 
 test_that("polygon pies filter tagged polygons per spatial sample", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("ggplot2")
-  skip_if_not_installed("sf")
 
   make_spatial <- function() {
     spatial <- sirup_test_seurat(
@@ -917,7 +908,6 @@ test_that("spatialCloneDominance summarizes multiple polygons independently", {
 })
 
 test_that(".sirup_spatial_base crops to spatial barcodes by default", {
-  skip_if_not_installed("ggplot2")
   plot_data <- data.frame(x = c(10, 20), .sirup_y = c(-10, -20))
   spots <- data.frame(x = c(0, 100), .sirup_y = c(0, -100))
 
@@ -984,7 +974,6 @@ test_that("side-by-side pies order polygons by receptor count", {
 })
 
 test_that("stacked polygon dominance bars use clean polygon labels", {
-  skip_if_not_installed("ggplot2")
 
   region_bcrs <- data.frame(
     polygon = c("section_a::1", "section_a::1", "section_a::2"),
@@ -1013,7 +1002,6 @@ test_that("stacked polygon dominance bars use clean polygon labels", {
 })
 
 test_that("stacked polygon dominance bars keep same-numbered polygons distinct", {
-  skip_if_not_installed("ggplot2")
 
   region_bcrs <- data.frame(
     polygon = c("section_a::5", "section_b::5"),
@@ -1081,7 +1069,6 @@ test_that("expandPolygons uses the area centroid and needs a delta", {
 })
 
 test_that("expandPolygons handles multiple polygons and SIRUP objects", {
-  skip_if_not_installed("SeuratObject")
 
   # Each polygon expands independently around its own centroid.
   multi <- data.frame(
@@ -1128,7 +1115,6 @@ test_that("expandPolygons handles multiple polygons and SIRUP objects", {
 })
 
 test_that(".sirup_polygon_feature_values labels source and guards non-numeric", {
-  skip_if_not_installed("SeuratObject")
   counts <- matrix(c(0, 1, 2, 3, 4, 5, 6, 7),
                    nrow = 2,
                    dimnames = list(c("GeneA", "GeneB"), paste0("cell", 1:4)))
@@ -1198,7 +1184,6 @@ test_that(".sirup_nn_index scan backend agrees with whichever backend is chosen"
 })
 
 test_that(".sirup_region_from_dominance selects by polygon_id or polygon label", {
-  skip_if_not_installed("SeuratObject")
 
   make_spatial <- function() {
     s <- sirup_test_seurat(

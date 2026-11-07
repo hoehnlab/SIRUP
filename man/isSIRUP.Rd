@@ -7,11 +7,20 @@
 isSIRUP(x)
 }
 \arguments{
-\item{x}{An object.}
+\item{x}{Object to test.}
 }
 \value{
-A single logical value.
+\code{TRUE} if \code{x} has class \code{sirup}. Otherwise, \code{FALSE}.
 }
 \description{
-Test whether an object is a SIRUP object
+\code{isSIRUP} checks if an object has class \code{sirup}. It does not validate the
+object. Use \code{\link[=validateSIRUP]{validateSIRUP()}} for that.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+isSIRUP(x)
+isSIRUP(getReceptors(x))
+}
+\seealso{
+\code{\link[=validateSIRUP]{validateSIRUP()}}
 }

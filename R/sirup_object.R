@@ -1,64 +1,90 @@
 #' Create a SIRUP object
 #'
-#' A SIRUP object keeps spatial Seurat data and an AIRR-style receptor table
-#' together with receptor field mappings needed to join and interpret them.
-#' `spatial` may be one Seurat object or a named list of Seurat objects. When a
-#' list is supplied, the receptor `sample` field maps receptor rows to the
-#' corresponding spatial object name; receptor rows whose sample does not match
-#' a spatial object are retained as nonspatial receptor records. Field mappings
-#' are stored in `metadata$receptor_fields`. Derived results can be kept in the
-#' optional named `analyses` list so that the data and the analyses made from
-#' them can travel together.
-#' The receptor table is stored as a [tibble::tibble()]. Unmatched receptor
-#' rows are retained, which allows a table to contain bulk or other
-#' nonspatial receptor records alongside spatial records.
+#' `createSIRUP` joins a Seurat spatial object and an AIRR receptor table into
+#' one SIRUP object.
 #'
-#' @param spatial A Seurat object containing spatial expression data, or a named
-#'   list of Seurat objects representing multiple spatial contexts.
-#' @param receptors A data-frame-like AIRR-style receptor table.
-#' @param spatial_id Column in `receptors` matching spatial cell or spot
-#'   spatial IDs. When `NULL`, a spatial ID-like column is guessed once and recorded
-#'   in the object metadata.
-#' @param image Optional receptor column identifying the Seurat image.
-#' @param sample Optional sample column present in `receptors`. It is recorded
-#'   for sample-aware analyses and validation. When `spatial` is a named list,
-#'   this field is required and maps receptor rows to spatial object names;
-#'   values that do not match any spatial object are retained as nonspatial
-#'   receptor records. If this metadata column is absent from a Seurat section,
-#'   it is auto-populated from the spatial-list name.
-#' @param clone Optional clone-assignment column. The default is recorded
-#'   when present and otherwise stored as `NULL`.
-#' @param locus Optional receptor-locus column. The default is recorded
-#'   when present and otherwise stored as `NULL`.
-#' @param count Optional column containing receptor observation weights or
-#'   counts. Default is `NULL`.
-#' @param image_scale Optional default Seurat image scale used by spatial
-#'   plotting and spatial-statistic functions when they receive this SIRUP
-#'   object and their own `image_scale` argument is `NULL`. For multi-spatial
-#'   objects, may be a named character vector/list keyed by spatial sample; an
-#'   unnamed value is used as the global fallback.
-#' @param swap_coords Optional default coordinate-orientation flag used by
-#'   spatial plotting and spatial-statistic functions when they receive this
-#'   SIRUP object and their own `swap_coords` argument is `NULL`. For
-#'   multi-spatial objects, may be a named logical vector/list keyed by spatial
-#'   sample; an unnamed value is used as the global fallback.
-#' @param metadata Optional named list of dataset-level metadata.
-#' @param polygons Optional polygon table. A canonical table has one row per
-#'   polygon with `polygon_id` and a list-column `vertices`; each vertices
-#'   table must contain `x` and `y`, and may contain `spatial_id` and `image`.
-#'   Stored polygons automatically annotate both Seurat metadata and receptor
-#'   tables with a primary `polygon_id` column plus logical `polygon_<ID>`
-#'   membership columns for each individual polygon.
-#' @param polygons_path Optional path to a flat polygon vertex CSV. It may use
-#'   `polygon_id` or `polygon` for the polygon identifier and must contain `x`
-#'   and `y` coordinate columns. Stored polygons from this path receive the same
-#'   automatic annotation as `polygons`.
-#' @param include_boundary Whether spots exactly on stored polygon edges should
-#'   be annotated as polygon members when polygons are attached.
-#' @param analyses Optional named list of derived analysis results.
-#' @param validate Whether to validate the completed object.
+#' @details
+#' `spatial` can be one Seurat object or a named list of Seurat objects. If you
+#' give a list, the `sample` column of `receptors` must name the corresponding
+#' list entry for each row. The function keeps rows with no matching entry as
+#' nonspatial records. For example, these rows can hold bulk or single-cell
+#' data.
 #'
-#' @return A SIRUP object with S3 class `sirup`.
+#' The function stores key receptor column names in `metadata$receptor_fields`
+#' and converts `receptors` to a [tibble::tibble()]. The optional `analyses`
+#' list keeps derived results.
+#'
+#' The examples in this package use a small synthetic SIRUP object. It has 25
+#' spots, 10 genes, 5 clones, and 2 polygons. The spots and gene counts are
+#' simulated. The receptor rows are real BCR sequences from a human thymus
+#' section, assigned to synthetic spots. Load the object with
+#' `readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))`.
+#' The script `data-raw/make_synthetic_example.R` builds it.
+#'
+#' @param spatial Seurat object with spatial expression data, or a named list of
+#'   Seurat objects (one per spatial sample).
+#' @param receptors AIRR-style receptor table (a data frame or similar).
+#' @param spatial_id Name of the `receptors` column that holds the spatial cell
+#'   or spot IDs. If `NULL`, the function uses the first column found from this
+#'   list: `spatial_id`, `spatial_id_8um`, `spatial_id_2um`, `spatial_id_16um`,
+#'   `barcode_8um`, `barcode_2um`, `cell`, `cell_barcode`. It stores the name in
+#'   the metadata and gives an error if none exists.
+#' @param image Name of the `receptors` column that identifies the Seurat image
+#'   (default `NULL`).
+#' @param sample Name of the `receptors` column that holds the sample name. If
+#'   `spatial` is a named list, this argument is required. If a Seurat object
+#'   has no such metadata column, the function fills it with the list name.
+#' @param clone Name of the `receptors` column that holds the clone ID (default
+#'   `NULL`). The function gives an error if the column does not exist.
+#' @param locus Name of the `receptors` column that holds the receptor locus
+#'   (default `"locus"`). If you use the default and the column does not exist,
+#'   the function stores `NULL`. If you give another name that does not exist,
+#'   the function gives an error.
+#' @param count Name of the `receptors` column that holds the observation count
+#'   or weight (default `NULL`).
+#' @param image_scale Default Seurat image scale (default `NULL`). Plotting and
+#'   spatial statistics functions use it when their own `image_scale` is `NULL`.
+#'   For multi-sample objects, give a named vector or list with one value for
+#'   each sample, or one unnamed value that applies to all samples.
+#' @param swap_coords Swap the two Seurat coordinate axes by default (default
+#'   `NULL`)? Plotting and spatial statistics functions use this value when their
+#'   own `swap_coords` is `NULL`. For multi-sample objects, give a named vector
+#'   or list with one value for each sample, or one unnamed value that applies to
+#'   all samples.
+#' @param metadata Named list of dataset-level metadata.
+#' @param polygons Polygon table (default `NULL`). The table has one row per
+#'   polygon, with a `polygon_id` column and a list column `vertices`. Each
+#'   `vertices` table needs columns `x` and `y`. It can also have `spatial_id`
+#'   and `image`. The function adds a `polygon_id` column and one logical
+#'   `polygon_<ID>` column per polygon to both the Seurat metadata and the
+#'   receptor table.
+#' @param polygons_path Path to a flat CSV file of polygon vertices (default
+#'   `NULL`). The file needs `x` and `y` columns and a `polygon_id` or `polygon`
+#'   column. The function annotates these polygons in the same way as
+#'   `polygons`.
+#' @param include_boundary Count spots on a polygon edge as members of the
+#'   polygon (default `TRUE`)?
+#' @param analyses Named list of derived analysis results.
+#' @param validate Validate the new object (default `TRUE`)?
+#'
+#' @return A SIRUP object (S3 class `sirup`).
+#' @seealso [validateSIRUP()], [mergeSIRUP()], [saveSIRUP()]
+#'
+#' @examples
+#' # Use the small synthetic object that comes with the package.
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' x
+#'
+#' # Build a SIRUP object from a Seurat object and a receptor table.
+#' sirup <- createSIRUP(
+#'   spatial = getSpatial(x),
+#'   receptors = getReceptors(x),
+#'   spatial_id = "spatial_id",
+#'   clone = "clone_id",
+#'   image_scale = "hires",
+#'   swap_coords = FALSE
+#' )
+#' sirup
 #' @export
 createSIRUP <- function(spatial,
                         receptors,
@@ -161,10 +187,31 @@ createSIRUP <- function(spatial,
 
 #' Validate a SIRUP object
 #'
-#' @param x Object to validate.
-#' @param verbose Whether to print a compact validation summary.
+#' `validateSIRUP` checks that the parts of a SIRUP object agree with each other.
 #'
-#' @return `x`, invisibly, when valid. Invalid objects raise an error.
+#' @details
+#' The function gives an error if one of these checks fails:
+#' \itemize{
+#'   \item The object does not have class `sirup`.
+#'   \item No receptor spatial ID matches a cell or spot name in the Seurat
+#'     object.
+#'   \item A column named in `metadata$receptor_fields` does not exist in the
+#'     receptor table.
+#'   \item The `sample` field is set, but the column is missing from the receptor
+#'     table or from the Seurat metadata.
+#' }
+#'
+#' @param x Object to validate.
+#' @param verbose Print a short summary of the result (default `FALSE`)?
+#'
+#' @return `x`, invisibly, if the object is valid. If not, the function gives an
+#'   error.
+#' @seealso [createSIRUP()], [isSIRUP()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' validateSIRUP(x)
+#' validateSIRUP(x, verbose = TRUE)
 #' @export
 validateSIRUP <- function(x, verbose = FALSE) {
   if (!isSIRUP(x)) {
@@ -269,9 +316,18 @@ validateSIRUP <- function(x, verbose = FALSE) {
 
 #' Test whether an object is a SIRUP object
 #'
-#' @param x An object.
+#' `isSIRUP` checks if an object has class `sirup`. It does not validate the
+#' object. Use [validateSIRUP()] for that.
 #'
-#' @return A single logical value.
+#' @param x Object to test.
+#'
+#' @return `TRUE` if `x` has class `sirup`. Otherwise, `FALSE`.
+#' @seealso [validateSIRUP()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' isSIRUP(x)
+#' isSIRUP(getReceptors(x))
 #' @export
 isSIRUP <- function(x) {
   inherits(x, "sirup")
@@ -279,20 +335,37 @@ isSIRUP <- function(x) {
 
 #' Merge SIRUP objects into one multi-sample object
 #'
-#' Combines existing SIRUP objects into a single multi-sample SIRUP object. Each
-#' input object contributes one spatial sample named by `samples`; receptor rows
-#' are row-bound after enforcing `sample_field`, spatial objects are stored in a
-#' named list, stored polygons are sample-tagged and retained, and analyses are
-#' kept in per-sample lists.
+#' `mergeSIRUP` combines several SIRUP objects into one multi-sample SIRUP
+#' object.
 #'
-#' @param ... SIRUP objects to merge.
-#' @param samples One sample name per SIRUP object.
-#' @param sample_field Receptor-table sample column to create or validate.
-#' @param keep_analyses Whether to keep stored analyses. When `TRUE`, each
-#'   analysis is stored as a named list keyed by `samples`.
-#' @param validate Whether to validate the merged object before returning.
+#' @details
+#' Each input object becomes one spatial sample, named by `samples`. The
+#' function does these steps:
+#' \itemize{
+#'   \item It sets `sample_field` in each receptor table, then binds the rows.
+#'   \item It stores the Seurat objects in a named list.
+#'   \item It adds the sample name to each stored polygon (if any) and keeps
+#'     the polygons.
+#'   \item It stores each analysis as a list with one entry per sample, if
+#'     `keep_analyses` is `TRUE`.
+#' }
+#'
+#' @param ... Two or more SIRUP objects to merge.
+#' @param samples Character vector of sample names. Give one unique, non-empty
+#'   name for each SIRUP object.
+#' @param sample_field Name of the receptor-table column that holds the sample
+#'   name (default `"sample_id"`). The function creates the column or checks it.
+#' @param keep_analyses Keep the stored analyses (default `TRUE`)? Each analysis
+#'   becomes a named list with one entry for each name in `samples`.
+#' @param validate Validate the merged object (default `TRUE`)?
 #'
 #' @return A multi-sample SIRUP object.
+#' @seealso [createSIRUP()], [subsetSIRUP()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' merged <- mergeSIRUP(x, x, samples = c("a", "b"))
+#' spatialSamples(merged)
 #' @export
 mergeSIRUP <- function(...,
                        samples,
@@ -377,20 +450,30 @@ mergeSIRUP <- function(...,
 
 #' Extract data from a SIRUP object
 #'
+#' `getSpatial` returns the Seurat object(s). `spatialSamples` returns the
+#' spatial sample names. `getReceptors` returns the receptor table.
+#'
 #' @param x A SIRUP object.
+#' @param sample Name of one spatial sample. Use it only if the object holds a
+#'   named list of Seurat objects.
 #'
-#' @param sample Optional spatial sample name to retrieve when the SIRUP object
-#'   contains a named spatial list.
+#' @return `getSpatial` returns the Seurat object. For a multi-sample object, it
+#'   returns the named list of Seurat objects, or one Seurat object if you give
+#'   `sample`. `spatialSamples` returns a character vector of sample names.
+#'   `getReceptors` returns the receptor tibble. If you give `sample`, it
+#'   returns only the rows for that sample.
+#' @seealso [getPolygons()], [getAnalysis()]
 #'
-#' @return `getSpatial()` returns the Seurat object, or the named list of
-#'   Seurat objects for multi-spatial SIRUP objects. `spatialSamples()` returns
-#'   spatial sample names. `getReceptors()` returns the receptor tibble, or the
-#'   receptor rows for one spatial sample when `sample` is supplied.
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' getSpatial(x)
+#' head(getReceptors(x))
+#' spatialSamples(x)
 #' @name sirup-accessors
 NULL
 
 # The roxygen NULL above intentionally creates one shared help topic for the
-# accessor functions below; it is not an unfinished function body.
+# accessor functions below.
 
 #' @rdname sirup-accessors
 #' @export
@@ -430,27 +513,47 @@ getReceptors <- function(x, sample = NULL) {
 
 #' Subset a SIRUP object
 #'
-#' Keeps the SIRUP object structure while subsetting spatial Seurat data,
-#' receptor rows, stored polygons, and analyses. Stored polygons are retained
-#' and re-applied to the subset so polygon metadata stays consistent.
+#' `subsetSIRUP` keeps selected samples, spatial IDs, and receptor rows of a
+#' SIRUP object. `filterSample` keeps only the samples you name.
+#'
+#' @details
+#' The function subsets the Seurat data, the receptor rows, the stored polygons,
+#' and the analyses. It applies the stored polygons again to the subset, so the
+#' polygon columns stay consistent.
 #'
 #' @param x A SIRUP object.
-#' @param sample Optional spatial sample name(s). Only available for
-#'   multi-spatial SIRUP objects.
-#' @param spatial_id Optional spatial ID/barcode values to keep. For
-#'   multi-spatial objects, the same IDs are matched within each selected
-#'   sample.
-#' @param receptor_rows Optional logical vector with length `nrow(getReceptors(x))`,
-#'   or a function that takes the receptor tibble and returns such a vector.
-#' @param keep_nonspatial_receptors When `spatial_id` is supplied, keep receptor
-#'   rows with missing spatial IDs after other filters are applied.
-#' @param keep_analyses Keep stored analyses. Defaults to `FALSE` because most
-#'   analyses are tied to the original spatial/receptor universe.
-#' @param drop_empty_spatial For multi-spatial objects, drop spatial samples
-#'   with no remaining cells after filtering by `spatial_id`.
-#' @param validate Whether to validate the subset object before returning it.
+#' @param sample Name or names of the spatial samples to keep. Use it only if
+#'   the object holds a named list of Seurat objects.
+#' @param spatial_id Spatial IDs (barcodes) to keep. In a multi-sample object,
+#'   the function matches the IDs in each selected sample.
+#' @param receptor_rows Logical vector with length `nrow(getReceptors(x))`, or a
+#'   function. The function takes the receptor tibble and returns such a vector.
+#'   The function keeps the rows where the vector is `TRUE`.
+#' @param keep_nonspatial_receptors Keep receptor rows that have no spatial ID
+#'   after the other filters (default `FALSE`)? The function uses this argument
+#'   only if you give `spatial_id`.
+#' @param keep_analyses Keep the stored analyses (default `FALSE`)? Most
+#'   analyses depend on the original spatial and receptor data.
+#' @param drop_empty_spatial Drop samples that have no cells left after the
+#'   `spatial_id` filter (default `TRUE`)? The function uses this argument only
+#'   for multi-sample objects.
+#' @param validate Validate the subset object (default `TRUE`)?
 #'
-#' @return A subset SIRUP object.
+#' @return A SIRUP object that contains the subset.
+#' @seealso [mergeSIRUP()], [createSIRUP()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#'
+#' # Keep three spots.
+#' subsetSIRUP(x, spatial_id = c("spot01", "spot02", "spot03"))
+#'
+#' # Keep the receptor rows of clone 2.
+#' subsetSIRUP(x, receptor_rows = function(receptors) receptors$clone_id == "2")
+#'
+#' # Keep one sample of a multi-sample object.
+#' merged <- mergeSIRUP(x, x, samples = c("a", "b"))
+#' filterSample(merged, "a")
 #' @export
 subsetSIRUP <- function(x,
                         sample = NULL,
@@ -569,26 +672,45 @@ filterSample <- function(x,
 
 #' Add or retrieve polygon geometry from a SIRUP object
 #'
-#' `addPolygons()` stores one canonical polygon table per SIRUP object. The
-#' input may be a nested `polygon_id`/`vertices` tibble or a flat vertex table
-#' such as the CSV returned by `selectSpatialPolygons()`.
-#' Stored polygons automatically annotate both the Seurat metadata and AIRR
-#' receptor table with a primary `polygon_id` column. When a barcode belongs to
-#' overlapping or nested polygons, the primary assignment uses the smallest
-#' matching polygon by area. Logical `polygon_<ID>` columns retain membership in
-#' each individual polygon.
+#' `addPolygons` stores a polygon table in a SIRUP object. It replaces any stored
+#' polygons. `getPolygons` returns the stored table.
+#'
+#' @details
+#' The input to `addPolygons` can be a nested tibble with `polygon_id` and
+#' `vertices` columns. It can also be a flat vertex table, such as the CSV file
+#' from [selectSpatialPolygons()].
+#'
+#' The function adds a `polygon_id` column to both the Seurat metadata and the
+#' receptor table. If a barcode lies in overlapping or nested polygons, it gets
+#' the ID of the smallest polygon by area. The function also adds one logical
+#' `polygon_<ID>` column for each polygon. These columns show membership in
+#' every polygon as booleans.
 #'
 #' @param x A SIRUP object.
-#' @param polygons Optional polygon table.
-#' @param polygons_path Optional path to a flat polygon vertex CSV, or a named
-#'   vector/list of CSV paths keyed by spatial sample for multi-spatial objects.
-#' @param sample Optional sample name(s) used to tag polygons loaded from
-#'   `polygons_path` when the path vector is not named.
-#' @param include_boundary Whether spots exactly on polygon edges should be
-#'   annotated as polygon members.
-#' @param validate Whether to validate the updated object.
-#' @return `getPolygons()` returns a polygon tibble. `addPolygons()` returns an
+#' @param polygons Polygon table.
+#' @param polygons_path Path to a flat CSV file of polygon vertices. For a
+#'   multi-sample object, give a named vector or list of paths, with one path
+#'   for each sample.
+#' @param sample Sample name or names to add to the polygons from
+#'   `polygons_path`. Use it only if the paths have no names.
+#' @param include_boundary Count spots on a polygon edge as members of the
+#'   polygon?
+#' @param validate Validate the updated object?
+#' @return `getPolygons` returns a polygon tibble. `addPolygons` returns the
 #'   updated SIRUP object.
+#' @seealso [selectSpatialPolygons()], [createSIRUP()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' getPolygons(x)
+#'
+#' # Replace the stored polygons with one polygon in the middle of the data.
+#' center <- tibble::tibble(
+#'   polygon_id = "center",
+#'   vertices = list(data.frame(x = c(2.5, 3.5, 3.5, 2.5), y = c(2.5, 2.5, 3.5, 3.5)))
+#' )
+#' x2 <- addPolygons(x, center)
+#' getPolygons(x2)$polygon_id
 #' @name sirup-polygons
 NULL
 
@@ -641,28 +763,34 @@ addPolygons <- function(x,
 
 #' Store and retrieve analyses in a SIRUP object
 #'
-#' Analysis results are stored as arbitrary R objects in the named
-#' `analyses` list. This is useful for keeping derived objects such as
-#' Dowser-formatted clones or trees, spatial statistics, and polygon summaries
-#' with the spatial and receptor data that produced them.
+#' `getAnalysis` returns one stored result. `setAnalysis` adds or replaces a
+#' result. `listAnalyses` returns the names of the stored results.
+#' `removeAnalysis` deletes a result.
 #'
-#' `getAnalysis()` retrieves one stored result. `setAnalysis()` adds or
-#' replaces a result and returns the updated SIRUP object. `listAnalyses()`
-#' returns the stored names, and `removeAnalysis()` removes a result.
-#'
-#' Older SIRUP objects without an `analyses` component are treated as having an
-#' empty analysis list and gain the component when `setAnalysis()` is called.
+#' @details
+#' The `analyses` list of a SIRUP object holds any R object. Use it to keep
+#' derived results with the data that produced them. Examples are Dowser clones
+#' and trees, spatial statistics, and polygon summaries.
 #'
 #' @param x A SIRUP object.
-#' @param name A single non-empty analysis name.
-#' @param value Any R object to store, including `NULL`.
-#' @param sample Optional spatial sample name for per-sample analysis storage
-#'   or retrieval.
-#' @param validate Whether to validate the updated SIRUP object.
+#' @param name Name of the analysis. Give one non-empty character string.
+#' @param value R object to store. It can be `NULL`.
+#' @param sample Name of a spatial sample. Use it to store or get a result for
+#'   one sample.
+#' @param validate Validate the updated SIRUP object?
 #'
-#' @return `getAnalysis()` returns the stored object. `listAnalyses()` returns
-#'   a character vector. `setAnalysis()` and `removeAnalysis()` return an
-#'   updated SIRUP object.
+#' @return `getAnalysis` returns the stored object. `listAnalyses` returns a
+#'   character vector. `setAnalysis` and `removeAnalysis` return the updated
+#'   SIRUP object.
+#' @seealso [updateAnalysis()], [mergeSIRUP()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' x <- setAnalysis(x, "n_clones", 5)
+#' listAnalyses(x)
+#' getAnalysis(x, "n_clones")
+#' x <- removeAnalysis(x, "n_clones")
+#' listAnalyses(x)
 #' @name sirup-analyses
 NULL
 
@@ -733,36 +861,57 @@ removeAnalysis <- function(x, name, validate = TRUE) {
 
 #' Update data stored in a SIRUP object
 #'
-#' These functions make it possible to use package or user functions to replace
-#' one component of a SIRUP object.
+#' `updateReceptors`, `updateSpatial`, and `updateAnalysis` apply a function to
+#' one part of a SIRUP object. They return the updated SIRUP object.
 #'
-#' `updateReceptors()` requires a data-frame result and stores it as a tibble.
-#' Existing receptor field mappings are retained. If an object was created
-#' before clone calling, a newly returned conventional `clone_id` column is
-#' automatically recorded as the clone field. Use `receptor_fields` to set or
-#' clear mappings explicitly after a transformation.
+#' @details
+#' `updateReceptors` needs a function that returns a data frame. The function
+#' stores the result as a tibble and keeps the existing field mappings. If the
+#' object has no clone field and the result has a `clone_id` column, the function
+#' records `clone_id` as the clone field. Use `receptor_fields` to set or clear a
+#' mapping yourself. If you give `sample`, the function applies `fun` to the rows
+#' of that sample only. It then puts the result back in the full table.
 #'
-#' `updateSpatial()` requires the function to return a Seurat object. For
-#' multi-spatial objects, `sample = NULL` applies `fun` to every Seurat object
-#' in the spatial list; a specific `sample` updates only that spatial object.
-#' `updateReceptors()` similarly updates either the full receptor table or only
-#' the rows for one sample, replacing that sample's rows in the combined table.
-#' `updateAnalysis()` operates on one result selected by `name`; use
-#' `setAnalysis()` to store a new result.
+#' `updateSpatial` needs a function that returns a Seurat object. In a
+#' multi-sample object, it applies `fun` to every Seurat object. If you give
+#' `sample`, it updates only that object.
+#'
+#' `updateAnalysis` applies `fun` to the stored result called `name`. To store a
+#' new result, use [setAnalysis()].
 #'
 #' @param x A SIRUP object.
-#' @param fun A function, or a character string naming a function. The selected
-#'   SIRUP component is supplied as its first argument.
-#' @param ... Additional arguments passed to `fun`.
-#' @param receptor_fields Optional named list updating one or more receptor
-#'   field mappings: `spatial_id`, `image`, `sample`, `clone`, `locus`, or `count`.
+#' @param fun Function, or the name of a function. The function receives the
+#'   selected part of the SIRUP object as its first argument.
+#' @param ... Other arguments for `fun`.
+#' @param receptor_fields Named list of receptor field mappings to change. The
+#'   names can be `spatial_id`, `image`, `sample`, `clone`, `locus`, or `count`.
 #'   A `NULL` value clears an optional mapping.
-#' @param sample Optional spatial sample to update for multi-spatial SIRUP
-#'   objects.
-#' @param name A single non-empty stored analysis name.
-#' @param validate Whether to validate the updated SIRUP object.
+#' @param sample Name of the spatial sample to update. Use it only for
+#'   multi-sample objects.
+#' @param name Name of the stored analysis. Give one non-empty character string.
+#' @param validate Validate the updated SIRUP object?
 #'
-#' @return An updated SIRUP object.
+#' @return The updated SIRUP object.
+#' @seealso [getReceptors()], [getSpatial()], [setAnalysis()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#'
+#' # Remove the sequences in clone 3.
+#' x2 <- updateReceptors(x, dplyr::filter, clone_id != "3")
+#' nrow(getReceptors(x2))
+#'
+#' # Add a Seurat metadata column.
+#' x3 <- updateSpatial(x, function(spatial) {
+#'   spatial$gene_rich <- spatial$nFeature_Spatial >= 8
+#'   spatial
+#' })
+#' table(getSpatial(x3)$gene_rich)
+#'
+#' # Change a stored result.
+#' x4 <- setAnalysis(x, "n_clones", 5)
+#' x4 <- updateAnalysis(x4, "n_clones", function(value) value + 1)
+#' getAnalysis(x4, "n_clones")
 #' @name sirup-transform
 NULL
 
@@ -851,13 +1000,9 @@ print.sirup <- function(x, ...) {
   receptor_fields <- .sirup_receptor_fields(x)
   polygon_count <- nrow(.sirup_polygons(x))
   spatial_count <- length(.sirup_spatial_names(x$spatial))
-  image_count <- if (requireNamespace("SeuratObject", quietly = TRUE)) {
-    sum(vapply(.sirup_spatial_objects(x$spatial), function(spatial) {
-      length(SeuratObject::Images(spatial))
-    }, integer(1)))
-  } else {
-    NA_integer_
-  }
+  image_count <- sum(vapply(.sirup_spatial_objects(x$spatial), function(spatial) {
+    length(SeuratObject::Images(spatial))
+  }, integer(1)))
 
   cat("<SIRUP object>\n")
   cat("Spatial data:    Seurat, ", format(info$n_spatial_ids, big.mark = ","), " ",

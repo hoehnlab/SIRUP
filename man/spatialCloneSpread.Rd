@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_statistics.R
 \name{spatialCloneSpread}
 \alias{spatialCloneSpread}
-\title{Summarize within-sample clone spatial spread}
+\title{Summarize the spatial spread of clones}
 \usage{
 spatialCloneSpread(
   object,
@@ -18,33 +18,54 @@ spatialCloneSpread(
 )
 }
 \arguments{
-\item{object}{SIRUP object, or a spatial Seurat object when \code{receptors} is supplied.}
+\item{object}{SIRUP object, or Seurat object with spatial images. For a Seurat
+object, give \code{receptors}.}
 
-\item{receptors}{Optional receptor table. Omitted for SIRUP input.}
+\item{receptors}{AIRR-style receptor table. Omit it if \code{object} is a SIRUP
+object.}
 
-\item{clone}{Clone ID column. Defaults to the SIRUP clone field when present.}
+\item{clone}{Name of the column that holds the clone IDs. If \code{NULL}, the
+function uses the stored clone field of a SIRUP object, if there is one.}
 
-\item{spatial_id}{Receptor spatial ID column. Defaults to the SIRUP spatial ID field.}
+\item{spatial_id}{Name of the column that holds the spatial IDs. If \code{NULL},
+the function uses the stored spatial ID field of a SIRUP object.}
 
-\item{clone_val}{Optional clone IDs to keep.}
+\item{clone_val}{Clone IDs to keep.}
 
-\item{images}{Optional image or spatial sample names.}
+\item{images}{Names of the images or samples to include.}
 
-\item{image_scale}{Image scale used for Seurat image coordinates.}
+\item{image_scale}{Image scale for the Seurat image coordinates.}
 
-\item{swap_coords}{Whether to swap x/y coordinates before calculating distances.}
+\item{swap_coords}{Swap the x and y coordinates before the function
+calculates distances?}
 
-\item{min_spatial_ids}{Minimum spatial observations required per sample/clone
-(distinct spots when \code{collapse_within_spot = TRUE}, otherwise sequences).}
+\item{min_spatial_ids}{Smallest number of observations that a clone needs in
+a sample (default 2). If \code{collapse_within_spot} is \code{TRUE}, the function
+counts distinct spots. Otherwise, it counts sequences.}
 
-\item{collapse_within_spot}{Collapse receptor sequences that share a spatial ID
-(same spot) to a single point before computing pairwise distances. Defaults to
-\code{FALSE}, which counts every sequence (so co-located sequences contribute
-zero-distance pairs); set \code{TRUE} to measure spread over distinct spots only.}
+\item{collapse_within_spot}{Merge the sequences that share a spatial ID into
+one point before the function calculates distances (default \code{FALSE})? If
+\code{FALSE}, the function counts every sequence, so sequences in the same spot
+give pairs with distance zero. Use \code{TRUE} to measure the spread over
+distinct spots only.}
 }
 \value{
-Tibble with one row per sample and clone.
+A tibble with one row for each sample and clone. The columns are
+\code{sample}, \code{clone_id}, \code{n_spatial_ids}, \code{mean_pairwise_distance}, and
+\code{max_pairwise_distance}.
 }
 \description{
-Summarize within-sample clone spatial spread
+\code{spatialCloneSpread} gives the distances between the spots of each clone in
+each sample.
+}
+\details{
+For each sample and clone, the function calculates the distance between every
+pair of points. It reports the mean and the maximum distance.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+spatialCloneSpread(x)
+}
+\seealso{
+\code{\link[=spatialCloneJoinCount]{spatialCloneJoinCount()}}
 }

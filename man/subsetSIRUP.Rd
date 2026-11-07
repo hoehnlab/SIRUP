@@ -21,32 +21,54 @@ filterSample(x, sample, keep_analyses = FALSE, validate = TRUE)
 \arguments{
 \item{x}{A SIRUP object.}
 
-\item{sample}{Optional spatial sample name(s). Only available for
-multi-spatial SIRUP objects.}
+\item{sample}{Name or names of the spatial samples to keep. Use it only if
+the object holds a named list of Seurat objects.}
 
-\item{spatial_id}{Optional spatial ID/barcode values to keep. For
-multi-spatial objects, the same IDs are matched within each selected
-sample.}
+\item{spatial_id}{Spatial IDs (barcodes) to keep. In a multi-sample object,
+the function matches the IDs in each selected sample.}
 
-\item{receptor_rows}{Optional logical vector with length \code{nrow(getReceptors(x))},
-or a function that takes the receptor tibble and returns such a vector.}
+\item{receptor_rows}{Logical vector with length \code{nrow(getReceptors(x))}, or a
+function. The function takes the receptor tibble and returns such a vector.
+The function keeps the rows where the vector is \code{TRUE}.}
 
-\item{keep_nonspatial_receptors}{When \code{spatial_id} is supplied, keep receptor
-rows with missing spatial IDs after other filters are applied.}
+\item{keep_nonspatial_receptors}{Keep receptor rows that have no spatial ID
+after the other filters (default \code{FALSE})? The function uses this argument
+only if you give \code{spatial_id}.}
 
-\item{keep_analyses}{Keep stored analyses. Defaults to \code{FALSE} because most
-analyses are tied to the original spatial/receptor universe.}
+\item{keep_analyses}{Keep the stored analyses (default \code{FALSE})? Most
+analyses depend on the original spatial and receptor data.}
 
-\item{drop_empty_spatial}{For multi-spatial objects, drop spatial samples
-with no remaining cells after filtering by \code{spatial_id}.}
+\item{drop_empty_spatial}{Drop samples that have no cells left after the
+\code{spatial_id} filter (default \code{TRUE})? The function uses this argument only
+for multi-sample objects.}
 
-\item{validate}{Whether to validate the subset object before returning it.}
+\item{validate}{Validate the subset object (default \code{TRUE})?}
 }
 \value{
-A subset SIRUP object.
+A SIRUP object that contains the subset.
 }
 \description{
-Keeps the SIRUP object structure while subsetting spatial Seurat data,
-receptor rows, stored polygons, and analyses. Stored polygons are retained
-and re-applied to the subset so polygon metadata stays consistent.
+\code{subsetSIRUP} keeps selected samples, spatial IDs, and receptor rows of a
+SIRUP object. \code{filterSample} keeps only the samples you name.
+}
+\details{
+The function subsets the Seurat data, the receptor rows, the stored polygons,
+and the analyses. It applies the stored polygons again to the subset, so the
+polygon columns stay consistent.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+
+# Keep three spots.
+subsetSIRUP(x, spatial_id = c("spot01", "spot02", "spot03"))
+
+# Keep the receptor rows of clone 2.
+subsetSIRUP(x, receptor_rows = function(receptors) receptors$clone_id == "2")
+
+# Keep one sample of a multi-sample object.
+merged <- mergeSIRUP(x, x, samples = c("a", "b"))
+filterSample(merged, "a")
+}
+\seealso{
+\code{\link[=mergeSIRUP]{mergeSIRUP()}}, \code{\link[=createSIRUP]{createSIRUP()}}
 }

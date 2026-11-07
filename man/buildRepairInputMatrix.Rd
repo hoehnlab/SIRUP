@@ -2,26 +2,53 @@
 % Please edit documentation in R/spaced_pairing.R
 \name{buildRepairInputMatrix}
 \alias{buildRepairInputMatrix}
-\title{Build REPAIR input for SPaCeD}
+\title{Build the REPAIR input table}
 \usage{
 buildRepairInputMatrix(heavy_points, light_points, sparse = FALSE)
 }
 \arguments{
-\item{heavy_points}{Heavy-chain clone spatial table with \code{clone_id},
+\item{heavy_points}{Heavy chain clone table with the columns \code{clone_id},
 \code{barcode}, and \code{n}.}
 
-\item{light_points}{Light-chain clone spatial table with \code{clone_id},
+\item{light_points}{Light chain clone table with the columns \code{clone_id},
 \code{barcode}, and \code{n}.}
 
-\item{sparse}{Return a sparse \code{Matrix} instead of a dense data frame.}
+\item{sparse}{Return a sparse \code{Matrix} and not a dense data frame (default
+\code{FALSE})?}
 }
 \value{
-Barcode-by-clone count table. Dense output includes a \code{barcode}
-column; sparse output has barcodes as row names and clones as column names.
+A table of counts of barcodes by clones. The dense output is a data
+frame with a \code{barcode} column. The sparse output has the barcodes as row
+names and the clones as column names.
 }
 \description{
-REPAIR expects a spatial observation-by-clone expression table with heavy and
-light clone columns distinguishable by regex patterns such as \code{"^heavy"} and
-\code{"^light"}. This helper builds that matrix directly from SPaCeD/SIRUP clone
-point tables.
+\code{buildRepairInputMatrix} makes the table that REPAIR reads. The table has one
+row for each spatial barcode and one column for each heavy or light clone.
+}
+\details{
+REPAIR expects a table of spatial observations by clones. It tells the heavy
+and light clone columns apart with patterns such as \code{"^heavy"} and
+\code{"^light"}. The function builds the table from the clone tables of SPaCeD and
+SIRUP.
+}
+\examples{
+spots <- data.frame(
+  barcode = paste0("s", 1:6),
+  x = c(1, 2, 3, 1, 2, 3),
+  y = c(1, 1, 1, 2, 2, 2)
+)
+heavy <- data.frame(
+  barcode = c("s1", "s2", "s3", "s4", "s5"),
+  clone_id = c("H1", "H1", "H1", "H2", "H2")
+)
+light <- data.frame(
+  barcode = c("s1", "s2", "s4", "s5", "s6"),
+  clone_id = c("L1", "L1", "L2", "L2", "L2")
+)
+heavy_points <- buildSpacedCloneTable(heavy, positions = spots, clone_prefix = "heavy_")
+light_points <- buildSpacedCloneTable(light, positions = spots, clone_prefix = "light_")
+buildRepairInputMatrix(heavy_points, light_points)
+}
+\seealso{
+\code{\link[=writeRepairInputMatrix]{writeRepairInputMatrix()}}, \code{\link[=repairAnalyzeCommand]{repairAnalyzeCommand()}}
 }

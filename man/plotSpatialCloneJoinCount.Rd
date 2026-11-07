@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_statistics.R
 \name{plotSpatialCloneJoinCount}
 \alias{plotSpatialCloneJoinCount}
-\title{Plot a spatial clone join-count result}
+\title{Plot a clone join-count result}
 \usage{
 plotSpatialCloneJoinCount(
   join_count,
@@ -30,62 +30,83 @@ plotSpatialCloneJoinCount(
 )
 }
 \arguments{
-\item{join_count}{Output from \code{\link[=spatialCloneJoinCount]{spatialCloneJoinCount()}} created with
+\item{join_count}{Result of \code{\link[=spatialCloneJoinCount]{spatialCloneJoinCount()}}. Run that function with
 \code{return_data = TRUE}.}
 
 \item{object}{Seurat object with spatial images, or a SIRUP object.}
 
 \item{clone_val}{Clone ID to plot.}
 
-\item{images}{Optional image names to include.}
+\item{images}{Names of the images to plot.}
 
-\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
+\item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
+objects. If \code{NULL}, the function plots all samples.}
 
-\item{polygon_val}{Optional polygon IDs to include.}
+\item{polygon_val}{IDs of the polygons to include.}
 
-\item{polygon}{Optional polygon vertex data frame to draw over the tissue.}
+\item{polygon}{Data frame of polygon vertices to draw on the tissue.}
 
-\item{image_scale}{Image scale passed to
-\code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate axes.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object.}
 
-\item{show_neighbors}{Draw edges between neighboring spots that both contain
-the selected clone.}
+\item{show_neighbors}{Draw a line between each pair of neighboring spots that
+both contain the clone (default \code{TRUE})?}
 
-\item{clone_color}{Color for selected-clone spots and neighbor edges.}
+\item{clone_color}{Color of the spots and lines for the clone.}
 
-\item{other_color}{Color for other receptor-positive spots.}
+\item{other_color}{Color of the other spots that have receptors.}
 
-\item{point_size}{Size of plotted spots.}
+\item{point_size}{Size of the spots.}
 
-\item{point_alpha}{Opacity of plotted spots.}
+\item{point_alpha}{Opacity of the spots.}
 
-\item{edge_width}{Width of neighbor edges.}
+\item{edge_width}{Width of the neighbor lines.}
 
-\item{edge_alpha}{Opacity of neighbor edges.}
+\item{edge_alpha}{Opacity of the neighbor lines.}
 
-\item{polygon_color}{Color of polygon outlines.}
+\item{polygon_color}{Color of the polygon outlines.}
 
-\item{polygon_linewidth}{Width of polygon outlines.}
+\item{polygon_linewidth}{Width of the polygon outlines.}
 
-\item{image_alpha}{Tissue image opacity.}
+\item{image_alpha}{Opacity of the tissue image.}
 
-\item{zoom}{Zoom the spatial panel to the spots used in the test.}
+\item{zoom}{Zoom to the spots in the test (default \code{FALSE})?}
 
-\item{title}{Optional title for the combined plot.}
+\item{title}{Title of the combined plot.}
 
-\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
-from different spatial samples into one figure. Defaults to \code{FALSE}, so
-multi-sample calls return a named list of per-sample plots.}
+\item{combine_sample_plots}{Combine the plots of all samples into one figure
+(default \code{FALSE})? The function uses it only for multi-sample objects. If
+\code{FALSE}, it returns a named list with one plot for each sample.}
 }
 \value{
-One combined ggplot object, or a named list of plots for
-multi-sample objects when \code{combine_sample_plots = FALSE}.
+A ggplot object. For a multi-sample object and
+\code{combine_sample_plots = FALSE}, a named list of plots.
 }
 \description{
-Combines a tissue map of one tested clone with its observed and expected
-same-clone join counts. The map uses the same receptor-positive spots and
-neighborhood graph that were used by \code{\link[=spatialCloneJoinCount]{spatialCloneJoinCount()}}.
+\code{plotSpatialCloneJoinCount} plots the tissue map of one tested clone. It also
+shows the observed and expected number of joins between spots of the same
+clone.
+}
+\details{
+The map uses the same spots and the same neighbor graph as the call to
+\code{\link[=spatialCloneJoinCount]{spatialCloneJoinCount()}}.
+
+If the data come from more than one image, or a sirup object with multiple samples,
+then the function builds a list of plots, one for each sample or image.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+join_count <- spatialCloneJoinCount(
+  x,
+  use_stored_polygons = FALSE,
+  k = 4,
+  return_data = TRUE
+)
+plotSpatialCloneJoinCount(join_count, x, clone_val = "2")
+}
+\seealso{
+\code{\link[=spatialCloneJoinCount]{spatialCloneJoinCount()}}
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_statistics.R
 \name{spatialMoran}
 \alias{spatialMoran}
-\title{Calculate global Moran's I for a spatial variable}
+\title{Calculate global Moran's I}
 \usage{
 spatialMoran(
   object,
@@ -23,49 +23,84 @@ spatialMoran(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{variable}{Feature or metadata column to analyze.}
+\item{variable}{Name of the feature or the metadata column to test.}
 
-\item{variable_type}{One of \code{feature}, \code{metadata}, \code{receptor}, or \code{clone}.
-Use \code{clone} to calculate Moran's I for a binary indicator marking spots
-that contain a particular clone ID.}
+\item{variable_type}{Type of \code{variable}: \code{feature} (gene expression),
+\code{metadata} (Seurat metadata column), \code{receptor} (receptor table column),
+or \code{clone} (clone ID).}
 
-\item{value}{Optional metadata value to convert to a binary indicator.}
+\item{value}{Metadata value to convert to a 0/1 indicator (default \code{NULL}).}
 
-\item{receptors}{AIRR-style receptor data frame. Required when
-\code{variable_type = "receptor"} or \code{"clone"} unless \code{object} is a SIRUP
+\item{receptors}{AIRR-style receptor table. You must give it if
+\code{variable_type} is \code{"receptor"} or \code{"clone"} and \code{object} is not a SIRUP
 object.}
 
-\item{spatial_id}{Spatial ID column in \code{receptors}. Defaults to \code{NULL}; when
-\code{object} is a SIRUP object, the stored receptor ID field is used.
-Pass this explicitly when using separate Seurat and receptor objects.}
+\item{spatial_id}{Name of the \code{receptors} column that holds the spatial IDs.
+If \code{object} is a SIRUP object and this argument is \code{NULL}, the function uses
+the stored spatial ID field. Give a value if you use separate Seurat and
+receptor objects.}
 
-\item{clone}{Clone column in \code{receptors}; used only when
-\code{variable_type = "clone"}. Defaults to \code{NULL}; when \code{object} is a SIRUP
-object, the stored receptor clone field is used when available.}
+\item{clone}{Name of the \code{receptors} column that holds the clone IDs. The
+function uses it only if \code{variable_type} is \code{"clone"}. If \code{object} is a
+SIRUP object and this argument is \code{NULL}, the function uses the stored
+clone field, if there is one.}
 
-\item{assay}{Optional assay to use when \code{variable_type = "feature"}.}
+\item{assay}{Assay to use if \code{variable_type} is \code{"feature"}.}
 
-\item{layer}{Seurat expression layer to fetch for features.}
+\item{layer}{Seurat expression layer to use for features (default
+\code{"counts"}).}
 
-\item{images}{Optional Seurat image names.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{radius}{Optional distance radius defining neighborhoods.}
+\item{radius}{Distance that defines a neighborhood. If \code{NULL}, the function
+uses \code{k}.}
 
-\item{k}{Number of nearest neighbors when \code{radius} is \code{NULL}.}
+\item{k}{Number of nearest neighbors, used if \code{radius} is \code{NULL} (default 6).}
 
-\item{alternative}{Alternative hypothesis passed to \code{spdep::moran.test()}.}
+\item{alternative}{Alternative hypothesis for \code{spdep::moran.test()} (default
+\code{"greater"}).}
 }
 \value{
-List containing the Moran test, input data, neighbors, and weights.
+For one image, a list with these items: \code{test} (the
+\code{spdep::moran.test()} result), \code{data} (the values tested), \code{neighbors} and
+\code{weights} (from \code{spdep}), \code{radius}, \code{k}, and \code{variable}. For several
+images, the list has \code{tests}, \code{neighbors}, and \code{weights} as named lists with
+one entry for each image. It also has \code{summary}, a data frame with one row
+for each image (\code{image}, \code{statistic}, \code{p_value}, \code{moran_i}, \code{expectation},
+\code{variance}), and the items \code{data}, \code{radius}, \code{k}, and \code{variable}.
 }
 \description{
-Calculate global Moran's I for a spatial variable
+\code{spatialMoran} tests one variable for spatial autocorrelation across spots using Moran's I.
+}
+\details{
+The function builds a neighbor graph from the spot coordinates. It uses all
+spots within \code{radius}. If \code{radius} is \code{NULL}, it uses the \code{k} nearest spots
+(or fewer, if the image has fewer spots). Then it calls \code{spdep::moran.test()}
+on the variable values. The function drops spots with non-finite values.
+
+If the data come from more than one image, or a sirup object with multiple samples,
+then the function builds one graph and runs one test for each sample or image.
+
+Set \code{variable_type = "clone"} to test where one clone occurs. The function
+makes a 0/1 value for each spot: 1 if sthe spot contains the clone, 0 if not.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+
+# Test gene1 for spatial autocorrelation.
+result <- spatialMoran(x, "gene1", k = 4)
+result$test
+
+}
+\seealso{
+\code{\link[=spatialLocalMoran]{spatialLocalMoran()}}, \code{\link[=spatialLee]{spatialLee()}}, \code{\link[=spatialCloneJoinCount]{spatialCloneJoinCount()}}
 }

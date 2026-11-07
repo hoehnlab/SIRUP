@@ -2,24 +2,41 @@
 % Please edit documentation in R/processing.R
 \name{processSpatialSamples}
 \alias{processSpatialSamples}
-\title{Process multiple spatial samples}
+\title{Process several spatial samples}
 \usage{
 processSpatialSamples(inputs, output_dirs = NULL, sample_names = NULL, ...)
 }
 \arguments{
-\item{inputs}{List or character vector of inputs, one per sample. Each is
-passed to \code{processSpatialSample()} and can be a reads file, an AIRR TSV
-path, or an AIRR data frame.}
+\item{inputs}{List or character vector of inputs, one for each sample. Each
+input goes to \code{\link[=processSpatialSample]{processSpatialSample()}}. It can be a reads file, the path of
+an AIRR TSV, or an AIRR data frame.}
 
-\item{output_dirs}{Optional vector of output directories, one per input.}
+\item{output_dirs}{Vector of output directories, one for each input. If
+\code{NULL}, each sample uses the default of \code{\link[=processSpatialSample]{processSpatialSample()}}.}
 
-\item{sample_names}{Optional vector of sample names, one per input.}
+\item{sample_names}{Vector of sample names, one for each input. If \code{NULL},
+the function uses the file name of each input, or \verb{sample_<i>} for a data
+frame.}
 
-\item{...}{Passed to \code{processSpatialSample()}.}
+\item{...}{Other arguments for \code{\link[=processSpatialSample]{processSpatialSample()}}.}
 }
 \value{
-A list of output path lists, invisibly.
+A list with one list of output paths for each sample, invisibly.
 }
 \description{
-Process multiple spatial samples
+\code{processSpatialSamples} runs \code{\link[=processSpatialSample]{processSpatialSample()}} on each input in turn.
+}
+\examples{
+\dontrun{
+# This example needs IgBLAST, pRESTO, vsearch, and MUSCLE.
+results <- processSpatialSamples(
+  c("sample1_reads.fasta.gz", "sample2_reads.fasta.gz"),
+  output_dirs = c("sample1_output", "sample2_output"),
+  receptor = "ig",
+  imgt_dir = "~/share/germlines/imgt"
+)
+}
+}
+\seealso{
+\code{\link[=processSpatialSample]{processSpatialSample()}}
 }

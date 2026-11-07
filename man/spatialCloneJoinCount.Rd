@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_statistics.R
 \name{spatialCloneJoinCount}
 \alias{spatialCloneJoinCount}
-\title{Test clone localization with join-count statistics}
+\title{Test clone localization with join counts}
 \usage{
 spatialCloneJoinCount(
   object,
@@ -29,76 +29,108 @@ spatialCloneJoinCount(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{receptors}{AIRR-style receptor data frame containing spatial IDs
-and clone calls. May be omitted when \code{object} is a SIRUP object.}
+\item{receptors}{AIRR-style receptor table with spatial IDs and clone IDs.
+Omit if \code{object} is a SIRUP object.}
 
-\item{clone}{Column in \code{receptors} containing clone IDs. Defaults to
-\code{NULL}; when \code{object} is a SIRUP object, the stored receptor clone field
-is used when available.}
+\item{clone}{Name of the \code{receptors} column that holds the clone IDs. If
+\code{object} is a SIRUP object and this argument is \code{NULL}, the function uses
+the stored clone field, if there is one.}
 
-\item{spatial_id}{Column in \code{receptors} matching Seurat spot/cell spatial IDs.
-Defaults to \code{NULL}; when \code{object} is a SIRUP object, the stored receptor
-spatial_id field is used. Pass this explicitly when using separate Seurat and
+\item{spatial_id}{Name of the \code{receptors} column that holds the spatial IDs.
+If \code{object} is a SIRUP object and this argument is \code{NULL}, the function uses
+the stored spatial ID field. Give a value if you use separate Seurat and
 receptor objects.}
 
-\item{clone_val}{Optional clone ID values to test. Defaults to all clones
-observed in at least \code{min_spatial_ids} spatial IDs.}
+\item{clone_val}{Clone IDs to test. If \code{NULL}, the function tests all clones
+that occur in at least \code{min_spatial_ids} spatial IDs.}
 
-\item{polygon}{Optional polygon vertex data frame used to restrict the test
-to one or more regions.}
+\item{polygon}{Data frame of polygon vertices. The function tests only the
+spots inside these polygons (default \code{NULL}).}
 
-\item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon}
-exists.}
+\item{polygon_val}{Polygon IDs to select from \code{polygon}.}
 
-\item{images}{Optional Seurat image names.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{image_scale}{Image scale passed to
-\code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{x}{Coordinate column in \code{polygon}.}
+\item{x}{Name of the x-coordinate column in \code{polygon} (default \code{"x"}).}
 
-\item{y}{Coordinate column in \code{polygon}.}
+\item{y}{Name of the y-coordinate column in \code{polygon} (default \code{"y"}).}
 
-\item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
+\item{polygon_id}{Name of the column in \code{polygon} that groups the vertices
+by polygon (default \code{"polygon"}).}
 
-\item{include_boundary}{Include Seurat spots on polygon edges.
-Ignored when \code{object} is a SIRUP object with stored polygons and \code{polygon}
-is \code{NULL}; in that case stored polygon annotations are used.}
+\item{include_boundary}{Count spots on a polygon edge as inside the polygon
+(default \code{TRUE})? The function ignores this argument if \code{object} is a
+SIRUP object with stored polygons and \code{polygon} is \code{NULL}. In that case,
+it uses the stored polygon annotations.}
 
-\item{min_spatial_ids}{Minimum number of spatial IDs containing a clone for
-that clone to be tested.}
+\item{min_spatial_ids}{Smallest number of spatial IDs that a clone needs to
+be tested (default 2).}
 
-\item{radius}{Optional distance radius defining neighborhoods.}
+\item{radius}{Distance that defines a neighborhood. If \code{NULL}, the function
+uses \code{k}.}
 
-\item{k}{Number of nearest neighbors when \code{radius} is \code{NULL}.}
+\item{k}{Number of nearest neighbors, used if \code{radius} is \code{NULL} (default 6).}
 
-\item{alternative}{Alternative hypothesis passed to
-\code{spdep::joincount.test()}.}
+\item{alternative}{Alternative hypothesis for \code{spdep::joincount.test()}
+(default \code{"greater"}).}
 
-\item{other_label}{Label used for non-target clone spatial IDs in each binary
-test.}
+\item{other_label}{Label for the spatial IDs that do not contain the tested
+clone (default \code{"Other"}).}
 
-\item{use_stored_polygons}{Whether to run one join-count test per stored polygon
-(e.g. per GC) in a SIRUP object. \code{NULL} (default) auto-detects: \code{TRUE} when a
-SIRUP object has stored polygons and \code{polygon} is not supplied, otherwise
-\code{FALSE}. Set \code{FALSE} to force one tissue-wide neighbor graph per spatial
-sample (ignoring any stored polygons); set \code{TRUE} to require stored-polygon tests.}
+\item{use_stored_polygons}{Run one test for each stored polygon of a SIRUP
+object? Use \code{TRUE} to require stored polygons. Use \code{FALSE} to build one
+neighbor graph for each sample and ignore stored polygons. If \code{NULL}
+(default), the function uses \code{TRUE} when a SIRUP object has stored polygons
+and you give no \code{polygon}. Otherwise, it uses \code{FALSE}.}
 
-\item{return_data}{Return the spatial_id-level mark data used for each test.}
+\item{return_data}{Return the data used for each test (default \code{FALSE})?}
 }
 \value{
-List containing a summary table, raw \code{spdep} tests, spatial_id-level
-data, neighbors, and weights.
+A list with these items: \code{summary} (a table with one row for each
+tested clone and region, ordered by p-value), \code{tests} (the \code{spdep} test
+results), \code{data} (the data for each test,
+or \code{NULL} if \code{return_data} is \code{FALSE}), \code{neighbors}, \code{weights}, \code{radius},
+\code{k}, \code{alternative}, and \code{min_spatial_ids}.
 }
 \description{
-Runs \code{spdep::joincount.test()} for each clone to test whether neighboring
-receptor-positive spatial IDs are more likely to share that clone than
-expected under random labeling. This is useful for asking whether clones
-localize within regions of interest such as germinal centers.
+\code{spatialCloneJoinCount} tests if each clone clusters in space.
+}
+\details{
+The function calls \code{spdep::joincount.test()} for each clone. The test asks if
+neighboring spots with receptors share the clone more often than random
+labels would give.
+
+The function skips a clone if it occurs in fewer than \code{min_spatial_ids}
+spatial IDs, or in every spatial ID of the region.
+
+If \code{object} is a SIRUP object with stored polygons and you give no \code{polygon},
+the function runs one test for each stored polygon. Set \code{use_stored_polygons} to FALSE
+to change this.
+
+If the data come from more than one image, or a sirup object with multiple samples,
+then the function builds one graph and runs one test for each sample or image.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+
+# Test each clone on the whole tissue.
+join_count <- spatialCloneJoinCount(
+  x,
+  use_stored_polygons = FALSE,
+  k = 4,
+  return_data = TRUE
+)
+join_count$summary[, c("clone_id", "observed_join_count", "expected_join_count", "p_value")]
+}
+\seealso{
+\code{\link[=plotSpatialCloneJoinCount]{plotSpatialCloneJoinCount()}}, \code{\link[=spatialMoran]{spatialMoran()}}
 }

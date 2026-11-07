@@ -2,7 +2,7 @@
 % Please edit documentation in R/processing.R
 \name{processSpatialSample}
 \alias{processSpatialSample}
-\title{Process one spatial sample from raw reads to an AIRR table}
+\title{Process one spatial sample from reads to an AIRR table}
 \usage{
 processSpatialSample(
   input,
@@ -43,213 +43,256 @@ processSpatialSample(
 )
 }
 \arguments{
-\item{input}{Raw reads (FASTA/FASTQ, optionally gzipped), an AIRR TSV
-path, an AIRR data frame, or a pRESTO-ready spatial FASTA.}
+\item{input}{Raw reads (FASTA or FASTQ, optionally gzipped), the path of an
+AIRR TSV, an AIRR data frame, or a FASTA that is ready for pRESTO.}
 
-\item{output_dir}{Directory for all outputs. Defaults to the input file's
-directory. Required when \code{input} is a data frame.}
+\item{output_dir}{Directory for all outputs. The default is the directory of
+the input file. You must give it if \code{input} is a data frame.}
 
-\item{receptor}{Either \code{ig} for BCR or \code{tr} for TCR IgBLAST loci.}
+\item{receptor}{\code{"ig"} for BCR loci or \code{"tr"} for TCR loci.}
 
-\item{organism}{The organism for which to perform the analysis.}
+\item{organism}{Organism of the sample (default \code{"human"}).}
 
-\item{input_type}{How to treat \code{input}. The default \code{"auto"} detects the
-type from the object class and file extension: FASTA/FASTQ paths become
-\code{"raw_reads"}. Pass \code{"spatial_fasta"} to feed a pRESTO-ready FASTA
-straight to the consensus pipeline.
-Newly demultiplexed rrad FASTA should use \code{"auto"} or \code{"raw_reads"}:
-\code{"spatial_fasta"} skips the first read-level V(D)J annotation and filtering.}
+\item{input_type}{How to treat \code{input}: \code{"auto"} (default), \code{"raw_reads"},
+\code{"airr"}, or \code{"spatial_fasta"}. With \code{"auto"}, the function finds the type
+from the class of the object and the file extension. A FASTA or FASTQ path
+becomes \code{"raw_reads"}. Use \code{"spatial_fasta"} to send a FASTA that is ready
+for pRESTO straight to the consensus workflow. For a new rrad FASTA, use
+\code{"auto"} or \code{"raw_reads"}, because \code{"spatial_fasta"} skips the first
+annotation of V(D)J genes and the filtering of the reads.}
 
-\item{filter_args}{Named list of \code{\link[=filterAirr]{filterAirr()}} overrides. Pipeline
-defaults: \code{complete_vdj = TRUE}, \code{min_consensus_count = NULL},
-\code{spatial_id = "barcode"}, \code{add_spatial_sequence_id = TRUE},
-\code{spatial_id_key = cluster_field}. An explicit \code{NULL} disables an
-optional filter (\code{locus_val}, \code{min_consensus_count}, \code{max_opening_gap},
-or \code{spatial_id}); other parameters do not accept \code{NULL}.}
+\item{filter_args}{Named list that changes arguments of \code{\link[=filterAirr]{filterAirr()}}. The
+pipeline defaults are \code{complete_vdj = TRUE}, \code{min_consensus_count = NULL},
+\code{spatial_id = "barcode"}, \code{add_spatial_sequence_id = TRUE}, and
+\code{spatial_id_key = cluster_field}. A \code{NULL} value turns off an optional
+filter (\code{locus_val}, \code{min_consensus_count}, \code{max_opening_gap}, or
+\code{spatial_id}). The other arguments do not accept \code{NULL}.}
 
 \item{invalid_spatial_ids}{What to do with filtered rows whose spatial
-barcode is missing or contains a delimiter: \code{"abort"} (default) stops
-with a count, \code{"drop"} removes those rows with a warning.}
+barcode is missing or holds a delimiter: \code{"abort"} (default) stops with a
+count, and \code{"drop"} removes the rows with a warning.}
 
-\item{fasta_sequence_col}{AIRR column written to the spatial FASTA.
-Defaults to \code{sequence_alignment} (the V(D)J-aligned region), which
-keeps flanking read junk out of clustering and consensus calling. Use
-\code{sequence} for the full read.}
+\item{fasta_sequence_col}{Name of the AIRR column to write to the spatial
+FASTA (default \code{"sequence_alignment"}, the aligned V(D)J region). This
+keeps extra read sequence out of the clustering and consensus steps. Use
+\code{"sequence"} to write the full read.}
 
-\item{sample_name}{Stem for intermediate file names. Defaults to the
-input file name without extension, or \code{"sample"} for data frames.}
+\item{sample_name}{Stem of the intermediate file names. The default is the
+input file name without the extension, or \code{"sample"} for a data frame.}
 
-\item{identity}{Cluster identity threshold passed to \code{ClusterSets.py}.}
+\item{identity}{Identity threshold for the clusters, passed to
+\code{ClusterSets.py} (default 0.975).}
 
-\item{consensus_freq}{Consensus frequency threshold passed to
-\code{BuildConsensus.py}.}
+\item{consensus_freq}{Frequency threshold for the consensus, passed to
+\code{BuildConsensus.py} (default 0.51).}
 
-\item{germline_glob}{Optional. Only used to find \code{imgt_dir} when that is
-\code{NULL}: a glob such as \verb{<imgt_dir>/human/vdj/imgt_human_*.fasta}.}
+\item{germline_glob}{Pattern of the germline files, such as
+\verb{<imgt_dir>/human/vdj/imgt_human_*.fasta}. The function uses it only to
+find \code{imgt_dir} if \code{imgt_dir} is \code{NULL}.}
 
-\item{igblast_refs}{Folder that holds the IgBLAST \verb{database/} and \verb{fasta/}
-folders (the \code{refs} argument of \code{airrblast::assignGenes()}). When \code{NULL},
-uses \code{igblast_base}.}
+\item{igblast_refs}{Folder with the IgBLAST \verb{database/} and \verb{fasta/} folders
+(the \code{refs} argument of \code{airrblast::assignGenes()}). If \code{NULL}, the
+function uses \code{igblast_base}.}
 
-\item{imgt_dir}{IMGT folder with gapped germlines at
+\item{imgt_dir}{IMGT folder with the gapped germlines, at
 \verb{<imgt_dir>/<organism>/vdj} (the \code{gapdb} argument of
-\code{airrblast::addGaps()}). When \code{NULL}, it is taken from \code{germline_glob},
-which must then point into a \verb{<organism>/vdj} folder.}
+\code{airrblast::addGaps()}). If \code{NULL}, the function finds it from
+\code{germline_glob}, which must point into a \verb{<organism>/vdj} folder.}
 
-\item{igblast_base}{IgBLAST installation folder, passed to
-\code{airrblast::assignGenes()} as \code{igblast}. It must hold \code{bin/igblastn}.}
+\item{igblast_base}{IgBLAST installation folder (default
+\code{"~/software/igblast"}). The function passes it to
+\code{airrblast::assignGenes()} as \code{igblast}. The folder must hold
+\code{bin/igblastn}.}
 
-\item{muscle_exec}{Path passed to \code{AlignSets.py --exec}.}
+\item{muscle_exec}{Path of the MUSCLE program, passed to \code{AlignSets.py --exec} (default \code{"~/software/muscle3.8.31_i86linux64"}).}
 
-\item{nproc}{Number of processors for the raw IgBLAST step, pRESTO, and
-gene assignment.}
+\item{nproc}{Number of processors for the IgBLAST step on raw reads, for
+pRESTO, and for the gene assignment (default 8).}
 
-\item{cluster_field}{FASTA header field used for within-spot clustering.
-The pipeline writes headers keyed by this name; the default \code{"barcode"}
-uses the parsed rrad \code{BARCODE} field. Override it for other spatial ID fields, for
-example \code{barcode_8um}.}
+\item{cluster_field}{FASTA header field for the clustering within a spot
+(default \code{"barcode"}, the parsed rrad \code{BARCODE} field). The pipeline writes
+the headers with this field name. Change it for other spatial ID fields,
+such as \code{barcode_8um}.}
 
-\item{delimiters}{Character vector of pRESTO delimiter values passed
-after \code{--delim}. Defaults to \code{c("|", "=", ",")}.}
+\item{delimiters}{Character vector of the pRESTO delimiters, passed after
+\code{--delim} (default \code{c("|", "=", ",")}).}
 
-\item{parse_fields}{Header fields passed to \verb{ParseHeaders.py merge -f}.}
+\item{parse_fields}{Header fields for \verb{ParseHeaders.py merge -f} (default
+\code{c(cluster_field, "cluster")}).}
 
-\item{parse_key}{Header field name created by \verb{ParseHeaders.py merge -k}.}
+\item{parse_key}{Name of the header field that \verb{ParseHeaders.py merge -k}
+makes (default \code{paste0(cluster_field, "_cluster")}).}
 
-\item{parse_act}{Action passed to \verb{ParseHeaders.py merge --act}. The default
-\code{"set"} joins the spatial ID and the cluster ID with a comma, so the spatial
-ID stays recoverable from the consensus header. \code{"cat"} joins them with no
-separator, which makes the spatial ID unrecoverable for any variable-length
-barcode. Both produce the same grouping, so prefer \code{"set"}.}
+\item{parse_act}{Action for \verb{ParseHeaders.py merge --act} (default \code{"set"}).
+With \code{"set"}, the function joins the spatial ID and the cluster ID with a
+comma, so that you can recover the spatial ID from the consensus header.
+With \code{"cat"}, it joins them with no separator, so that you cannot recover
+the spatial ID of a barcode that has a variable length. Both give the same
+groups, so use \code{"set"}.}
 
-\item{consensus_min_count}{Minimum sequence count passed to
-\code{BuildConsensus.py -n}. Recommended to be at least 2 for non-single-cell resolution data.
-This gates which groups are written, not the consensus of a group that
-passes, so a run at \code{1} can be filtered to any higher value afterwards with
-\code{filterAirr(min_consensus_count = )}. Note \code{BuildConsensus.py -q} is fixed at
-20 and has no effect here, because the pipeline input is FASTA and carries
-no base qualities.}
+\item{consensus_min_count}{Smallest number of sequences for a consensus,
+passed to \code{BuildConsensus.py -n} (default 1). Use at least 2 for data that
+do not have single-cell resolution. This value decides which groups the
+function writes. It does not change the consensus of a group that passes.
+So you can run with \code{1} and filter to a higher value later with
+\code{filterAirr(min_consensus_count = )}. \code{BuildConsensus.py -q} is fixed at 20
+and has no effect here, because the pipeline input is FASTA and has no base
+qualities.}
 
-\item{umi_support}{Group reads by spatial barcode AND UMI before the barcode
-step. Reads of one molecule that differ by a sequencing error cluster apart
-at \code{identity = 1.0} and are then dropped as singletons; this stage joins
-them first, at \code{umi_identity}, so they support each other. Each
-barcode-UMI cluster yields one consensus carrying \code{cc_bc_umi} (its reads,
-counted before the productive subset) and \code{n_productive_reads} (the reads
-the consensus was built from; a cluster with none is discarded). The
-barcode step then runs with \verb{BuildConsensus -n 1} and sums both fields, and
-\code{min_umi_support} replaces the read floor. Each consensus is written
-\code{n_productive_reads} times, so one read is one vote in the barcode
-consensus. A short read from one molecule then cannot trim the consensus of
-many full-length reads. Because of this, \code{consensus_count} counts reads, not
-molecules. Needs an AIRR table with \code{umi} and \code{productive} columns.}
+\item{umi_support}{Group the reads by spatial barcode and UMI before the
+barcode step (default \code{FALSE})? Reads of one molecule that differ by a
+sequencing error end up in different clusters at \code{identity = 1.0}, and the
+function then drops them as singletons. This stage first joins them at
+\code{umi_identity}, so that they support each other. Each barcode-UMI cluster
+gives one consensus. The consensus carries \code{cc_bc_umi} (the number of reads
+in the cluster, counted before the productive subset) and
+\code{n_productive_reads} (the number of reads that the consensus uses). The
+function discards a cluster that has no such reads. The barcode step then
+runs with \verb{BuildConsensus -n 1} and sums both fields, and \code{min_umi_support}
+replaces the read minimum. With \code{umi_weight = TRUE}, the function writes
+each consensus once for each productive read, so that one read is one vote
+in the barcode consensus. A short read from one molecule then cannot trim
+the consensus of many full-length reads. For this reason, \code{consensus_count}
+counts reads and not molecules. The option needs an AIRR table with the
+columns \code{umi} and \code{productive}.}
 
-\item{umi_weight}{With \code{umi_support}, write each molecule consensus once per
-productive read, so one read is one vote in the barcode consensus. Set
-\code{FALSE} to write each molecule once, so one UMI cluster is one vote.}
+\item{umi_weight}{Write each molecule consensus once for each productive read
+(default \code{TRUE})? The function uses it only with \code{umi_support}. If \code{FALSE},
+it writes each molecule once, so that one UMI cluster is one vote.}
 
-\item{umi_field}{Column holding the UMI, used with \code{umi_support}.}
+\item{umi_field}{Name of the column that holds the UMI (default \code{"umi"}). The
+function uses it only with \code{umi_support}.}
 
-\item{umi_identity}{Cluster identity for the barcode-UMI step. Looser than
-the barcode step on purpose, so error-bearing reads of one molecule group.}
+\item{umi_identity}{Identity threshold for the barcode-UMI clusters (default
+0.95). It is lower than \code{identity} on purpose, so that reads of one
+molecule with errors form one group.}
 
-\item{min_umi_support}{Lowest summed \code{cc_bc_umi} a barcode consensus needs.
-Applied after gene assignment, writing a filtered copy beside \code{db_pass}, so a
-run can be re-thresholded without reprocessing.}
+\item{min_umi_support}{Smallest summed \code{cc_bc_umi} that a barcode consensus
+needs (default 2). The function applies it after the gene assignment. It
+writes a filtered copy next to \code{db_pass}, so that you can change the
+threshold without a new run of the pipeline.}
 
-\item{consensus_copy_fields}{Optional fields passed to \code{BuildConsensus.py --cf}. With \code{umi_support}, \code{CC_BC_UMI} and \code{N_PRODUCTIVE_READS} are
-prepended and summed.}
+\item{consensus_copy_fields}{Header fields for \code{BuildConsensus.py --cf}. With
+\code{umi_support}, the function adds \code{CC_BC_UMI} and \code{N_PRODUCTIVE_READS} at
+the start of the list and sums them.}
 
-\item{consensus_copy_action}{Action passed to \code{BuildConsensus.py --act} when
-\code{consensus_copy_fields} is provided.}
+\item{consensus_copy_action}{Action for \code{BuildConsensus.py --act}, if you
+give \code{consensus_copy_fields} (default \code{"majority"}).}
 
-\item{consensus_max_error}{Maximum error rate passed to
-\code{BuildConsensus.py --maxerror}.}
+\item{consensus_max_error}{Largest error rate, passed to
+\code{BuildConsensus.py --maxerror} (default 0.1).}
 
-\item{consensus_max_gap}{Maximum gap fraction passed to
-\code{BuildConsensus.py --maxgap}.}
+\item{consensus_max_gap}{Largest gap fraction, passed to
+\code{BuildConsensus.py --maxgap} (default 0.3).}
 
-\item{skip_existing}{Skip a pipeline command when its output already exists
-and is not empty. Use this to restart an interrupted run, or to reuse one
-clustering and alignment pass across several \code{consensus_freq} values,
-since those steps depend only on \code{identity}.}
+\item{skip_existing}{Skip a pipeline command if its output already exists and
+is not empty (default \code{FALSE})? Use it to restart an interrupted run. You
+can also use it to reuse one clustering and alignment pass for several
+\code{consensus_freq} values, because those steps depend only on \code{identity}.}
 
-\item{align_log}{Optional log path passed to \code{AlignSets.py --log}.}
+\item{align_log}{Path of a log file for \code{AlignSets.py --log}.}
 
-\item{consensus_log}{Optional log path passed to \code{BuildConsensus.py --log}.}
+\item{consensus_log}{Path of a log file for \code{BuildConsensus.py --log}.}
 }
 \value{
-A named list, invisibly: \code{raw_airr}, \code{filtered_airr},
-\code{spatial_fasta}, \code{n_raw}, \code{n_filtered} (each \code{NULL} for steps that did
-not run), plus the pRESTO/IgBLAST output paths. \code{db_pass} is the final
-AIRR TSV. With \code{umi_support}, \code{db_pass_umi} is that table filtered to
-\code{min_umi_support}.
+A named list, invisibly. It holds \code{raw_airr}, \code{filtered_airr},
+\code{spatial_fasta}, \code{n_raw}, and \code{n_filtered}, which are \code{NULL} for the steps
+that did not run. It also holds the output paths of pRESTO and IgBLAST.
+\code{db_pass} is the final AIRR TSV. With \code{umi_support}, \code{db_pass_umi} is the
+same table, filtered to \code{min_umi_support}.
 }
 \description{
-This function runs the full external processing pipeline for one sample
-and one receptor locus group (\code{ig} or \code{tr}). The \code{input} can be one of:
+\code{processSpatialSample}processes demultiplexed reads for one sample and
+one receptor group (\code{ig} or \code{tr}). It outputs an AIRR table of filtered
+consensus sequences, with the V(D)J genes assigned and IMGT-gaps added.
 }
 \details{
+The function calls external programs: IgBLAST, pRESTO, vsearch, and MUSCLE.
+It prints each command before it runs it. The function runs all commands with
+\code{system2()} and no shell. A non-zero exit status stops the function, and the
+error message shows the command that failed. The final output is the
+\code{db_pass} AIRR TSV, which is in the returned list of paths.
+
+The \code{input} can be one of these:
 \itemize{
-\item Raw reads: a FASTA or FASTQ file, optionally gzipped, as written by the
-rrad package. Export rrad FASTA with \code{to_fasta = TRUE} and
-\code{header_format = "presto"} so barcode/UMI tags remain in the IgBLAST
-identifier. The function first annotates the reads with
-\code{\link[=runIgblast]{runIgblast()}} (\code{airrblast::assignGenes()}), which needs \code{igblast_base}
-and \code{igblast_refs}.
-\item An AIRR table: a \code{.tsv} path or a data frame. The raw IgBLAST step is
-skipped. A data frame input requires \code{output_dir}.
-\item A pRESTO-ready spatial FASTA (\code{input_type = "spatial_fasta"}): the
-IgBLAST and filter steps are both skipped and the FASTA goes straight
-to the consensus pipeline below.
+\item Raw reads: a FASTA or FASTQ file, optionally gzipped, from RRAD (or RAD).
+Export the rrad FASTA with \code{to_fasta = TRUE} and
+\code{header_format = "presto"}, so that the barcode and UMI tags stay in the
+IgBLAST identifier. The function first annotates the reads with
+\code{\link[=runIgblast]{runIgblast()}} (which calls \code{airrblast::assignGenes()}). This step needs
+\code{igblast_base} and \code{igblast_refs}.
+\item An AIRR table: a \code{.tsv} path or a data frame. The function skips the
+IgBLAST step. A data frame needs \code{output_dir}.
+\item A FASTA that is ready for pRESTO (\code{input_type = "spatial_fasta"}).
+The function skips the IgBLAST and filter steps, and starts with the
+consensus workflow.
 }
 
-For raw reads and AIRR input, the function then:
-\itemize{
-\item splits rrad \verb{|BARCODE=...|UMI=...} tags (or legacy colon tags) out of
-\code{sequence_id} with
-\code{\link[=parseRadSequenceIds]{parseRadSequenceIds()}};
-\item removes junk sequences with \code{\link[=filterAirr]{filterAirr()}}. Pipeline defaults:
-\code{complete_vdj = TRUE}, \code{spatial_id = "barcode"}, and a combined header
-ID keyed by \code{cluster_field}. Override with \code{filter_args};
-\item writes the raw and filtered AIRR tables to \code{output_dir} for
-inspection;
-\item writes the filtered sequences to a spatial FASTA whose headers carry
-the spatial ID.
+For raw reads and AIRR tables, the function first does these steps:
+\enumerate{
+\item It splits the rrad tags \verb{|BARCODE=...|UMI=...} (or the legacy colon
+tags) out of \code{sequence_id} with \code{\link[=parseRadSequenceIds]{parseRadSequenceIds()}}.
+\item It filters sequences with \code{\link[=filterAirr]{filterAirr()}}. The pipeline
+defaults are \code{complete_vdj = TRUE}, \code{spatial_id = "barcode"}, and a
+combined header ID with the key \code{cluster_field}. Change them with
+\code{filter_args}.
+\item It writes the raw and the filtered AIRR tables to \code{output_dir}, so
+that you can inspect them.
+\item It writes the filtered sequences to a spatial FASTA file. The headers
+of the file hold the spatial ID.
 }
 
-The spatial FASTA then goes through the external Immcantation/pRESTO
-consensus workflow:
-\itemize{
-\item \verb{ClusterSets.py set} groups reads within each spatial ID using \code{cluster_field},
-the requested identity threshold \code{identity}, and vsearch.
-\item \verb{ParseHeaders.py merge} is used to write a new field into the headers that combines
-the spatial ID and the cluster id (provided with parse_fields). These are
-combined using \code{parse_act} (default set) and written to a new header field \code{parse_key}.
-Uses \code{delimiters} to specify the FASTA header delimiters.
-\item \verb{AlignSets.py muscle} aligns reads within each \code{parse_key} group created by \code{ParseHeaders}.
-Takes \code{muscle_exec} as the path to the muscle aligner (https://github.com/rcedgar/muscle).
-Optionally logs results to \code{align_log}. Uses \code{delimiters} to specify the FASTA header delimiters.
-\item \code{BuildConsensus.py} creates consensus sequences within each \code{parse_key} group. \code{consensus_min_count}
-specifies the minimum number of sequences needed to define a valid consensus sequence, and
-\code{consensus_freq} specifies the fraction of character occurrences under which an ambiguous
-character is assigned. Optionally logs results to \code{consensus_log}. If there are additional
-fields in the FASTA header that should be carried forward and copied to the consensus file,
-\code{consensus_copy_fields} specifies the field names and \code{consensus_copy_action} specifies how
-to copy them (majority, first, last, or all).
-\item \code{airrblast::assignGenes()} assigns V(D)J genes with IgBLAST. It replaces \code{AssignGenes.py}.
-Takes either \code{ig} or \code{tr} as the argument to \code{receptor} (for bcr/tcr respectively). Takes
-\code{organism} as the argument to specify the species (human, mouse, or rhesus_monkey).
-\code{igblast_base} is the IgBLAST installation (it must hold \code{bin/igblastn}), and \code{igblast_refs}
-is the folder with the IgBLAST \verb{database/} and \verb{fasta/} folders.
-\item \code{airrblast::addGaps()} adds the IMGT-gapped sequences from the germlines in \code{imgt_dir}.
-SIRUP then reads the pRESTO header fields into columns, as \code{MakeDb.py --extended} did,
-and keeps the sequences that have a V call, a J call, a productive flag, an aligned sequence,
-and a junction. The result is the \code{db_pass} table.
+The spatial FASTA then goes through a number of Immcantation functions:
+\enumerate{
+\item \verb{ClusterSets.py set} groups the reads within each spatial ID. It uses
+\code{cluster_field}, the identity threshold \code{identity}, and vsearch.
+\item \verb{ParseHeaders.py merge} writes a new header field, \code{parse_key}.
+The field combines the spatial ID and the cluster ID (\code{parse_fields})
+with the action \code{parse_act}. \code{delimiters} sets the delimiters of the
+FASTA header.
+\item \verb{AlignSets.py muscle} aligns the reads within each \code{parse_key} group.
+\code{muscle_exec} is the path of the MUSCLE program
+(\url{https://github.com/rcedgar/muscle}). The function can write a log to
+\code{align_log}.
+\item \code{BuildConsensus.py} makes a consensus sequence for each
+\code{parse_key} group. \code{consensus_min_count} is the smallest number of
+sequences that give a valid consensus. \code{consensus_freq} is the fraction
+of occurrences below which the function assigns an ambiguous character.
+The function can write a log to \code{consensus_log}. To copy more header
+fields to the consensus file, give their names in
+\code{consensus_copy_fields} and the way to copy them in
+\code{consensus_copy_action} (\code{majority}, \code{first}, \code{last}, or \code{all}).
+\item \code{airrblast::assignGenes()} assigns the V(D)J genes with IgBLAST. It
+replaces \code{AssignGenes.py}. \code{receptor} is \code{ig} (BCR) or \code{tr} (TCR).
+\code{organism} is the species (human, mouse, or rhesus_monkey).
+\code{igblast_base} is the IgBLAST installation, which must hold
+\code{bin/igblastn}. \code{igblast_refs} is the folder with the IgBLAST \verb{database/}
+and \verb{fasta/} folders.
+\item \code{airrblast::addGaps()} adds the IMGT-gapped sequences from the
+germlines in \code{imgt_dir}. SIRUP then reads the pRESTO header fields into
+columns, as \code{MakeDb.py --extended} did. It keeps the sequences that have
+a V call, a J call, a productive flag, an aligned sequence, and a
+junction. The result is the \code{db_pass} table.
 }
-
-Each command is printed before it is run, and any non-zero exit status stops
-the function with the failing command in the error message. All commands
-run through \code{system2()} without a shell. The final output is the
-\code{db_pass} AIRR TSV in the returned path list.
+}
+\examples{
+\dontrun{
+# This example needs IgBLAST, pRESTO, vsearch, and MUSCLE. See
+# vignette("processing", package = "SIRUP").
+result <- processSpatialSample(
+  "sample1_reads.fasta.gz",
+  output_dir = "sample1_output",
+  receptor = "ig",
+  organism = "human",
+  igblast_base = "~/software/igblast",
+  imgt_dir = "~/share/germlines/imgt",
+  muscle_exec = "~/software/muscle",
+  nproc = 8
+)
+bcrs <- airr::read_rearrangement(result$db_pass)
+}
+}
+\seealso{
+\code{\link[=processSpatialSamples]{processSpatialSamples()}}, \code{\link[=runIgblast]{runIgblast()}}, \code{\link[=filterAirr]{filterAirr()}},
+\code{\link[=parseRadSequenceIds]{parseRadSequenceIds()}}
 }

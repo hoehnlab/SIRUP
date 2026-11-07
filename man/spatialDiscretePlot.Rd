@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_ggplot_visualization.R
 \name{spatialDiscretePlot}
 \alias{spatialDiscretePlot}
-\title{Plot spatial metadata groups after excluding zero/blank spots}
+\title{Plot a metadata column on a tissue image}
 \usage{
 spatialDiscretePlot(
   object,
@@ -23,45 +23,62 @@ spatialDiscretePlot(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{meta_col}{Metadata column to plot.}
+\item{meta_col}{Name of the metadata column to plot.}
 
-\item{zero_value}{Value treated as not present.}
+\item{zero_value}{Value that means "not present" (default 0). The function
+does not draw these spots.}
 
-\item{images}{Optional Seurat image names.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
+\item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
+objects. If \code{NULL}, the function plots all samples.}
 
-\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{cols}{Optional named color vector.}
+\item{cols}{Named vector of colors, one for each value.}
 
-\item{point_size}{Size of plotted spots.}
+\item{point_size}{Size of the spots. The default is 1.6.}
 
-\item{point_alpha}{Opacity for plotted spots.}
+\item{point_alpha}{Opacity of the spots.}
 
-\item{order_points}{Plot lower numeric values or earlier factor levels first
-so higher/later values appear on top.}
+\item{order_points}{Draw the low numeric values, or the early factor levels,
+first, so that the high or late values show on top (default \code{TRUE})?}
 
-\item{image_alpha}{Tissue image opacity.}
+\item{image_alpha}{Opacity of the tissue image.}
 
-\item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
-full tissue area covered by the spatial coordinates.}
+\item{zoom}{Zoom to the plotted spots (default \code{FALSE})? If \code{FALSE}, the plot
+shows the full tissue area that the spatial coordinates cover.}
 
-\item{combine}{Combine plots with patchwork when possible.}
+\item{combine}{Combine the panels with patchwork, if possible (default
+\code{TRUE})?}
 
-\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
-from different spatial samples into one patchwork. Defaults to \code{FALSE}.}
+\item{combine_sample_plots}{Combine the plots of all samples into one
+patchwork (default \code{FALSE})? The function uses it only for multi-sample
+objects. If \code{FALSE}, it returns a named list with one plot for each sample.}
 }
 \value{
-A ggplot/patchwork object, list, or \code{NULL} when all spots are blank.
+A ggplot object, a patchwork object, or a list of plots. The function
+returns \code{NULL} if all spots have the blank value.
 }
 \description{
-Plot spatial metadata groups after excluding zero/blank spots
+\code{spatialDiscretePlot} colors each spot by the value of a metadata column. It
+leaves out the spots that have the "zero_value" value.
+}
+\details{
+#' If the object has multiple images or samples, the function draws one plot
+for each image or sample.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+spatialDiscretePlot(x, "cell_type")
+}
+\seealso{
+\code{\link[=spatialExpressionPlot]{spatialExpressionPlot()}}
 }

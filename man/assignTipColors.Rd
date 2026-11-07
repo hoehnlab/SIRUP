@@ -2,7 +2,7 @@
 % Please edit documentation in R/sirup_trees.R
 \name{assignTipColors}
 \alias{assignTipColors}
-\title{Assign stable colors within selected clones}
+\title{Assign colors to the tips of clones}
 \usage{
 assignTipColors(
   clones,
@@ -14,24 +14,41 @@ assignTipColors(
 )
 }
 \arguments{
-\item{clones}{Clone-assigned AIRR data frame.}
+\item{clones}{Data frame of AIRR data with clone IDs.}
 
-\item{clone_val}{Optional clone IDs to retain before assigning colors.}
+\item{clone_val}{Clone IDs to keep before the function assigns the colors. If
+\code{NULL}, the function keeps all clones.}
 
-\item{clone}{Column name for clone identifiers.}
+\item{clone}{Name of the column that holds the clone IDs (default
+\code{"clone_id"}).}
 
-\item{id}{Column name for sequence/tip identifiers.}
+\item{id}{Name of the column that holds the sequence or tip IDs (default
+\code{"sequence_id"}).}
 
-\item{shared_color}{Optional column whose shared values should receive
-the same tip color within each clone, for example a spatial ID column.}
+\item{shared_color}{Name of a column. Tips that share a value in this column
+get the same color within a clone, for example a spatial ID column.}
 
-\item{palette}{Optional color vector. Defaults to \code{pals::glasbey()} when
-available, otherwise base R qualitative colors.}
+\item{palette}{Vector of colors. If \code{NULL}, the function uses
+\code{pals::glasbey()} if the package is installed. Otherwise, it uses the base R
+colors from \code{grDevices::hcl.colors()}.}
 }
 \value{
-Data frame with \code{tip_color_id} and \code{tip_color} columns.
+A data frame with the columns \code{tip_color_id} and \code{tip_color} added.
 }
 \description{
-Adds a per-tip color identifier and color value that can be used consistently
-in tree plots and matched spatial plots.
+\code{assignTipColors} gives each tip of each clone a color ID and a color. Tree
+plots and the matching spatial plots use the same colors.
+}
+\details{
+The function numbers the tips of each clone in the order of \code{id}. If you give
+\code{shared_color}, tips with the same value of that column get the same number
+within a clone. For example, tips in the same spot get the same color.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+colors <- assignTipColors(getReceptors(x), shared_color = "spatial_id")
+head(colors[, c("clone_id", "spatial_id", "tip_color_id", "tip_color")])
+}
+\seealso{
+\code{\link[=plotSpatialCloneTreePairs]{plotSpatialCloneTreePairs()}}
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/processing.R
 \name{collapseTopConsensusPerSpatialId}
 \alias{collapseTopConsensusPerSpatialId}
-\title{Collapse to the most abundant consensus sequence per spatial ID and locus}
+\title{Keep the most abundant consensus sequence of each spatial ID and locus}
 \usage{
 collapseTopConsensusPerSpatialId(
   airr_df,
@@ -17,22 +17,42 @@ collapseTopConsensusPerSpatialId(
 \arguments{
 \item{airr_df}{AIRR-style data frame.}
 
-\item{spatial_id}{Spatial ID column name used for grouping.}
+\item{spatial_id}{Name of the spatial ID column for the grouping (default
+\code{"spatial_id_2um"}).}
 
-\item{locus}{Locus column name used for grouping.}
+\item{locus}{Name of the locus column for the grouping (default \code{"locus"}).}
 
-\item{consensus}{Consensus-count column name used for ranking rows.}
+\item{consensus}{Name of the consensus count column for the ranking (default
+\code{"consensus_count"}).}
 
-\item{sequence}{Sequence column for non-N proportion.}
+\item{sequence}{Name of the sequence column for the proportion of called
+bases (default \code{"sequence"}).}
 
-\item{alignment}{Alignment column for gap metrics.}
+\item{alignment}{Name of the alignment column for the gap measures (default
+\code{"sequence_alignment"}).}
 
-\item{ties}{Keep all tied top rows or only the first tied row.}
+\item{ties}{Keep \code{"all"} rows that tie for the top count (default), or only
+the \code{"first"} of them.}
 }
 \value{
-Collapsed data frame.
+The collapsed data frame. It has the column \code{prop_total_consensus}
+(the count of the row divided by the total count of its group) and the
+quality columns.
 }
 \description{
-Adds \code{prop_total_consensus}, \code{non_N_nucleotide_prop}, \code{max_gap_length}, and
-\code{opening_gap_length}, then keeps the highest-consensus row per spatial ID/locus.
+\code{collapseTopConsensusPerSpatialId} keeps the row with the highest consensus
+count for each spatial ID and locus.
+}
+\details{
+The function adds the column \code{prop_total_consensus}. It then adds the quality
+columns from \code{\link[=addSequenceQualityMetrics]{addSequenceQualityMetrics()}}: \code{non_N_nucleotide_prop},
+\code{max_gap_length}, and \code{opening_gap_length}. If several rows tie for the top
+consensus count, the function prints how many groups have a tie.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+collapseTopConsensusPerSpatialId(getReceptors(x), spatial_id = "spatial_id")
+}
+\seealso{
+\code{\link[=addSequenceQualityMetrics]{addSequenceQualityMetrics()}}, \code{\link[=filterAirr]{filterAirr()}}
 }

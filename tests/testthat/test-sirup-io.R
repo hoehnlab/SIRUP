@@ -1,5 +1,4 @@
 make_io_test_sirup <- function() {
-  skip_if_not_installed("SeuratObject")
   spatial <- sirup_test_seurat(
     counts = matrix(
       1,

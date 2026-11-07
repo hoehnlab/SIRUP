@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_ggplot_visualization.R
 \name{spatialCloneTreePairsToPDF}
 \alias{spatialCloneTreePairsToPDF}
-\title{Save paired clone tree and spatial plots to a PDF}
+\title{Save the tree and map pairs to a PDF file}
 \usage{
 spatialCloneTreePairsToPDF(
   pairs,
@@ -14,23 +14,42 @@ spatialCloneTreePairsToPDF(
 )
 }
 \arguments{
-\item{pairs}{Output from \code{plotSpatialCloneTreePairs()}.}
+\item{pairs}{Result of \code{\link[=plotSpatialCloneTreePairs]{plotSpatialCloneTreePairs()}}.}
 
-\item{path}{PDF path.}
+\item{path}{Path of the PDF file.}
 
-\item{width}{PDF page width in inches.}
+\item{width}{Width of a page, in inches (default 12).}
 
-\item{height}{PDF page height in inches.}
+\item{height}{Height of a page, in inches (default 6).}
 
-\item{rel_widths}{Relative widths for tree and spatial panels.}
+\item{rel_widths}{Relative widths of the tree panel and the map panel
+(default \code{c(1.2, 1)}).}
 
-\item{nproc}{Number of processes used to render PDF pages. Parallel PDF
-rendering requires the optional \code{qpdf} package to combine pages; otherwise
-the function falls back to serial rendering.}
+\item{nproc}{Number of processes for the pages (default 1). The function
+needs the \code{qpdf} package to join the pages that it makes in parallel. If
+\code{qpdf} is not installed, it makes the pages one after the other.}
 }
 \value{
-Invisibly returns \code{path}.
+\code{path}, invisibly.
 }
 \description{
-Save paired clone tree and spatial plots to a PDF
+\code{spatialCloneTreePairsToPDF} writes one page for each clone to a PDF file.
+Each page shows the tree and the tissue map of the clone side by side.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+x <- formatSpatialClones(
+  x,
+  id = "sequence_id",
+  germ = "germline_alignment_d_mask",
+  traits = "spatial_id"
+)
+x <- getSpatialTrees(x)
+trees <- getAnalysis(x, "trees")
+
+pairs <- plotSpatialCloneTreePairs(trees, x, clone_val = c("1", "4"))
+spatialCloneTreePairsToPDF(pairs, tempfile(fileext = ".pdf"))
+}
+\seealso{
+\code{\link[=plotSpatialCloneTreePairs]{plotSpatialCloneTreePairs()}}
 }

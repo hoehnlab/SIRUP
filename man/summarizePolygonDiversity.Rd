@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{summarizePolygonDiversity}
 \alias{summarizePolygonDiversity}
-\title{Summarize stored polygon diversity at one q value}
+\title{Summarize polygon diversity at one value of q}
 \usage{
 summarizePolygonDiversity(
   object,
@@ -14,24 +14,35 @@ summarizePolygonDiversity(
 )
 }
 \arguments{
-\item{object}{A SIRUP object.}
+\item{object}{SIRUP object.}
 
-\item{q}{Diversity order to extract, such as \code{2} for Simpson diversity.}
+\item{q}{Diversity order to take, for example \code{2} for Simpson diversity.}
 
-\item{diversity_analysis}{Name of the stored analysis produced by
-\code{\link[=polygonDiversity]{polygonDiversity()}}.}
+\item{diversity_analysis}{Name of the stored analysis from
+\code{\link[=polygonDiversity]{polygonDiversity()}} (default \code{"polygon_diversity"}).}
 
-\item{analysis_name}{Name used to store the summarized table.}
+\item{analysis_name}{Name for the stored table. If \code{NULL}, the function uses
+\code{polygon_diversity_q} followed by the value of \code{q}.}
 
-\item{tolerance}{Numeric tolerance used when matching \code{q}.}
+\item{tolerance}{Tolerance for the match of \code{q} (default
+\code{sqrt(.Machine$double.eps)}).}
 
-\item{validate}{Whether to validate the updated SIRUP object.}
+\item{validate}{Validate the updated SIRUP object (default \code{TRUE})?}
 }
 \value{
-An updated SIRUP object containing the diversity summary analysis.
+The updated SIRUP object, with the diversity summary as an analysis.
 }
 \description{
-Extracts the diversity estimate for a specific diversity order from a stored
-polygon diversity analysis, producing one table row per polygon and saving
-that table as a new SIRUP analysis.
+\code{summarizePolygonDiversity} takes the diversity estimate for one diversity
+order q from a stored analysis. It makes one table row for each polygon and
+stores the table as a new analysis.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+x <- polygonDiversity(x, min_n = 2, max_q = 2, step_q = 1)
+x <- summarizePolygonDiversity(x, q = 1)
+listAnalyses(x)
+}
+\seealso{
+\code{\link[=polygonDiversity]{polygonDiversity()}}
 }

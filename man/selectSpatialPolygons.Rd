@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{selectSpatialPolygons}
 \alias{selectSpatialPolygons}
-\title{Select spatial polygon vertices interactively}
+\title{Select polygon vertices in an interactive app}
 \usage{
 selectSpatialPolygons(
   object,
@@ -26,74 +26,93 @@ selectSpatialPolygons(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial coordinates, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{feature}{Optional feature shown as a color scale under the clicked
-vertices. The app also lets you change this interactively. Looked up in
-the assay first; if it is not there, the object metadata is checked, so
-module scores (\code{AddModuleScore()}, \code{UCell}, or any numeric per-cell
-column) can be displayed without adding them to an assay.}
+\item{feature}{Feature to show as a color scale under the vertices. You can
+change it in the app. The function looks in the assay first. If the feature
+is not there, it looks in the object metadata. This lets you show module
+scores (from \code{AddModuleScore()}, \code{UCell}, or any numeric column) without
+adding them to an assay.}
 
-\item{assay}{Optional assay to set before fetching feature values.}
+\item{assay}{Assay to set before the function gets the feature values
+(default \code{"Spatial"}).}
 
-\item{layer}{Expression layer/slot used for \code{feature}.}
+\item{layer}{Expression layer to use for \code{feature} (default \code{"counts"}).}
 
-\item{images}{Optional Seurat image names to show.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{image_scale}{Image scale passed to
-\code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{save_path}{Optional CSV path for saved vertices.}
+\item{save_path}{Path of a CSV file to save the vertices to.}
 
-\item{plot_image}{Show the Seurat tissue image under the spatial points.
-Defaults to \code{FALSE}.}
+\item{plot_image}{Show the Seurat tissue image under the points (default
+\code{FALSE})?}
 
-\item{downsample_n}{Optional number of spatial points to show in the Shiny
-plot. Use \code{NULL} to show all points. Clicks still snap to the nearest
-spatial_id in the full coordinate table.}
+\item{downsample_n}{Number of points to show in the app. If \code{NULL}, the app
+shows all points. A click still snaps to the nearest spatial ID in the full
+coordinate table.}
 
-\item{downsample_seed}{Random seed used when \code{downsample_n} is not \code{NULL}.}
+\item{downsample_seed}{Random seed for the downsampling (default 1).}
 
-\item{point_size}{Size of spatial points in the plot.}
+\item{point_size}{Size of the points (default 0.8).}
 
-\item{point_alpha}{Initial opacity for spatial points.}
+\item{point_alpha}{Starting opacity of the points (default 0.9).}
 
-\item{show_zeros}{Show points whose \code{feature} value is zero or \code{NA}.
-Defaults to \code{TRUE}. Set to \code{FALSE}, or untick "Show zero points" in the
-app, to plot only feature-positive points -- on sparse Visium HD bins the
-zeros can bury the signal. This affects the DISPLAY only; clicks still
-snap against the full coordinate table, so a hidden point can still be
-chosen as a vertex.}
+\item{show_zeros}{Show the points where \code{feature} is zero or \code{NA} (default
+\code{TRUE})? On sparse Visium HD data, the zeros can hide the signal. Use
+\code{FALSE}, or clear "Show zero points" in the app, to show only the positive
+points. This changes the display only. A click can still select a hidden
+point as a vertex.}
 
-\item{launch_browser}{Passed to \code{shiny::runApp()}.}
+\item{launch_browser}{Passed to \code{shiny::runApp()} (default \code{TRUE}).}
 
-\item{host}{Optional host passed to \code{shiny::runApp()}. This is useful when
-running from an interactive HPC session through an SSH tunnel.}
+\item{host}{Host for \code{shiny::runApp()}. Set it when you run the function in
+an interactive HPC session through an SSH tunnel.}
 
-\item{port}{Optional port passed to \code{shiny::runApp()}. This is useful when
-running from an interactive HPC session through an SSH tunnel.}
+\item{port}{Port for \code{shiny::runApp()}. Set it when you run the function in
+an interactive HPC session through an SSH tunnel.}
 
-\item{quiet}{Suppress warnings while the app is running.}
+\item{quiet}{Hide warnings while the app runs (default \code{TRUE})?}
 
-\item{sample}{Optional spatial sample name(s) to show for multi-spatial
+\item{sample}{Names of the spatial samples to show. Use it for multi-sample
 SIRUP objects.}
 }
 \value{
-Data frame with \code{spatial_id}, \code{x}, \code{y}, \code{num}, \code{polygon}, and \code{image} columns.
+A data frame with the columns \code{spatial_id}, \code{x}, \code{y}, \code{num},
+\code{polygon}, and \code{image}.
 }
 \description{
-Opens a Shiny app for clicking polygon vertices on a Seurat spatial
-coordinate plot. Each click snaps to the nearest spatial ID. Use
-"Close polygon" or "New polygon" before finishing to repeat the first vertex
-at the end of each polygon.
-The returned vertices may describe overlapping or nested polygons. Polygon
-membership is resolved when these vertices are passed to
-\code{\link[=assignSpatialPolygons]{assignSpatialPolygons()}}, \code{\link[=assignReceptorPolygons]{assignReceptorPolygons()}}, \code{\link[=createSIRUP]{createSIRUP()}}, or
-\code{\link[=addPolygons]{addPolygons()}}: the primary \code{polygon_id} uses the smallest matching polygon
-by area, while logical \verb{polygon_<ID>} columns retain membership in each
-individual polygon.
+\code{selectSpatialPolygons} opens a Shiny app. You click polygon vertices on a
+plot of the spatial coordinates.
+}
+\details{
+Each click snaps to the nearest spatial ID. Click "Close polygon" or "New
+polygon" before you finish. This repeats the first vertex at the end of each
+polygon.
+
+The vertices can describe overlapping or nested polygons. The function that
+receives the vertices decides the membership: \code{\link[=assignSpatialPolygons]{assignSpatialPolygons()}},
+\code{\link[=assignReceptorPolygons]{assignReceptorPolygons()}}, \code{\link[=createSIRUP]{createSIRUP()}}, or \code{\link[=addPolygons]{addPolygons()}}. The primary
+\code{polygon_id} gets the ID of the smallest matching polygon by area. The
+logical \verb{polygon_<ID>} columns show membership in each polygon.
+}
+\examples{
+\dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+
+# Click the vertices in the app. Use "Close polygon" when you finish.
+polygons <- selectSpatialPolygons(
+  getSpatial(x),
+  image_scale = "hires",
+  swap_coords = FALSE
+)
+\dontshow{\}) # examplesIf}
+}
+\seealso{
+\code{\link[=formatSpatialPolygons]{formatSpatialPolygons()}}, \code{\link[=addPolygons]{addPolygons()}}, \code{\link[=plotSpatialPolygons]{plotSpatialPolygons()}}
 }

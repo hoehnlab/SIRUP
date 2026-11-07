@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_statistics.R
 \name{plotSpatialLocalMoran}
 \alias{plotSpatialLocalMoran}
-\title{Plot local Moran's I over a tissue image}
+\title{Plot local Moran's I on a tissue image}
 \usage{
 plotSpatialLocalMoran(
   object,
@@ -25,48 +25,62 @@ plotSpatialLocalMoran(
 )
 }
 \arguments{
-\item{object}{SIRUP object, or a spatial Seurat object.}
+\item{object}{SIRUP object, or Seurat object with spatial images.}
 
-\item{local_moran}{Output from \code{spatialLocalMoran()}.}
+\item{local_moran}{Result of \code{\link[=spatialLocalMoran]{spatialLocalMoran()}}.}
 
-\item{value_col}{Column to color. Defaults to \code{z_i}.}
+\item{value_col}{Name of the column to color by (default \code{"z_i"}).}
 
-\item{images}{Optional Seurat image names.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
+\item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
+objects. If \code{NULL}, the function plots all samples.}
 
-\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{colors}{Three colors for low, midpoint, and high values.}
+\item{colors}{Three colors for the low, middle, and high values.}
 
-\item{midpoint}{Color midpoint.}
+\item{midpoint}{Value that gets the middle color.}
 
-\item{point_size}{Point size.}
+\item{point_size}{Size of the spots.}
 
-\item{point_alpha}{Point opacity.}
+\item{point_alpha}{Opacity of the spots.}
 
-\item{order_points}{Plot lower values first so higher values appear on top.}
+\item{order_points}{Draw low values first, so that high values show on top
+(default \code{TRUE})?}
 
-\item{image_alpha}{Tissue image opacity.}
+\item{image_alpha}{Opacity of the tissue image.}
 
-\item{zoom}{Zoom to plotted points.}
+\item{zoom}{Zoom to the plotted spots (default \code{FALSE})?}
 
-\item{title}{Optional title.}
+\item{title}{Plot title.}
 
-\item{combine}{Combine image panels with patchwork.}
+\item{combine}{Combine the image panels with patchwork (default \code{TRUE})?}
 
-\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
-from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
-multi-sample calls return a named list of per-sample plots.}
+\item{combine_sample_plots}{Combine the plots of all samples into one
+patchwork (default \code{FALSE})? The function uses it only for multi-sample
+objects. If \code{FALSE}, it returns a named list with one plot for each sample.}
 }
 \value{
-A ggplot/patchwork object.
+A ggplot or patchwork object.
 }
 \description{
-Plot local Moran's I over a tissue image
+\code{plotSpatialLocalMoran} colors each spot by its local Moran's I result.
+}
+\details{
+If the data come from more than one image, or a sirup object with multiple samples,
+then the function builds a list of plots, one for each sample or image.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+local_moran <- spatialLocalMoran(x, "gene1", k = 4)
+plotSpatialLocalMoran(x, local_moran)
+}
+\seealso{
+\code{\link[=spatialLocalMoran]{spatialLocalMoran()}}
 }

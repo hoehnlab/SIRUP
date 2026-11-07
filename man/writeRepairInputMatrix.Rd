@@ -2,20 +2,46 @@
 % Please edit documentation in R/spaced_pairing.R
 \name{writeRepairInputMatrix}
 \alias{writeRepairInputMatrix}
-\title{Write REPAIR input matrix}
+\title{Write the REPAIR input table to a file}
 \usage{
 writeRepairInputMatrix(repair_input, path, include_barcode = TRUE)
 }
 \arguments{
-\item{repair_input}{Output from \code{buildRepairInputMatrix()}.}
+\item{repair_input}{Result of \code{\link[=buildRepairInputMatrix]{buildRepairInputMatrix()}}.}
 
-\item{path}{Output TSV path.}
+\item{path}{Path of the TSV file.}
 
-\item{include_barcode}{Include row/barcode IDs as the first column.}
+\item{include_barcode}{Write the barcodes as the first column (default
+\code{TRUE})?}
 }
 \value{
-Invisibly, \code{path}.
+\code{path}, invisibly.
 }
 \description{
-Write REPAIR input matrix
+\code{writeRepairInputMatrix} writes the table from \code{\link[=buildRepairInputMatrix]{buildRepairInputMatrix()}} to
+a TSV file.
+}
+\examples{
+spots <- data.frame(
+  barcode = paste0("s", 1:6),
+  x = c(1, 2, 3, 1, 2, 3),
+  y = c(1, 1, 1, 2, 2, 2)
+)
+heavy <- data.frame(
+  barcode = c("s1", "s2", "s3", "s4", "s5"),
+  clone_id = c("H1", "H1", "H1", "H2", "H2")
+)
+light <- data.frame(
+  barcode = c("s1", "s2", "s4", "s5", "s6"),
+  clone_id = c("L1", "L1", "L2", "L2", "L2")
+)
+heavy_points <- buildSpacedCloneTable(heavy, positions = spots, clone_prefix = "heavy_")
+light_points <- buildSpacedCloneTable(light, positions = spots, clone_prefix = "light_")
+repair_input <- buildRepairInputMatrix(heavy_points, light_points)
+path <- tempfile(fileext = ".tsv")
+writeRepairInputMatrix(repair_input, path)
+readLines(path, n = 3)
+}
+\seealso{
+\code{\link[=buildRepairInputMatrix]{buildRepairInputMatrix()}}, \code{\link[=repairAnalyzeCommand]{repairAnalyzeCommand()}}
 }

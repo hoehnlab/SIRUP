@@ -1,32 +1,68 @@
 
-#' Calculate global Moran's I for a spatial variable
+#' Calculate global Moran's I
 #'
-#' @param object Seurat object with spatial images, or a SIRUP object.
-#' @param variable Feature or metadata column to analyze.
-#' @param variable_type One of `feature`, `metadata`, `receptor`, or `clone`.
-#'   Use `clone` to calculate Moran's I for a binary indicator marking spots
-#'   that contain a particular clone ID.
-#' @param value Optional metadata value to convert to a binary indicator.
-#' @param receptors AIRR-style receptor data frame. Required when
-#'   `variable_type = "receptor"` or `"clone"` unless `object` is a SIRUP
+#' `spatialMoran` tests one variable for spatial autocorrelation across spots using Moran's I.
+#'
+#' @details
+#' The function builds a neighbor graph from the spot coordinates. It uses all
+#' spots within `radius`. If `radius` is `NULL`, it uses the `k` nearest spots
+#' (or fewer, if the image has fewer spots). Then it calls `spdep::moran.test()`
+#' on the variable values. The function drops spots with non-finite values.
+#'
+#' If the data come from more than one image, or a sirup object with multiple samples,
+#' then the function builds one graph and runs one test for each sample or image.
+#'
+#' Set `variable_type = "clone"` to test where one clone occurs. The function
+#' makes a 0/1 value for each spot: 1 if sthe spot contains the clone, 0 if not.
+#'
+#' @param object Seurat object or SIRUP object.
+#' @param variable Name of the feature or the metadata column to test.
+#' @param variable_type Type of `variable`: `feature` (gene expression),
+#'   `metadata` (Seurat metadata column), `receptor` (receptor table column),
+#'   or `clone` (clone ID).
+#' @param value Metadata value to convert to a 0/1 indicator (default `NULL`).
+#' @param receptors AIRR-style receptor table. You must give it if
+#'   `variable_type` is `"receptor"` or `"clone"` and `object` is not a SIRUP
 #'   object.
-#' @param spatial_id Spatial ID column in `receptors`. Defaults to `NULL`; when
-#'   `object` is a SIRUP object, the stored receptor ID field is used.
-#'   Pass this explicitly when using separate Seurat and receptor objects.
-#' @param clone Clone column in `receptors`; used only when
-#'   `variable_type = "clone"`. Defaults to `NULL`; when `object` is a SIRUP
-#'   object, the stored receptor clone field is used when available.
-#' @param assay Optional assay to use when `variable_type = "feature"`.
-#' @param layer Seurat expression layer to fetch for features.
-#' @param images Optional Seurat image names.
-#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param radius Optional distance radius defining neighborhoods.
-#' @param k Number of nearest neighbors when `radius` is `NULL`.
-#' @param alternative Alternative hypothesis passed to `spdep::moran.test()`.
-#' @return List containing the Moran test, input data, neighbors, and weights.
+#' @param spatial_id Name of the `receptors` column that holds the spatial IDs.
+#'   If `object` is a SIRUP object and this argument is `NULL`, the function uses
+#'   the stored spatial ID field. Give a value if you use separate Seurat and
+#'   receptor objects.
+#' @param clone Name of the `receptors` column that holds the clone IDs. The
+#'   function uses it only if `variable_type` is `"clone"`. If `object` is a
+#'   SIRUP object and this argument is `NULL`, the function uses the stored
+#'   clone field, if there is one.
+#' @param assay Assay to use if `variable_type` is `"feature"`.
+#' @param layer Seurat expression layer to use for features (default
+#'   `"counts"`).
+#' @param images Names of the Seurat images to use.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param radius Distance that defines a neighborhood. If `NULL`, the function
+#'   uses `k`.
+#' @param k Number of nearest neighbors, used if `radius` is `NULL` (default 6).
+#' @param alternative Alternative hypothesis for `spdep::moran.test()` (default
+#'   `"greater"`).
+#'
+#' @return For one image, a list with these items: `test` (the
+#'   `spdep::moran.test()` result), `data` (the values tested), `neighbors` and
+#'   `weights` (from `spdep`), `radius`, `k`, and `variable`. For several
+#'   images, the list has `tests`, `neighbors`, and `weights` as named lists with
+#'   one entry for each image. It also has `summary`, a data frame with one row
+#'   for each image (`image`, `statistic`, `p_value`, `moran_i`, `expectation`,
+#'   `variance`), and the items `data`, `radius`, `k`, and `variable`.
+#' @seealso [spatialLocalMoran()], [spatialLee()], [spatialCloneJoinCount()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#'
+#' # Test gene1 for spatial autocorrelation.
+#' result <- spatialMoran(x, "gene1", k = 4)
+#' result$test
+#'
 #' @export
 spatialMoran <- function(object,
                          variable,
@@ -43,7 +79,6 @@ spatialMoran <- function(object,
                          radius = NULL,
                          k = 6,
                          alternative = "greater") {
-  .require_namespace("spdep")
   dat <- .sirup_spatial_variable_values(
     object = object,
     variable = variable,
@@ -109,45 +144,69 @@ spatialMoran <- function(object,
   )
 }
 
-#' Calculate global Lee's L for two spatial variables
+#' Calculate global Lee's L
 #'
-#' Tests bivariate spatial association between two continuous variables using
-#' `spdep::lee.test()`. For example, use two feature names to test whether
-#' expression of one gene is associated with the neighboring expression of a
-#' second gene.
+#' `spatialLee` tests the spatial association between two continuous variables.
 #'
-#' @param object Seurat object with spatial images, or a SIRUP object.
-#' @param x First feature or numeric metadata column to analyze.
-#' @param y Second feature or numeric metadata column to analyze.
-#' @param x_type Type of `x`: either `feature` or `metadata`.
-#' @param y_type Type of `y`: either `feature` or `metadata`.
-#' @param layer Seurat expression layer to fetch for features.
-#' @param images Optional Seurat image names.
-#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before calculating neighborhoods. If `NULL`, the value must be
-#'   supplied explicitly or by SIRUP object metadata.
-#' @param radius Optional distance radius defining neighborhoods.
-#' @param k Number of nearest neighbors when `radius` is `NULL`. Use `k = 8`
-#'   for Visium HD, whose bins form a square grid, and `k = 6` for the
-#'   hexagonal spot layout of standard Visium.
-#' @param alternative Alternative hypothesis passed to the significance test.
-#' @param method How to test significance. `analytical` uses
-#'   `spdep::lee.test()`. `mc` uses `spdep::lee.mc()`, which permutes the
-#'   labels instead.
+#' @details
+#' The function builds one neighbor graph from all spots, with `radius` or `k`
+#' as in [spatialMoran()]. For example, give two gene names to test if the expression of one gene
+#' relates to the expression of the second gene in neighboring spots.
 #'
-#'   `spdep::lee.test()` builds a DENSE n by n weights matrix to get the
-#'   analytical moments, so its memory cost grows with the square of the number
-#'   of spots: about 206 GB at 166,000 bins and 808 GB at 329,000. Use
-#'   `method = "mc"` for Visium HD. It keeps the weights sparse and stays
-#'   within a few GB.
-#' @param nsim Number of permutations when `method = "mc"`.
-#' @param progress Logical; show a progress bar over the permutations when
-#'   `method = "mc"`. Each permutation re-lags both variables over every spot,
-#'   so a large `nsim` on Visium HD takes minutes per pair.
-#' @param assay Optional assay to use when `x_type` or `y_type` is `"feature"`.
-#' @return List containing the test, the observed Lee's L, the aligned input
-#'   data, neighbors, and weights.
+#' `method = "analytical"` calls `spdep::lee.test()`. This function builds a
+#' dense n by n weights matrix. The memory use grows with the square of the
+#' number of spots, so be careful with larger datasets, like with Visium HD.
+#' For large datasets, use `method = "mc"`. It calls `spdep::lee.mc()`, which permutes
+#' the labels. It keeps the weights sparse and needs only a few GB.
+#' 
+#' If the data come from more than one image, or a sirup object with multiple samples,
+#' then the function builds one graph and runs one test for each sample or image.
+#'
+#' @param object Seurat object or SIRUP object.
+#' @param x Name of the first variable. It is a feature or a numeric metadata
+#'   column.
+#' @param y Name of the second variable. It is a feature or a numeric metadata
+#'   column.
+#' @param x_type Type of `x`: `feature` or `metadata`.
+#' @param y_type Type of `y`: `feature` or `metadata`.
+#' @param assay Assay to use if `x_type` or `y_type` is `"feature"`.
+#' @param layer Seurat expression layer to use for features (default
+#'   `"counts"`).
+#' @param images Names of the Seurat images to use.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param radius Distance that defines a neighborhood. If `NULL`, the function
+#'   uses `k`.
+#' @param k Number of nearest neighbors, used if `radius` is `NULL` (default 6).
+#'   Use `k = 8` for Visium HD, where the bins form a square grid. Use `k = 6`
+#'   for standard Visium, where the spots form a hexagonal grid.
+#' @param alternative Alternative hypothesis for the significance test (default
+#'   `"greater"`).
+#' @param method Significance test: `analytical` or `mc` (permutation). See
+#'   Details.
+#' @param nsim Number of permutations for `method = "mc"` (default 999).
+#' @param progress Show a progress bar for the permutations (default `FALSE`)?
+#'   The function uses it only if `method = "mc"`. Each permutation re-lags both
+#'   variables over every spot. For Visium HD, a large `nsim` takes minutes for
+#'   each pair.
+#'
+#' @return A list with these items: `test` (the test result), `L` (the observed
+#'   Lee's L), `method`, `data` (the values tested), `neighbors` and `weights`
+#'   (from `spdep`), `radius`, `k`, `x`, `y`, `x_type`, and `y_type`.
+#' @seealso [spatialMoran()], [spatialLocalMoran()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#'
+#' # Test if gene1 and gene2 are associated.
+#' spatialLee(x, "gene1", "gene2", k = 4)$L
+#'
+#' # Use permutations. This method also works for large Visium HD data.
+#' set.seed(1)
+#' spatialLee(x, "gene1", "gene2", k = 4, method = "mc", nsim = 99)$test
 #' @export
 spatialLee <- function(object,
                        x,
@@ -165,7 +224,6 @@ spatialLee <- function(object,
                        method = c("analytical", "mc"),
                        nsim = 999,
                        progress = FALSE) {
-  .require_namespace("spdep")
   x_type <- match.arg(x_type)
   y_type <- match.arg(y_type)
   method <- match.arg(method)
@@ -354,34 +412,57 @@ spatialLee <- function(object,
   )
 }
 
-#' Calculate local Moran's I/LISA for a spatial variable
+#' Calculate local Moran's I (LISA)
 #'
-#' @param object Seurat object with spatial images, or a SIRUP object.
-#' @param variable Feature or metadata column to analyze.
-#' @param variable_type One of `feature`, `metadata`, `receptor`, or `clone`.
-#'   Use `clone` to calculate local Moran's I for a binary indicator marking
-#'   spots that contain a particular clone ID.
-#' @param value Optional metadata value to convert to a binary indicator.
-#' @param receptors AIRR-style receptor data frame. Required when
-#'   `variable_type = "receptor"` or `"clone"` unless `object` is a SIRUP
+#' `spatialLocalMoran` calculates local Moran's I for each spot. It shows where
+#' high or low values cluster.
+#'
+#' @details
+#' The function builds one neighbor graph from all spots, with `radius` or `k`
+#' as in [spatialMoran()]. Set `variable_type = "clone"` to use a 0/1 value for each spot: 1 if the spot
+#' contains the clone, 0 if not.
+#' 
+#' If the data come from more than one image, or a sirup object with multiple samples,
+#' then the function builds one graph and runs one test for each sample or image.
+#'
+#' @param object Seurat object or SIRUP object.
+#' @param variable Name of the feature or the metadata column to test.
+#' @param variable_type Type of `variable`: `feature` (gene expression),
+#'   `metadata` (Seurat metadata column), `receptor` (receptor table column),
+#'   or `clone` (clone ID).
+#' @param value Metadata value to convert to a 0/1 indicator (default `NULL`).
+#' @param receptors AIRR-style receptor table. You must give it if
+#'   `variable_type` is `"receptor"` or `"clone"` and `object` is not a SIRUP
 #'   object.
-#' @param spatial_id Spatial ID column in `receptors`. Defaults to `NULL`; when
-#'   `object` is a SIRUP object, the stored receptor ID field is used.
-#'   Pass this explicitly when using separate Seurat and receptor objects.
-#' @param clone Clone column in `receptors`; used only when
-#'   `variable_type = "clone"`. Defaults to `NULL`; when `object` is a SIRUP
-#'   object, the stored receptor clone field is used when available.
-#' @param assay Optional assay to use when `variable_type = "feature"`.
-#' @param layer Seurat expression layer to fetch for features.
-#' @param images Optional Seurat image names.
-#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param radius Optional distance radius defining local neighborhoods. When
-#'   `NULL`, k-nearest neighbors are used.
-#' @param k Number of nearest neighbors when `radius` is `NULL`.
-#' @return Data frame with coordinates, values, local Moran's I, z scores, and p values.
+#' @param spatial_id Name of the `receptors` column that holds the spatial IDs.
+#'   If `object` is a SIRUP object and this argument is `NULL`, the function uses
+#'   the stored spatial ID field. Give a value if you use separate Seurat and
+#'   receptor objects.
+#' @param clone Name of the `receptors` column that holds the clone IDs. The
+#'   function uses it only if `variable_type` is `"clone"`. If `object` is a
+#'   SIRUP object and this argument is `NULL`, the function uses the stored
+#'   clone field, if there is one.
+#' @param assay Assay to use if `variable_type` is `"feature"`.
+#' @param layer Seurat expression layer to use for features (default
+#'   `"counts"`).
+#' @param images Names of the Seurat images to use.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param radius Distance that defines a neighborhood. If `NULL`, the function
+#'   uses the `k` nearest neighbors.
+#' @param k Number of nearest neighbors, used if `radius` is `NULL` (default 6).
+#'
+#' @return A data frame with the coordinates, the values, local Moran's I, the
+#'   z-scores, and the p-values.
+#' @seealso [plotSpatialLocalMoran()], [spatialMoran()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' local_moran <- spatialLocalMoran(x, "gene1", k = 4)
+#' head(local_moran[, c("cell", "local_i", "z_i", "p_value")])
 #' @export
 spatialLocalMoran <- function(object,
                               variable,
@@ -397,7 +478,6 @@ spatialLocalMoran <- function(object,
                               swap_coords = NULL,
                               radius = NULL,
                               k = 6) {
-  .require_namespace("spdep")
 
   dat <- .sirup_spatial_variable_values(
     object = object,
@@ -456,57 +536,88 @@ spatialLocalMoran <- function(object,
   groups
 }
 
-#' Test clone localization with join-count statistics
+#' Test clone localization with join counts
 #'
-#' Runs `spdep::joincount.test()` for each clone to test whether neighboring
-#' receptor-positive spatial IDs are more likely to share that clone than
-#' expected under random labeling. This is useful for asking whether clones
-#' localize within regions of interest such as germinal centers.
+#' `spatialCloneJoinCount` tests if each clone clusters in space.
 #'
-#' @param object Seurat object with spatial images, or a SIRUP object.
-#' @param receptors AIRR-style receptor data frame containing spatial IDs
-#'   and clone calls. May be omitted when `object` is a SIRUP object.
-#' @param clone Column in `receptors` containing clone IDs. Defaults to
-#'   `NULL`; when `object` is a SIRUP object, the stored receptor clone field
-#'   is used when available.
-#' @param spatial_id Column in `receptors` matching Seurat spot/cell spatial IDs.
-#'   Defaults to `NULL`; when `object` is a SIRUP object, the stored receptor
-#'   spatial_id field is used. Pass this explicitly when using separate Seurat and
+#' @details
+#' The function calls `spdep::joincount.test()` for each clone. The test asks if
+#' neighboring spots with receptors share the clone more often than random
+#' labels would give. 
+#'
+#' The function skips a clone if it occurs in fewer than `min_spatial_ids`
+#' spatial IDs, or in every spatial ID of the region.
+#'
+#' If `object` is a SIRUP object with stored polygons and you give no `polygon`,
+#' the function runs one test for each stored polygon. Set `use_stored_polygons` to FALSE
+#' to change this.
+#' 
+#' If the data come from more than one image, or a sirup object with multiple samples,
+#' then the function builds one graph and runs one test for each sample or image.
+#'
+#' @param object Seurat object or SIRUP object.
+#' @param receptors AIRR-style receptor table with spatial IDs and clone IDs.
+#'   Omit if `object` is a SIRUP object.
+#' @param clone Name of the `receptors` column that holds the clone IDs. If
+#'   `object` is a SIRUP object and this argument is `NULL`, the function uses
+#'   the stored clone field, if there is one.
+#' @param spatial_id Name of the `receptors` column that holds the spatial IDs.
+#'   If `object` is a SIRUP object and this argument is `NULL`, the function uses
+#'   the stored spatial ID field. Give a value if you use separate Seurat and
 #'   receptor objects.
-#' @param clone_val Optional clone ID values to test. Defaults to all clones
-#'   observed in at least `min_spatial_ids` spatial IDs.
-#' @param polygon Optional polygon vertex data frame used to restrict the test
-#'   to one or more regions.
-#' @param polygon_val Optional polygon ID value(s) to select when `polygon`
-#'   exists.
-#' @param images Optional Seurat image names.
-#' @param image_scale Image scale passed to
-#'   `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param x Coordinate column in `polygon`.
-#' @param y Coordinate column in `polygon`.
-#' @param polygon_id Optional polygon grouping column in `polygon`.
-#' @param include_boundary Include Seurat spots on polygon edges.
-#'   Ignored when `object` is a SIRUP object with stored polygons and `polygon`
-#'   is `NULL`; in that case stored polygon annotations are used.
-#' @param min_spatial_ids Minimum number of spatial IDs containing a clone for
-#'   that clone to be tested.
-#' @param radius Optional distance radius defining neighborhoods.
-#' @param k Number of nearest neighbors when `radius` is `NULL`.
-#' @param alternative Alternative hypothesis passed to
-#'   `spdep::joincount.test()`.
-#' @param other_label Label used for non-target clone spatial IDs in each binary
-#'   test.
-#' @param use_stored_polygons Whether to run one join-count test per stored polygon
-#'   (e.g. per GC) in a SIRUP object. `NULL` (default) auto-detects: `TRUE` when a
-#'   SIRUP object has stored polygons and `polygon` is not supplied, otherwise
-#'   `FALSE`. Set `FALSE` to force one tissue-wide neighbor graph per spatial
-#'   sample (ignoring any stored polygons); set `TRUE` to require stored-polygon tests.
-#' @param return_data Return the spatial_id-level mark data used for each test.
-#' @return List containing a summary table, raw `spdep` tests, spatial_id-level
-#'   data, neighbors, and weights.
+#' @param clone_val Clone IDs to test. If `NULL`, the function tests all clones
+#'   that occur in at least `min_spatial_ids` spatial IDs.
+#' @param polygon Data frame of polygon vertices. The function tests only the
+#'   spots inside these polygons (default `NULL`).
+#' @param polygon_val Polygon IDs to select from `polygon`.
+#' @param images Names of the Seurat images to use.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param x Name of the x-coordinate column in `polygon` (default `"x"`).
+#' @param y Name of the y-coordinate column in `polygon` (default `"y"`).
+#' @param polygon_id Name of the column in `polygon` that groups the vertices
+#'   by polygon (default `"polygon"`).
+#' @param include_boundary Count spots on a polygon edge as inside the polygon
+#'   (default `TRUE`)? The function ignores this argument if `object` is a
+#'   SIRUP object with stored polygons and `polygon` is `NULL`. In that case,
+#'   it uses the stored polygon annotations.
+#' @param min_spatial_ids Smallest number of spatial IDs that a clone needs to
+#'   be tested (default 2).
+#' @param radius Distance that defines a neighborhood. If `NULL`, the function
+#'   uses `k`.
+#' @param k Number of nearest neighbors, used if `radius` is `NULL` (default 6).
+#' @param alternative Alternative hypothesis for `spdep::joincount.test()`
+#'   (default `"greater"`).
+#' @param other_label Label for the spatial IDs that do not contain the tested
+#'   clone (default `"Other"`).
+#' @param use_stored_polygons Run one test for each stored polygon of a SIRUP
+#'   object? Use `TRUE` to require stored polygons. Use `FALSE` to build one
+#'   neighbor graph for each sample and ignore stored polygons. If `NULL`
+#'   (default), the function uses `TRUE` when a SIRUP object has stored polygons
+#'   and you give no `polygon`. Otherwise, it uses `FALSE`.
+#' @param return_data Return the data used for each test (default `FALSE`)?
+#'
+#' @return A list with these items: `summary` (a table with one row for each
+#'   tested clone and region, ordered by p-value), `tests` (the `spdep` test
+#'   results), `data` (the data for each test,
+#'   or `NULL` if `return_data` is `FALSE`), `neighbors`, `weights`, `radius`,
+#'   `k`, `alternative`, and `min_spatial_ids`.
+#' @seealso [plotSpatialCloneJoinCount()], [spatialMoran()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#'
+#' # Test each clone on the whole tissue.
+#' join_count <- spatialCloneJoinCount(
+#'   x,
+#'   use_stored_polygons = FALSE,
+#'   k = 4,
+#'   return_data = TRUE
+#' )
+#' join_count$summary[, c("clone_id", "observed_join_count", "expected_join_count", "p_value")]
 #' @export
 spatialCloneJoinCount <- function(object,
                                   receptors = NULL,
@@ -566,7 +677,6 @@ spatialCloneJoinCount <- function(object,
   if (is.null(clone)) {
     rlang::abort("`clone` is required when it cannot be resolved from a SIRUP object.")
   }
-  .require_namespace("spdep")
   if (!is.numeric(min_spatial_ids) || length(min_spatial_ids) != 1L || is.na(min_spatial_ids) || min_spatial_ids < 1) {
     rlang::abort("`min_spatial_ids` must be a positive number.")
   }
@@ -702,42 +812,62 @@ spatialCloneJoinCount <- function(object,
   )
 }
 
-#' Plot a spatial clone join-count result
+#' Plot a clone join-count result
 #'
-#' Combines a tissue map of one tested clone with its observed and expected
-#' same-clone join counts. The map uses the same receptor-positive spots and
-#' neighborhood graph that were used by [spatialCloneJoinCount()].
+#' `plotSpatialCloneJoinCount` plots the tissue map of one tested clone. It also
+#' shows the observed and expected number of joins between spots of the same
+#' clone.
 #'
-#' @param join_count Output from [spatialCloneJoinCount()] created with
+#' @details
+#' The map uses the same spots and the same neighbor graph as the call to
+#' [spatialCloneJoinCount()].
+#' 
+#' If the data come from more than one image, or a sirup object with multiple samples,
+#' then the function builds a list of plots, one for each sample or image.
+#'
+#' @param join_count Result of [spatialCloneJoinCount()]. Run that function with
 #'   `return_data = TRUE`.
 #' @param object Seurat object with spatial images, or a SIRUP object.
 #' @param clone_val Clone ID to plot.
-#' @param images Optional image names to include.
-#' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
-#' @param polygon_val Optional polygon IDs to include.
-#' @param polygon Optional polygon vertex data frame to draw over the tissue.
-#' @param image_scale Image scale passed to
-#'   `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate axes.
-#' @param show_neighbors Draw edges between neighboring spots that both contain
-#'   the selected clone.
-#' @param clone_color Color for selected-clone spots and neighbor edges.
-#' @param other_color Color for other receptor-positive spots.
-#' @param point_size Size of plotted spots.
-#' @param point_alpha Opacity of plotted spots.
-#' @param edge_width Width of neighbor edges.
-#' @param edge_alpha Opacity of neighbor edges.
-#' @param polygon_color Color of polygon outlines.
-#' @param polygon_linewidth Width of polygon outlines.
-#' @param image_alpha Tissue image opacity.
-#' @param zoom Zoom the spatial panel to the spots used in the test.
-#' @param title Optional title for the combined plot.
-#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
-#'   from different spatial samples into one figure. Defaults to `FALSE`, so
-#'   multi-sample calls return a named list of per-sample plots.
-#' @return One combined ggplot object, or a named list of plots for
-#'   multi-sample objects when `combine_sample_plots = FALSE`.
+#' @param images Names of the images to plot.
+#' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
+#'   objects. If `NULL`, the function plots all samples.
+#' @param polygon_val IDs of the polygons to include.
+#' @param polygon Data frame of polygon vertices to draw on the tissue.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object.
+#' @param show_neighbors Draw a line between each pair of neighboring spots that
+#'   both contain the clone (default `TRUE`)?
+#' @param clone_color Color of the spots and lines for the clone.
+#' @param other_color Color of the other spots that have receptors.
+#' @param point_size Size of the spots.
+#' @param point_alpha Opacity of the spots.
+#' @param edge_width Width of the neighbor lines.
+#' @param edge_alpha Opacity of the neighbor lines.
+#' @param polygon_color Color of the polygon outlines.
+#' @param polygon_linewidth Width of the polygon outlines.
+#' @param image_alpha Opacity of the tissue image.
+#' @param zoom Zoom to the spots in the test (default `FALSE`)?
+#' @param title Title of the combined plot.
+#' @param combine_sample_plots Combine the plots of all samples into one figure
+#'   (default `FALSE`)? The function uses it only for multi-sample objects. If
+#'   `FALSE`, it returns a named list with one plot for each sample.
+#'
+#' @return A ggplot object. For a multi-sample object and
+#'   `combine_sample_plots = FALSE`, a named list of plots.
+#' @seealso [spatialCloneJoinCount()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' join_count <- spatialCloneJoinCount(
+#'   x,
+#'   use_stored_polygons = FALSE,
+#'   k = 4,
+#'   return_data = TRUE
+#' )
+#' plotSpatialCloneJoinCount(join_count, x, clone_val = "2")
 #' @export
 plotSpatialCloneJoinCount <- function(join_count,
                                       object,
@@ -761,7 +891,6 @@ plotSpatialCloneJoinCount <- function(join_count,
                                       zoom = FALSE,
                                       title = NULL,
                                       combine_sample_plots = FALSE) {
-  .require_namespace("cowplot")
   sample_id <- .sirup_plot_sample_id(object, sample_id)
   context <- .sirup_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
@@ -1053,31 +1182,45 @@ plotSpatialCloneJoinCount <- function(join_count,
   dplyr::bind_rows(edges)
 }
 
-#' Plot local Moran's I over a tissue image
+#' Plot local Moran's I on a tissue image
 #'
-#' @param object SIRUP object, or a spatial Seurat object.
-#' @param local_moran Output from `spatialLocalMoran()`.
-#' @param value_col Column to color. Defaults to `z_i`.
-#' @param images Optional Seurat image names.
-#' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
-#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param colors Three colors for low, midpoint, and high values.
-#' @param midpoint Color midpoint.
-#' @param point_size Point size.
-#' @param point_alpha Point opacity.
-#' @param order_points Plot lower values first so higher values appear on top.
-#' @param image_alpha Tissue image opacity.
-#' @param zoom Zoom to plotted points.
-#' @param title Optional title.
-#' @param combine Combine image panels with patchwork.
-#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
-#'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
-#'   multi-sample calls return a named list of per-sample plots.
-#' @return A ggplot/patchwork object.
+#' `plotSpatialLocalMoran` colors each spot by its local Moran's I result.
+#' 
+#' If the data come from more than one image, or a sirup object with multiple samples,
+#' then the function builds a list of plots, one for each sample or image.
+#'
+#' @param object SIRUP object, or Seurat object with spatial images.
+#' @param local_moran Result of [spatialLocalMoran()].
+#' @param value_col Name of the column to color by (default `"z_i"`).
+#' @param images Names of the Seurat images to use.
+#' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
+#'   objects. If `NULL`, the function plots all samples.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param colors Three colors for the low, middle, and high values.
+#' @param midpoint Value that gets the middle color.
+#' @param point_size Size of the spots.
+#' @param point_alpha Opacity of the spots.
+#' @param order_points Draw low values first, so that high values show on top
+#'   (default `TRUE`)?
+#' @param image_alpha Opacity of the tissue image.
+#' @param zoom Zoom to the plotted spots (default `FALSE`)?
+#' @param title Plot title.
+#' @param combine Combine the image panels with patchwork (default `TRUE`)?
+#' @param combine_sample_plots Combine the plots of all samples into one
+#'   patchwork (default `FALSE`)? The function uses it only for multi-sample
+#'   objects. If `FALSE`, it returns a named list with one plot for each sample.
+#'
+#' @return A ggplot or patchwork object.
+#' @seealso [spatialLocalMoran()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' local_moran <- spatialLocalMoran(x, "gene1", k = 4)
+#' plotSpatialLocalMoran(x, local_moran)
 #' @export
 plotSpatialLocalMoran <- function(object,
                                   local_moran,
@@ -1138,21 +1281,53 @@ plotSpatialLocalMoran <- function(object,
   .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
 }
 
-#' Calculate Ripley's cross K for marked spatial points
+#' Calculate Ripley's cross K
 #'
-#' @param object SIRUP object, or a spatial Seurat object.
-#' @param mark_col Metadata column containing point types.
-#' @param i First mark level to compare.
-#' @param j Second mark level to compare.
-#' @param nsim Number of random-label simulations for an envelope. Use `0` for
-#'   observed K only.
-#' @param max_r Optional maximum radius to evaluate. Ignored if `r` is supplied.
-#' @param r Optional distance vector passed to `spatstat.explore::Kcross()`.
-#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @return List with observed K, optional envelope, plotting data, and point data.
+#' `spatialRipleyCrossK` measures how spots of mark `i` cluster around spots of
+#' mark `j` at different distances. Similar to Lee's L but better for factor data.
+#'
+#' @details
+#' The function calls `spatstat.explore::Kcross()` with the border correction.
+#' If `nsim` is greater than 0, it also builds an envelope from random label
+#' simulations.
+#' 
+#' If the data come from more than one image, or a sirup object with multiple samples,
+#' then the function builds one graph and runs one test for each sample or image.
+#'
+#' @param object Seurat object or SIRUP object.
+#' @param mark_col Name of the metadata column that holds the point types.
+#' @param i First mark level.
+#' @param j Second mark level.
+#' @param nsim Number of random-label simulations for the envelope (default 0).
+#'   Use `0` for the observed K only.
+#' @param max_r Largest radius to calculate. The function ignores it if you give
+#'   `r`.
+#' @param r Vector of distances for `spatstat.explore::Kcross()`.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#'
+#' @return A list with these items: `observed` (the observed K), `envelope`
+#'   (the simulation envelope, if any), `plot_data`, `points` (the point data),
+#'   `i`, `j`, `correction`, `nsim`, `max_r`, and `r`.
+#' @seealso [plotRipleyCrossK()]
+#'
+#' @examplesIf requireNamespace("spatstat.explore", quietly = TRUE)
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#'
+#' # Compare spots of type A with spots of type B. Use 19 random-label
+#' # simulations for the envelope.
+#' set.seed(1)
+#' kcross <- spatialRipleyCrossK(
+#'   x,
+#'   mark_col = "cell_type",
+#'   i = "A",
+#'   j = "B",
+#'   nsim = 19
+#' )
+#' head(kcross$plot_data)
 #' @export
 spatialRipleyCrossK <- function(object,
                                 mark_col,
@@ -1243,17 +1418,35 @@ spatialRipleyCrossK <- function(object,
   )
 }
 
-#' Plot Ripley's cross K versus distance
+#' Plot Ripley's cross K against distance
 #'
-#' @param kcross Output from `spatialRipleyCrossK()`.
-#' @param title Optional title.
-#' @param observed_color Color for the observed cross-K curve.
-#' @param simulated_color Color for the dotted simulated curve.
-#' @param envelope_fill Fill color for the simulation envelope.
-#' @param envelope_alpha Alpha for the simulation envelope.
-#' @param facet Facet by image when multiple spatial images are present.
-#' @param log_y Use a log10 y scale.
+#' `plotRipleyCrossK` plots the observed cross K, with the simulation envelope if
+#' there is one.
+#'
+#' @param kcross Result of [spatialRipleyCrossK()].
+#' @param title Plot title.
+#' @param observed_color Color of the observed curve.
+#' @param simulated_color Color of the dotted simulated curve.
+#' @param envelope_fill Fill color of the simulation envelope.
+#' @param envelope_alpha Opacity of the simulation envelope.
+#' @param facet Make one panel for each image if the result has several images
+#'   (default `TRUE`)?
+#' @param log_y Use a log10 scale for the y-axis (default `FALSE`)?
+#'
 #' @return A ggplot object.
+#' @seealso [spatialRipleyCrossK()]
+#'
+#' @examplesIf requireNamespace("spatstat.explore", quietly = TRUE)
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' set.seed(1)
+#' kcross <- spatialRipleyCrossK(
+#'   x,
+#'   mark_col = "cell_type",
+#'   i = "A",
+#'   j = "B",
+#'   nsim = 19
+#' )
+#' plotRipleyCrossK(kcross)
 #' @export
 plotRipleyCrossK <- function(kcross,
                              title = NULL,
@@ -1356,7 +1549,6 @@ plotRipleyCrossK <- function(kcross,
     clone_col <- inputs$receptor_fields$clone
   }
   variable_type <- match.arg(variable_type, c("feature", "metadata", "receptor", "clone"))
-  .require_namespace("SeuratObject")
 
   # Start from one row per spatial coordinate so all statistic modes share the
   # same neighbor graph construction.
@@ -1543,18 +1735,28 @@ plotRipleyCrossK <- function(kcross,
   as.character(dat$.sirup_spatial_id)
 }
 
-#' Extract SIRUP spatial plotting coordinates
+#' Get spatial plotting coordinates
 #'
-#' Returns the spatial coordinate table used internally by SIRUP spatial
-#' statistics and plotting helpers. Coordinates are pulled from Seurat image
-#' coordinates when available, otherwise from coordinate columns in Seurat
-#' metadata. The `.sirup_y` column stores SIRUP's plotting y-coordinate.
+#' `spatialCoordinateTable` returns the coordinate table that SIRUP uses for
+#' spatial statistics and plots.
 #'
-#' @param object A Seurat object.
-#' @param images Optional image names to include.
-#' @param image_scale Image scale used for Seurat image coordinates.
-#' @param swap_coords Whether to swap x/y coordinates before plotting.
-#' @return A data frame with at least `cell`, `x`, `y`, `.sirup_y`, and `image`.
+#' @details
+#' The function takes the coordinates from the Seurat images. If there are none,
+#' it takes them from the coordinate columns in the Seurat metadata. The
+#' `.sirup_y` column holds the y-coordinate that SIRUP uses for plots.
+#'
+#' @param object Seurat object.
+#' @param images Names of the images to include.
+#' @param image_scale Image scale for the Seurat image coordinates.
+#' @param swap_coords Swap the x and y coordinates?
+#'
+#' @return A data frame with at least these columns: `cell`, `x`, `y`,
+#'   `.sirup_y`, and `image`.
+#' @seealso [spatialCoordinateExtents()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' head(spatialCoordinateTable(getSpatial(x), image_scale = "hires", swap_coords = FALSE))
 #' @export
 spatialCoordinateTable <- function(object,
                                    images = NULL,
@@ -1571,12 +1773,22 @@ spatialCoordinateTable <- function(object,
 
 #' Summarize spatial coordinate ranges
 #'
-#' @param object SIRUP object or spatial Seurat object.
-#' @param by Summarize by spatial `sample` or by `image`.
-#' @param images Optional image or spatial sample names.
-#' @param image_scale Image scale used for Seurat image coordinates.
-#' @param swap_coords Whether to swap x/y coordinates before summarizing.
-#' @return Tibble with coordinate ranges, width, height, diagonal, and spot count.
+#' `spatialCoordinateExtents` gives the x and y range of each sample or image.
+#'
+#' @param object SIRUP object, or Seurat object with spatial images.
+#' @param by Group the ranges by `sample` or by `image`.
+#' @param images Names of the images or samples to include.
+#' @param image_scale Image scale for the Seurat image coordinates.
+#' @param swap_coords Swap the x and y coordinates?
+#'
+#' @return A tibble with the ranges (`x_min`, `x_max`, `y_min`, `y_max`), the
+#'   `width`, `height`, and `diagonal`, and the number of spots
+#'   (`n_spatial_ids`).
+#' @seealso [spatialCoordinateTable()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' spatialCoordinateExtents(x)
 #' @export
 spatialCoordinateExtents <- function(object,
                                      by = c("sample", "image"),
@@ -1618,23 +1830,45 @@ spatialCoordinateExtents <- function(object,
   tibble::as_tibble(dplyr::bind_rows(rows))
 }
 
-#' Summarize within-sample clone spatial spread
+#' Summarize the spatial spread of clones
 #'
-#' @param object SIRUP object, or a spatial Seurat object when `receptors` is supplied.
-#' @param receptors Optional receptor table. Omitted for SIRUP input.
-#' @param clone Clone ID column. Defaults to the SIRUP clone field when present.
-#' @param spatial_id Receptor spatial ID column. Defaults to the SIRUP spatial ID field.
-#' @param clone_val Optional clone IDs to keep.
-#' @param images Optional image or spatial sample names.
-#' @param image_scale Image scale used for Seurat image coordinates.
-#' @param swap_coords Whether to swap x/y coordinates before calculating distances.
-#' @param min_spatial_ids Minimum spatial observations required per sample/clone
-#'   (distinct spots when `collapse_within_spot = TRUE`, otherwise sequences).
-#' @param collapse_within_spot Collapse receptor sequences that share a spatial ID
-#'   (same spot) to a single point before computing pairwise distances. Defaults to
-#'   `FALSE`, which counts every sequence (so co-located sequences contribute
-#'   zero-distance pairs); set `TRUE` to measure spread over distinct spots only.
-#' @return Tibble with one row per sample and clone.
+#' `spatialCloneSpread` gives the distances between the spots of each clone in
+#' each sample.
+#'
+#' @details
+#' For each sample and clone, the function calculates the distance between every
+#' pair of points. It reports the mean and the maximum distance.
+#'
+#' @param object SIRUP object, or Seurat object with spatial images. For a Seurat
+#'   object, give `receptors`.
+#' @param receptors AIRR-style receptor table. Omit it if `object` is a SIRUP
+#'   object.
+#' @param clone Name of the column that holds the clone IDs. If `NULL`, the
+#'   function uses the stored clone field of a SIRUP object, if there is one.
+#' @param spatial_id Name of the column that holds the spatial IDs. If `NULL`,
+#'   the function uses the stored spatial ID field of a SIRUP object.
+#' @param clone_val Clone IDs to keep.
+#' @param images Names of the images or samples to include.
+#' @param image_scale Image scale for the Seurat image coordinates.
+#' @param swap_coords Swap the x and y coordinates before the function
+#'   calculates distances?
+#' @param min_spatial_ids Smallest number of observations that a clone needs in
+#'   a sample (default 2). If `collapse_within_spot` is `TRUE`, the function
+#'   counts distinct spots. Otherwise, it counts sequences.
+#' @param collapse_within_spot Merge the sequences that share a spatial ID into
+#'   one point before the function calculates distances (default `FALSE`)? If
+#'   `FALSE`, the function counts every sequence, so sequences in the same spot
+#'   give pairs with distance zero. Use `TRUE` to measure the spread over
+#'   distinct spots only.
+#'
+#' @return A tibble with one row for each sample and clone. The columns are
+#'   `sample`, `clone_id`, `n_spatial_ids`, `mean_pairwise_distance`, and
+#'   `max_pairwise_distance`.
+#' @seealso [spatialCloneJoinCount()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' spatialCloneSpread(x)
 #' @export
 spatialCloneSpread <- function(object,
                                receptors = NULL,
@@ -1736,7 +1970,6 @@ spatialCloneSpread <- function(object,
   options <- .sirup_require_spatial_options(image_scale, swap_coords)
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
-  .require_namespace("SeuratObject")
   image_names <- tryCatch(
     SeuratObject::Images(object),
     error = function(e) character()

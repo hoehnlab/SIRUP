@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{polygonDiversity}
 \alias{polygonDiversity}
-\title{Estimate receptor clonal diversity inside spatial polygons}
+\title{Estimate clonal diversity inside polygons}
 \usage{
 polygonDiversity(
   receptors,
@@ -23,55 +23,70 @@ polygonDiversity(
 )
 }
 \arguments{
-\item{receptors}{A SIRUP object or an AIRR-style receptor data frame.}
+\item{receptors}{SIRUP object, or an AIRR-style receptor table.}
 
-\item{polygons}{Optional polygon table used to define the output polygon
-order. When \code{NULL}, polygon IDs are taken from the SIRUP object or from
-\code{polygon_id} values already present in \code{receptors}.}
+\item{polygons}{Polygon table that sets the order of the output polygons. If
+\code{NULL}, the function takes the polygon IDs from the SIRUP object, or from
+the \code{polygon_id} values in \code{receptors}.}
 
-\item{polygon_id}{Primary polygon assignment column in \code{receptors}.}
+\item{polygon_id}{Name of the column that holds the primary polygon of each
+receptor (default \code{"polygon"}).}
 
-\item{mode}{\code{"by_polygon"} runs the diversity calculation once per polygon;
+\item{mode}{\code{"by_polygon"} runs the calculation once for each polygon.
 \code{"all_polygons"} runs it once on all receptors in any polygon.}
 
-\item{analysis_name}{Name used when storing the diversity result in a SIRUP
-object.}
+\item{analysis_name}{Name for the stored result in a SIRUP object (default
+\code{"polygon_diversity"}).}
 
-\item{clone}{alakazam: name of the data column containing clone identifiers.}
+\item{clone}{Name of the column that holds the clone IDs (default
+\code{"clone_id"}).}
 
-\item{copy}{alakazam: name of the data column containing copy numbers for
-each sequence. If copy=NULL (the default), then clone abundance is
-determined by the number of sequences. If a copy column is specified, then
-clone abundances is determined by the sum of copy numbers within each
-clonal group.}
+\item{copy}{Name of the column that holds the copy number of each sequence
+(default \code{NULL}). If \code{NULL}, the function measures clone abundance as the
+number of sequences. Otherwise, it uses the sum of the copy numbers in each
+clone.}
 
-\item{group}{alakazam: name of the data column containing group identifiers.
-If NULL then no grouping is performed and the group column of the output
-will contain the value NA for each row.}
+\item{group}{Name of the column that holds the group IDs (default \code{NULL}). If
+\code{NULL}, the function does not group, and the \code{group} column of the result
+is \code{NA}.}
 
-\item{min_n}{alakazam: minimum number of observations to sample. A group with
-less observations than the minimum is excluded.}
+\item{min_n}{Smallest number of observations in a group (default 30). The
+function drops a group with fewer observations.}
 
-\item{min_q}{alakazam: minimum value of q.}
+\item{min_q}{Smallest diversity order q (default 0).}
 
-\item{max_q}{alakazam: maximum value of q.}
+\item{max_q}{Largest diversity order q (default 4).}
 
-\item{step_q}{alakazam: value by which to increment q.}
+\item{step_q}{Step between the values of q (default 0.1).}
 
-\item{ci}{alakazam: confidence interval to calculate; the value must be
-between 0 and 1.}
+\item{ci}{Confidence interval, between 0 and 1 (default 0.95).}
 
-\item{...}{alakazam: additional arguments to pass to estimateAbundance.
-Additional arguments are ignored if a AbundanceCurve is provided as input.}
+\item{...}{Other arguments for \code{\link[alakazam:alphaDiversity]{alakazam::alphaDiversity()}}.}
 
-\item{validate}{Whether to validate an updated SIRUP object.}
+\item{validate}{Validate the updated SIRUP object (default \code{TRUE})?}
 }
 \value{
-An updated SIRUP object for SIRUP input, otherwise diversity result(s).
+For a SIRUP object, the updated SIRUP object. Otherwise, the
+diversity results.
 }
 \description{
-Runs \code{\link[alakazam:alphaDiversity]{alakazam::alphaDiversity()}} on receptor rows in each polygon, or on all
-receptors that fall in any polygon. Polygons with fewer than \code{min_n} receptor
-rows return \code{NULL}. SIRUP input stores the result as an analysis and returns
-the updated object.
+\code{polygonDiversity} runs \code{\link[alakazam:alphaDiversity]{alakazam::alphaDiversity()}} on the receptors of each
+polygon.
+}
+\details{
+With \code{mode = "by_polygon"}, the function runs once for each polygon. With
+\code{mode = "all_polygons"}, it runs once on all receptors in any polygon. A
+polygon with fewer than \code{min_n} receptor rows returns \code{NULL}. For a SIRUP
+object, the function stores the result as an analysis and returns the updated
+object.
+
+The arguments from \code{clone} to \code{...} go to \code{\link[alakazam:alphaDiversity]{alakazam::alphaDiversity()}}.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+x <- polygonDiversity(x, min_n = 2, max_q = 2, step_q = 1)
+listAnalyses(x)
+}
+\seealso{
+\code{\link[=summarizePolygonDiversity]{summarizePolygonDiversity()}}, \code{\link[=polygonAbundance]{polygonAbundance()}}
 }

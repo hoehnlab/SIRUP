@@ -2,19 +2,33 @@
 % Please edit documentation in R/spaced_pairing.R
 \name{transformSpacedDistances}
 \alias{transformSpacedDistances}
-\title{Transform SPaCeD spatial distances into affinities}
+\title{Convert distances to affinities}
 \usage{
 transformSpacedDistances(dist_matrix, scale = 1)
 }
 \arguments{
-\item{dist_matrix}{Heavy-by-light distance matrix.}
+\item{dist_matrix}{Matrix of distances, with one row for each heavy clone and
+one column for each light clone.}
 
-\item{scale}{Optional divisor applied before exponentiation. Use a larger
-value when distances are in pixel units.}
+\item{scale}{Divisor of the distances before the function takes the
+exponential (default 1). Use a larger value if the distances are in pixels.}
 }
 \value{
-Row-normalized heavy-by-light affinity matrix.
+A matrix of affinities. Each row that has a non-zero affinity sums to
+one.
 }
 \description{
-Transform SPaCeD spatial distances into affinities
+\code{transformSpacedDistances} converts a matrix of distances between heavy and
+light clones to a matrix of affinities. It uses \code{exp(-distance / scale)}.
+}
+\examples{
+distances <- matrix(
+  c(0, 2, 3, 1),
+  nrow = 2,
+  dimnames = list(c("heavy_H1", "heavy_H2"), c("light_L1", "light_L2"))
+)
+transformSpacedDistances(distances, scale = 1)
+}
+\seealso{
+\code{\link[=spacedSpatialAffinity]{spacedSpatialAffinity()}}, \code{\link[=pairHeavyLightSpaced]{pairHeavyLightSpaced()}}
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/sirup_trees.R
 \name{clusterTreeTips}
 \alias{clusterTreeTips}
-\title{Cluster tree tips by cutting tree branches}
+\title{Cluster the tips of a tree}
 \usage{
 clusterTreeTips(
   tree,
@@ -16,106 +16,104 @@ clusterTreeTips(
 )
 }
 \arguments{
-\item{tree}{A phylogenetic tree object with \code{edge}, \code{edge.length}, and
-\code{tip.label} fields.}
+\item{tree}{Phylogenetic tree with the fields \code{edge}, \code{edge.length}, and
+\code{tip.label}.}
 
-\item{k}{Number of connected tree components to form before ignored tips are
-removed. If larger than the number of tips in the tree, a warning is
-raised and \code{k} is set to the number of tips for that tree.}
+\item{k}{Number of subtrees to make, before the function removes the ignored
+tips. If \code{k} is larger than the number of tips, the function gives a
+warning and uses the number of tips.}
 
-\item{id}{Name of the returned tip identifier column.}
+\item{id}{Name of the tip ID column in the result (default \code{"sequence_id"}).}
 
-\item{cluster}{Name of the returned cluster column.}
+\item{cluster}{Name of the cluster column in the result (default
+\code{"tree_cluster"}).}
 
-\item{ignore_tips}{Optional tip labels to exclude \strong{before} clustering, so
-they neither form nor consume a cluster and are absent from the returned
-data frame (for example \code{"Germline"}). A tip named \code{"Germline"} (any case)
-is always excluded. Pruning uses \code{ape::drop.tip()}; if \code{ape} is unavailable
-the tips are instead dropped from the returned table after clustering.}
+\item{ignore_tips}{Tip labels to remove \strong{before} the clustering (default
+\code{"Germline"}). These tips do not form a cluster, do not use up a cluster,
+and do not appear in the result. The function always removes a tip named
+\code{"Germline"} (in any case). It prunes the tree with \code{ape::drop.tip()}. If
+\code{ape} is not installed, the function removes the tips from the result table
+after the clustering.}
 
-\item{prefix}{Prefix used for cluster labels.}
+\item{prefix}{Prefix of the cluster labels (default \code{"tree_cluster_"}).}
 
-\item{method}{Tree clustering method. \code{"cut_largest_branches"} removes the
-\code{k - 1} longest eligible branches globally. \code{"split_largest_subtrees"}
-repeatedly splits the largest remaining tip-containing subtree.
-\code{"monophyletic_clades"} repeatedly replaces the largest-span clade by all of
-its child clades, so every returned group is strictly monophyletic (the full
-descendant set of a single node) with no paraphyletic remainder; for a
-bifurcating tree this yields exactly \code{k} clades.}
+\item{method}{Clustering method: \code{"split_largest_subtrees"} (default),
+\code{"cut_largest_branches"}, or \code{"monophyletic_clades"}. See Details.}
 
-\item{cut_terminal_edges}{Cut terminal branches when choosing the longest
-branches to remove. Defaults to \code{TRUE}; set to \code{FALSE} to prioritize
-internal branches that split larger clades.}
+\item{cut_terminal_edges}{Allow cuts of terminal branches (default \code{TRUE})? If
+\code{FALSE}, the function cuts internal branches first, so that it splits larger
+clades before it cuts off single tips.}
 }
 \value{
-Data frame with one row per retained tip and a tree-cluster label.
+A data frame with one row for each kept tip. It has the tip ID column
+(named by \code{id}) and the cluster label column (named by \code{cluster}).
 }
 \description{
-Partitions a phylogenetic tree into connected components by cutting \code{k - 1}
-branches. A connected component is one disconnected tree piece left after
-branch cuts; tips in the same component receive the same cluster label.
+\code{clusterTreeTips} groups the tips of a phylogenetic tree into \code{k} connected
+clusters.
 }
 \details{
-With \code{method = "cut_largest_branches"}, the function cuts the longest
-eligible branches globally. This is the graph-theoretic tree clustering
-heuristic used for fixed-k minimum spanning tree clustering, applied to a
-phylogenetic tree.
-
-With \code{method = "split_largest_subtrees"}, the function recursively splits the
-current component with the largest genetic span, measured as the largest
-patristic distance between any two tips in that component. Within that
-component, candidate cuts must split it into two non-empty tip-containing
-components. The selected cut maximizes the size of the smaller daughter
-component, and branch length is used as a tie-breaker. Setting
-\code{cut_terminal_edges = FALSE} makes the function prefer internal branches,
-which usually avoids peeling off long single-tip branches before larger clades
-have been split.
-
-More explicitly, \code{method = "split_largest_subtrees"} works as follows:
-\enumerate{
-\item Start with the full tree as one connected component.
-\item Repeat until \code{k - 1} branches have been cut, or no valid cut remains.
-\item Calculate the genetic span of each current component as the largest
-patristic distance between any two tips in that component.
-\item Choose the component with the largest genetic span, using tip count as a
-tie-breaker.
-\item Consider eligible branches inside that component. If
-\code{cut_terminal_edges = FALSE}, internal branches are tried first and
-terminal branches are used only as a fallback.
-\item Keep only candidate cuts that split the component into two non-empty
-tip-containing daughter components.
-\item Choose the candidate cut that maximizes the size of the smaller daughter
-component, using branch length as the tie-breaker.
-\item Cut that branch and repeat.
-\item Label the final connected components as \code{tree_cluster_1},
-\code{tree_cluster_2}, and so on.
+The function groups the tips of the tree into \code{k} connected clusters. This
+helps with visualization: tips in the same cluster get the same label, and you
+can give them the same color. Each cluster is a subtree. The function makes
+the \code{k} subtrees by cutting \code{k - 1} branches. The \code{method} argument sets how
+the function chooses the branches to cut:
+\itemize{
+\item \code{split_largest_subtrees} (default): The function splits one subtree
+at each step. It picks the subtree with the largest genetic span, which
+is the largest patristic distance between two of its tips. If two subtrees
+tie, it picks the subtree with more tips. In that subtree, a candidate
+branch must leave two subtrees that each have at least one tip. The
+function cuts the branch that makes the smaller of the two subtrees as
+large as possible (by tip count). If branches tie, it cuts the longest
+branch. If \code{cut_terminal_edges} is \code{FALSE}, the function considers
+internal branches first. It considers terminal branches (the branches
+that end in a tip) only if no internal branch is valid. This stops the
+function from cutting off long terminal branches before it splits the
+larger clades. The function stops after \code{k - 1} cuts, or when no valid
+cut remains.
+\item \code{cut_largest_branches}: The function cuts the \code{k - 1} longest
+branches of the whole tree. If \code{cut_terminal_edges} is \code{FALSE}, it cuts
+the longest internal branches first. It cuts terminal branches only if
+the tree has fewer than \code{k - 1} internal branches. This is the heuristic
+for fixed-k minimum spanning tree clustering, applied to a phylogenetic
+tree.
+\item \code{monophyletic_clades}: Each cluster is one complete clade, which is
+a node and all of its descendants. No cluster is a paraphyletic
+remainder. Use this method if each cluster must match a real clade, for
+example if each tip color in a figure must mark one monophyletic group.
+The function starts with the whole tree as one clade. At each step it
+picks the clade with the largest genetic span (the clade needs at least
+two tips). It replaces that clade with all of its child clades, which are
+the subtrees that start at the children of its root node. The function
+stops when \code{k} clades exist, or when no clade can split.
+\code{cut_terminal_edges} has no effect. For a bifurcating tree, the result
+has exactly \code{k} clades. At a multifurcation, one step adds all child
+clades, so the result can have more than \code{k} clades. If an ignored tip
+(such as the germline) forms its own clade, the function removes that
+clade. The result can then have fewer than \code{k} clusters.
 }
-
-With \code{method = "monophyletic_clades"}, the function guarantees that every
-returned group is a single clade (the complete set of descendants of one
-node), so no group is a paraphyletic remainder. Instead of cutting arbitrary
-branches, it splits a clade into its own child clades. This is the method to
-use when each cluster must correspond to a real clade on the tree, for example
-when tip colours in a figure should each mark one monophyletic group.
-
-More explicitly, \code{method = "monophyletic_clades"} works as follows:
-\enumerate{
-\item Start with the whole tree as one clade (every tip descends from the root).
-\item Repeat until \code{k} clades exist, or no clade can be split further.
-\item Calculate the genetic span of each current clade as the largest patristic
-distance between any two tips in that clade.
-\item Choose the clade with the largest genetic span, using tip count as a
-tie-breaker; it must contain at least two tips.
-\item Replace that clade with ALL of its child clades (the subtrees rooted at the
-children of that clade's root node), then repeat.
-\item Label the final clades as \code{tree_cluster_1}, \code{tree_cluster_2}, and so on.
+The function labels the clusters with \code{prefix} and a number, such as
+\code{tree_cluster_1}.
 }
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+x <- formatSpatialClones(
+  x,
+  id = "sequence_id",
+  germ = "germline_alignment_d_mask",
+  traits = "spatial_id"
+)
+x <- getSpatialTrees(x)
+trees <- getAnalysis(x, "trees")
+tree <- trees$trees[[1]]
 
-Because a clade is only ever replaced by its own children, every group stays
-monophyletic and the groups always cover all tips. \code{cut_terminal_edges} has no
-effect for this method. For a bifurcating tree this returns exactly \code{k}
-clades; at a multifurcation one step adds all children at once, so the result
-can have more than \code{k} clades. Ignored tips (for example the germline) may
-occupy a clade of their own that is then removed, which can leave fewer than
-\code{k} returned groups.
+# Cut the tree into 3 clusters.
+clusterTreeTips(tree, k = 3)
+
+# Make each cluster one complete clade.
+clusterTreeTips(tree, k = 3, method = "monophyletic_clades")
+}
+\seealso{
+\code{\link[=chooseTreeTipK]{chooseTreeTipK()}}, \code{\link[=clusterTreesTips]{clusterTreesTips()}}
 }

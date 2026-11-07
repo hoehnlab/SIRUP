@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{spatialCloneDominance}
 \alias{spatialCloneDominance}
-\title{Calculate receptor clone dominance inside spatial polygons}
+\title{Calculate clonal dominance inside polygons}
 \usage{
 spatialCloneDominance(
   receptors = NULL,
@@ -26,71 +26,93 @@ spatialCloneDominance(
 )
 }
 \arguments{
-\item{receptors}{AIRR-style receptor data frame containing clone assignments
-and a spatial ID column. This may instead be a SIRUP object when
-\code{object} is omitted.}
+\item{receptors}{AIRR-style receptor table with clone IDs and a spatial ID
+column. You can give a SIRUP object here if you omit \code{object}.}
 
-\item{object}{Seurat object with spatial coordinates or metadata coordinate
-columns, or a SIRUP object. When this is a SIRUP object, \code{receptors} may
-be omitted.}
+\item{object}{Seurat object or SIRUP object. If it is a SIRUP object, you can
+omit \code{receptors}.}
 
-\item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
-\code{y} columns by default. If a \code{polygon} column is present, each polygon is
-summarized independently unless \code{polygon_val} selects one or more polygons.}
+\item{polygon}{Data frame of polygon vertices in order. It needs the columns
+set by \code{x} and \code{y}. If the column set by \code{polygon_id} exists, the function
+treats each polygon on its own. If \code{object} is a SIRUP object and \code{polygon}
+is \code{NULL}, the function uses the stored polygons.}
 
-\item{spatial_id}{Column in \code{receptors} matching Seurat spot/cell spatial IDs.
-If \code{NULL}, a spatial ID-like column is guessed.}
+\item{spatial_id}{Name of the \code{receptors} column that holds the spatial IDs.
+If \code{NULL}, the function uses the stored field of a SIRUP object, or looks
+for a standard spatial ID column.}
 
-\item{clone}{Column in \code{receptors} containing clone IDs.}
+\item{clone}{Name of the \code{receptors} column that holds the clone IDs (default
+\code{"clone_id"}).}
 
-\item{locus_val}{Optional locus value(s) used to filter \code{receptors}, for example
-\code{"IGH"}. Use \code{NULL} to keep all loci.}
+\item{locus_val}{Locus values to keep, for example \code{"IGH"}. If \code{NULL}, the
+function keeps all loci.}
 
-\item{locus}{Column in \code{receptors} containing locus calls.}
+\item{locus}{Name of the \code{receptors} column that holds the locus (default
+\code{"locus"}).}
 
-\item{count}{Optional numeric count column. When \code{NULL}, each receptor
-row counts once.}
+\item{count}{Name of the numeric \code{receptors} column that holds the counts. If
+\code{NULL}, each receptor row counts as one.}
 
-\item{v_call}{Column in \code{receptors} containing V-gene calls. When
-present, distinct allele-level V genes, V genes without alleles, and V-gene
-superfamilies are returned for each clone.}
+\item{v_call}{Name of the \code{receptors} column that holds the V-gene calls
+(default \code{"v_call"}). If the column exists, the function also returns the
+V genes of each clone at three levels: with allele, without allele, and
+V-gene superfamily.}
 
-\item{exclude_singletons}{Exclude clones represented by only one receptor row
-after locus filtering.}
+\item{exclude_singletons}{Exclude clones that have only one receptor row
+after the locus filter (default \code{FALSE})?}
 
-\item{images}{Optional Seurat image names to use for spatial coordinates.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{image_scale}{Image scale passed to
-\code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
-exists. When \code{NULL}, all polygons in \code{polygon_id} are analyzed.}
+\item{polygon_val}{IDs of the polygons to use. If \code{NULL}, the function uses
+all polygons.}
 
-\item{x}{Coordinate column in \code{polygon}.}
+\item{x}{Name of the x-coordinate column in \code{polygon} (default \code{"x"}).}
 
-\item{y}{Coordinate column in \code{polygon}.}
+\item{y}{Name of the y-coordinate column in \code{polygon} (default \code{"y"}).}
 
-\item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
+\item{polygon_id}{Name of the column in \code{polygon} that groups the vertices
+by polygon (default \code{"polygon"}).}
 
-\item{include_boundary}{Include Seurat spots on polygon edges when polygon
-membership must be calculated from \code{polygon}. If a SIRUP object with stored
-polygon annotations is supplied and \code{polygon = NULL}, stored annotations
-are used and this argument is ignored.}
+\item{include_boundary}{Count spots on a polygon edge as inside the polygon
+(default \code{TRUE})? The function ignores this argument if
+\code{object} is a SIRUP object with stored polygon annotations and \code{polygon} is
+\code{NULL}.}
 }
 \value{
-A spatial clone dominance object containing the dominance table,
-regional spatial IDs, regional coordinate rows, regional receptor rows, polygon
-vertices prepared for plotting, and analysis metadata containing the
-receptor field mappings used for the analysis.
+An object of class \code{sirup_spatial_clone_dominance}. It is a list with
+these items: \code{dominance} (the dominance table), \code{region_spatial_ids},
+\code{region_coordinates}, \code{region_receptors}, \code{polygons} (the vertices prepared
+for plotting), and \code{metadata} (the receptor field names that the function
+used).
 }
 \description{
-Finds Seurat spatial IDs whose coordinates fall inside polygons,
-subsets receptor rows to those spatial IDs, and returns the fraction of regional
-receptors represented by each clone. Points on the polygon boundary are
-included. Open polygons are closed automatically by repeating the first
-vertex at the end.
+\code{spatialCloneDominance} calculates the share of each clone among the
+receptors inside spatial polygons.
+}
+\details{
+The function finds the spatial IDs whose coordinates lie inside each polygon.
+It keeps the receptor rows with those spatial IDs. Then it calculates the
+fraction of these receptors that belong to each clone.
+
+If you give a SIRUP object and omit \code{clone}, \code{locus}, or \code{count}, the
+function uses the field names stored in the object. If you omit \code{polygon}, it
+uses the stored polygons.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+
+# Use the polygons stored in the SIRUP object.
+dominance <- spatialCloneDominance(x)
+dominance$dominance[, c("polygon_id", "clone_id", "n_receptors", "proportion")]
+}
+\seealso{
+\code{\link[=plotSpatialRegionReceptors]{plotSpatialRegionReceptors()}}, \code{\link[=plotSpatialPolygonPies]{plotSpatialPolygonPies()}},
+\code{\link[=plotSpatialCloneDensity3D]{plotSpatialCloneDensity3D()}}
 }

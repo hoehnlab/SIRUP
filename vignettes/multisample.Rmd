@@ -19,15 +19,10 @@ knitr::opts_chunk$set(
   dev = "jpeg",
   dev.args = list(quality = 90),
   out.width = "100%",
-  eval = requireNamespace("Seurat", quietly = TRUE) &&
-    requireNamespace("airr", quietly = TRUE) &&
-    requireNamespace("scoper", quietly = TRUE)
+  eval = requireNamespace("Seurat", quietly = TRUE)
 )
 imgt_dir <- path.expand(Sys.getenv("SIRUP_IMGT_DIR"))
-has_trees <- nzchar(imgt_dir) && dir.exists(imgt_dir) &&
-  requireNamespace("dowser", quietly = TRUE) &&
-  requireNamespace("ggtree", quietly = TRUE) &&
-  requireNamespace("cowplot", quietly = TRUE)
+has_trees <- nzchar(imgt_dir) && dir.exists(imgt_dir)
 ```
 
 Most studies have more than one tissue section. You may have several

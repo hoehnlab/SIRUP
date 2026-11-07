@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{seuratSubsetPolygon}
 \alias{seuratSubsetPolygon}
-\title{Subset a Seurat object to spatial IDs inside polygons}
+\title{Subset a Seurat object to the spots inside polygons}
 \usage{
 seuratSubsetPolygon(
   object,
@@ -19,43 +19,63 @@ seuratSubsetPolygon(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial coordinates.}
+\item{object}{Seurat object, or a named list of Seurat objects.}
 
-\item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
-\code{y} columns by default. If a \code{polygon} column is present, each polygon is
-evaluated independently. If \code{object} is a SIRUP object and \code{polygon} is
-omitted, the object's stored polygons are used.}
+\item{polygon}{Data frame of polygon vertices in order. It needs the columns
+set by \code{x} and \code{y}. If the column set by \code{polygon_id} exists, the function
+treats each polygon on its own.}
 
-\item{images}{Optional Seurat image names to use for spatial coordinates.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{image_scale}{Image scale passed to
-\code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? You must give a
+value.}
 
-\item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
-exists.}
+\item{polygon_val}{IDs of the polygons to use. If \code{NULL}, the function uses
+all polygons.}
 
-\item{x}{Coordinate column in \code{polygon}.}
+\item{x}{Name of the x-coordinate column in \code{polygon} (default \code{"x"}).}
 
-\item{y}{Coordinate column in \code{polygon}.}
+\item{y}{Name of the y-coordinate column in \code{polygon} (default \code{"y"}).}
 
-\item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
+\item{polygon_id}{Name of the column in \code{polygon} that groups the vertices
+by polygon (default \code{"polygon"}).}
 
-\item{metadata}{Metadata column added to the returned Seurat object with the
-primary polygon assignment. Barcodes in overlapping polygons are assigned to
-the smallest polygon by area.}
+\item{metadata}{Name of the metadata column that holds the primary polygon of
+each spot (default \code{"polygon"}). A spot in overlapping polygons gets the
+smallest polygon by area.}
 
-\item{include_boundary}{Include Seurat spots on polygon edges.}
+\item{include_boundary}{Count spots on a polygon edge as inside the polygon
+(default \code{TRUE})?}
 }
 \value{
-A Seurat object subset to spatial IDs inside the selected polygon(s),
-with \code{metadata} appended to \verb{@meta.data}.
+A Seurat object with only the spatial IDs inside the selected
+polygons. For a list of Seurat objects, a list of the subset objects. The
+function drops an object with no spot inside a polygon. It adds the
+\code{metadata} column to \verb{@meta.data}.
 }
 \description{
-Keeps only Seurat spatial IDs whose spatial coordinates fall inside one or more
-polygon regions and records polygon membership in the returned object's
-metadata.
+\code{seuratSubsetPolygon} keeps only the spatial IDs inside the polygons. It also
+records the polygon of each spot in the metadata.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+flat <- data.frame(
+  polygon = "block",
+  x = c(3.5, 5.5, 5.5, 3.5),
+  y = c(0.5, 0.5, 2.5, 2.5)
+)
+
+# Keep the four spots inside the polygon.
+subset <- seuratSubsetPolygon(
+  getSpatial(x),
+  polygon = flat,
+  image_scale = "hires",
+  swap_coords = FALSE
+)
+ncol(subset)
+}
+\seealso{
+\code{\link[=assignSpatialPolygons]{assignSpatialPolygons()}}
 }

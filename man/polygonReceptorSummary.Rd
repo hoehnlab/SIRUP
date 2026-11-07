@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{polygonReceptorSummary}
 \alias{polygonReceptorSummary}
-\title{Summarize receptor content inside spatial polygons}
+\title{Summarize columns in receptors data inside polygons}
 \usage{
 polygonReceptorSummary(
   object,
@@ -19,45 +19,62 @@ polygonReceptorSummary(
 )
 }
 \arguments{
-\item{object}{A SIRUP object or an AIRR-style receptor data frame.}
+\item{object}{SIRUP object, or an AIRR-style receptor table.}
 
-\item{polygons}{Optional polygon table used to define the output polygon
-order. When \code{NULL}, polygon IDs are taken from the SIRUP object or from
-\code{polygon_id} values already present in \code{receptors}.}
+\item{polygons}{Polygon table that sets the order of the output polygons. If
+\code{NULL}, the function takes the polygon IDs from the SIRUP object, or from
+the \code{polygon_id} values in \code{object}.}
 
-\item{spatial_id}{Column identifying spatial spots/cells. If \code{NULL}, the
-value is pulled from the SIRUP object or guessed from \code{receptors}.}
+\item{spatial_id}{Name of the column that holds the spatial IDs. If \code{NULL},
+the function uses the stored field of a SIRUP object, or looks for a
+standard spatial ID column in the receptor table.}
 
-\item{polygon_id}{Primary polygon assignment column in \code{receptors}.}
+\item{polygon_id}{Name of the column that holds the primary polygon of each
+receptor (default \code{"polygon"}).}
 
-\item{clone}{Clone column used for \code{n_clones} and \code{top_clone_fraction}.
-If this column is absent, those clone summaries are omitted.}
+\item{clone}{Name of the column that holds the clone IDs (default
+\code{"clone_id"}). The function uses it for \code{n_clones} and
+\code{top_clone_fraction}. If the column does not exist, the function leaves out
+these two summaries.}
 
-\item{weight}{Optional numeric receptor weight column. When supplied,
-\code{n_receptors}, \code{top_clone_fraction}, and numeric custom summaries are
-weighted by this column.}
+\item{weight}{Name of a numeric column that holds the receptor weights. If
+you give it, \code{n_receptors}, \code{top_clone_fraction}, and the numeric custom
+summaries use the weights.}
 
-\item{summary_columns}{Optional receptor columns to summarize.}
+\item{summary_columns}{Names of the receptor columns to summarize.}
 
-\item{summary_operations}{Operations to apply to \code{summary_columns}. Must be
-length 1 or the same length as \code{summary_columns}. Supported operations are
-\code{count}, \code{sum}, \code{mean}, \code{median}, \code{variance}, \code{var}, \code{sd}, \code{min}, \code{max},
-\code{any}, \code{all}, and \code{cat}.}
+\item{summary_operations}{Operations for \code{summary_columns}. Give one
+operation, or one for each column. The operations are \code{count}, \code{sum},
+\code{mean}, \code{median}, \code{variance}, \code{var}, \code{sd}, \code{min}, \code{max}, \code{any}, \code{all}, and
+\code{cat}.}
 
-\item{include_total_spots}{For SIRUP objects, include \code{n_total_spatial_ids},
-the number of all spatial spots assigned to each polygon, including spots
-without receptor rows.}
+\item{include_total_spots}{Add \code{n_total_spatial_ids} (default \code{FALSE})? This
+column holds the number of all spots in each polygon, including spots with
+no receptor rows. It works only for SIRUP objects.}
 
-\item{analysis_name}{Name used when storing the summary in a SIRUP object.}
+\item{analysis_name}{Name for the stored summary in a SIRUP object (default
+\code{"polygon_receptor_summary"}).}
 
-\item{validate}{Whether to validate an updated SIRUP object.}
+\item{validate}{Validate the updated SIRUP object (default \code{TRUE})?}
 }
 \value{
-An updated SIRUP object for SIRUP input, otherwise a summary tibble.
+For a SIRUP object, the updated SIRUP object. Otherwise, a summary
+tibble.
 }
 \description{
-Builds one receptor summary row per polygon from a SIRUP object or from an
-already polygon-annotated receptor table. For SIRUP objects, the summary is
-also stored as a named analysis and the updated object is returned. For a
-receptor table input, the summary tibble is returned directly.
+\code{polygonReceptorSummary} makes one summary row for each polygon.
+}
+\details{
+The input can be a SIRUP object or a receptor table that already has polygon
+columns. For a SIRUP object, the function stores the summary as an analysis
+and returns the updated object. For a receptor table, it returns the summary
+tibble.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+x <- polygonReceptorSummary(x)
+getAnalysis(x, "polygon_receptor_summary")
+}
+\seealso{
+\code{\link[=assignReceptorPolygons]{assignReceptorPolygons()}}, \code{\link[=polygonDiversity]{polygonDiversity()}}
 }

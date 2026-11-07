@@ -2,7 +2,7 @@
 % Please edit documentation in R/sirup_trees.R
 \name{formatSpatialClones}
 \alias{formatSpatialClones}
-\title{Format SIRUP receptors as dowser clones}
+\title{Format the receptors of a SIRUP object as in dowser's \code{formatClones()}}
 \usage{
 formatSpatialClones(
   object,
@@ -46,111 +46,133 @@ formatSpatialClones(
 \arguments{
 \item{object}{A SIRUP object.}
 
-\item{analysis_name}{Name used to store the formatted clone analysis.}
+\item{analysis_name}{Name for the stored formatted clones (default
+\code{"f_clones"}).}
 
-\item{seq}{dowser: name of the column containing observed DNA sequences. All
-sequences in this column must be multiple aligned.}
+\item{seq}{Name of the column that holds the observed DNA sequences (default
+\code{"sequence_alignment"}). The sequences must be aligned to each other.}
 
-\item{clone}{dowser: name of the column containing the identifier for the
-clone. All entries in this column should be identical.}
+\item{clone}{Name of the column that holds the clone ID (default
+\code{"clone_id"}).}
 
-\item{subgroup}{dowser: name of the column containing the identifier for the
-subgroup.}
+\item{subgroup}{Name of the column that holds the subgroup ID (default
+\code{"clone_subgroup"}).}
 
-\item{id}{dowser: name of the column containing sequence identifiers.}
+\item{id}{Name of the column that holds the sequence IDs (default
+\code{"sequence_id"}).}
 
-\item{germ}{dowser: name of the column containing germline DNA sequences.
-All entries in this column should be identical for any given clone, and
-they must be multiple aligned with the data in the seq column.}
+\item{germ}{Name of the column that holds the germline DNA sequences (default
+\code{"germline_alignment_d_mask"}). Each clone must have one germline. It must
+be aligned to the sequences in \code{seq}.}
 
-\item{v_call}{dowser: name of the column containing V-segment allele
-assignments. All entries in this column should be identical to the gene
-level.}
+\item{v_call}{Name of the column that holds the V-segment alleles (default
+\code{"v_call"}). Within a clone, the entries must be the same at the gene level.}
 
-\item{j_call}{dowser: name of the column containing J-segment allele
-assignments. All entries in this column should be identical to the gene
-level.}
+\item{j_call}{Name of the column that holds the J-segment alleles (default
+\code{"j_call"}). Within a clone, the entries must be the same at the gene level.}
 
-\item{junc_len}{dowser: name of the column containing the length of the
-junction as a numeric value. All entries in this column should be identical
-for any given clone.}
+\item{junc_len}{Name of the numeric column that holds the junction length
+(default \code{"junction_length"}). Within a clone, the entries must be the same.}
 
-\item{mask_char}{dowser: character to use for masking and padding.}
+\item{mask_char}{Character for masking and padding (default \code{"N"}).}
 
-\item{max_mask}{dowser: maximum number of characters to mask at the leading
-and trailing sequence ends. If NULL then the upper masking bound will be
-automatically determined from the maximum number of observed leading or
-trailing Ns amongst all sequences. If set to 0 (default) then masking will
-not be performed.}
+\item{max_mask}{Largest number of characters to mask at the start and at the
+end of the sequences (default 0). With \code{0}, the function does not mask. With
+\code{NULL}, the function uses the largest number of leading or trailing Ns in
+the sequences.}
 
-\item{pad_end}{dowser: if TRUE pad the end of each sequence with mask_char to
-make every sequence the same length.}
+\item{pad_end}{Pad the end of each sequence with \code{mask_char} so that all
+sequences have the same length (default \code{TRUE})?}
 
-\item{text_fields}{dowser: text annotation columns to retain and merge during
-duplicate removal.}
+\item{text_fields}{Names of the text columns to keep and merge when the
+function removes duplicates.}
 
-\item{num_fields}{dowser: numeric annotation columns to retain and sum during
-duplicate removal.}
+\item{num_fields}{Names of the numeric columns to keep and sum when the
+function removes duplicates.}
 
-\item{seq_fields}{dowser: sequence annotation columns to retain and collapse
-during duplicate removal. Note, this is distinct from the seq and germ
-arguments, which contain the primary sequence data for the clone and should
-not be repeated in this argument.}
+\item{seq_fields}{Names of the sequence columns to keep and collapse when the
+function removes duplicates. Do not repeat \code{seq} or \code{germ} here.}
 
-\item{add_count}{dowser: if TRUE add an additional annotation column called
-COLLAPSE_COUNT during duplicate removal that indicates the number of
-sequences that were collapsed.}
+\item{add_count}{Add the column \code{COLLAPSE_COUNT}, which holds the number of
+sequences that the function collapsed (default \code{TRUE})?}
 
-\item{verbose}{dowser: passed on to collapseDuplicates. If TRUE, report the
-numbers of input, discarded and output sequences; otherwise, process
-sequences silently.}
+\item{verbose}{Report the numbers of input, dropped, and output sequences
+(default \code{FALSE})? The function passes it to \code{collapseDuplicates}.}
 
-\item{collapse}{dowser: collapse identical sequences?}
+\item{collapse}{Collapse identical sequences (default \code{TRUE})?}
 
-\item{cell}{dowser: name of the column containing cell assignment information}
+\item{cell}{Name of the column that holds the cell IDs (default \code{"cell_id"}).}
 
-\item{locus}{dowser: name of the column containing locus information}
+\item{locus}{Name of the column that holds the locus (default \code{"locus"}).}
 
-\item{traits}{dowser: column ids to keep distinct during sequence collapse}
+\item{traits}{Names of the columns to keep separate when the function
+collapses sequences. Include the spatial ID column if you want to plot the
+tips on the tissue.}
 
-\item{mod3}{dowser: pad sequences to length multiple three?}
+\item{mod3}{Pad the sequences to a length that is a multiple of three
+(default \code{TRUE})?}
 
-\item{randomize}{dowser: randomize sequence order? Important if using PHYLIP}
+\item{randomize}{Put the sequences in random order (default \code{TRUE})? This is
+important for PHYLIP.}
 
-\item{use_regions}{dowser: assign CDR/FWR regions?}
+\item{use_regions}{Assign the CDR and FWR regions (default \code{TRUE})?}
 
-\item{dup_singles}{dowser: Duplicate sequences in singleton clones to include
-them as trees?}
+\item{dup_singles}{Duplicate the sequence of a clone that has one sequence, so
+that the clone gives a tree (default \code{FALSE})?}
 
-\item{nproc}{dowser: number of cores to parallelize formatting over.}
+\item{nproc}{Number of cores for the formatting (default 1).}
 
-\item{chain}{dowser: if HL, include light chain information if available.}
+\item{chain}{Use \code{"HL"} to include the light chain, if it exists. The default
+is \code{"H"}.}
 
-\item{heavy}{dowser: name of heavy chain locus (default = "IGH")}
+\item{heavy}{Name of the heavy chain locus (default \code{"IGH"}).}
 
-\item{filterstop}{dowser: only use sequences that do not contain an in-frame
-stop codon}
+\item{filterstop}{Use only sequences with no in-frame stop codon (default
+\code{TRUE})?}
 
-\item{minseq}{dowser: minimum number of sequences per clone}
+\item{minseq}{Smallest number of sequences in a clone (default 2).}
 
-\item{split_light}{dowser: split or lump subgroups? See resolveLightChains.}
+\item{split_light}{Split the subgroups, or lump them together (default
+\code{FALSE})? See \code{resolveLightChains} in dowser.}
 
-\item{light_traits}{dowser: Include the traits from the light chain when
-concatenating and collapsing trees?}
+\item{light_traits}{Include the traits of the light chain when the function
+joins and collapses the sequences (default \code{FALSE})?}
 
-\item{majoronly}{dowser: only return largest subgroup and sequences without
-light chains}
+\item{majoronly}{Return only the largest subgroup and the sequences with no
+light chain (default \code{FALSE})?}
 
-\item{columns}{dowser: additional data columns to include in output}
+\item{columns}{Names of other columns to keep in the result.}
 
-\item{validate}{Whether to validate the updated SIRUP object.}
+\item{validate}{Validate the updated SIRUP object (default \code{TRUE})?}
 }
 \value{
-An updated SIRUP object with the formatted clones stored as an analysis.
+The updated SIRUP object, with the formatted clones as an analysis.
 }
 \description{
-Runs \code{\link[dowser:formatClones]{dowser::formatClones()}} on the SIRUP receptor table and stores the
-result as a named analysis. The default germline column follows dowser's
-default; if it is missing, add germlines to the receptor table first with
-\code{updateReceptors()} and \code{\link[dowser:createGermlines]{dowser::createGermlines()}}.
+\code{formatSpatialClones} runs \code{\link[dowser:formatClones]{dowser::formatClones()}} on the receptor table of a
+SIRUP object. It stores the result as an analysis.
+}
+\details{
+The function puts clones into a standardized format for downstream analysis.
+See \code{\link[dowser:formatClones]{dowser::formatClones()}} for details. The function stores the result as an
+analysis in the SIRUP object. The default analysis name is \code{"f_clones"}.
+
+\code{\link[dowser:formatClones]{dowser::formatClones()}} takes a data frame and returns a tibble of
+\code{airrClone} objects. \code{formatSpatialClones} calls it with the receptor table of
+a SIRUP object and adds four things that spatial analysis needs:
+This function automatically does not collapse identical sequences across distinct samples.
+To plot the tips on the tissue, add the spatial ID column to \code{traits}.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+x <- formatSpatialClones(
+  x,
+  id = "sequence_id",
+  germ = "germline_alignment_d_mask",
+  traits = "spatial_id"
+)
+getAnalysis(x, "f_clones")
+}
+\seealso{
+\code{\link[=getSpatialTrees]{getSpatialTrees()}}, \code{\link[dowser:formatClones]{dowser::formatClones()}}
 }

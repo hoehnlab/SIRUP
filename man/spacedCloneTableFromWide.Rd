@@ -2,7 +2,7 @@
 % Please edit documentation in R/spaced_pairing.R
 \name{spacedCloneTableFromWide}
 \alias{spacedCloneTableFromWide}
-\title{Convert a wide SPaCeD expression table to clone spatial points}
+\title{Convert a wide table to a clone table for SPaCeD pairing}
 \usage{
 spacedCloneTableFromWide(
   df,
@@ -14,22 +14,38 @@ spacedCloneTableFromWide(
 )
 }
 \arguments{
-\item{df}{Wide table with barcode, coordinate, and clone count columns.}
+\item{df}{Wide table with a barcode column, coordinate columns, and one count
+column for each clone.}
 
-\item{barcode}{Barcode column name.}
+\item{barcode}{Name of the barcode column (default: the first column).}
 
-\item{x}{Spatial x-coordinate column name.}
+\item{x}{Name of the x-coordinate column (default \code{"x"}).}
 
-\item{y}{Spatial y-coordinate column name.}
+\item{y}{Name of the y-coordinate column (default \code{"y"}).}
 
-\item{clone}{Optional clone columns. Defaults to all non-barcode and
-non-coordinate columns.}
+\item{clone}{Names of the clone columns. If \code{NULL}, the function uses all
+columns that are not the barcode column or a coordinate column.}
 
-\item{clone_prefix}{Optional prefix added to clone IDs.}
+\item{clone_prefix}{Text to add before each clone ID.}
 }
 \value{
-Data frame with \code{clone_id}, \code{barcode}, \code{x}, \code{y}, and \code{n}.
+A data frame with the columns \code{clone_id}, \code{barcode}, \code{x}, \code{y}, and
+\code{n}. The function drops the entries with a count of zero.
 }
 \description{
-Convert a wide SPaCeD expression table to clone spatial points
+\code{spacedCloneTableFromWide} converts a table that has one column for each
+clone into the long clone table of \code{\link[=buildSpacedCloneTable]{buildSpacedCloneTable()}}.
+}
+\examples{
+wide <- data.frame(
+  barcode = c("s1", "s2"),
+  x = c(1, 2),
+  y = c(1, 1),
+  heavy_A = c(2, 0),
+  heavy_B = c(0, 3)
+)
+spacedCloneTableFromWide(wide)
+}
+\seealso{
+\code{\link[=buildSpacedCloneTable]{buildSpacedCloneTable()}}
 }

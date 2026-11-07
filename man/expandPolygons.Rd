@@ -13,28 +13,52 @@ expandPolygons(
 )
 }
 \arguments{
-\item{polygons}{Polygons to expand. Either a flat data frame of vertices
-(with \code{x}, \code{y}, and an optional polygon ID column), or a SIRUP object
-whose stored polygons are expanded.}
+\item{polygons}{Polygons to expand. Give a flat data frame of vertices (with
+\code{x}, \code{y}, and, if you want, a polygon ID column). You can also pass a SIRUP
+object. The function then expands the stored polygons.}
 
-\item{delta}{Distance each vertex moves outward, in coordinate units. This
-is required. A negative value moves the vertices inward and shrinks the
-polygon.}
+\item{delta}{Distance that each vertex moves outward, in coordinate units.
+Required. A negative value moves the vertices inward, so the
+polygon becomes smaller.}
 
-\item{x, y}{Vertex coordinate columns when \code{polygons} is a data frame.}
+\item{x}{Name of the x-coordinate column, if \code{polygons} is a data frame
+(default \code{"x"}).}
 
-\item{polygon_id}{Column that separates polygons when \code{polygons} is a data
-frame. When the named column is absent, a \code{polygon} or \code{polygon_id} column
-is used if present; otherwise all rows form one polygon.}
+\item{y}{Name of the y-coordinate column, if \code{polygons} is a data frame
+(default \code{"y"}).}
+
+\item{polygon_id}{Name of the column that separates the polygons, if
+\code{polygons} is a data frame (default \code{"polygon"}). If the column does not
+exist, the function uses a \code{polygon} or \code{polygon_id} column. If neither
+exists, all rows form one polygon.}
 }
 \value{
-The expanded polygons in the same form as the input: a data frame
-for a data-frame input, or an updated SIRUP object for a SIRUP object
-input.
+The expanded polygons in the form of the input: a data frame for a
+data frame, or the updated SIRUP object for a SIRUP object.
 }
 \description{
-Grows each polygon by moving its vertices away from the polygon centroid.
-Each vertex moves along the line from the centroid through the vertex, by a
-fixed distance \code{delta}. The polygon keeps its shape and vertex count. The
-polygons are expected to be convex.
+\code{expandPolygons} makes each polygon larger by moving its vertices away from
+the polygon centroid.
+}
+\details{
+Each vertex moves along the line from the centroid through the vertex. It
+moves by the distance \code{delta}. The polygon keeps its shape and its number of
+vertices. The polygons must be convex.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+
+# Make the stored polygons larger by 0.25 coordinate units.
+x2 <- expandPolygons(x, delta = 0.25)
+
+# Use a data frame of vertices.
+flat <- data.frame(
+  polygon = "block",
+  x = c(3.5, 5.5, 5.5, 3.5),
+  y = c(0.5, 0.5, 2.5, 2.5)
+)
+expandPolygons(flat, delta = 0.25)
+}
+\seealso{
+\code{\link[=addPolygons]{addPolygons()}}, \code{\link[=plotSpatialPolygons]{plotSpatialPolygons()}}
 }

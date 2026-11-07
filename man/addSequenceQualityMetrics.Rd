@@ -2,7 +2,7 @@
 % Please edit documentation in R/processing.R
 \name{addSequenceQualityMetrics}
 \alias{addSequenceQualityMetrics}
-\title{Add per-sequence quality metrics to an AIRR table}
+\title{Add quality measures to an AIRR table}
 \usage{
 addSequenceQualityMetrics(
   airr_df,
@@ -13,27 +13,40 @@ addSequenceQualityMetrics(
 \arguments{
 \item{airr_df}{AIRR-style data frame.}
 
-\item{sequence}{Sequence column for the called-base proportion.}
+\item{sequence}{Name of the sequence column for the share of called bases
+(default \code{"sequence"}).}
 
-\item{alignment}{Alignment column for the gap metrics.}
+\item{alignment}{Name of the alignment column for the gap measures (default
+\code{"sequence_alignment"}).}
 }
 \value{
-\code{airr_df} with the metric columns added.
+\code{airr_df} with the quality columns added.
 }
 \description{
-Adds the columns used to judge consensus quality, without dropping any rows.
-Use this to inspect the metric distributions before choosing thresholds for
-\code{\link[=filterAirr]{filterAirr()}}. Previously these columns could only be obtained as a side
-effect of \code{\link[=collapseTopConsensusPerSpatialId]{collapseTopConsensusPerSpatialId()}}, which also discards rows.
+\code{addSequenceQualityMetrics} adds columns that can help indicate the quality of each
+consensus sequence. It keeps all rows.
 }
 \details{
-Added columns, when the source column is present:
+Use this function to look at the distributions of the measures before you
+choose the thresholds for \code{\link[=filterAirr]{filterAirr()}}.
+\code{\link[=collapseTopConsensusPerSpatialId]{collapseTopConsensusPerSpatialId()}} also adds these columns, but it removes
+rows.
+
+The function adds these columns, if the source column exists:
 \itemize{
-\item \code{non_N_nucleotide_prop} -- the share of called bases (\code{A}, \code{C}, \code{G}, \code{T})
-in \code{sequence}. A low value means an ambiguous consensus. This must be taken
-from the ungapped sequence; using the alignment would put IMGT gap
-characters into the denominator.
-\item \code{max_gap_length} -- the longest gap run in \code{alignment}.
-\item \code{opening_gap_length} -- the leading gap run in \code{alignment}.
+\item \code{non_N_nucleotide_prop}: the share of called bases (\code{A}, \code{C}, \code{G},
+\code{T}) in \code{sequence}. A low value means an ambiguous consensus. The
+function takes this value from the ungapped sequence. The alignment
+would put IMGT gap characters in the denominator.
+\item \code{max_gap_length}: the longest run of gap characters in \code{alignment}.
+\item \code{opening_gap_length}: the gap run at the start of \code{alignment}.
 }
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+metrics <- addSequenceQualityMetrics(getReceptors(x))
+head(metrics[, c("non_N_nucleotide_prop", "max_gap_length", "opening_gap_length")])
+}
+\seealso{
+\code{\link[=filterAirr]{filterAirr()}}, \code{\link[=collapseTopConsensusPerSpatialId]{collapseTopConsensusPerSpatialId()}}
 }

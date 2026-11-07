@@ -2,7 +2,7 @@
 % Please edit documentation in R/spaced_pairing.R
 \name{spacedSpatialAffinity}
 \alias{spacedSpatialAffinity}
-\title{Compute scalable SPaCeD spatial affinity}
+\title{Calculate the spatial affinity of heavy and light clones}
 \usage{
 spacedSpatialAffinity(
   heavy_points,
@@ -25,64 +25,105 @@ spacedSpatialAffinity(
 )
 }
 \arguments{
-\item{heavy_points}{Heavy-chain output from \code{buildSpacedCloneTable()} or any
-data frame with \code{clone_id}, \code{barcode}, and \code{n}.}
+\item{heavy_points}{Heavy chain table from \code{\link[=buildSpacedCloneTable]{buildSpacedCloneTable()}}, or any
+data frame with the columns \code{clone_id}, \code{barcode}, and \code{n}.}
 
-\item{light_points}{Light-chain output from \code{buildSpacedCloneTable()} or any
-data frame with \code{clone_id}, \code{barcode}, and \code{n}.}
+\item{light_points}{Light chain table from \code{\link[=buildSpacedCloneTable]{buildSpacedCloneTable()}}, or any
+data frame with the columns \code{clone_id}, \code{barcode}, and \code{n}.}
 
-\item{method}{Spatial scoring method. \code{"weighted_cosim"} is the scalable
-SIRUP default, and \code{"ot"} is the original SPaCeD optimal-transport
-point-pattern distance.}
+\item{method}{Spatial scoring method: \code{"weighted_cosim"} (default) or \code{"ot"}.
+See Details.}
 
-\item{feature}{Column containing the native spatial feature/bin ID.}
+\item{feature}{Name of the column that holds the ID of the spatial feature or
+bin (default \code{"barcode"}).}
 
-\item{kernel_sigma}{Gaussian kernel scale for \code{method = "weighted_cosim"},
-in the same units as \code{x} and \code{y}. When \code{NULL}, SIRUP estimates the
-median nearest-neighbor feature spacing and uses twice that value.}
+\item{kernel_sigma}{Scale of the Gaussian kernel for \code{method = "weighted_cosim"}, in the units of \code{x} and \code{y}. If \code{NULL}, the function
+estimates the median spacing between nearest features and uses twice that
+value.}
 
-\item{kernel_radius}{Maximum feature-feature distance retained in the sparse
-spatial kernel. Defaults to \code{3 * kernel_sigma}.}
+\item{kernel_radius}{Largest distance between two features that the sparse
+kernel keeps. If \code{NULL}, the function uses \code{3 * kernel_sigma}.}
 
-\item{kernel_max_neighbors}{Maximum nearby features retained per feature when
-building the sparse kernel.}
+\item{kernel_max_neighbors}{Largest number of nearby features that the sparse
+kernel keeps for each feature (default 500).}
 
-\item{x}{Spatial x-coordinate column.}
+\item{x}{Name of the x-coordinate column (default \code{"x"}).}
 
-\item{y}{Spatial y-coordinate column.}
+\item{y}{Name of the y-coordinate column (default \code{"y"}).}
 
-\item{ot_cutoff}{Maximum transport distance passed to \code{pppdist()} when
-\code{method = "ot"}.}
+\item{ot_cutoff}{Largest transport distance, passed to \code{pppdist()} for
+\code{method = "ot"} (default 1e6).}
 
-\item{ot_scale}{Distance scale used by \code{transformSpacedDistances()} for
-\code{method = "ot"}.}
+\item{ot_scale}{Distance scale for \code{\link[=transformSpacedDistances]{transformSpacedDistances()}}, for
+\code{method = "ot"} (default 1).}
 
-\item{nproc}{Number of workers used by the slow \code{method = "ot"} clone-pair
-distance loop. The sparse methods ignore this argument.}
+\item{nproc}{Number of workers for the slow loop over clone pairs of
+\code{method = "ot"} (default 1). The sparse method ignores it.}
 
-\item{top_n}{Optional number of top light candidates retained per heavy
-clone. Non-retained affinities are set to zero.}
+\item{top_n}{Number of top light candidates to keep for each heavy clone. The
+function sets the other affinities to zero. If \code{NULL}, it keeps all.}
 
-\item{min_affinity}{Optional lower threshold for retained affinities.}
+\item{min_affinity}{Smallest affinity to keep (default 0). The function sets
+smaller affinities to zero.}
 
-\item{min_counts}{Optional minimum total clone count. Mirrors REPAIR's
-\code{--min_counts} filter.}
+\item{min_counts}{Smallest total count of a clone. This matches the
+\code{--min_counts} filter of REPAIR. If \code{NULL}, there is no filter.}
 
-\item{min_x_obs}{Minimum number of spatial features where a clone has count
-greater than or equal to \code{filter_x}. Mirrors REPAIR's \code{--min_x_obs}
-filter.}
+\item{min_x_obs}{Smallest number of spatial features where a clone has a
+count of at least \code{filter_x} (default 2). This matches the \code{--min_x_obs}
+filter of REPAIR.}
 
-\item{filter_x}{Count threshold used with \code{min_x_obs}.}
+\item{filter_x}{Count threshold for \code{min_x_obs} (default 1).}
 }
 \value{
-Heavy-by-light numeric affinity matrix with rows normalized to sum to
-one when a row has nonzero affinity.
+A numeric matrix of affinities, with one row for each heavy clone and
+one column for each light clone. Each row that has a non-zero affinity sums
+to one.
 }
 \description{
-Builds clone-by-spatial-feature matrices and compares heavy/light clones by a
-spatial method. The default \code{method = "weighted_cosim"} is a scalable
-distance-aware overlap score: nearby 8um barcodes receive partial credit
-through a sparse Gaussian spatial kernel. \code{method = "ot"} uses the original
-SPaCeD-style point-pattern optimal-transport distance through
-\code{spatstat::pppdist()}.
+\code{spacedSpatialAffinity} scores how much each heavy chain clone and each light
+chain clone overlap in space.
+}
+\details{
+The function builds a matrix of clones by spatial features for the heavy and
+the light clones. Then it compares each heavy clone with each light clone.
+\code{method} sets the comparison:
+\itemize{
+\item \code{"weighted_cosim"} (default): a distance-aware overlap score that
+scales to large data. Nearby 8 um barcodes get partial credit through a
+sparse Gaussian spatial kernel.
+\item \code{"ot"}: the point-pattern optimal-transport distance of the original
+SPaCeD, from \code{spatstat::pppdist()}. It needs the \code{spatstat.geom} package
+and is slow.
+}
+}
+\examples{
+spots <- data.frame(
+  barcode = paste0("s", 1:6),
+  x = c(1, 2, 3, 1, 2, 3),
+  y = c(1, 1, 1, 2, 2, 2)
+)
+heavy <- data.frame(
+  barcode = c("s1", "s2", "s3", "s4", "s5"),
+  clone_id = c("H1", "H1", "H1", "H2", "H2")
+)
+light <- data.frame(
+  barcode = c("s1", "s2", "s4", "s5", "s6"),
+  clone_id = c("L1", "L1", "L2", "L2", "L2")
+)
+heavy_points <- buildSpacedCloneTable(heavy, positions = spots, clone_prefix = "heavy_")
+light_points <- buildSpacedCloneTable(light, positions = spots, clone_prefix = "light_")
+
+# Use a kernel scale of one coordinate unit, because the example has few
+# spots.
+affinity <- spacedSpatialAffinity(
+  heavy_points,
+  light_points,
+  kernel_sigma = 1,
+  min_x_obs = 1
+)
+affinity
+}
+\seealso{
+\code{\link[=pairHeavyLightSpaced]{pairHeavyLightSpaced()}}, \code{\link[=transformSpacedDistances]{transformSpacedDistances()}}
 }

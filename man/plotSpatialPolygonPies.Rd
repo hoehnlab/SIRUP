@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{plotSpatialPolygonPies}
 \alias{plotSpatialPolygonPies}
-\title{Plot spatial polygon pie summaries}
+\title{Plot clonal dominance results within polygons as pies or bars}
 \usage{
 plotSpatialPolygonPies(
   dominance,
@@ -31,83 +31,99 @@ plotSpatialPolygonPies(
 )
 }
 \arguments{
-\item{dominance}{Object returned by \code{spatialCloneDominance()}.}
+\item{dominance}{Result of \code{\link[=spatialCloneDominance]{spatialCloneDominance()}}.}
 
-\item{object}{Seurat object with spatial images, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{fill}{Column in \code{dominance$region_receptors} summarized in each pie
-chart. When omitted, the clone column recorded by
-\code{spatialCloneDominance()} is used.}
+\item{fill}{Name of the column in \code{dominance$region_receptors} to summarize.
+If you omit it, the function uses the clone column that
+\code{\link[=spatialCloneDominance]{spatialCloneDominance()}} recorded (default \code{"clone_id"}).}
 
-\item{mode}{Plot style. \code{side_by_side} shows ordinary pies beside a polygon
-map. \code{spatial_clipped} clips pies to polygon boundaries on the tissue.
-\code{dominance_only} draws just the per-polygon pies (no map). \code{stacked_bar}
-draws one stacked bar per polygon in a single panel (no map), each bar
-stacked by \code{fill} level in dominance order -- the bar analogue of
-\code{dominance_only}.}
+\item{mode}{Plot style: \code{side_by_side}, \code{spatial_clipped}, \code{dominance_only},
+or \code{stacked_bar}. See Details.}
 
-\item{top_n}{Number of most frequent \code{fill} levels to identify within each
-polygon. The union of these polygon-level top levels is shown individually
-everywhere; remaining levels are grouped as \code{other_label}.}
+\item{top_n}{Number of the most frequent \code{fill} levels to find in each
+polygon (default 10). The function shows the union of these levels on their
+own in all polygons. It groups the other levels under \code{other_label}.}
 
-\item{label_top_n}{Number of levels to label per polygon. Defaults to
-0 because this gets messy fast.}
+\item{label_top_n}{Number of levels to label in each polygon (default 0).}
 
-\item{other_label}{Label for grouped lower-frequency levels.}
+\item{other_label}{Label for the grouped levels (default \code{"Other"}).}
 
-\item{other_color}{Color used for \code{other_label}.}
+\item{other_color}{Color of the grouped levels (default \code{"#D3D3D3"}).}
 
-\item{plot_other}{Plot grouped lower-frequency BCRs as \code{other_label}.}
+\item{plot_other}{Plot the grouped levels (default \code{TRUE})?}
 
-\item{images}{Optional Seurat image names to show.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
+\item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
+objects. If \code{NULL}, the function plots all samples.}
 
-\item{image_scale}{Image scale passed to
-\code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{polygon_val}{Optional polygon ID value(s) to select from the dominance
-result.}
+\item{polygon_val}{IDs of the polygons to select from \code{dominance}.}
 
-\item{polygon_alpha}{Fill opacity for polygons in the numbered map.}
+\item{polygon_alpha}{Opacity of the polygon fill in the numbered map (default
+0.2).}
 
-\item{image_alpha}{Tissue image opacity.}
+\item{image_alpha}{Opacity of the tissue image.}
 
-\item{pie_alpha}{Pie opacity.}
+\item{pie_alpha}{Opacity of the pies (default 0.9).}
 
-\item{label_size}{Text size for polygon and pie labels.}
+\item{label_size}{Text size of the polygon labels and pie labels (default 3).}
 
-\item{pies_per_page}{Maximum number of ordinary pie charts to show per page
-when \code{mode = "side_by_side"}. When more polygons are present, a named list
-of page plots is returned.}
+\item{pies_per_page}{Largest number of pie charts on one page, if
+\code{mode = "side_by_side"} (default 6). If there are more polygons, the
+function returns a named list with one plot for each page.}
 
-\item{pie_order}{Order of the pie charts when \code{mode = "side_by_side"}.
-\code{"receptors"} (the default) shows the polygon with the most receptors
-first, then the next most, and so on. Each pie keeps its map label, so
-only the arrangement changes. \code{"polygon"} keeps the numbered map order
-(polygon 1, 2, 3, ...). Ignored when \code{mode = "spatial_clipped"}.}
+\item{pie_order}{Order of the pie charts, if \code{mode = "side_by_side"}:
+\code{"receptors"} (default) puts the polygon with the most receptors first,
+then the next, and so on. \code{"polygon"} keeps the order of the numbered map.
+Each pie keeps its map label. The function ignores this argument if \code{mode = "spatial_clipped"}.}
 
-\item{spatial_legend}{Show a shared fill legend for \code{spatial_clipped} pie
-plots. Defaults to \code{FALSE}.}
+\item{spatial_legend}{Show one shared fill legend for the \code{spatial_clipped}
+plots (default \code{FALSE})?}
 
-\item{zoom}{Zoom to the plotted polygon extents. Defaults to \code{FALSE}, which
-shows the full tissue image.}
+\item{zoom}{Zoom to the extent of the plotted polygons (default \code{FALSE})? If
+\code{FALSE}, the plot shows the full tissue image.}
 
-\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
-from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
-multi-sample calls return a named list of per-sample plots.}
+\item{combine_sample_plots}{Combine the plots of all samples into one
+patchwork (default \code{FALSE})? The function uses it only for multi-sample
+objects. If \code{FALSE}, it returns a named list with one plot for each sample.}
 }
 \value{
-A ggplot, patchwork object, or named list of ggplots.
+A ggplot object, a patchwork object, or a named list of ggplot
+objects.
 }
 \description{
-Summarizes regional receptor rows from \code{spatialCloneDominance()} for a
-selected column. The default mode plots pie charts beside a numbered polygon
-map. The \code{spatial_clipped} mode clips each pie chart to its polygon boundary
-and requires the suggested \code{sf} package.
+\code{plotSpatialPolygonPies} summarizes one receptor column for each polygon. It
+plots the result as pie charts or stacked bars.
+}
+\details{
+The function uses the receptor rows in the result of
+\code{\link[=spatialCloneDominance]{spatialCloneDominance()}}. The \code{mode} argument sets the plot style:
+\itemize{
+\item \code{side_by_side}: pie charts next to a numbered map of the polygons.
+\item \code{spatial_clipped}: pie charts inside the polygon boundaries on
+the tissue. It needs the \code{sf} package.
+\item \code{dominance_only}: the pie charts only, with no map.
+\item \code{stacked_bar}: one stacked bar for each polygon in one panel, with no
+map. Each bar stacks the \code{fill} levels in dominance order.
+}
+
+If there are multiple samples or images, the function creates separate plots for each.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+dominance <- spatialCloneDominance(x)
+plotSpatialPolygonPies(dominance, x)
+plotSpatialPolygonPies(dominance, x, mode = "stacked_bar")
+}
+\seealso{
+\code{\link[=spatialCloneDominance]{spatialCloneDominance()}}, \code{\link[=plotSpatialRegionReceptors]{plotSpatialRegionReceptors()}}
 }

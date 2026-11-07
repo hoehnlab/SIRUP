@@ -2,7 +2,7 @@
 % Please edit documentation in R/processing.R
 \name{writeFastqas}
 \alias{writeFastqas}
-\title{Write a data.table of sequences to FASTQ/FASTA}
+\title{Write sequences to a FASTQ or FASTA file}
 \usage{
 writeFastqas(
   df,
@@ -14,23 +14,32 @@ writeFastqas(
 )
 }
 \arguments{
-\item{df}{data.table or data.frame with at least \code{seq} (and \code{qual} for
-fastq). The header column is chosen by \code{header_col}.}
+\item{df}{Data frame or data.table with a \code{seq} column. For FASTQ, it also
+needs a \code{qual} column. The \code{header_col} column holds the record headers.}
 
-\item{fn}{output path.}
+\item{fn}{Path of the output file.}
 
-\item{type}{one of \code{"fq"}, \code{"fastq"}, \code{"fa"}, \code{"fasta"}.}
+\item{type}{File type: \code{"fq"} (default), \code{"fastq"}, \code{"fa"}, or \code{"fasta"}.}
 
-\item{header_col}{column name to use as the record header. Defaults to
-\code{"id"}. Pass \code{"full_id"} to write the full header instead.}
+\item{header_col}{Name of the column that holds the record headers (default
+\code{"id"}). Use \code{"full_id"} to write the full header.}
 
-\item{append}{append to an existing file?}
+\item{append}{Add the records to an existing file (default \code{FALSE})?}
 
-\item{nthreads}{\code{data.table::fwrite} thread count.}
+\item{nthreads}{Number of threads for \code{data.table::fwrite()} (default 1).}
 }
 \value{
-Invisibly returns \code{fn}.
+\code{fn}, invisibly.
 }
 \description{
-Write a data.table of sequences to FASTQ/FASTA
+\code{writeFastqas} writes a table of sequences to a FASTQ or FASTA file.
+}
+\examples{
+reads <- data.frame(id = c("read1", "read2"), seq = c("ACGTACGT", "TTGACCGA"))
+path <- tempfile(fileext = ".fasta")
+writeFastqas(reads, path, type = "fasta")
+readLines(path)
+}
+\seealso{
+\code{\link[=processSpatialSample]{processSpatialSample()}}
 }

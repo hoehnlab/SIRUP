@@ -2,7 +2,7 @@
 % Please edit documentation in R/processing.R
 \name{filterAirr}
 \alias{filterAirr}
-\title{Filter AIRR-seq data}
+\title{Filter AIRR sequences}
 \usage{
 filterAirr(
   airr_df,
@@ -24,54 +24,97 @@ filterAirr(
 )
 }
 \arguments{
-\item{airr_df}{AIRR-style data frame.}
+\item{airr_df}{AIRR-style data frame. It needs the columns
+\code{v_sequence_start}, \code{v_sequence_end}, \code{j_sequence_start}, \code{j_sequence_end},
+and \code{junction_length}.}
 
-\item{locus_val}{Character vector of locus values to keep. Use \code{NULL} to skip
-filtering.}
+\item{locus_val}{Loci to keep. If \code{NULL} (default), the function does not
+filter by locus.}
 
-\item{min_v_length}{Minimum accepted V gene length.}
+\item{min_v_length}{Smallest V length to keep (default 100).}
 
-\item{min_j_length}{Minimum accepted J gene length.}
+\item{min_j_length}{Smallest J length to keep (default 10).}
 
-\item{min_junction_length}{Minimum accepted junction length.}
+\item{min_junction_length}{Smallest junction length to keep (default 1).}
 
-\item{productive_only}{Keep only productive rearrangements.}
+\item{productive_only}{Keep only productive rearrangements (default \code{TRUE})?}
 
-\item{complete_vdj}{Keep only rows with a complete V(D)J. IgBLAST writes
-this column as \code{"T"}/\code{"F"}. Skipped when the column is absent.}
+\item{complete_vdj}{Keep only rows with a complete V(D)J (default \code{FALSE})?
+IgBLAST writes this column as \code{"T"} or \code{"F"}. The function skips the filter
+if the column does not exist.}
 
-\item{min_consensus_count}{Optional minimum consensus_count.}
+\item{min_consensus_count}{Smallest \code{consensus_count} to keep (default 2).
+Use \code{NULL} to skip the filter.}
 
-\item{max_opening_gap}{Optional maximum opening gap in \code{sequence_alignment}.}
+\item{max_opening_gap}{Longest gap at the start of \code{sequence_alignment} to
+keep. If \code{NULL} (default), the function does not filter by this gap.}
 
-\item{max_gap_length}{Optional maximum gap run in \code{sequence_alignment}. A real
-somatic-hypermutation indel is a multiple of three and rarely longer than
-12 nt, so a longer run points to a chimeric or truncated consensus. The
-metric is measured on the IMGT-numbered alignment, where the padding is
-locus-specific: IGHV is padded at 6/9/12 nt and TRBV at 18/21 nt, so a
-ceiling tuned for IGH rejects every TRB sequence. Set it per locus.}
+\item{max_gap_length}{Longest run of gap characters in \code{sequence_alignment}
+to keep. If \code{NULL} (default), the function does not filter by this gap. A
+real somatic hypermutation indel has a length that is a multiple of three.
+It is rarely longer than 12 nucleotides. A longer gap points to a chimeric
+or truncated consensus. The function measures the gap in the IMGT-numbered
+alignment. In this alignment, the padding depends on the locus: IGHV has
+padding of 6, 9, or 12 nucleotides, and TRBV has padding of 18 or 21. A
+limit that suits IGH rejects every TRB sequence, so set the limit for each
+locus.}
 
-\item{sequence_alignment}{Sequence alignment column for gap filtering.}
+\item{sequence_alignment}{Name of the alignment column for the gap filters
+(default \code{"sequence_alignment"}).}
 
-\item{id}{Column containing read or consensus identifiers.}
+\item{id}{Name of the column that holds the read or consensus IDs (default
+\code{"sequence_id"}).}
 
-\item{spatial_id}{Optional name of a spatial ID column that is already
-present in \code{airr_df}.}
+\item{spatial_id}{Name of a spatial ID column that exists in \code{airr_df}.}
 
-\item{add_spatial_sequence_id}{Add a combined ID with the original sequence ID
-and spatial ID. \code{spatial_id} must be provided if \code{TRUE}.}
+\item{add_spatial_sequence_id}{Add a column that combines the sequence ID and
+the spatial ID (default \code{FALSE})? You must give \code{spatial_id} if you use
+\code{TRUE}.}
 
-\item{spatial_sequence_id}{Name of the combined spatial sequence ID column.}
+\item{spatial_sequence_id}{Name of the combined column (default
+\code{"spatial_sequence_id"}).}
 
-\item{spatial_id_key}{Spatial ID field name to use in the combined spatial
-sequence ID.}
+\item{spatial_id_key}{Field name for the spatial ID in the combined column
+(default \code{"spatial_id"}). A value looks like
+\verb{sequence_id=<id>|<key>=<spatial ID>}.}
 }
 \value{
-Preprocessed data frame with \code{v_sequence_length},
-\code{j_sequence_length}, and optional spatial sequence ID columns.
+The filtered data frame. It has the added columns \code{v_sequence_length}
+and \code{j_sequence_length}, and the combined ID column if you asked for it.
 }
 \description{
-Filters AIRR-seq data for productivity, V/J/junction length, a minimum
-consensus count, optional max opening gap length, and optionally adding a
-spatial sequence ID combining \code{sequence_id} and a spatial ID.
+\code{filterAirr} filters sequences from an AIRR table. ]
+}
+\details{
+The function keeps the rows that pass all of these filters. It skips a filter
+if its column is missing, unless you set the argument yourself. In that case,
+it gives a warning.
+\itemize{
+\item the locus (\code{locus_val});
+\item the V length, J length, and junction length (\code{min_v_length},
+\code{min_j_length}, \code{min_junction_length});
+\item productive rearrangements (\code{productive_only});
+\item complete V(D)J rearrangements (\code{complete_vdj});
+\item the consensus count (\code{min_consensus_count});
+\item the gap lengths in \code{sequence_alignment} (\code{max_opening_gap},
+\code{max_gap_length}).
+}
+The function prints the number of rows that it kept.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+receptors <- getReceptors(x)
+
+# The thresholds of the SIRUP paper.
+filterAirr(
+  receptors,
+  locus_val = "IGH",
+  min_v_length = 250,
+  min_j_length = 30,
+  min_junction_length = 10
+)
+}
+\seealso{
+\code{\link[=addSequenceQualityMetrics]{addSequenceQualityMetrics()}}, \code{\link[=plotLengthQc]{plotLengthQc()}},
+\code{\link[=processSpatialSample]{processSpatialSample()}}
 }

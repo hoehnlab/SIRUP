@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{plotSpatialCloneDensity3D}
 \alias{plotSpatialCloneDensity3D}
-\title{Plot 3D clone-density surfaces over a spatial image}
+\title{Plot 3D clone-density surfaces on a tissue image}
 \usage{
 plotSpatialCloneDensity3D(
   dominance,
@@ -44,107 +44,126 @@ plotSpatialCloneDensity3D(
 )
 }
 \arguments{
-\item{dominance}{Object returned by \code{spatialCloneDominance()}.}
+\item{dominance}{Result of \code{\link[=spatialCloneDominance]{spatialCloneDominance()}}.}
 
-\item{object}{Seurat object with spatial images, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{clone}{Column in \code{dominance$region_receptors} used to define clone
-groups. When omitted, the clone column recorded by
-\code{spatialCloneDominance()} is used.}
+\item{clone}{Name of the column in \code{dominance$region_receptors} that defines
+the clone groups. If you omit it, the function uses the clone column that
+\code{\link[=spatialCloneDominance]{spatialCloneDominance()}} recorded (default \code{"clone_id"}).}
 
-\item{weight}{Optional numeric column used as receptor weights. When
-\code{NULL}, each receptor row contributes one count.}
+\item{weight}{Name of a numeric column that gives the weight of each
+receptor. If \code{NULL}, each receptor row counts as one.}
 
-\item{images}{Optional Seurat image names to show.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
+\item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
+objects. If \code{NULL}, the function plots all samples.}
 
-\item{image_scale}{Image scale passed to
-\code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{polygon_val}{Optional polygon ID value(s) to select from the dominance
-object.}
+\item{polygon_val}{IDs of the polygons to select from \code{dominance}.}
 
-\item{top_n}{Optional number of most abundant clone groups to show
-individually. Remaining clone groups are combined as \code{other_label}.}
-
-\item{other_label}{Label for grouped lower-abundance clone groups.}
-
-\item{other_color}{Color used for \code{other_label}.}
-
-\item{plot_other}{Plot grouped lower-abundance clone groups as
+\item{top_n}{Number of the most abundant clone groups to show on their own
+(default 10). The function groups the other clone groups under
 \code{other_label}.}
 
-\item{bandwidth}{Gaussian kernel bandwidth in spatial coordinate units. Use a
-single value for isotropic smoothing or two values for x/y bandwidths. When
-\code{NULL}, a bandwidth is estimated from the regional coordinates.}
+\item{other_label}{Label for the grouped clone groups (default \code{"Other"}).}
 
-\item{grid_n}{Number of grid points used for density surfaces. Use one value
-for both axes or two values for x/y grid sizes.}
+\item{other_color}{Color of the grouped clone groups (default \code{"#D3D3D3"}).}
 
-\item{plot_type}{Plot smoothed density surfaces or binned 3D histogram bars.}
+\item{plot_other}{Plot the grouped clone groups (default \code{TRUE})?}
 
-\item{hist_bins}{Number of x/y bins used when \code{plot_type = "histogram"}.}
+\item{bandwidth}{Bandwidth of the Gaussian kernel, in coordinate units. Give
+one value for equal smoothing in x and y, or two values (x, y). If \code{NULL},
+the function estimates it from the coordinates in the regions.}
 
-\item{zoom}{Zoom the tissue image plane and 3D view to the selected region.
-Defaults to \code{FALSE}, which shows the full spatial image.}
+\item{grid_n}{Number of grid points for the density surfaces (default 80).
+Give one value for both axes, or two values (x, y).}
 
-\item{height_scale}{Maximum density height as a fraction of the plotted
-spatial span.}
+\item{plot_type}{Type of plot: \code{density} (smoothed surfaces) or \code{histogram}
+(binned 3D bars).}
 
-\item{z_offset}{Vertical offset of the density surfaces above the tissue
-image, as a fraction of the plotted spatial span.}
+\item{hist_bins}{Number of x and y bins, if \code{plot_type = "histogram"}
+(default 30).}
 
-\item{density_alpha}{Opacity for density surfaces.}
+\item{zoom}{Zoom the image plane and the 3D view to the selected region
+(default \code{FALSE})? If \code{FALSE}, the plot shows the full image.}
 
-\item{density_floor}{Relative density threshold below which surface cells are
-hidden. This removes low-density Gaussian tails that otherwise look like a
-colored plane.}
+\item{height_scale}{Maximum height of the density, as a fraction of the
+plotted range (default 0.22).}
 
-\item{image_alpha}{Opacity for the tissue image plane.}
+\item{z_offset}{Vertical gap between the density surfaces and the tissue
+image, as a fraction of the plotted range (default 0.04).}
 
-\item{show_points}{Show receptor locations above the tissue plane.}
+\item{density_alpha}{Opacity of the density surfaces (default 0.55).}
 
-\item{point_size}{Size of receptor-location points.}
+\item{density_floor}{Relative density below which the function hides surface
+cells (default 0.03). This removes the low Gaussian tails, which can look
+like a colored plane.}
 
-\item{point_alpha}{Opacity for receptor-location points.}
+\item{image_alpha}{Opacity of the tissue image plane.}
 
-\item{show_polygon}{Show polygon boundaries above the tissue plane.}
+\item{show_points}{Show the receptor locations above the tissue plane
+(default \code{FALSE})?}
 
-\item{polygon_color}{Color for polygon boundary lines.}
+\item{point_size}{Size of the receptor points (default 5).}
 
-\item{polygon_lwd}{Width for polygon boundary lines.}
+\item{point_alpha}{Opacity of the receptor points (default 0.75).}
 
-\item{label_density_peaks}{Label the highest point of the first few density
-surfaces.}
+\item{show_polygon}{Show the polygon boundaries above the tissue plane
+(default \code{TRUE})?}
 
-\item{label_top_n}{Number of density surfaces to label when
-\code{label_density_peaks = TRUE}.}
+\item{polygon_color}{Color of the polygon boundary lines (default \code{"white"}).}
 
-\item{label_cex}{Text scale for density peak labels.}
+\item{polygon_lwd}{Width of the polygon boundary lines (default 3).}
 
-\item{show_axes}{Show the 3D bounding box and axis labels.}
+\item{label_density_peaks}{Label the highest point of the first density
+surfaces (default \code{FALSE})?}
 
-\item{texture_dir}{Optional directory where the tissue texture PNG should be
-written. Use a persistent directory when saving an HTML widget.}
+\item{label_top_n}{Number of surfaces to label, if \code{label_density_peaks} is
+\code{TRUE} (default 5).}
 
-\item{as_widget}{Return an rgl htmlwidget. When \code{FALSE}, the scene is drawn
-and the current rgl device ID is returned.}
+\item{label_cex}{Text scale of the peak labels (default 0.8).}
 
-\item{return_data}{Return the computed density data instead of drawing an
-interactive scene. This does not require rgl.}
+\item{show_axes}{Show the 3D bounding box and the axis labels (default
+\code{TRUE})?}
+
+\item{texture_dir}{Directory to write the tissue texture PNG file to. Use a
+permanent directory if you save an HTML widget.}
+
+\item{as_widget}{Return an rgl htmlwidget (default \code{TRUE})? If \code{FALSE}, the
+function draws the scene and returns the ID of the current rgl device.}
+
+\item{return_data}{Return the density data and do not draw the scene (default
+\code{FALSE})? This does not need \code{rgl}.}
 }
 \value{
-An rgl widget/device ID, or a list of computed plot data when
-\code{return_data = TRUE}.
+An rgl widget or an rgl device ID. If \code{return_data = TRUE}, a list of
+the plot data.
 }
 \description{
-Uses the regional receptor rows returned by \code{spatialCloneDominance()} to draw
-smoothed clone-abundance density surfaces above the original tissue image in
-an interactive rgl scene.
+\code{plotSpatialCloneDensity3D} draws a smoothed density surface for each clone
+above the tissue image in an interactive rgl scene.
+}
+\details{
+The function uses the receptor rows in the result of
+\code{\link[=spatialCloneDominance]{spatialCloneDominance()}}. It needs the \code{rgl} package, except if you set
+\code{return_data = TRUE}.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+dominance <- spatialCloneDominance(x)
+
+# Return the density data. This needs no rgl window.
+density <- plotSpatialCloneDensity3D(dominance, x, return_data = TRUE)
+names(density)
+}
+\seealso{
+\code{\link[=spatialCloneDominance]{spatialCloneDominance()}}, \code{\link[=plotSpatialRegionReceptors]{plotSpatialRegionReceptors()}}
 }

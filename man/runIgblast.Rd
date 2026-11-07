@@ -15,35 +15,52 @@ runIgblast(
 )
 }
 \arguments{
-\item{input}{Path to a FASTA/FASTQ file, optionally gzipped. A plain FASTA
-must end in \code{.fasta} or \code{.fa}.}
+\item{input}{Path of a FASTA or FASTQ file, optionally gzipped. A plain FASTA
+file must end in \code{.fasta} or \code{.fa}.}
 
-\item{output_tsv}{Path for the AIRR TSV. It must end in \code{.tsv}.}
+\item{output_tsv}{Path of the AIRR TSV file. It must end in \code{.tsv}.}
 
-\item{receptor}{Either \code{ig} for BCR or \code{tr} for TCR.}
+\item{receptor}{\code{"ig"} for BCR or \code{"tr"} for TCR.}
 
-\item{organism}{\code{human}, \code{mouse}, or \code{rhesus_monkey}.}
+\item{organism}{\code{"human"}, \code{"mouse"}, or \code{"rhesus_monkey"}.}
 
-\item{igblast_base}{IgBLAST installation folder. It must hold
-\code{bin/igblastn}, \code{internal_data}, and \code{optional_file}.}
+\item{igblast_base}{IgBLAST installation folder. It must hold \code{bin/igblastn},
+\code{internal_data}, and \code{optional_file}.}
 
-\item{igblast_refs}{Folder with the IgBLAST \verb{database/} and \verb{fasta/}
-folders (the \code{refs} argument of \code{airrblast::assignGenes()}). When
-\code{NULL}, uses \code{igblast_base}.}
+\item{igblast_refs}{Folder with the IgBLAST \verb{database/} and \verb{fasta/} folders
+(the \code{refs} argument of \code{airrblast::assignGenes()}). If \code{NULL}, the
+function uses \code{igblast_base}.}
 
-\item{num_threads}{Threads passed to \code{assignGenes()} as \code{nproc}.}
+\item{num_threads}{Number of threads, passed to \code{assignGenes()} as \code{nproc}.}
 }
 \value{
-The path to \code{output_tsv}, invisibly.
+\code{output_tsv}, invisibly.
 }
 \description{
-Runs \code{airrblast::assignGenes()} on raw reads and writes an AIRR
-rearrangement table. The input can be FASTA or FASTQ, optionally gzipped.
-Gzipped and FASTQ inputs are first normalized to a plain FASTA next to
-\code{output_tsv} (FASTQ quality strings are dropped, because igblastn only
-accepts FASTA). One receptor group runs per call: \code{ig} or \code{tr}.
+\code{runIgblast} runs \code{airrblast::assignGenes()} on raw reads. It writes an AIRR
+table.
 }
 \details{
-\code{assignGenes()} does not search the C-region database, so raw-read tables
-have no \code{c_call} from this step.
+The input can be FASTA or FASTQ, optionally gzipped. The function first
+writes gzipped and FASTQ inputs as a plain FASTA next to \code{output_tsv}. It
+drops the FASTQ quality strings, because \code{igblastn} accepts only FASTA. Each
+call runs one receptor group: \code{ig} or \code{tr}.
+
+\code{assignGenes()} does not search the C-region database, so the tables of raw
+reads have no \code{c_call} from this step.
+}
+\examples{
+\dontrun{
+# This example needs IgBLAST and the IgBLAST reference files.
+runIgblast(
+  "sample1_reads.fasta.gz",
+  output_tsv = "sample1_igblast.tsv",
+  receptor = "ig",
+  organism = "human",
+  igblast_base = "~/software/igblast"
+)
+}
+}
+\seealso{
+\code{\link[=processSpatialSample]{processSpatialSample()}}, \code{\link[=parseRadSequenceIds]{parseRadSequenceIds()}}
 }

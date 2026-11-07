@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_ggplot_visualization.R
 \name{plotReceptors}
 \alias{plotReceptors}
-\title{Plot one or more receptor groups over a tissue image}
+\title{Plot receptor groups on a tissue image}
 \usage{
 plotReceptors(
   object,
@@ -46,121 +46,141 @@ plotReceptors(
 )
 }
 \arguments{
-\item{object}{Seurat object, or a SIRUP object containing both spatial and
-receptor data.}
+\item{object}{Seurat object, or a SIRUP object with spatial data and
+receptors.}
 
-\item{receptors}{AIRR-style receptor table containing a spatial ID and
-grouping column. May be omitted when \code{object} is a SIRUP object.}
+\item{receptors}{AIRR-style receptor table with a spatial ID column and a
+group column. Omit it if \code{object} is a SIRUP object.}
 
-\item{group}{Column in \code{receptors} used to select and color receptor
-groups, for example \code{"clone_id"}.}
+\item{group}{Name of the \code{receptors} column that selects and colors the
+receptor groups, for example \code{"clone_id"}.}
 
-\item{group_val}{Optional values from \code{group} to plot. Defaults to all
-non-missing values in \code{group}.}
+\item{group_val}{Values of \code{group} to plot. If \code{NULL}, the function uses all
+non-missing values.}
 
-\item{spatial_id}{Column in \code{receptors} matching Seurat spot names. If
-\code{NULL}, the first available spatial ID-like column is used.}
+\item{spatial_id}{Name of the \code{receptors} column that holds the Seurat spot
+names. If \code{NULL}, the function uses the stored field of a SIRUP object, or
+uses the first standard spatial ID column that it finds.}
 
-\item{colors}{Optional colors for receptor groups. Named colors are matched
-to \code{values}; otherwise colors are used in value order.}
+\item{colors}{Colors of the receptor groups. Named colors match the group
+values. Unnamed colors follow the order of the values.}
 
-\item{overlap}{How to color a spot that carries more than one receptor
-group. Such a spot is drawn once as a combined group (members joined by
-\code{" + "}). \code{"average"} (default) colors it with the mean of its members'
-colors; any single color instead colors all combined spots with that color.}
+\item{overlap}{Color of a spot that holds more than one receptor group. The
+function draws such a spot once, as a combined group with the member names
+joined by \code{" + "}. With \code{"average"} (default), the spot gets the mean color
+of its members. With one color, all combined spots get that color.}
 
-\item{value}{Colour each spot on a continuous gradient instead of discrete
-\code{group} colours. Give the name of a numeric column in \code{receptors}, or the
-special value \code{"count"} to colour by the number of receptors on the spot.
-\code{group} is optional in this mode; if supplied (with \code{group_val}), only
-matching receptors are used.}
+\item{value}{Color each spot on a continuous gradient and not by group. Give
+the name of a numeric \code{receptors} column, or \code{"count"} for the number of
+receptors in the spot. You can omit \code{group} in this mode. If you give it
+(with \code{group_val}), the function uses only the matching receptors.}
 
-\item{value_colors}{Colours for the \code{value} gradient. Two colours give a
-low-to-high gradient. More than two give a multi-stop gradient, so you can
-pass a palette such as \code{viridisLite::viridis(9)}. Defaults to white to navy.}
+\item{value_colors}{Colors of the \code{value} gradient (default white to navy).
+Two colors give a low-to-high gradient. More colors give a gradient with
+several stops, so you can give a palette such as \code{viridisLite::viridis(9)}.}
 
-\item{value_limits}{Limits for the \code{value} gradient scale (default
-\code{c(0, NA)}, anchoring the scale at zero).}
+\item{value_limits}{Limits of the \code{value} scale (default \code{c(0, NA)}, which
+starts the scale at zero).}
 
-\item{value_combine}{How to combine \code{value} when a spot carries more than one
-receptor. One of \code{"mean"} (default), \code{"median"}, \code{"mode"}, \code{"max"},
-\code{"min"} or \code{"sum"}. Ignored when \code{value = "count"}.}
+\item{value_combine}{How to combine \code{value} if a spot holds more than one
+receptor: \code{"mean"} (default), \code{"median"}, \code{"mode"}, \code{"max"}, \code{"min"}, or
+\code{"sum"}. The function ignores it if \code{value = "count"}.}
 
-\item{receptor_size}{Size for receptor points.}
+\item{receptor_size}{Size of the receptor points (default 1).}
 
-\item{receptor_alpha}{Alpha for receptor points.}
+\item{receptor_alpha}{Opacity of the receptor points (default 1).}
 
-\item{title}{Optional title.}
+\item{title}{Plot title.}
 
-\item{order_points}{Plot earlier receptor groups first so later groups appear
-on top.}
+\item{order_points}{Draw the early receptor groups first, so that the later
+groups show on top (default \code{TRUE})?}
 
-\item{image_scale}{Image scale passed to
-\code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{images}{Optional Seurat image names.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
+\item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
+objects. If \code{NULL}, the function plots all samples.}
 
-\item{image_alpha}{Tissue image opacity.}
+\item{image_alpha}{Opacity of the tissue image.}
 
-\item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
-full tissue area covered by the spatial coordinates.}
+\item{zoom}{Zoom to the plotted spots (default \code{FALSE})? If \code{FALSE}, the plot
+shows the full tissue area that the spatial coordinates cover.}
 
-\item{receptor_legend_title}{Legend title for receptor groups. Defaults to
-\code{group}.}
+\item{receptor_legend_title}{Title of the receptor legend. If \code{NULL}, the
+function uses \code{group}.}
 
-\item{show_receptor_legend}{Show the receptor group legend.}
+\item{show_receptor_legend}{Show the receptor legend (default \code{TRUE})?}
 
-\item{polygons}{Draw region polygons under the receptor points on each
-spatial panel. \code{FALSE} (the default) draws no polygons. \code{TRUE} uses the
-polygons stored in the SIRUP object. You can also pass a data frame of
-polygon vertices, or a path to a CSV file of polygon vertices. Vertex
-tables need \code{polygon_x} and \code{polygon_y} columns, plus \code{polygon_id} to
-separate multiple polygons.}
+\item{polygons}{Draw polygons under the points on each spatial panel. With
+\code{FALSE} (default), the function draws no polygons. With \code{TRUE}, it uses the
+polygons stored in the SIRUP object. You can also give a data frame of
+polygon vertices, or the path of a CSV file of polygon vertices. A vertex
+table needs the columns set by \code{polygon_x} and \code{polygon_y}. It needs the
+column set by \code{polygon_id} if it holds more than one polygon.}
 
-\item{polygon_x, polygon_y}{Vertex coordinate columns in a supplied polygon
-data frame or CSV file.}
+\item{polygon_x}{Name of the x-coordinate column in the polygon table
+(default \code{"x"}).}
 
-\item{polygon_id}{Column that separates multiple polygons in a supplied
-polygon data frame or CSV file. When the named column is absent, a
-\code{polygon} or \code{polygon_id} column is used if present; otherwise all rows
-form one polygon.}
+\item{polygon_y}{Name of the y-coordinate column in the polygon table
+(default \code{"y"}).}
 
-\item{polygon_val}{Optional polygon ID value(s) to draw. When \code{NULL}, all
-polygons are drawn.}
+\item{polygon_id}{Name of the column that separates the polygons in the
+polygon table (default \code{"polygon"}). If the column does not exist, the
+function uses a \code{polygon} or \code{polygon_id} column. If neither exists, all
+rows form one polygon.}
 
-\item{polygon_alpha}{Fill opacity for polygons.}
+\item{polygon_val}{IDs of the polygons to draw. If \code{NULL}, the function draws
+all polygons.}
 
-\item{polygon_fill}{Fill color for polygons.}
+\item{polygon_alpha}{Opacity of the polygon fill (default 0.2).}
 
-\item{polygon_color}{Outline color for polygons.}
+\item{polygon_fill}{Fill color of the polygons (default \code{"#0072B2"}).}
 
-\item{polygon_linewidth}{Outline width for polygons.}
+\item{polygon_color}{Color of the polygon outlines (default \code{"#0072B2"}).}
 
-\item{polygon_label}{Label each polygon at its center.}
+\item{polygon_linewidth}{Width of the polygon outlines (default 0.6).}
 
-\item{polygon_label_by}{Column used for polygon labels. When \code{NULL}, the
-polygon ID is used.}
+\item{polygon_label}{Write a label at the center of each polygon (default
+\code{FALSE})?}
 
-\item{polygon_label_size}{Text size for polygon labels.}
+\item{polygon_label_by}{Name of the column that holds the labels. If \code{NULL},
+the function uses the polygon ID.}
 
-\item{polygon_label_color}{Text color for polygon labels.}
+\item{polygon_label_size}{Text size of the polygon labels (default 3).}
 
-\item{combine}{Combine image panels with patchwork.}
+\item{polygon_label_color}{Text color of the polygon labels (default
+\code{"black"}).}
 
-\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
-from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
-multi-sample calls return a named list of per-sample plots.}
+\item{combine}{Combine the image panels with patchwork (default \code{TRUE})?}
+
+\item{combine_sample_plots}{Combine the plots of all samples into one
+patchwork (default \code{FALSE})? The function uses it only for multi-sample
+objects. If \code{FALSE}, it returns a named list with one plot for each sample.}
 }
 \value{
-A ggplot/patchwork object or a list when \code{combine = FALSE}.
+A ggplot object or a patchwork object. If \code{combine = FALSE}, a list.
 }
 \description{
-Plot one or more receptor groups over a tissue image
+\code{plotReceptors} plots the spots that hold receptors. It colors the spots by
+receptor group, or by a continuous value.
+}
+\details{
+#' If the object has multiple images or samples, the function draws one plot
+for each image or sample.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+plotReceptors(x, group = "clone_id")
+
+# Color the spots by the number of receptors in each spot.
+plotReceptors(x, value = "count")
+}
+\seealso{
+\code{\link[=plotReceptorsExpression]{plotReceptorsExpression()}}, \code{\link[=plotSpatialColorTips]{plotSpatialColorTips()}}
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/spaced_pairing.R
 \name{buildSpacedCloneTable}
 \alias{buildSpacedCloneTable}
-\title{Build a SPaCeD-style clone spatial table}
+\title{Build a clone table for SPaCeD pairing}
 \usage{
 buildSpacedCloneTable(
   data,
@@ -18,46 +18,73 @@ buildSpacedCloneTable(
 )
 }
 \arguments{
-\item{data}{Clone-assigned data frame.}
+\item{data}{Data frame with clone IDs.}
 
-\item{positions}{Optional spatial positions data frame. If supplied, it is
-joined to \code{data} by barcode.}
+\item{positions}{Data frame of spatial positions. If you give it, the
+function joins it to \code{data} by barcode.}
 
-\item{barcode}{Barcode column in \code{data}.}
+\item{barcode}{Name of the barcode column in \code{data} (default \code{"barcode"}).}
 
-\item{clone}{Clone identifier column in \code{data}.}
+\item{clone}{Name of the clone ID column in \code{data} (default \code{"clone_id"}).}
 
-\item{x}{Spatial x-coordinate column. If \code{positions} is supplied, this is
-read after the join.}
+\item{x}{Name of the x-coordinate column (default \code{"x"}). If you give
+\code{positions}, the function reads it after the join.}
 
-\item{y}{Spatial y-coordinate column. If \code{positions} is supplied, this is
-read after the join.}
+\item{y}{Name of the y-coordinate column (default \code{"y"}). If you give
+\code{positions}, the function reads it after the join.}
 
-\item{count}{Optional count column. When \code{NULL}, each row contributes 1.}
+\item{count}{Name of the count column. If \code{NULL}, each row counts as 1.}
 
-\item{position_barcode}{Barcode column in \code{positions}.}
+\item{position_barcode}{Name of the barcode column in \code{positions} (default
+\code{"barcode"}).}
 
-\item{clone_prefix}{Optional prefix added to clone IDs, for example
-\code{"heavy_"} or \code{"light_kappa_"}.}
+\item{clone_prefix}{Text to add before each clone ID, for example \code{"heavy_"}
+or \code{"light_kappa_"}.}
 
-\item{drop_missing_coords}{Drop rows missing spatial coordinates.}
+\item{drop_missing_coords}{Drop the rows with no coordinates (default
+\code{TRUE})?}
 }
 \value{
-Data frame with \code{clone_id}, \code{barcode}, \code{x}, \code{y}, and \code{n}.
+A data frame with the columns \code{clone_id}, \code{barcode}, \code{x}, \code{y}, and
+\code{n}. The function sums the counts of rows that share a clone and a barcode.
 }
 \description{
-SPaCeD pairs heavy and light chain clones over a weighted combination of
-spatial evidence and a REPAIR model matrix. These helpers implement that
-pairing surface while using sparse native spatial-bin operations that scale
-better for Visium HD-sized data.
+\code{buildSpacedCloneTable} makes a table that has one row for each clone and
+spatial bin. The pairing functions use this table.
 }
 \details{
-The method follows the SPaCeD repository by H. J. Melton et al.
-(https://github.com/hjm2217/spaced) and its use of a REPAIR model matrix
-(https://github.com/almaan/star-repair; modified SPaCeD notes reference
-https://github.com/Floraliu7/star-repair). The original SPaCeD spatial term
-was computed with \code{spatstat::pppdist(type = "mat")}; SIRUP's default spatial
-term uses sparse clone-by-barcode matrices. For Visium HD, use the Space
-Ranger 8um barcodes as the native spatial bins rather than adding another
-coordinate downsampling step.
+SPaCeD pairs heavy chain clones and light chain clones with a weighted sum of
+two scores: a spatial score and a score from a REPAIR model matrix. The
+functions of this family do the pairing. They use sparse spatial-bin
+operations, which scale better to data of the size of Visium HD.
+
+The method follows the SPaCeD repository of H. J. Melton and others
+(\url{https://github.com/hjm2217/spaced}). It uses the REPAIR model matrix
+(\url{https://github.com/almaan/star-repair}). SPaCeD used a modified REPAIR. Its
+notes refer to \url{https://github.com/Floraliu7/star-repair}. The original
+SPaCeD spatial score came from \code{spatstat::pppdist(type = "mat")}. The default
+spatial score of SIRUP uses sparse matrices of clones by barcodes. For Visium
+HD, use the 8 um barcodes of Space Ranger as the spatial bins. Do not
+downsample the coordinates again.
+}
+\examples{
+spots <- data.frame(
+  barcode = paste0("s", 1:6),
+  x = c(1, 2, 3, 1, 2, 3),
+  y = c(1, 1, 1, 2, 2, 2)
+)
+heavy <- data.frame(
+  barcode = c("s1", "s2", "s3", "s4", "s5"),
+  clone_id = c("H1", "H1", "H1", "H2", "H2")
+)
+light <- data.frame(
+  barcode = c("s1", "s2", "s4", "s5", "s6"),
+  clone_id = c("L1", "L1", "L2", "L2", "L2")
+)
+heavy_points <- buildSpacedCloneTable(heavy, positions = spots, clone_prefix = "heavy_")
+light_points <- buildSpacedCloneTable(light, positions = spots, clone_prefix = "light_")
+heavy_points
+}
+\seealso{
+\code{\link[=spacedSpatialAffinity]{spacedSpatialAffinity()}}, \code{\link[=buildRepairInputMatrix]{buildRepairInputMatrix()}}
 }
