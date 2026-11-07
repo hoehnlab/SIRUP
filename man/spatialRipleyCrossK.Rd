@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_statistics.R
 \name{spatialRipleyCrossK}
 \alias{spatialRipleyCrossK}
-\title{Calculate Ripley's cross K for marked spatial points}
+\title{Calculate Ripley's cross K}
 \usage{
 spatialRipleyCrossK(
   object,
@@ -17,30 +17,63 @@ spatialRipleyCrossK(
 )
 }
 \arguments{
-\item{object}{SIRUP object, or a spatial Seurat object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{mark_col}{Metadata column containing point types.}
+\item{mark_col}{Name of the metadata column that holds the point types.}
 
-\item{i}{First mark level to compare.}
+\item{i}{First mark level.}
 
-\item{j}{Second mark level to compare.}
+\item{j}{Second mark level.}
 
-\item{nsim}{Number of random-label simulations for an envelope. Use \code{0} for
-observed K only.}
+\item{nsim}{Number of random-label simulations for the envelope (default 0).
+Use \code{0} for the observed K only.}
 
-\item{max_r}{Optional maximum radius to evaluate. Ignored if \code{r} is supplied.}
+\item{max_r}{Largest radius to calculate. The function ignores it if you give
+\code{r}.}
 
-\item{r}{Optional distance vector passed to \code{spatstat.explore::Kcross()}.}
+\item{r}{Vector of distances for \code{spatstat.explore::Kcross()}.}
 
-\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 }
 \value{
-List with observed K, optional envelope, plotting data, and point data.
+A list with these items: \code{observed} (the observed K), \code{envelope}
+(the simulation envelope, if any), \code{plot_data}, \code{points} (the point data),
+\code{i}, \code{j}, \code{correction}, \code{nsim}, \code{max_r}, and \code{r}.
 }
 \description{
-Calculate Ripley's cross K for marked spatial points
+\code{spatialRipleyCrossK} measures how spots of mark \code{i} cluster around spots of
+mark \code{j} at different distances. Similar to Lee's L but better for factor data.
+}
+\details{
+The function calls \code{spatstat.explore::Kcross()} with the border correction.
+If \code{nsim} is greater than 0, it also builds an envelope from random label
+simulations.
+
+If the data come from more than one image, or a sirup object with multiple samples,
+then the function builds one graph and runs one test for each sample or image.
+}
+\examples{
+\dontshow{if (requireNamespace("spatstat.explore", quietly = TRUE)) withAutoprint(\{ # examplesIf}
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+
+# Compare spots of type A with spots of type B. Use 19 random-label
+# simulations for the envelope.
+set.seed(1)
+kcross <- spatialRipleyCrossK(
+  x,
+  mark_col = "cell_type",
+  i = "A",
+  j = "B",
+  nsim = 19
+)
+head(kcross$plot_data)
+\dontshow{\}) # examplesIf}
+}
+\seealso{
+\code{\link[=plotRipleyCrossK]{plotRipleyCrossK()}}
 }

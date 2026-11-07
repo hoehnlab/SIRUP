@@ -1,5 +1,4 @@
 test_that("polygon repair keeps polygonal pieces from geometry collections", {
-  skip_if_not_installed("sf")
   skip_on_cran()
 
   intersection_fun <- function(x, y) {

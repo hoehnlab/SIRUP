@@ -1,6 +1,4 @@
 sirup_test_seurat <- function(counts, ...) {
-  testthat::skip_if_not_installed("SeuratObject")
-  testthat::skip_if_not_installed("Matrix")
   if (!inherits(counts, "Matrix")) {
     counts <- Matrix::Matrix(counts, sparse = TRUE)
   }

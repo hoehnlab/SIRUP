@@ -4,37 +4,50 @@
 \alias{sirup-io}
 \alias{saveSIRUP}
 \alias{readSIRUP}
-\title{Save and load SIRUP objects}
+\title{Save and read SIRUP objects}
 \usage{
 saveSIRUP(x, file, ...)
 
 readSIRUP(file)
 }
 \arguments{
-\item{x}{A SIRUP object created by \code{\link[=createSIRUP]{createSIRUP()}}.}
+\item{x}{A SIRUP object from \code{\link[=createSIRUP]{createSIRUP()}}.}
 
-\item{file}{Path to the RDS file. A \code{.sirup.rds} extension is recommended
-but any path is accepted.}
+\item{file}{Path of the RDS file. A \code{.sirup.rds} extension is a good choice,
+but any path works.}
 
-\item{...}{Additional arguments passed to \code{\link[=saveRDS]{saveRDS()}} (for example
-\code{compress}).}
+\item{...}{Other arguments for \code{\link[=saveRDS]{saveRDS()}}, for example \code{compress}.}
 }
 \value{
-\code{saveSIRUP()} returns \code{file} invisibly. \code{readSIRUP()} returns the
+\code{saveSIRUP} returns \code{file}, invisibly. \code{readSIRUP} returns the
 validated SIRUP object.
 }
 \description{
-\code{saveSIRUP()} writes a validated SIRUP object to a single RDS file, and
-\code{readSIRUP()} reads it back. Unlike a bare \code{\link[=saveRDS]{saveRDS()}}/\code{\link[=readRDS]{readRDS()}} round
-trip, \code{saveSIRUP()} validates the object and records the SIRUP and
-'SeuratObject' package versions used to write it, and \code{readSIRUP()} upgrades
-older objects to the current schema, warns when the writing versions differ
-from the versions currently installed, and re-validates before returning.
+\code{saveSIRUP} writes a SIRUP object to one RDS file. \code{readSIRUP} reads the file
+back.
+}
+\details{
+\code{saveSIRUP} validates the object. It stores the versions of SIRUP and
+SeuratObject that write the file.
+
+\code{readSIRUP} does these steps:
+\enumerate{
+\item It converts an object that was saved under the old package name,
+SIRAP (class \code{sirap}), to the current names.
+\item It upgrades an older object to the current schema.
+\item It gives a warning if the versions of SIRUP or SeuratObject that
+wrote the file differ from the installed versions.
+\item It validates the object, then returns it.
+}
 }
 \examples{
-\dontrun{
-sirup <- createSIRUP(spatial = seurat_object, receptors = cloned_receptors)
-path <- saveSIRUP(sirup, tempfile(fileext = ".sirup.rds"))
-sirup2 <- readSIRUP(path)
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+
+# Save the object to a temporary file, then read it back.
+path <- saveSIRUP(x, tempfile(fileext = ".sirup.rds"))
+x2 <- readSIRUP(path)
+x2
 }
+\seealso{
+\code{\link[=createSIRUP]{createSIRUP()}}, \code{\link[=validateSIRUP]{validateSIRUP()}}
 }

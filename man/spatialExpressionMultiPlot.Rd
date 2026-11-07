@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_ggplot_visualization.R
 \name{spatialExpressionMultiPlot}
 \alias{spatialExpressionMultiPlot}
-\title{Plot multiple spatial features as ordered color layers}
+\title{Plot several features as ordered color layers}
 \usage{
 spatialExpressionMultiPlot(
   object,
@@ -27,55 +27,73 @@ spatialExpressionMultiPlot(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{features}{Feature names.}
+\item{features}{Names of the features to plot.}
 
-\item{feat_order}{Optional plotting priority, broad/low priority first and
-rare/high priority last.}
+\item{feat_order}{Order of the layers. Put broad features (low priority)
+first and rare features (high priority) last. If \code{NULL}, the function
+orders the features with \code{breadth_metric}.}
 
-\item{combine}{Combine spatial panels and legends with patchwork.}
+\item{combine}{Combine the spatial panels and the legends with patchwork
+(default \code{TRUE})?}
 
-\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
-from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
-multi-sample calls return a named list of per-sample plots.}
+\item{combine_sample_plots}{Combine the plots of all samples into one
+patchwork (default \code{FALSE})? The function uses it only for multi-sample
+objects. If \code{FALSE}, it returns a named list with one plot for each sample.}
 
-\item{assay}{Optional assay to set before plotting.}
+\item{assay}{Assay to use.}
 
-\item{layer}{Seurat expression layer to fetch.}
+\item{layer}{Seurat expression layer to use (default \code{"counts"}).}
 
-\item{colors}{One color per feature.}
+\item{colors}{Colors, one for each feature.}
 
-\item{breadth_metric}{Metric used to choose default feature order.}
+\item{breadth_metric}{Measure that sets the default order of the features
+(default \code{"n_expressing"}, the number of spots that express the feature).}
 
-\item{images}{Optional Seurat image names.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
+\item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
+objects. If \code{NULL}, the function plots all samples.}
 
-\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{point_size}{Size of plotted spots.}
+\item{point_size}{Size of the spots. The default is 0.6.}
 
-\item{point_alpha}{Opacity for plotted spots.}
+\item{point_alpha}{Opacity of the spots.}
 
-\item{order_points}{Plot lower-priority feature assignments first so later
-feature levels appear on top.}
+\item{order_points}{Draw the low-priority features first, so that the
+high-priority features show on top (default \code{TRUE})?}
 
-\item{zero_tol}{Values at or below this threshold are treated as zero.}
+\item{zero_tol}{Values at or below this threshold count as zero (default 0).
+Set to -Inf to plot all spots.}
 
-\item{image_alpha}{Tissue image opacity.}
+\item{image_alpha}{Opacity of the tissue image.}
 
-\item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
-full tissue area covered by the spatial coordinates.}
+\item{zoom}{Zoom to the plotted spots (default \code{FALSE})? If \code{FALSE}, the plot
+shows the full tissue area that the spatial coordinates cover.}
 }
 \value{
-A ggplot/patchwork object or a list when \code{combine = FALSE}.
+A ggplot object or a patchwork object. If \code{combine = FALSE}, a list.
 }
 \description{
-Plot multiple spatial features as ordered color layers
+\code{spatialExpressionMultiPlot} draws each feature in its own color on one
+tissue image. The features are layers. A feature that the function draws
+later shows on top.
+}
+\details{
+If the object has multiple images or samples, the function draws one plot
+for each image or sample.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+spatialExpressionMultiPlot(x, c("gene1", "gene2", "gene3"))
+}
+\seealso{
+\code{\link[=spatialExpressionPlot]{spatialExpressionPlot()}}, \code{\link[=spatialExpressionBlendPlot]{spatialExpressionBlendPlot()}}
 }

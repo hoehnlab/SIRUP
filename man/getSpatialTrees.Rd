@@ -2,7 +2,7 @@
 % Please edit documentation in R/sirup_trees.R
 \name{getSpatialTrees}
 \alias{getSpatialTrees}
-\title{Infer dowser trees from formatted SIRUP clone analyses}
+\title{Build trees from the formatted clones of a SIRUP object}
 \usage{
 getSpatialTrees(
   object,
@@ -30,51 +30,90 @@ getSpatialTrees(
 \arguments{
 \item{object}{A SIRUP object.}
 
-\item{f_clones_analysis}{Name of the stored formatted-clone analysis.}
+\item{f_clones_analysis}{Name of the stored formatted clones (default
+\code{"f_clones"}).}
 
-\item{analysis_name}{Name used to store the tree analysis.}
+\item{analysis_name}{Name for the stored trees (default \code{"trees"}).}
 
-\item{trait}{dowser: trait to use for parsimony models (required if igphyml
-specified)}
+\item{trait}{Trait for the parsimony models. You need it if you use
+\code{igphyml}.}
 
-\item{id}{dowser: unique identifier for this analysis (required if igphyml or
-dnapars specified)}
+\item{id}{Unique name for this analysis. You need it if you use \code{igphyml} or
+\code{dnapars}.}
 
-\item{dir}{dowser: directory where temporary files will be placed.}
+\item{dir}{Directory for the temporary files.}
 
-\item{modelfile}{dowser: file specifying parsimony model to use}
+\item{modelfile}{File that sets the parsimony model.}
 
-\item{build}{dowser: program to use for tree building (pratchet, pml,
-dnapars, dnaml, igphyml, raxml)}
+\item{build}{Program that builds the trees: \code{pratchet} (default), \code{pml},
+\code{dnapars}, \code{dnaml}, \code{igphyml}, or \code{raxml}.}
 
-\item{exec}{dowser: location of desired phylogenetic executable}
+\item{exec}{Location of the phylogenetic program.}
 
-\item{igphyml}{dowser: optional location of igphyml executable for parsimony}
+\item{igphyml}{Location of the \code{igphyml} program, for parsimony.}
 
-\item{fixtrees}{dowser: if TRUE, use supplied tree topologies}
+\item{fixtrees}{Use the tree topologies that you supply (default \code{FALSE})?}
 
-\item{nproc}{dowser: number of cores to parallelize computations}
+\item{nproc}{Number of cores for the calculations (default 1).}
 
-\item{quiet}{dowser: amount of rubbish to print to console}
+\item{quiet}{Amount of text that the function prints to the console (default
+0).}
 
-\item{rm_temp}{dowser: remove temporary files (default=TRUE)}
+\item{rm_temp}{Delete the temporary files (default \code{TRUE})?}
 
-\item{palette}{dowser: deprecated}
+\item{palette}{Deprecated.}
 
-\item{seq}{dowser: column name containing sequence information}
+\item{seq}{Name of the column that holds the sequences.}
 
-\item{collapse}{dowser: Collapse internal nodes with identical sequences?}
+\item{collapse}{Collapse the internal nodes that have identical sequences
+(default \code{FALSE})?}
 
-\item{check_divergence}{dowser: run checkDivergence on trees?}
+\item{check_divergence}{Run \code{checkDivergence} on the trees (default \code{TRUE})?}
 
-\item{...}{dowser: Additional arguments passed to tree building programs}
+\item{...}{Other arguments for the tree-building programs.}
 
-\item{validate}{Whether to validate the updated SIRUP object.}
+\item{validate}{Validate the updated SIRUP object (default \code{TRUE})?}
 }
 \value{
-An updated SIRUP object with dowser trees stored as an analysis.
+The updated SIRUP object, with the trees as an analysis.
 }
 \description{
-Runs \code{\link[dowser:getTrees]{dowser::getTrees()}} on a stored formatted-clone analysis and stores the
-resulting trees as another SIRUP analysis.
+\code{getSpatialTrees} runs \code{\link[dowser:getTrees]{dowser::getTrees()}} on the stored formatted clones. It
+stores the trees as an analysis.
+}
+\details{
+\code{\link[dowser:getTrees]{dowser::getTrees()}} takes a tibble of formatted clones and returns a tibble
+with a \code{trees} column. \code{getSpatialTrees} does not change how dowser builds the
+trees. It reads the formatted clones from the SIRUP object by name
+(\code{f_clones_analysis}) and stores the trees in the object as an analysis. The
+trees and the clone data of each tree then stay with the spatial data.
+\code{\link[=plotSpatialCloneTreePairs]{plotSpatialCloneTreePairs()}} and \code{\link[=clusterTreesTips]{clusterTreesTips()}} can use them without
+more input.
+
+By default, the function builds maximum parsimony trees with
+\code{phangorn::pratchet()}. It estimates the branch lengths with \code{ape::acctran()}.
+If you use \code{build = "igphyml"}, the function predicts the values of the
+internal nodes with maximum parsimony. In this case, give \code{dir} (a directory
+for the temporary files) and \code{id} (a unique name for this analysis). Use a
+different \code{id} for each call that shares a \code{dir}, so that the calls do not
+overwrite each other's files. The function writes \code{modelfile} if you do not
+give it. The file has no constraints. The function deletes the temporary files
+unless you set \code{rm_temp = FALSE}.
+
+The arguments from \code{trait} to \code{...} go to \code{\link[dowser:getTrees]{dowser::getTrees()}}.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+x <- formatSpatialClones(
+  x,
+  id = "sequence_id",
+  germ = "germline_alignment_d_mask",
+  traits = "spatial_id"
+)
+x <- getSpatialTrees(x)
+getAnalysis(x, "trees")
+}
+\seealso{
+\code{\link[=formatSpatialClones]{formatSpatialClones()}}, \code{\link[=clusterTreesTips]{clusterTreesTips()}},
+\code{\link[=plotSpatialCloneTreePairs]{plotSpatialCloneTreePairs()}}
 }

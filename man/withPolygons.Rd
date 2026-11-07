@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{withPolygons}
 \alias{withPolygons}
-\title{Run a function on receptor rows from stored spatial polygons}
+\title{Apply a function to the receptors of each polygon}
 \usage{
 withPolygons(
   receptors,
@@ -15,29 +15,44 @@ withPolygons(
 )
 }
 \arguments{
-\item{receptors}{A SIRUP object or an AIRR-style receptor data frame.}
+\item{receptors}{SIRUP object, or an AIRR-style receptor table.}
 
 \item{.f}{Function to apply.}
 
-\item{...}{Additional arguments passed to \code{.f}.}
+\item{...}{Other arguments for \code{.f}.}
 
-\item{polygons}{Optional polygon table used to define the output polygon
-order. When \code{NULL}, polygon IDs are taken from the SIRUP object or from
-\code{polygon_id} values already present in \code{receptors}.}
+\item{polygons}{Polygon table that sets the order of the output polygons. If
+\code{NULL}, the function takes the polygon IDs from the SIRUP object, or from
+the \code{polygon_id} values in \code{receptors}.}
 
-\item{polygon_id}{Primary polygon assignment column in \code{receptors}.}
+\item{polygon_id}{Name of the column that holds the primary polygon of each
+receptor (default \code{"polygon"}).}
 
-\item{mode}{\code{"by_polygon"} runs \code{.f} once per polygon; \code{"all_polygons"} runs
-\code{.f} once on all receptors in any polygon.}
+\item{mode}{\code{"by_polygon"} runs \code{.f} once for each polygon. \code{"all_polygons"}
+runs \code{.f} once on all receptors in any polygon.}
 
-\item{pass_polygon_id}{Pass the current polygon ID to \code{.f} as \code{polygon_id}
-when \code{.f} can accept it. Defaults to \code{FALSE}.}
+\item{pass_polygon_id}{Pass the current polygon ID to \code{.f} as the argument
+\code{polygon_id}, if \code{.f} accepts it (default \code{FALSE})?}
 }
 \value{
-A named list for \code{mode = "by_polygon"}, otherwise the function result.
+For \code{mode = "by_polygon"}, a named list with one result for each
+polygon. Otherwise, the result of \code{.f}.
 }
 \description{
-Splits the receptor table by polygon membership and applies a function to
-each polygon's receptor rows, or applies the function once to all receptors
-that fall in any polygon.
+\code{withPolygons} splits the receptor table by polygon and applies a function to
+the rows of each polygon. Or it applies the function once to all receptors in
+any polygon.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+
+# Count the receptors in each polygon.
+withPolygons(x, nrow)
+
+# Count the receptors in all polygons together.
+withPolygons(x, nrow, mode = "all_polygons")
+}
+\seealso{
+\code{\link[=assignReceptorPolygons]{assignReceptorPolygons()}}, \code{\link[=polygonAbundance]{polygonAbundance()}},
+\code{\link[=polygonDiversity]{polygonDiversity()}}
 }

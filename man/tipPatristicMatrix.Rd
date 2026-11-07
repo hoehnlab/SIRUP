@@ -2,20 +2,38 @@
 % Please edit documentation in R/sirup_trees.R
 \name{tipPatristicMatrix}
 \alias{tipPatristicMatrix}
-\title{Calculate patristic distances among selected tree tips}
+\title{Calculate patristic distances between tips in a tree}
 \usage{
 tipPatristicMatrix(tree, tip_labels)
 }
 \arguments{
-\item{tree}{A phylogenetic tree with \code{edge}, \code{edge.length}, and \code{tip.label}.}
+\item{tree}{Phylogenetic tree with the fields \code{edge}, \code{edge.length}, and
+\code{tip.label}.}
 
-\item{tip_labels}{Character vector of tip labels to include.}
+\item{tip_labels}{Character vector of the tip labels to use.}
 }
 \value{
-A numeric matrix of pairwise patristic distances.
+A numeric matrix of patristic distances.
 }
 \description{
-Returns a pairwise patristic-distance matrix for selected tip labels,
-preserving the requested tip order. This is the public wrapper around
-SIRUP's tree-tip distance helper used by tree-tip clustering workflows.
+\code{tipPatristicMatrix} returns the matrix of patristic distances between the
+selected tips of a tree. The rows and columns follow the order of
+\code{tip_labels}.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+x <- formatSpatialClones(
+  x,
+  id = "sequence_id",
+  germ = "germline_alignment_d_mask",
+  traits = "spatial_id"
+)
+x <- getSpatialTrees(x)
+trees <- getAnalysis(x, "trees")
+tree <- trees$trees[[1]]
+
+tipPatristicMatrix(tree, tree$tip.label[1:4])
+}
+\seealso{
+\code{\link[=clusterTreeTips]{clusterTreeTips()}}
 }

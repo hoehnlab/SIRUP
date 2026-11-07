@@ -2,7 +2,7 @@
 % Please edit documentation in R/sirup_trees.R
 \name{clusterTreesTips}
 \alias{clusterTreesTips}
-\title{Cluster tips across a dowser trees object}
+\title{Cluster the tips of all trees in a dowser result}
 \usage{
 clusterTreesTips(
   trees,
@@ -20,43 +20,69 @@ clusterTreesTips(
 )
 }
 \arguments{
-\item{trees}{Dowser \code{getTrees()} output, or a list containing a \code{trees}
-element with that output.}
+\item{trees}{Result of \code{\link[dowser:getTrees]{dowser::getTrees()}}, or a list with an element
+\code{trees} that holds this result.}
 
-\item{k}{Number of connected tree components to form for each tree, or
-\code{"auto"} to choose k separately for each tree with \code{chooseTreeTipK()}.}
+\item{k}{Number of subtrees to make in each tree. Use \code{"auto"}
+(default) to choose \code{k} for each tree with \code{\link[=chooseTreeTipK]{chooseTreeTipK()}}.}
 
-\item{id}{Column in each clone data frame matching tree tip labels.}
+\item{id}{Name of the column in each clone data frame that matches the tree
+tip labels (default \code{"sequence_id"}).}
 
-\item{cluster}{Name of the cluster column to add.}
+\item{cluster}{Name of the cluster column to add (default \code{"tree_cluster"}).}
 
-\item{prefix}{Prefix used for cluster labels.}
+\item{prefix}{Prefix of the cluster labels (default \code{"tree_cluster_"}).}
 
-\item{ignore_tips}{Optional tip labels to drop before joining clusters.}
+\item{ignore_tips}{Tip labels to remove before the clustering (default
+\code{"Germline"}).}
 
-\item{keep}{Optional column in each clone data frame used to choose
-whether a tree has the expected retained tips. Clustering is run before
-any keep-filtering; tips where \code{keep != keep_val} then have their
-computed cluster labels overwritten with their \code{keep} value.}
+\item{keep}{Name of a column in each clone data frame (default \code{NULL}). The
+function runs the clustering first. Then, for each tip where \code{keep} differs
+from \code{keep_val}, it replaces the cluster label with the value of \code{keep}.}
 
-\item{keep_val}{Value in \code{keep} that indicates a tip should be kept.}
+\item{keep_val}{Value of \code{keep} that marks a tip to keep.}
 
-\item{method}{Tree clustering method passed to \code{clusterTreeTips()}.}
+\item{method}{Clustering method for \code{\link[=clusterTreeTips]{clusterTreeTips()}}. The default is
+\code{"split_largest_subtrees"}.}
 
-\item{cut_terminal_edges}{Cut terminal branches when choosing branches to
-remove. Defaults to \code{FALSE}, which prioritizes internal clade splits; set
-to \code{TRUE} to allow terminal tips to be peeled off by branch cuts.}
+\item{cut_terminal_edges}{Allow cuts of terminal branches (default \code{FALSE})?
+With \code{FALSE}, the function prefers internal splits of clades. With \code{TRUE},
+branch cuts can remove single terminal tips.}
 
-\item{k_range}{Candidate k values passed to \code{chooseTreeTipK()} when
-\code{k = "auto"}.}
+\item{k_range}{Values of \code{k} to test, if \code{k = "auto"} (default \code{1:8}). The
+function passes it to \code{\link[=chooseTreeTipK]{chooseTreeTipK()}}.}
 
-\item{improvement_threshold}{Relative improvement threshold passed to
-\code{chooseTreeTipK()} when \code{k = "auto"}.}
+\item{improvement_threshold}{Smallest relative improvement that justifies a
+larger \code{k}, if \code{k = "auto"} (default 0.10). The function passes it to
+\code{\link[=chooseTreeTipK]{chooseTreeTipK()}}.}
 }
 \value{
-\code{trees}, with \code{cluster} added to each clone data object.
+\code{trees}, with the \code{cluster} column added to the clone data of each
+tree.
 }
 \description{
-Applies \code{clusterTreeTips()} to each tree in a dowser \code{getTrees()} result and
-adds the resulting cluster column back to each tree's clone data.
+\code{clusterTreesTips} runs \code{\link[=clusterTreeTips]{clusterTreeTips()}} on each tree of a dowser result.
+It adds the cluster column to the clone data of each tree.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+x <- formatSpatialClones(
+  x,
+  id = "sequence_id",
+  germ = "germline_alignment_d_mask",
+  traits = "spatial_id"
+)
+x <- getSpatialTrees(x)
+trees <- getAnalysis(x, "trees")
+tree <- trees$trees[[1]]
+
+# Use 3 clusters for every tree.
+clustered <- clusterTreesTips(trees, k = 3)
+table(clustered$data[[1]]@data$tree_cluster)
+
+# Choose k for each tree.
+clustered <- clusterTreesTips(trees, k = "auto")
+}
+\seealso{
+\code{\link[=clusterTreeTips]{clusterTreeTips()}}, \code{\link[=chooseTreeTipK]{chooseTreeTipK()}}, \code{\link[=plotSpatialCloneTreePairs]{plotSpatialCloneTreePairs()}}
 }

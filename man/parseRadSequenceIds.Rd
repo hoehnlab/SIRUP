@@ -2,32 +2,44 @@
 % Please edit documentation in R/processing.R
 \name{parseRadSequenceIds}
 \alias{parseRadSequenceIds}
-\title{Parse rrad tags out of AIRR sequence IDs}
+\title{Split the rrad tags out of sequence IDs}
 \usage{
 parseRadSequenceIds(airr_df, id = "sequence_id", strip = TRUE)
 }
 \arguments{
 \item{airr_df}{AIRR-style data frame.}
 
-\item{id}{Column that contains the read identifiers.}
+\item{id}{Name of the column that holds the read IDs (default
+\code{"sequence_id"}).}
 
-\item{strip}{Replace the ID column with the part before the first \code{|} or
-whitespace character.}
+\item{strip}{Replace the ID column with the read ID (default \code{TRUE})? The
+read ID is the part before the first \code{|} or white space.}
 }
 \value{
-The data frame with \code{umi} and \code{barcode} columns added.
+The data frame with the columns \code{umi} and \code{barcode} added.
 }
 \description{
-Parses \code{id|BARCODE=YYY|UMI=XXX}, written by
-\code{rrad::rad_reformat(..., to_fasta = TRUE, header_format = "presto")}.
-Legacy \verb{|barcode:YYY|umi:XXX} tags are also accepted; field names are
-case-insensitive. Existing \code{barcode} and \code{umi} columns are preserved when
-a tag is absent. Conflicting values or repeated tags raise an error.
-Missing UMIs are allowed. With \code{strip = TRUE}, the ID column is replaced
-with the bare read ID. For other header formats, see \code{\link[=extractSpatialIds]{extractSpatialIds()}}.
+\code{parseRadSequenceIds} reads the barcode and the UMI from the sequence IDs of
+an AIRR table. It adds them as columns.
 }
 \details{
-Metadata must be inside the identifier, before any whitespace, to survive
-IgBLAST. SAM-style comments from unformatted RAD output should be converted
-upstream with \code{header_format = "presto"} before annotation.
+The function reads IDs of the form \code{id|BARCODE=YYY|UMI=XXX}.
+
+If an ID has no tag, the function keeps the values in an existing \code{barcode}
+or \code{umi} column. A conflict between values, or a repeated tag, gives an
+error. A missing UMI is allowed. For other header formats, use
+\code{\link[=extractSpatialIds]{extractSpatialIds()}}.
+
+The metadata must be in the ID, before any white space, so that it stays in
+the IgBLAST output. For unformatted rrad output with SAM-style comments,
+reformat the reads first with \code{header_format = "presto"}.
+}
+\examples{
+reads <- data.frame(
+  sequence_id = c("read1|BARCODE=ACGTACGT|UMI=TTGCA", "read2|BARCODE=GGGTTTAA|UMI=CCATG")
+)
+parseRadSequenceIds(reads)
+}
+\seealso{
+\code{\link[=extractSpatialIds]{extractSpatialIds()}}, \code{\link[=processSpatialSample]{processSpatialSample()}}
 }

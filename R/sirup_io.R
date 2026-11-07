@@ -1,27 +1,38 @@
-#' Save and load SIRUP objects
+#' Save and read SIRUP objects
 #'
-#' `saveSIRUP()` writes a validated SIRUP object to a single RDS file, and
-#' `readSIRUP()` reads it back. Unlike a bare [saveRDS()]/[readRDS()] round
-#' trip, `saveSIRUP()` validates the object and records the SIRUP and
-#' 'SeuratObject' package versions used to write it, and `readSIRUP()` upgrades
-#' older objects to the current schema, warns when the writing versions differ
-#' from the versions currently installed, and re-validates before returning.
+#' `saveSIRUP` writes a SIRUP object to one RDS file. `readSIRUP` reads the file
+#' back.
 #'
-#' @param x A SIRUP object created by [createSIRUP()].
-#' @param file Path to the RDS file. A `.sirup.rds` extension is recommended
-#'   but any path is accepted.
-#' @param ... Additional arguments passed to [saveRDS()] (for example
-#'   `compress`).
+#' @details
+#' `saveSIRUP` validates the object. It stores the versions of SIRUP and
+#' SeuratObject that write the file. 
 #'
-#' @return `saveSIRUP()` returns `file` invisibly. `readSIRUP()` returns the
+#' `readSIRUP` does these steps:
+#' \enumerate{
+#'   \item It converts an object that was saved under the old package name,
+#'     SIRAP (class `sirap`), to the current names.
+#'   \item It upgrades an older object to the current schema.
+#'   \item It gives a warning if the versions of SIRUP or SeuratObject that
+#'     wrote the file differ from the installed versions.
+#'   \item It validates the object, then returns it.
+#' }
+#'
+#' @param x A SIRUP object from [createSIRUP()].
+#' @param file Path of the RDS file. A `.sirup.rds` extension is a good choice,
+#'   but any path works.
+#' @param ... Other arguments for [saveRDS()], for example `compress`.
+#'
+#' @return `saveSIRUP` returns `file`, invisibly. `readSIRUP` returns the
 #'   validated SIRUP object.
+#' @seealso [createSIRUP()], [validateSIRUP()]
 #'
 #' @examples
-#' \dontrun{
-#' sirup <- createSIRUP(spatial = seurat_object, receptors = cloned_receptors)
-#' path <- saveSIRUP(sirup, tempfile(fileext = ".sirup.rds"))
-#' sirup2 <- readSIRUP(path)
-#' }
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#'
+#' # Save the object to a temporary file, then read it back.
+#' path <- saveSIRUP(x, tempfile(fileext = ".sirup.rds"))
+#' x2 <- readSIRUP(path)
+#' x2
 #' @name sirup-io
 NULL
 

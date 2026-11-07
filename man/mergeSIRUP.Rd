@@ -13,24 +13,43 @@ mergeSIRUP(
 )
 }
 \arguments{
-\item{...}{SIRUP objects to merge.}
+\item{...}{Two or more SIRUP objects to merge.}
 
-\item{samples}{One sample name per SIRUP object.}
+\item{samples}{Character vector of sample names. Give one unique, non-empty
+name for each SIRUP object.}
 
-\item{sample_field}{Receptor-table sample column to create or validate.}
+\item{sample_field}{Name of the receptor-table column that holds the sample
+name (default \code{"sample_id"}). The function creates the column or checks it.}
 
-\item{keep_analyses}{Whether to keep stored analyses. When \code{TRUE}, each
-analysis is stored as a named list keyed by \code{samples}.}
+\item{keep_analyses}{Keep the stored analyses (default \code{TRUE})? Each analysis
+becomes a named list with one entry for each name in \code{samples}.}
 
-\item{validate}{Whether to validate the merged object before returning.}
+\item{validate}{Validate the merged object (default \code{TRUE})?}
 }
 \value{
 A multi-sample SIRUP object.
 }
 \description{
-Combines existing SIRUP objects into a single multi-sample SIRUP object. Each
-input object contributes one spatial sample named by \code{samples}; receptor rows
-are row-bound after enforcing \code{sample_field}, spatial objects are stored in a
-named list, stored polygons are sample-tagged and retained, and analyses are
-kept in per-sample lists.
+\code{mergeSIRUP} combines several SIRUP objects into one multi-sample SIRUP
+object.
+}
+\details{
+Each input object becomes one spatial sample, named by \code{samples}. The
+function does these steps:
+\itemize{
+\item It sets \code{sample_field} in each receptor table, then binds the rows.
+\item It stores the Seurat objects in a named list.
+\item It adds the sample name to each stored polygon (if any) and keeps
+the polygons.
+\item It stores each analysis as a list with one entry per sample, if
+\code{keep_analyses} is \code{TRUE}.
+}
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+merged <- mergeSIRUP(x, x, samples = c("a", "b"))
+spatialSamples(merged)
+}
+\seealso{
+\code{\link[=createSIRUP]{createSIRUP()}}, \code{\link[=subsetSIRUP]{subsetSIRUP()}}
 }

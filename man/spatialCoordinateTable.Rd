@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_statistics.R
 \name{spatialCoordinateTable}
 \alias{spatialCoordinateTable}
-\title{Extract SIRUP spatial plotting coordinates}
+\title{Get spatial plotting coordinates}
 \usage{
 spatialCoordinateTable(
   object,
@@ -12,20 +12,31 @@ spatialCoordinateTable(
 )
 }
 \arguments{
-\item{object}{A Seurat object.}
+\item{object}{Seurat object.}
 
-\item{images}{Optional image names to include.}
+\item{images}{Names of the images to include.}
 
-\item{image_scale}{Image scale used for Seurat image coordinates.}
+\item{image_scale}{Image scale for the Seurat image coordinates.}
 
-\item{swap_coords}{Whether to swap x/y coordinates before plotting.}
+\item{swap_coords}{Swap the x and y coordinates?}
 }
 \value{
-A data frame with at least \code{cell}, \code{x}, \code{y}, \code{.sirup_y}, and \code{image}.
+A data frame with at least these columns: \code{cell}, \code{x}, \code{y},
+\code{.sirup_y}, and \code{image}.
 }
 \description{
-Returns the spatial coordinate table used internally by SIRUP spatial
-statistics and plotting helpers. Coordinates are pulled from Seurat image
-coordinates when available, otherwise from coordinate columns in Seurat
-metadata. The \code{.sirup_y} column stores SIRUP's plotting y-coordinate.
+\code{spatialCoordinateTable} returns the coordinate table that SIRUP uses for
+spatial statistics and plots.
+}
+\details{
+The function takes the coordinates from the Seurat images. If there are none,
+it takes them from the coordinate columns in the Seurat metadata. The
+\code{.sirup_y} column holds the y-coordinate that SIRUP uses for plots.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+head(spatialCoordinateTable(getSpatial(x), image_scale = "hires", swap_coords = FALSE))
+}
+\seealso{
+\code{\link[=spatialCoordinateExtents]{spatialCoordinateExtents()}}
 }

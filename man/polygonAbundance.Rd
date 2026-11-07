@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{polygonAbundance}
 \alias{polygonAbundance}
-\title{Estimate receptor clonal abundance inside spatial polygons}
+\title{Estimate clonal abundance inside polygons}
 \usage{
 polygonAbundance(
   receptors,
@@ -24,60 +24,79 @@ polygonAbundance(
 )
 }
 \arguments{
-\item{receptors}{A SIRUP object or an AIRR-style receptor data frame.}
+\item{receptors}{SIRUP object, or an AIRR-style receptor table.}
 
-\item{polygons}{Optional polygon table used to define the output polygon
-order. When \code{NULL}, polygon IDs are taken from the SIRUP object or from
-\code{polygon_id} values already present in \code{receptors}.}
+\item{polygons}{Polygon table that sets the order of the output polygons. If
+\code{NULL}, the function takes the polygon IDs from the SIRUP object, or from
+the \code{polygon_id} values in \code{receptors}.}
 
-\item{polygon_id}{Primary polygon assignment column in \code{receptors}.}
+\item{polygon_id}{Name of the column that holds the primary polygon of each
+receptor (default \code{"polygon"}).}
 
-\item{mode}{\code{"by_polygon"} runs the abundance calculation once per polygon;
+\item{mode}{\code{"by_polygon"} runs the calculation once for each polygon.
 \code{"all_polygons"} runs it once on all receptors in any polygon.}
 
-\item{analysis_name}{Name used when storing the abundance result in a SIRUP
-object.}
+\item{analysis_name}{Name for the stored result in a SIRUP object (default
+\code{"polygon_abundance"}).}
 
-\item{clone}{alakazam: name of the data column containing clone identifiers.}
+\item{clone}{Name of the column that holds the clone IDs (default
+\code{"clone_id"}).}
 
-\item{copy}{alakazam: name of the data column containing copy numbers for
-each sequence. If copy=NULL (the default), then clone abundance is
-determined by the number of sequences. If a copy column is specified, then
-clone abundances is determined by the sum of copy numbers within each
-clonal group.}
+\item{copy}{Name of the column that holds the copy number of each sequence
+(default \code{NULL}). If \code{NULL}, the function measures clone abundance as the
+number of sequences. Otherwise, it uses the sum of the copy numbers in each
+clone.}
 
-\item{group}{alakazam: name of the data column containing group identifiers.
-If NULL then no grouping is performed and the group column of the output
-will contain the value NA for each row.}
+\item{group}{Name of the column that holds the group IDs (default \code{NULL}). If
+\code{NULL}, the function does not group, and the \code{group} column of the result
+is \code{NA}.}
 
-\item{min_n}{alakazam: minimum number of observations to sample. A group with
-less observations than the minimum is excluded.}
+\item{min_n}{Smallest number of observations in a group (default 5). The
+function drops a group with fewer observations.}
 
-\item{max_n}{alakazam: maximum number of observations to sample. If NULL then
-no maximum is set.}
+\item{max_n}{Largest number of observations to sample (default \code{NULL}). If
+\code{NULL}, there is no maximum.}
 
-\item{uniform}{alakazam: if TRUE then uniformly resample each group to the
-same number of observations. If FALSE then allow each group to be resampled
-to its original size or, if specified, max_size.}
+\item{uniform}{Resample each group to the same number of observations
+(default \code{TRUE})? If \code{FALSE}, the function resamples each group to its
+original size, or to \code{max_n} if you give it.}
 
-\item{ci}{alakazam: confidence interval to calculate; the value must be
-between 0 and 1.}
+\item{ci}{Confidence interval, between 0 and 1 (default 0.95).}
 
-\item{nboot}{alakazam: number of bootstrap realizations to generate.}
+\item{nboot}{Number of bootstrap samples (default 2000).}
 
-\item{cell_id}{alakazam: name of the data column containing cell identifiers.
-If cell_id=NULL then the function will assume bulk data.}
+\item{cell_id}{Name of the column that holds the cell IDs (default \code{NULL}).
+If \code{NULL}, the function assumes bulk data.}
 
-\item{progress}{alakazam: if TRUE show a progress bar.}
+\item{progress}{Show a progress bar (default \code{FALSE})?}
 
-\item{validate}{Whether to validate an updated SIRUP object.}
+\item{validate}{Validate the updated SIRUP object (default \code{TRUE})?}
 }
 \value{
-An updated SIRUP object for SIRUP input, otherwise abundance result(s).
+For a SIRUP object, the updated SIRUP object. Otherwise, the
+abundance results.
 }
 \description{
-Runs \code{\link[alakazam:estimateAbundance]{alakazam::estimateAbundance()}} on receptor rows in each polygon, or on
-all receptors that fall in any polygon. Polygons with fewer than \code{min_n}
-receptor rows return \code{NULL}. SIRUP input stores the result as an analysis and
-returns the updated object.
+\code{polygonAbundance} runs \code{\link[alakazam:estimateAbundance]{alakazam::estimateAbundance()}} on the receptors of
+each polygon.
+}
+\details{
+With \code{mode = "by_polygon"}, the function runs once for each polygon. With
+\code{mode = "all_polygons"}, it runs once on all receptors in any polygon. A
+polygon with fewer than \code{min_n} receptor rows returns \code{NULL}. For a SIRUP
+object, the function stores the result as an analysis and returns the updated
+object.
+
+The arguments from \code{clone} to \code{progress} go to
+\code{\link[alakazam:estimateAbundance]{alakazam::estimateAbundance()}}.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+
+# Use all polygons together. The example polygons have few receptors.
+x <- polygonAbundance(x, mode = "all_polygons", min_n = 2, nboot = 50)
+listAnalyses(x)
+}
+\seealso{
+\code{\link[=polygonDiversity]{polygonDiversity()}}, \code{\link[=withPolygons]{withPolygons()}}
 }

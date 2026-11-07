@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{formatSpatialPolygons}
 \alias{formatSpatialPolygons}
-\title{Format spatial polygon point sets as polygon vertices}
+\title{Format point sets as polygon vertices}
 \usage{
 formatSpatialPolygons(
   object,
@@ -22,53 +22,76 @@ formatSpatialPolygons(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial coordinates, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{polygon_points}{Data frame containing all points inside each polygon,
-or boundary points when \code{point_type = "boundary"}.}
+\item{polygon_points}{Data frame of points. With \code{point_type = "interior"},
+it holds all points inside each polygon. With \code{point_type = "boundary"}, it
+holds the boundary points.}
 
-\item{spatial_id}{Column in \code{polygon_points} containing Seurat spatial IDs.
-Required when \code{x} and \code{y} are not present.}
+\item{spatial_id}{Name of the column in \code{polygon_points} that holds the
+spatial IDs (default \code{"spatial_id"}). You need it if \code{polygon_points} has
+no \code{x} and \code{y} columns.}
 
-\item{polygon}{Column in \code{polygon_points} identifying each polygon.}
+\item{polygon}{Name of the column in \code{polygon_points} that identifies the
+polygons (default \code{"polygon"}).}
 
-\item{x}{X-coordinate column in \code{polygon_points}, if already present.}
+\item{x}{Name of the x-coordinate column in \code{polygon_points}, if it exists
+(default \code{"x"}).}
 
-\item{y}{Y-coordinate column in \code{polygon_points}, if already present.}
+\item{y}{Name of the y-coordinate column in \code{polygon_points}, if it exists
+(default \code{"y"}).}
 
-\item{image}{Image column in \code{polygon_points}, if already present.}
+\item{image}{Name of the image column in \code{polygon_points}, if it exists
+(default \code{"image"}).}
 
-\item{point_type}{Are \code{polygon_points} all interior points or already
-boundary points?}
+\item{point_type}{Type of the points in \code{polygon_points}: \code{interior} (all
+points inside) or \code{boundary}.}
 
-\item{buffer_radius}{Optional radius used to buffer points when
-converting interior points to a polygon outline. When \code{NULL}, the radius is
-estimated from the nearest-neighbor spacing in the full spatial coordinate
-grid.}
+\item{buffer_radius}{Radius for the buffer around the points. If \code{NULL}, the
+function estimates it from the spacing between nearest neighbors in the
+full coordinate grid.}
 
-\item{order}{Optional column used to order points within each polygon
-before formatting. This is mainly useful with \code{point_type = "boundary"}.}
+\item{order}{Name of a column that orders the points in each polygon. It is
+most useful with \code{point_type = "boundary"}.}
 
-\item{images}{Optional Seurat image names to use for spatial coordinates.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{image_scale}{Image scale passed to
-\code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate axes.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object.}
 
-\item{close_polygons}{Close each polygon by repeating the first vertex when
-needed.}
+\item{close_polygons}{Close each polygon by repeating the first vertex, if
+needed (default \code{TRUE})?}
 }
 \value{
-Data frame with \code{spatial_id}, \code{x}, \code{y}, \code{polygon}, and \code{image} columns.
-Polygons with fewer than three points are excluded with a warning.
+A data frame with the columns \code{spatial_id}, \code{x}, \code{y}, \code{polygon}, and
+\code{image}. The function drops polygons with fewer than three points and gives
+a warning.
 }
 \description{
-Converts a data frame containing all points inside one or more polygons into
-the same vertex-table structure returned by \code{selectSpatialPolygons()}. By
-default, interior point sets are converted to polygon outlines by buffering
-and unioning spots with \code{sf}, then mapping the exterior ring back to the
-nearest selected spatial_id coordinates. This preserves a valid boundary order
-for concave polygons while returning Visium spatial_id coordinates as vertices.
-If the input already contains boundary points, use \code{point_type = "boundary"}.
+\code{formatSpatialPolygons} converts a table of points into the vertex table that
+\code{\link[=selectSpatialPolygons]{selectSpatialPolygons()}} returns.
+}
+\details{
+By default, \code{polygon_points} holds all points inside each polygon. The
+function merges the points with \code{sf}. Then it maps the outer ring
+back to the nearest selected spatial ID coordinates. The boundary keeps a
+valid order for concave polygons, and the vertices are spatial ID
+coordinates. If the input already holds boundary points, use
+\code{point_type = "boundary"}.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+
+# Four spots that lie inside one polygon.
+points <- data.frame(
+  spatial_id = c("spot04", "spot05", "spot09", "spot10"),
+  polygon = "block"
+)
+formatSpatialPolygons(x, points, image_scale = "hires", swap_coords = FALSE)
+}
+\seealso{
+\code{\link[=selectSpatialPolygons]{selectSpatialPolygons()}}, \code{\link[=addPolygons]{addPolygons()}}
 }

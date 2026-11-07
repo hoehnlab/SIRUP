@@ -23,41 +23,63 @@ updateAnalysis(x, name, fun, ..., sample = NULL, validate = TRUE)
 \arguments{
 \item{x}{A SIRUP object.}
 
-\item{fun}{A function, or a character string naming a function. The selected
-SIRUP component is supplied as its first argument.}
+\item{fun}{Function, or the name of a function. The function receives the
+selected part of the SIRUP object as its first argument.}
 
-\item{...}{Additional arguments passed to \code{fun}.}
+\item{...}{Other arguments for \code{fun}.}
 
-\item{sample}{Optional spatial sample to update for multi-spatial SIRUP
-objects.}
+\item{sample}{Name of the spatial sample to update. Use it only for
+multi-sample objects.}
 
-\item{receptor_fields}{Optional named list updating one or more receptor
-field mappings: \code{spatial_id}, \code{image}, \code{sample}, \code{clone}, \code{locus}, or \code{count}.
+\item{receptor_fields}{Named list of receptor field mappings to change. The
+names can be \code{spatial_id}, \code{image}, \code{sample}, \code{clone}, \code{locus}, or \code{count}.
 A \code{NULL} value clears an optional mapping.}
 
-\item{validate}{Whether to validate the updated SIRUP object.}
+\item{validate}{Validate the updated SIRUP object?}
 
-\item{name}{A single non-empty stored analysis name.}
+\item{name}{Name of the stored analysis. Give one non-empty character string.}
 }
 \value{
-An updated SIRUP object.
+The updated SIRUP object.
 }
 \description{
-These functions make it possible to use package or user functions to replace
-one component of a SIRUP object.
+\code{updateReceptors}, \code{updateSpatial}, and \code{updateAnalysis} apply a function to
+one part of a SIRUP object. They return the updated SIRUP object.
 }
 \details{
-\code{updateReceptors()} requires a data-frame result and stores it as a tibble.
-Existing receptor field mappings are retained. If an object was created
-before clone calling, a newly returned conventional \code{clone_id} column is
-automatically recorded as the clone field. Use \code{receptor_fields} to set or
-clear mappings explicitly after a transformation.
+\code{updateReceptors} needs a function that returns a data frame. The function
+stores the result as a tibble and keeps the existing field mappings. If the
+object has no clone field and the result has a \code{clone_id} column, the function
+records \code{clone_id} as the clone field. Use \code{receptor_fields} to set or clear a
+mapping yourself. If you give \code{sample}, the function applies \code{fun} to the rows
+of that sample only. It then puts the result back in the full table.
 
-\code{updateSpatial()} requires the function to return a Seurat object. For
-multi-spatial objects, \code{sample = NULL} applies \code{fun} to every Seurat object
-in the spatial list; a specific \code{sample} updates only that spatial object.
-\code{updateReceptors()} similarly updates either the full receptor table or only
-the rows for one sample, replacing that sample's rows in the combined table.
-\code{updateAnalysis()} operates on one result selected by \code{name}; use
-\code{setAnalysis()} to store a new result.
+\code{updateSpatial} needs a function that returns a Seurat object. In a
+multi-sample object, it applies \code{fun} to every Seurat object. If you give
+\code{sample}, it updates only that object.
+
+\code{updateAnalysis} applies \code{fun} to the stored result called \code{name}. To store a
+new result, use \code{\link[=setAnalysis]{setAnalysis()}}.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+
+# Remove the sequences in clone 3.
+x2 <- updateReceptors(x, dplyr::filter, clone_id != "3")
+nrow(getReceptors(x2))
+
+# Add a Seurat metadata column.
+x3 <- updateSpatial(x, function(spatial) {
+  spatial$gene_rich <- spatial$nFeature_Spatial >= 8
+  spatial
+})
+table(getSpatial(x3)$gene_rich)
+
+# Change a stored result.
+x4 <- setAnalysis(x, "n_clones", 5)
+x4 <- updateAnalysis(x4, "n_clones", function(value) value + 1)
+getAnalysis(x4, "n_clones")
+}
+\seealso{
+\code{\link[=getReceptors]{getReceptors()}}, \code{\link[=getSpatial]{getSpatial()}}, \code{\link[=setAnalysis]{setAnalysis()}}
 }

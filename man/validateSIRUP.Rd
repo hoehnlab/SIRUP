@@ -9,11 +9,32 @@ validateSIRUP(x, verbose = FALSE)
 \arguments{
 \item{x}{Object to validate.}
 
-\item{verbose}{Whether to print a compact validation summary.}
+\item{verbose}{Print a short summary of the result (default \code{FALSE})?}
 }
 \value{
-\code{x}, invisibly, when valid. Invalid objects raise an error.
+\code{x}, invisibly, if the object is valid. If not, the function gives an
+error.
 }
 \description{
-Validate a SIRUP object
+\code{validateSIRUP} checks that the parts of a SIRUP object agree with each other.
+}
+\details{
+The function gives an error if one of these checks fails:
+\itemize{
+\item The object does not have class \code{sirup}.
+\item No receptor spatial ID matches a cell or spot name in the Seurat
+object.
+\item A column named in \code{metadata$receptor_fields} does not exist in the
+receptor table.
+\item The \code{sample} field is set, but the column is missing from the receptor
+table or from the Seurat metadata.
+}
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+validateSIRUP(x)
+validateSIRUP(x, verbose = TRUE)
+}
+\seealso{
+\code{\link[=createSIRUP]{createSIRUP()}}, \code{\link[=isSIRUP]{isSIRUP()}}
 }

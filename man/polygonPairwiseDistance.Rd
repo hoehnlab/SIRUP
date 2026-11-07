@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{polygonPairwiseDistance}
 \alias{polygonPairwiseDistance}
-\title{Calculate pairwise distances between polygon centroids}
+\title{Calculate distances between polygon centroids}
 \usage{
 polygonPairwiseDistance(
   object,
@@ -16,22 +16,33 @@ polygonPairwiseDistance(
 \arguments{
 \item{object}{SIRUP object with stored polygons.}
 
-\item{polygons}{Optional polygon vertex table.}
+\item{polygons}{Table of polygon vertices.}
 
-\item{normalize_by_diagonal}{Divide distances by each sample's spatial
-coordinate diagonal.}
+\item{normalize_by_diagonal}{Divide each distance by the diagonal of the
+coordinate range of its sample (default \code{TRUE})?}
 
-\item{images}{Optional image or spatial sample names used for coordinate
-extents.}
+\item{images}{Names of the images or spatial samples to use for the
+coordinate range.}
 
-\item{image_scale}{Image scale used for Seurat image coordinates.}
+\item{image_scale}{Image scale for the Seurat image coordinates.}
 
-\item{swap_coords}{Whether to swap x/y coordinates before calculating
-coordinate extents.}
+\item{swap_coords}{Swap the x and y coordinates before the function
+calculates the coordinate range?}
 }
 \value{
-Tibble with one row per within-sample polygon pair.
+A tibble with one row for each pair of polygons in a sample. The
+columns are \code{sample}, \code{polygon_id_1}, \code{polygon_id_2}, \code{polygon_label_1},
+\code{polygon_label_2}, \code{distance}, \code{normalized_distance}, and
+\code{section_diagonal}.
 }
 \description{
-Calculate pairwise distances between polygon centroids
+\code{polygonPairwiseDistance} calculates the distance between the centroids of
+each pair of polygons in a sample.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+polygonPairwiseDistance(x)
+}
+\seealso{
+\code{\link[=polygonCentroids]{polygonCentroids()}}
 }

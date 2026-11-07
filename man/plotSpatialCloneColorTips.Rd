@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_ggplot_visualization.R
 \name{plotSpatialCloneColorTips}
 \alias{plotSpatialCloneColorTips}
-\title{Plot a clone with tip colors over a spatial tissue image}
+\title{Plot the tip colors of one clone on a tissue image}
 \usage{
 plotSpatialCloneColorTips(
   colored_clones,
@@ -17,30 +17,46 @@ plotSpatialCloneColorTips(
 )
 }
 \arguments{
-\item{colored_clones}{Output from \code{assignTipColors()}, or a SIRUP object
-whose receptor table contains tip colors.}
+\item{colored_clones}{Result of \code{\link[=assignTipColors]{assignTipColors()}}, or a SIRUP object whose
+receptor table has the tip colors.}
 
-\item{clone_val}{Clone ID to plot.}
+\item{clone_val}{ID of the clone to plot.}
 
-\item{tissue_positions}{Seurat object with spatial images, or a SIRUP
-object. May be omitted when \code{colored_clones} is a SIRUP object.}
+\item{tissue_positions}{Seurat object or SIRUP object. Omit it if
+\code{colored_clones} is a SIRUP object.}
 
-\item{clone}{Clone ID column.}
+\item{clone}{Name of the column that holds the clone IDs (default
+\code{"clone_id"}). If \code{colored_clones} is a SIRUP object and you omit this
+argument, the function uses the stored clone field.}
 
-\item{spatial_id}{Spatial ID column in \code{colored_clones}.}
+\item{spatial_id}{Name of the column in \code{colored_clones} that holds the
+spatial IDs (default \code{"spatial_id_8um"}). If \code{colored_clones} is a SIRUP
+object and you omit this argument, the function uses the stored spatial ID
+field.}
 
-\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}. If
+\code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate axes.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object.}
 
-\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
+\item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
+objects. If \code{NULL}, the function plots all samples.}
 
-\item{...}{Additional arguments passed to \code{plotSpatialColorTips()}.}
+\item{...}{Other arguments for \code{\link[=plotSpatialColorTips]{plotSpatialColorTips()}}.}
 }
 \value{
 A ggplot object.
 }
 \description{
-Plot a clone with tip colors over a spatial tissue image
+\code{plotSpatialCloneColorTips} plots the spots of one clone. Each spot gets the
+color of its tip. The function calls \code{\link[=plotSpatialColorTips]{plotSpatialColorTips()}}.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+x <- updateReceptors(x, assignTipColors, shared_color = "spatial_id")
+plotSpatialCloneColorTips(x, clone_val = "1")
+}
+\seealso{
+\code{\link[=plotSpatialColorTips]{plotSpatialColorTips()}}, \code{\link[=assignTipColors]{assignTipColors()}}, \code{\link[=plotSpatialCloneTreePairs]{plotSpatialCloneTreePairs()}}
 }

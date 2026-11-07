@@ -20,30 +20,51 @@ addPolygons(
 \arguments{
 \item{x}{A SIRUP object.}
 
-\item{sample}{Optional sample name(s) used to tag polygons loaded from
-\code{polygons_path} when the path vector is not named.}
+\item{sample}{Sample name or names to add to the polygons from
+\code{polygons_path}. Use it only if the paths have no names.}
 
-\item{polygons}{Optional polygon table.}
+\item{polygons}{Polygon table.}
 
-\item{polygons_path}{Optional path to a flat polygon vertex CSV, or a named
-vector/list of CSV paths keyed by spatial sample for multi-spatial objects.}
+\item{polygons_path}{Path to a flat CSV file of polygon vertices. For a
+multi-sample object, give a named vector or list of paths, with one path
+for each sample.}
 
-\item{include_boundary}{Whether spots exactly on polygon edges should be
-annotated as polygon members.}
+\item{include_boundary}{Count spots on a polygon edge as members of the
+polygon?}
 
-\item{validate}{Whether to validate the updated object.}
+\item{validate}{Validate the updated object?}
 }
 \value{
-\code{getPolygons()} returns a polygon tibble. \code{addPolygons()} returns an
+\code{getPolygons} returns a polygon tibble. \code{addPolygons} returns the
 updated SIRUP object.
 }
 \description{
-\code{addPolygons()} stores one canonical polygon table per SIRUP object. The
-input may be a nested \code{polygon_id}/\code{vertices} tibble or a flat vertex table
-such as the CSV returned by \code{selectSpatialPolygons()}.
-Stored polygons automatically annotate both the Seurat metadata and AIRR
-receptor table with a primary \code{polygon_id} column. When a barcode belongs to
-overlapping or nested polygons, the primary assignment uses the smallest
-matching polygon by area. Logical \verb{polygon_<ID>} columns retain membership in
-each individual polygon.
+\code{addPolygons} stores a polygon table in a SIRUP object. It replaces any stored
+polygons. \code{getPolygons} returns the stored table.
+}
+\details{
+The input to \code{addPolygons} can be a nested tibble with \code{polygon_id} and
+\code{vertices} columns. It can also be a flat vertex table, such as the CSV file
+from \code{\link[=selectSpatialPolygons]{selectSpatialPolygons()}}.
+
+The function adds a \code{polygon_id} column to both the Seurat metadata and the
+receptor table. If a barcode lies in overlapping or nested polygons, it gets
+the ID of the smallest polygon by area. The function also adds one logical
+\verb{polygon_<ID>} column for each polygon. These columns show membership in
+every polygon as booleans.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+getPolygons(x)
+
+# Replace the stored polygons with one polygon in the middle of the data.
+center <- tibble::tibble(
+  polygon_id = "center",
+  vertices = list(data.frame(x = c(2.5, 3.5, 3.5, 2.5), y = c(2.5, 2.5, 3.5, 3.5)))
+)
+x2 <- addPolygons(x, center)
+getPolygons(x2)$polygon_id
+}
+\seealso{
+\code{\link[=selectSpatialPolygons]{selectSpatialPolygons()}}, \code{\link[=createSIRUP]{createSIRUP()}}
 }

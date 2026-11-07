@@ -1,52 +1,73 @@
-#' Calculate receptor clone dominance inside spatial polygons
+#' Calculate clonal dominance inside polygons
 #'
-#' Finds Seurat spatial IDs whose coordinates fall inside polygons,
-#' subsets receptor rows to those spatial IDs, and returns the fraction of regional
-#' receptors represented by each clone. Points on the polygon boundary are
-#' included. Open polygons are closed automatically by repeating the first
-#' vertex at the end.
+#' `spatialCloneDominance` calculates the share of each clone among the
+#' receptors inside spatial polygons.
 #'
-#' @param receptors AIRR-style receptor data frame containing clone assignments
-#'   and a spatial ID column. This may instead be a SIRUP object when
-#'   `object` is omitted.
-#' @param object Seurat object with spatial coordinates or metadata coordinate
-#'   columns, or a SIRUP object. When this is a SIRUP object, `receptors` may
-#'   be omitted.
-#' @param polygon Data frame of polygon vertices in order. Must contain `x` and
-#'   `y` columns by default. If a `polygon` column is present, each polygon is
-#'   summarized independently unless `polygon_val` selects one or more polygons.
-#' @param spatial_id Column in `receptors` matching Seurat spot/cell spatial IDs.
-#'   If `NULL`, a spatial ID-like column is guessed.
-#' @param clone Column in `receptors` containing clone IDs.
-#' @param locus_val Optional locus value(s) used to filter `receptors`, for example
-#'   `"IGH"`. Use `NULL` to keep all loci.
-#' @param locus Column in `receptors` containing locus calls.
-#' @param count Optional numeric count column. When `NULL`, each receptor
-#'   row counts once.
-#' @param v_call Column in `receptors` containing V-gene calls. When
-#'   present, distinct allele-level V genes, V genes without alleles, and V-gene
-#'   superfamilies are returned for each clone.
-#' @param exclude_singletons Exclude clones represented by only one receptor row
-#'   after locus filtering.
-#' @param images Optional Seurat image names to use for spatial coordinates.
-#' @param image_scale Image scale passed to
-#'   `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param polygon_val Optional polygon ID value(s) to select when `polygon_id`
-#'   exists. When `NULL`, all polygons in `polygon_id` are analyzed.
-#' @param x Coordinate column in `polygon`.
-#' @param y Coordinate column in `polygon`.
-#' @param polygon_id Optional polygon grouping column in `polygon`.
-#' @param include_boundary Include Seurat spots on polygon edges when polygon
-#'   membership must be calculated from `polygon`. If a SIRUP object with stored
-#'   polygon annotations is supplied and `polygon = NULL`, stored annotations
-#'   are used and this argument is ignored.
-#' @return A spatial clone dominance object containing the dominance table,
-#'   regional spatial IDs, regional coordinate rows, regional receptor rows, polygon
-#'   vertices prepared for plotting, and analysis metadata containing the
-#'   receptor field mappings used for the analysis.
+#' @details
+#' The function finds the spatial IDs whose coordinates lie inside each polygon.
+#' It keeps the receptor rows with those spatial IDs. Then it calculates the
+#' fraction of these receptors that belong to each clone.
+#'
+#' If you give a SIRUP object and omit `clone`, `locus`, or `count`, the
+#' function uses the field names stored in the object. If you omit `polygon`, it
+#' uses the stored polygons.
+#'
+#' @param receptors AIRR-style receptor table with clone IDs and a spatial ID
+#'   column. You can give a SIRUP object here if you omit `object`.
+#' @param object Seurat object or SIRUP object. If it is a SIRUP object, you can
+#'   omit `receptors`.
+#' @param polygon Data frame of polygon vertices in order. It needs the columns
+#'   set by `x` and `y`. If the column set by `polygon_id` exists, the function
+#'   treats each polygon on its own. If `object` is a SIRUP object and `polygon`
+#'   is `NULL`, the function uses the stored polygons.
+#' @param spatial_id Name of the `receptors` column that holds the spatial IDs.
+#'   If `NULL`, the function uses the stored field of a SIRUP object, or looks
+#'   for a standard spatial ID column.
+#' @param clone Name of the `receptors` column that holds the clone IDs (default
+#'   `"clone_id"`).
+#' @param locus_val Locus values to keep, for example `"IGH"`. If `NULL`, the
+#'   function keeps all loci.
+#' @param locus Name of the `receptors` column that holds the locus (default
+#'   `"locus"`).
+#' @param count Name of the numeric `receptors` column that holds the counts. If
+#'   `NULL`, each receptor row counts as one.
+#' @param v_call Name of the `receptors` column that holds the V-gene calls
+#'   (default `"v_call"`). If the column exists, the function also returns the
+#'   V genes of each clone at three levels: with allele, without allele, and
+#'   V-gene superfamily.
+#' @param exclude_singletons Exclude clones that have only one receptor row
+#'   after the locus filter (default `FALSE`)?
+#' @param images Names of the Seurat images to use.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param polygon_val IDs of the polygons to use. If `NULL`, the function uses
+#'   all polygons.
+#' @param x Name of the x-coordinate column in `polygon` (default `"x"`).
+#' @param y Name of the y-coordinate column in `polygon` (default `"y"`).
+#' @param polygon_id Name of the column in `polygon` that groups the vertices
+#'   by polygon (default `"polygon"`).
+#' @param include_boundary Count spots on a polygon edge as inside the polygon
+#'   (default `TRUE`)? The function ignores this argument if
+#'   `object` is a SIRUP object with stored polygon annotations and `polygon` is
+#'   `NULL`.
+#'
+#' @return An object of class `sirup_spatial_clone_dominance`. It is a list with
+#'   these items: `dominance` (the dominance table), `region_spatial_ids`,
+#'   `region_coordinates`, `region_receptors`, `polygons` (the vertices prepared
+#'   for plotting), and `metadata` (the receptor field names that the function
+#'   used).
+#' @seealso [plotSpatialRegionReceptors()], [plotSpatialPolygonPies()],
+#'   [plotSpatialCloneDensity3D()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#'
+#' # Use the polygons stored in the SIRUP object.
+#' dominance <- spatialCloneDominance(x)
+#' dominance$dominance[, c("polygon_id", "clone_id", "n_receptors", "proportion")]
 #' @export
 spatialCloneDominance <- function(receptors = NULL,
                                   object = NULL,
@@ -462,57 +483,73 @@ spatialCloneDominance <- function(receptors = NULL,
   )
 }
 
-#' Select spatial polygon vertices interactively
+#' Select polygon vertices in an interactive app
 #'
-#' Opens a Shiny app for clicking polygon vertices on a Seurat spatial
-#' coordinate plot. Each click snaps to the nearest spatial ID. Use
-#' "Close polygon" or "New polygon" before finishing to repeat the first vertex
-#' at the end of each polygon.
-#' The returned vertices may describe overlapping or nested polygons. Polygon
-#' membership is resolved when these vertices are passed to
-#' [assignSpatialPolygons()], [assignReceptorPolygons()], [createSIRUP()], or
-#' [addPolygons()]: the primary `polygon_id` uses the smallest matching polygon
-#' by area, while logical `polygon_<ID>` columns retain membership in each
-#' individual polygon.
+#' `selectSpatialPolygons` opens a Shiny app. You click polygon vertices on a
+#' plot of the spatial coordinates.
 #'
-#' @param object Seurat object with spatial coordinates, or a SIRUP object.
-#' @param feature Optional feature shown as a color scale under the clicked
-#'   vertices. The app also lets you change this interactively. Looked up in
-#'   the assay first; if it is not there, the object metadata is checked, so
-#'   module scores (`AddModuleScore()`, `UCell`, or any numeric per-cell
-#'   column) can be displayed without adding them to an assay.
-#' @param assay Optional assay to set before fetching feature values.
-#' @param layer Expression layer/slot used for `feature`.
-#' @param images Optional Seurat image names to show.
-#' @param sample Optional spatial sample name(s) to show for multi-spatial
+#' @details
+#' Each click snaps to the nearest spatial ID. Click "Close polygon" or "New
+#' polygon" before you finish. This repeats the first vertex at the end of each
+#' polygon.
+#'
+#' The vertices can describe overlapping or nested polygons. The function that
+#' receives the vertices decides the membership: [assignSpatialPolygons()],
+#' [assignReceptorPolygons()], [createSIRUP()], or [addPolygons()]. The primary
+#' `polygon_id` gets the ID of the smallest matching polygon by area. The
+#' logical `polygon_<ID>` columns show membership in each polygon.
+#'
+#' @param object Seurat object or SIRUP object.
+#' @param feature Feature to show as a color scale under the vertices. You can
+#'   change it in the app. The function looks in the assay first. If the feature
+#'   is not there, it looks in the object metadata. This lets you show module
+#'   scores (from `AddModuleScore()`, `UCell`, or any numeric column) without
+#'   adding them to an assay.
+#' @param assay Assay to set before the function gets the feature values
+#'   (default `"Spatial"`).
+#' @param layer Expression layer to use for `feature` (default `"counts"`).
+#' @param images Names of the Seurat images to use.
+#' @param sample Names of the spatial samples to show. Use it for multi-sample
 #'   SIRUP objects.
-#' @param image_scale Image scale passed to
-#'   `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param save_path Optional CSV path for saved vertices.
-#' @param plot_image Show the Seurat tissue image under the spatial points.
-#'   Defaults to `FALSE`.
-#' @param downsample_n Optional number of spatial points to show in the Shiny
-#'   plot. Use `NULL` to show all points. Clicks still snap to the nearest
-#'   spatial_id in the full coordinate table.
-#' @param downsample_seed Random seed used when `downsample_n` is not `NULL`.
-#' @param point_size Size of spatial points in the plot.
-#' @param point_alpha Initial opacity for spatial points.
-#' @param show_zeros Show points whose `feature` value is zero or `NA`.
-#'   Defaults to `TRUE`. Set to `FALSE`, or untick "Show zero points" in the
-#'   app, to plot only feature-positive points -- on sparse Visium HD bins the
-#'   zeros can bury the signal. This affects the DISPLAY only; clicks still
-#'   snap against the full coordinate table, so a hidden point can still be
-#'   chosen as a vertex.
-#' @param launch_browser Passed to `shiny::runApp()`.
-#' @param host Optional host passed to `shiny::runApp()`. This is useful when
-#'   running from an interactive HPC session through an SSH tunnel.
-#' @param port Optional port passed to `shiny::runApp()`. This is useful when
-#'   running from an interactive HPC session through an SSH tunnel.
-#' @param quiet Suppress warnings while the app is running.
-#' @return Data frame with `spatial_id`, `x`, `y`, `num`, `polygon`, and `image` columns.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param save_path Path of a CSV file to save the vertices to.
+#' @param plot_image Show the Seurat tissue image under the points (default
+#'   `FALSE`)?
+#' @param downsample_n Number of points to show in the app. If `NULL`, the app
+#'   shows all points. A click still snaps to the nearest spatial ID in the full
+#'   coordinate table.
+#' @param downsample_seed Random seed for the downsampling (default 1).
+#' @param point_size Size of the points (default 0.8).
+#' @param point_alpha Starting opacity of the points (default 0.9).
+#' @param show_zeros Show the points where `feature` is zero or `NA` (default
+#'   `TRUE`)? On sparse Visium HD data, the zeros can hide the signal. Use
+#'   `FALSE`, or clear "Show zero points" in the app, to show only the positive
+#'   points. This changes the display only. A click can still select a hidden
+#'   point as a vertex.
+#' @param launch_browser Passed to `shiny::runApp()` (default `TRUE`).
+#' @param host Host for `shiny::runApp()`. Set it when you run the function in
+#'   an interactive HPC session through an SSH tunnel.
+#' @param port Port for `shiny::runApp()`. Set it when you run the function in
+#'   an interactive HPC session through an SSH tunnel.
+#' @param quiet Hide warnings while the app runs (default `TRUE`)?
+#'
+#' @return A data frame with the columns `spatial_id`, `x`, `y`, `num`,
+#'   `polygon`, and `image`.
+#' @seealso [formatSpatialPolygons()], [addPolygons()], [plotSpatialPolygons()]
+#'
+#' @examplesIf interactive()
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#'
+#' # Click the vertices in the app. Use "Close polygon" when you finish.
+#' polygons <- selectSpatialPolygons(
+#'   getSpatial(x),
+#'   image_scale = "hires",
+#'   swap_coords = FALSE
+#' )
 #' @export
 selectSpatialPolygons <- function(object,
                                   feature = NULL,
@@ -549,8 +586,6 @@ selectSpatialPolygons <- function(object,
     }
     feature_object <- object[[parsed_image$sample]]
   }
-  .require_namespace("SeuratObject")
-  .require_namespace("shiny")
   if (!"package:shiny" %in% search()) {
     suppressPackageStartupMessages(base::attachNamespace("shiny"))
   }
@@ -878,41 +913,63 @@ selectSpatialPolygons <- function(object,
   )
 }
 
-#' Format spatial polygon point sets as polygon vertices
+#' Format point sets as polygon vertices
 #'
-#' Converts a data frame containing all points inside one or more polygons into
-#' the same vertex-table structure returned by `selectSpatialPolygons()`. By
-#' default, interior point sets are converted to polygon outlines by buffering
-#' and unioning spots with `sf`, then mapping the exterior ring back to the
-#' nearest selected spatial_id coordinates. This preserves a valid boundary order
-#' for concave polygons while returning Visium spatial_id coordinates as vertices.
-#' If the input already contains boundary points, use `point_type = "boundary"`.
+#' `formatSpatialPolygons` converts a table of points into the vertex table that
+#' [selectSpatialPolygons()] returns.
 #'
-#' @param object Seurat object with spatial coordinates, or a SIRUP object.
-#' @param polygon_points Data frame containing all points inside each polygon,
-#'   or boundary points when `point_type = "boundary"`.
-#' @param spatial_id Column in `polygon_points` containing Seurat spatial IDs.
-#'   Required when `x` and `y` are not present.
-#' @param polygon Column in `polygon_points` identifying each polygon.
-#' @param x X-coordinate column in `polygon_points`, if already present.
-#' @param y Y-coordinate column in `polygon_points`, if already present.
-#' @param image Image column in `polygon_points`, if already present.
-#' @param point_type Are `polygon_points` all interior points or already
-#'   boundary points?
-#' @param buffer_radius Optional radius used to buffer points when
-#'   converting interior points to a polygon outline. When `NULL`, the radius is
-#'   estimated from the nearest-neighbor spacing in the full spatial coordinate
-#'   grid.
-#' @param order Optional column used to order points within each polygon
-#'   before formatting. This is mainly useful with `point_type = "boundary"`.
-#' @param images Optional Seurat image names to use for spatial coordinates.
-#' @param image_scale Image scale passed to
-#'   `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate axes.
-#' @param close_polygons Close each polygon by repeating the first vertex when
-#'   needed.
-#' @return Data frame with `spatial_id`, `x`, `y`, `polygon`, and `image` columns.
-#'   Polygons with fewer than three points are excluded with a warning.
+#' @details
+#' By default, `polygon_points` holds all points inside each polygon. The
+#' function merges the points with `sf`. Then it maps the outer ring
+#' back to the nearest selected spatial ID coordinates. The boundary keeps a
+#' valid order for concave polygons, and the vertices are spatial ID
+#' coordinates. If the input already holds boundary points, use
+#' `point_type = "boundary"`.
+#'
+#' @param object Seurat object or SIRUP object.
+#' @param polygon_points Data frame of points. With `point_type = "interior"`,
+#'   it holds all points inside each polygon. With `point_type = "boundary"`, it
+#'   holds the boundary points.
+#' @param spatial_id Name of the column in `polygon_points` that holds the
+#'   spatial IDs (default `"spatial_id"`). You need it if `polygon_points` has
+#'   no `x` and `y` columns.
+#' @param polygon Name of the column in `polygon_points` that identifies the
+#'   polygons (default `"polygon"`).
+#' @param x Name of the x-coordinate column in `polygon_points`, if it exists
+#'   (default `"x"`).
+#' @param y Name of the y-coordinate column in `polygon_points`, if it exists
+#'   (default `"y"`).
+#' @param image Name of the image column in `polygon_points`, if it exists
+#'   (default `"image"`).
+#' @param point_type Type of the points in `polygon_points`: `interior` (all
+#'   points inside) or `boundary`.
+#' @param buffer_radius Radius for the buffer around the points. If `NULL`, the
+#'   function estimates it from the spacing between nearest neighbors in the
+#'   full coordinate grid.
+#' @param order Name of a column that orders the points in each polygon. It is
+#'   most useful with `point_type = "boundary"`.
+#' @param images Names of the Seurat images to use.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object.
+#' @param close_polygons Close each polygon by repeating the first vertex, if
+#'   needed (default `TRUE`)?
+#'
+#' @return A data frame with the columns `spatial_id`, `x`, `y`, `polygon`, and
+#'   `image`. The function drops polygons with fewer than three points and gives
+#'   a warning.
+#' @seealso [selectSpatialPolygons()], [addPolygons()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#'
+#' # Four spots that lie inside one polygon.
+#' points <- data.frame(
+#'   spatial_id = c("spot04", "spot05", "spot09", "spot10"),
+#'   polygon = "block"
+#' )
+#' formatSpatialPolygons(x, points, image_scale = "hires", swap_coords = FALSE)
 #' @export
 formatSpatialPolygons <- function(object,
                                   polygon_points,
@@ -932,7 +989,6 @@ formatSpatialPolygons <- function(object,
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
-  .require_namespace("SeuratObject")
   point_type <- match.arg(point_type)
   polygon_points <- .as_data_frame(polygon_points)
   .check_required_cols(polygon_points, polygon, "polygon_points")
@@ -1029,7 +1085,6 @@ formatSpatialPolygons <- function(object,
   }
 
   if (point_type == "interior") {
-    .require_namespace("sf")
     if (is.null(buffer_radius)) {
       buffer_radius <- .sirup_default_polygon_buffer_radius(coords)
     }
@@ -1048,24 +1103,46 @@ formatSpatialPolygons <- function(object,
 
 #' Expand polygons outward from their centroids
 #'
-#' Grows each polygon by moving its vertices away from the polygon centroid.
-#' Each vertex moves along the line from the centroid through the vertex, by a
-#' fixed distance `delta`. The polygon keeps its shape and vertex count. The
-#' polygons are expected to be convex.
+#' `expandPolygons` makes each polygon larger by moving its vertices away from
+#' the polygon centroid.
 #'
-#' @param polygons Polygons to expand. Either a flat data frame of vertices
-#'   (with `x`, `y`, and an optional polygon ID column), or a SIRUP object
-#'   whose stored polygons are expanded.
-#' @param delta Distance each vertex moves outward, in coordinate units. This
-#'   is required. A negative value moves the vertices inward and shrinks the
-#'   polygon.
-#' @param x,y Vertex coordinate columns when `polygons` is a data frame.
-#' @param polygon_id Column that separates polygons when `polygons` is a data
-#'   frame. When the named column is absent, a `polygon` or `polygon_id` column
-#'   is used if present; otherwise all rows form one polygon.
-#' @return The expanded polygons in the same form as the input: a data frame
-#'   for a data-frame input, or an updated SIRUP object for a SIRUP object
-#'   input.
+#' @details
+#' Each vertex moves along the line from the centroid through the vertex. It
+#' moves by the distance `delta`. The polygon keeps its shape and its number of
+#' vertices. The polygons must be convex.
+#'
+#' @param polygons Polygons to expand. Give a flat data frame of vertices (with
+#'   `x`, `y`, and, if you want, a polygon ID column). You can also pass a SIRUP
+#'   object. The function then expands the stored polygons.
+#' @param delta Distance that each vertex moves outward, in coordinate units.
+#'   Required. A negative value moves the vertices inward, so the
+#'   polygon becomes smaller.
+#' @param x Name of the x-coordinate column, if `polygons` is a data frame
+#'   (default `"x"`).
+#' @param y Name of the y-coordinate column, if `polygons` is a data frame
+#'   (default `"y"`).
+#' @param polygon_id Name of the column that separates the polygons, if
+#'   `polygons` is a data frame (default `"polygon"`). If the column does not
+#'   exist, the function uses a `polygon` or `polygon_id` column. If neither
+#'   exists, all rows form one polygon.
+#'
+#' @return The expanded polygons in the form of the input: a data frame for a
+#'   data frame, or the updated SIRUP object for a SIRUP object.
+#' @seealso [addPolygons()], [plotSpatialPolygons()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#'
+#' # Make the stored polygons larger by 0.25 coordinate units.
+#' x2 <- expandPolygons(x, delta = 0.25)
+#'
+#' # Use a data frame of vertices.
+#' flat <- data.frame(
+#'   polygon = "block",
+#'   x = c(3.5, 5.5, 5.5, 3.5),
+#'   y = c(0.5, 0.5, 2.5, 2.5)
+#' )
+#' expandPolygons(flat, delta = 0.25)
 #' @export
 expandPolygons <- function(polygons,
                            delta = NULL,
@@ -1177,65 +1254,78 @@ expandPolygons <- function(polygons,
   )
 }
 
-#' Plot spatial polygons on a tissue image
+#' Plot polygons on a tissue image
 #'
-#' Plots one or more polygon vertex tables, such as the output of
-#' `selectSpatialPolygons()`, over the Seurat tissue image.
+#' @details
+#' `plotSpatialPolygons` plots polygons over the Seurat tissue image. If there
+#' are multiple samples or images, the function creates separate plots for each.
 #'
-#' @param object Seurat object with spatial images, or a SIRUP object.
-#' @param polygon Data frame of polygon vertices in order. Must contain `x` and
-#'   `y` columns by default. If `object` is a SIRUP object and `polygon` is
-#'   omitted, the object's stored polygons are used.
-#' @param images Optional Seurat image names to show.
-#' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
-#' @param image_scale Image scale passed to
-#'   `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param polygon_val Optional polygon ID value(s) to select when `polygon_id`
-#'   exists.
-#' @param x Coordinate column in `polygon`.
-#' @param y Coordinate column in `polygon`.
-#' @param polygon_id Optional polygon grouping column in `polygon`.
-#' @param polygon_alpha Fill opacity for polygons.
-#' @param polygon_fill Fill color for polygons when no analysis is mapped.
-#' @param fill_analysis Optional name of a stored SIRUP analysis containing
-#'   one row per polygon.
-#' @param fill_column Optional column used to color polygon interiors. When
-#'   `fill_analysis` is `NULL`, this column is read from the polygon data. When
-#'   `fill_analysis` is supplied, this column is read from that analysis, which
-#'   must contain `polygon_id` or `polygon` as its polygon key.
-#' @param analysis_fill Character vector of two colors used as the low and high
-#'   ends of the numeric analysis gradient. Defaults to
-#'   `c("#D3D3D3", "#FFFF00")`. Non-numeric analysis values use the Glasbey
-#'   palette.
-#' @param polygon_color Outline color for polygons.
-#' @param linewidth Outline width for polygons.
-#' @param image_alpha Tissue image opacity.
-#' @param label Plot labels at polygon centers.
-#' @param label_by Column in the polygon data to use for labels.
-#' @param label_size Text size for polygon labels.
-#' @param label_color Text color for polygon labels.
-#' @param label_outside Place each label OUTSIDE its polygon instead of at the
-#'   center. The label is pushed radially away from the centroid of all plotted
-#'   polygons (so labels fan outward from a cluster of small polygons, e.g.
-#'   crowded thymic eGCs), clearing the polygon by `label_offset`. A thin leader
-#'   line links each label to its polygon unless `label_leader = FALSE`.
-#' @param label_offset When `label_outside = TRUE`, the gap between the polygon
-#'   edge and its label, as a fraction of the plotted coordinate span
-#'   (default 0.08).
-#' @param label_leader When `label_outside = TRUE`, draw a leader segment from
-#'   each polygon to its displaced label.
-#' @param label_leader_color Color of the leader segments.
-#' @param zoom Zoom to the polygon extents instead of the full tissue.
-#' @param combine Combine plots with patchwork when possible.
-#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
-#'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
-#'   multi-sample calls return a named list of per-sample plots.
-#' @return A ggplot/patchwork object or a named list of ggplots when
-#'   `combine = FALSE`.
+#' @param object Seurat object or SIRUP object.
+#' @param polygon Data frame of polygon vertices in order. It needs the columns
+#'   set by `x` and `y`. If the column set by `polygon_id` exists, the function
+#'   treats each polygon on its own. If `object` is a SIRUP object and `polygon`
+#'   is `NULL`, the function uses the stored polygons.
+#' @param images Names of the Seurat images to use.
+#' @param sample Alias for `sample_id`.
+#' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
+#'   objects. If `NULL`, the function plots all samples.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param polygon_val IDs of the polygons to use. If `NULL`, the function uses
+#'   all polygons.
+#' @param x Name of the x-coordinate column in `polygon` (default `"x"`).
+#' @param y Name of the y-coordinate column in `polygon` (default `"y"`).
+#' @param polygon_id Name of the column in `polygon` that groups the vertices
+#'   by polygon (default `"polygon"`).
+#' @param polygon_alpha Opacity of the polygon fill (default 0.2).
+#' @param polygon_fill Fill color of the polygons, if no analysis is mapped
+#'   (default `"#0072B2"`).
+#' @param fill_analysis Name of a stored SIRUP analysis that has one row for
+#'   each polygon. The function colors the polygons with it.
+#' @param fill_column Name of the column that sets the fill color. If
+#'   `fill_analysis` is `NULL`, the function reads the column from the polygon
+#'   data. Otherwise, it reads the column from the analysis. The analysis must
+#'   have a `polygon_id` or `polygon` column as the polygon key.
+#' @param analysis_fill Two colors for the low and high end of the gradient for
+#'   numeric analysis values (default `c("#D3D3D3", "#FFFF00")`). The function
+#'   uses the Glasbey palette for other values.
+#' @param polygon_color Color of the polygon outlines (default `"#0072B2"`).
+#' @param linewidth Width of the polygon outlines (default 0.6).
+#' @param image_alpha Opacity of the tissue image.
+#' @param label Write a label at the center of each polygon (default `TRUE`)?
+#' @param label_by Name of the column in the polygon data that holds the labels
+#'   (default `"polygon"`).
+#' @param label_size Text size of the labels (default 3).
+#' @param label_color Text color of the labels (default `"black"`).
+#' @param label_outside Put each label outside its polygon (default `FALSE`)?
+#'   The function pushes each label away from the centroid of all plotted
+#'   polygons, so that labels spread outward from a group of small polygons. The
+#'   label is `label_offset` away from the polygon.
+#' @param label_offset Gap between a polygon edge and its label, if
+#'   `label_outside` is `TRUE` (default 0.08). The value is a fraction of the
+#'   plotted coordinate range.
+#' @param label_leader Draw a line from each polygon to its label, if
+#'   `label_outside` is `TRUE` (default `TRUE`)?
+#' @param label_leader_color Color of the leader lines (default `"grey40"`).
+#' @param zoom Zoom to the extent of the polygons, not the full tissue (default
+#'   `FALSE`)?
+#' @param combine Combine the plots with patchwork, if possible (default
+#'   `TRUE`)?
+#' @param combine_sample_plots Combine the plots of all samples into one
+#'   patchwork (default `FALSE`)? The function uses it only for multi-sample
+#'   objects. If `FALSE`, it returns a named list with one plot for each sample.
+#'
+#' @return A ggplot or patchwork object. If `combine = FALSE`, a named list of
+#'   ggplot objects.
+#' @seealso [selectSpatialPolygons()], [spatialCloneDominance()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' plotSpatialPolygons(x)
+#' plotSpatialPolygons(x, label_outside = TRUE)
 #' @export
 plotSpatialPolygons <- function(object,
                                 polygon = NULL,
@@ -1281,7 +1371,6 @@ plotSpatialPolygons <- function(object,
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
-  .require_namespace("SeuratObject")
   if (is.null(polygon)) {
     if (is.null(sirup_object)) {
       rlang::abort("`polygon` must be supplied when `object` is not a SIRUP object.")
@@ -1541,45 +1630,55 @@ plotSpatialPolygons <- function(object,
   )
 }
 
-#' Plot receptors inside spatial polygons
+#' Plot receptors inside polygons using the results of [spatialCloneDominance()]
 #'
-#' Plots regional receptor rows from `spatialCloneDominance()` over the tissue
-#' image, colored by a receptor-table column.
+#' @details
+#' `plotSpatialRegionReceptors` plots the receptors inside the polygons on the
+#' tissue image. The result of [spatialCloneDominance()] supplies the receptors.
+#' If there are multiple samples or images, the function creates separate plots for each.
 #'
-#' @param dominance Object returned by `spatialCloneDominance()`.
-#' @param object Seurat object with spatial images, or a SIRUP object.
-#' @param color Column in `dominance$region_receptors` used to color receptor
-#'   points. When omitted, the clone column recorded by
-#'   `spatialCloneDominance()` is used.
-#' @param images Optional Seurat image names to show.
-#' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
-#' @param image_scale Image scale passed to
-#'   `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param polygon_val Optional polygon ID value(s) to select from the dominance
-#'   result.
-#' @param point_size Size of receptor points.
-#' @param point_alpha Opacity for receptor points.
-#' @param polygon_alpha Fill opacity for polygons.
-#' @param polygon_fill Fill color for polygons.
-#' @param polygon_color Outline color for polygons.
-#' @param image_alpha Tissue image opacity.
-#' @param top_n Optional number of most frequent `color` levels to keep
-#'   before grouping remaining levels as `other_label`.
-#' @param other_label Label for grouped lower-frequency levels.
-#' @param other_color Color used for `other_label`.
-#' @param plot_other Plot receptors grouped into `other_label`.
-#' @param zoom Zoom to the selected polygon extents. Defaults to `FALSE`, which
-#'   shows the full tissue image.
-#' @param combine Combine plots with patchwork when possible.
-#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
-#'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
-#'   multi-sample calls return a named list of per-sample plots.
-#' @return A ggplot/patchwork object or a named list of ggplots when
-#'   `combine = FALSE`.
+#' @param dominance Result of [spatialCloneDominance()].
+#' @param object Seurat object or SIRUP object.
+#' @param color Name of the column in `dominance$region_receptors` that sets the
+#'   color of the points. If you omit it, the function uses the clone column
+#'   that [spatialCloneDominance()] recorded (default `"clone_id"`).
+#' @param images Names of the Seurat images to use.
+#' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
+#'   objects. If `NULL`, the function plots all samples.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param polygon_val IDs of the polygons to select from `dominance`.
+#' @param point_size Size of the receptor points (default 1).
+#' @param point_alpha Opacity of the receptor points (default 0.5).
+#' @param polygon_alpha Opacity of the polygon fill (default 0.12).
+#' @param polygon_fill Fill color of the polygons (default `"#FFFFFF"`).
+#' @param polygon_color Color of the polygon outlines (default `"black"`).
+#' @param image_alpha Opacity of the tissue image.
+#' @param top_n Number of the most frequent `color` levels to show. The function
+#'   groups the other levels under `other_label`. If `NULL`, it shows all
+#'   levels.
+#' @param other_label Label for the grouped levels (default `"Other"`).
+#' @param other_color Color of the grouped levels (default `"#D3D3D3"`).
+#' @param plot_other Plot the grouped levels (default `TRUE`)?
+#' @param zoom Zoom to the extent of the selected polygons (default `FALSE`)? If
+#'   `FALSE`, the plot shows the full tissue image.
+#' @param combine Combine the plots with patchwork, if possible (default
+#'   `TRUE`)?
+#' @param combine_sample_plots Combine the plots of all samples into one
+#'   patchwork (default `FALSE`)? The function uses it only for multi-sample
+#'   objects. If `FALSE`, it returns a named list with one plot for each sample.
+#'
+#' @return A ggplot or patchwork object. If `combine = FALSE`, a named list of
+#'   ggplot objects.
+#' @seealso [spatialCloneDominance()], [plotSpatialPolygonPies()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' dominance <- spatialCloneDominance(x)
+#' plotSpatialRegionReceptors(dominance, x)
 #' @export
 plotSpatialRegionReceptors <- function(dominance,
                                        object,
@@ -1612,7 +1711,6 @@ plotSpatialRegionReceptors <- function(dominance,
   if (color_missing && !is.null(dominance$metadata$receptor_fields$clone)) {
     color <- dominance$metadata$receptor_fields$clone
   }
-  .require_namespace("SeuratObject")
   if (nrow(region$receptors) == 0L) {
     rlang::abort("No receptor rows were found inside the selected polygon(s).")
   }
@@ -1669,73 +1767,91 @@ plotSpatialRegionReceptors <- function(dominance,
   .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
 }
 
-#' Plot 3D clone-density surfaces over a spatial image
+#' Plot 3D clone-density surfaces on a tissue image
 #'
-#' Uses the regional receptor rows returned by `spatialCloneDominance()` to draw
-#' smoothed clone-abundance density surfaces above the original tissue image in
-#' an interactive rgl scene.
+#' `plotSpatialCloneDensity3D` draws a smoothed density surface for each clone
+#' above the tissue image in an interactive rgl scene.
 #'
-#' @param dominance Object returned by `spatialCloneDominance()`.
-#' @param object Seurat object with spatial images, or a SIRUP object.
-#' @param clone Column in `dominance$region_receptors` used to define clone
-#'   groups. When omitted, the clone column recorded by
-#'   `spatialCloneDominance()` is used.
-#' @param weight Optional numeric column used as receptor weights. When
-#'   `NULL`, each receptor row contributes one count.
-#' @param images Optional Seurat image names to show.
-#' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
-#' @param image_scale Image scale passed to
-#'   `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param polygon_val Optional polygon ID value(s) to select from the dominance
-#'   object.
-#' @param top_n Optional number of most abundant clone groups to show
-#'   individually. Remaining clone groups are combined as `other_label`.
-#' @param other_label Label for grouped lower-abundance clone groups.
-#' @param other_color Color used for `other_label`.
-#' @param plot_other Plot grouped lower-abundance clone groups as
+#' @details
+#' The function uses the receptor rows in the result of
+#' [spatialCloneDominance()]. It needs the `rgl` package, except if you set
+#' `return_data = TRUE`.
+#'
+#' @param dominance Result of [spatialCloneDominance()].
+#' @param object Seurat object or SIRUP object.
+#' @param clone Name of the column in `dominance$region_receptors` that defines
+#'   the clone groups. If you omit it, the function uses the clone column that
+#'   [spatialCloneDominance()] recorded (default `"clone_id"`).
+#' @param weight Name of a numeric column that gives the weight of each
+#'   receptor. If `NULL`, each receptor row counts as one.
+#' @param images Names of the Seurat images to use.
+#' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
+#'   objects. If `NULL`, the function plots all samples.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param polygon_val IDs of the polygons to select from `dominance`.
+#' @param top_n Number of the most abundant clone groups to show on their own
+#'   (default 10). The function groups the other clone groups under
 #'   `other_label`.
-#' @param bandwidth Gaussian kernel bandwidth in spatial coordinate units. Use a
-#'   single value for isotropic smoothing or two values for x/y bandwidths. When
-#'   `NULL`, a bandwidth is estimated from the regional coordinates.
-#' @param grid_n Number of grid points used for density surfaces. Use one value
-#'   for both axes or two values for x/y grid sizes.
-#' @param plot_type Plot smoothed density surfaces or binned 3D histogram bars.
-#' @param hist_bins Number of x/y bins used when `plot_type = "histogram"`.
-#' @param zoom Zoom the tissue image plane and 3D view to the selected region.
-#'   Defaults to `FALSE`, which shows the full spatial image.
-#' @param height_scale Maximum density height as a fraction of the plotted
-#'   spatial span.
-#' @param z_offset Vertical offset of the density surfaces above the tissue
-#'   image, as a fraction of the plotted spatial span.
-#' @param density_alpha Opacity for density surfaces.
-#' @param density_floor Relative density threshold below which surface cells are
-#'   hidden. This removes low-density Gaussian tails that otherwise look like a
-#'   colored plane.
-#' @param image_alpha Opacity for the tissue image plane.
-#' @param show_points Show receptor locations above the tissue plane.
-#' @param point_size Size of receptor-location points.
-#' @param point_alpha Opacity for receptor-location points.
-#' @param show_polygon Show polygon boundaries above the tissue plane.
-#' @param polygon_color Color for polygon boundary lines.
-#' @param polygon_lwd Width for polygon boundary lines.
-#' @param label_density_peaks Label the highest point of the first few density
-#'   surfaces.
-#' @param label_top_n Number of density surfaces to label when
-#'   `label_density_peaks = TRUE`.
-#' @param label_cex Text scale for density peak labels.
-#' @param show_axes Show the 3D bounding box and axis labels.
-#' @param texture_dir Optional directory where the tissue texture PNG should be
-#'   written. Use a persistent directory when saving an HTML widget.
-#' @param as_widget Return an rgl htmlwidget. When `FALSE`, the scene is drawn
-#'   and the current rgl device ID is returned.
-#' @param return_data Return the computed density data instead of drawing an
-#'   interactive scene. This does not require rgl.
-#' @return An rgl widget/device ID, or a list of computed plot data when
-#'   `return_data = TRUE`.
+#' @param other_label Label for the grouped clone groups (default `"Other"`).
+#' @param other_color Color of the grouped clone groups (default `"#D3D3D3"`).
+#' @param plot_other Plot the grouped clone groups (default `TRUE`)?
+#' @param bandwidth Bandwidth of the Gaussian kernel, in coordinate units. Give
+#'   one value for equal smoothing in x and y, or two values (x, y). If `NULL`,
+#'   the function estimates it from the coordinates in the regions.
+#' @param grid_n Number of grid points for the density surfaces (default 80).
+#'   Give one value for both axes, or two values (x, y).
+#' @param plot_type Type of plot: `density` (smoothed surfaces) or `histogram`
+#'   (binned 3D bars).
+#' @param hist_bins Number of x and y bins, if `plot_type = "histogram"`
+#'   (default 30).
+#' @param zoom Zoom the image plane and the 3D view to the selected region
+#'   (default `FALSE`)? If `FALSE`, the plot shows the full image.
+#' @param height_scale Maximum height of the density, as a fraction of the
+#'   plotted range (default 0.22).
+#' @param z_offset Vertical gap between the density surfaces and the tissue
+#'   image, as a fraction of the plotted range (default 0.04).
+#' @param density_alpha Opacity of the density surfaces (default 0.55).
+#' @param density_floor Relative density below which the function hides surface
+#'   cells (default 0.03). This removes the low Gaussian tails, which can look
+#'   like a colored plane.
+#' @param image_alpha Opacity of the tissue image plane.
+#' @param show_points Show the receptor locations above the tissue plane
+#'   (default `FALSE`)?
+#' @param point_size Size of the receptor points (default 5).
+#' @param point_alpha Opacity of the receptor points (default 0.75).
+#' @param show_polygon Show the polygon boundaries above the tissue plane
+#'   (default `TRUE`)?
+#' @param polygon_color Color of the polygon boundary lines (default `"white"`).
+#' @param polygon_lwd Width of the polygon boundary lines (default 3).
+#' @param label_density_peaks Label the highest point of the first density
+#'   surfaces (default `FALSE`)?
+#' @param label_top_n Number of surfaces to label, if `label_density_peaks` is
+#'   `TRUE` (default 5).
+#' @param label_cex Text scale of the peak labels (default 0.8).
+#' @param show_axes Show the 3D bounding box and the axis labels (default
+#'   `TRUE`)?
+#' @param texture_dir Directory to write the tissue texture PNG file to. Use a
+#'   permanent directory if you save an HTML widget.
+#' @param as_widget Return an rgl htmlwidget (default `TRUE`)? If `FALSE`, the
+#'   function draws the scene and returns the ID of the current rgl device.
+#' @param return_data Return the density data and do not draw the scene (default
+#'   `FALSE`)? This does not need `rgl`.
+#'
+#' @return An rgl widget or an rgl device ID. If `return_data = TRUE`, a list of
+#'   the plot data.
+#' @seealso [spatialCloneDominance()], [plotSpatialRegionReceptors()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' dominance <- spatialCloneDominance(x)
+#'
+#' # Return the density data. This needs no rgl window.
+#' density <- plotSpatialCloneDensity3D(dominance, x, return_data = TRUE)
+#' names(density)
 #' @export
 plotSpatialCloneDensity3D <- function(dominance,
                                       object,
@@ -1789,7 +1905,6 @@ plotSpatialCloneDensity3D <- function(dominance,
     clone <- dominance$metadata$receptor_fields$clone
   }
   plot_type <- match.arg(plot_type)
-  .require_namespace("SeuratObject")
 
   region_receptors <- .as_data_frame(dominance$region_receptors)
   polygons <- .as_data_frame(dominance$polygons)
@@ -1872,62 +1987,78 @@ plotSpatialCloneDensity3D <- function(dominance,
   }
 }
 
-#' Plot spatial polygon pie summaries
+#' Plot clonal dominance results within polygons as pies or bars
 #'
-#' Summarizes regional receptor rows from `spatialCloneDominance()` for a
-#' selected column. The default mode plots pie charts beside a numbered polygon
-#' map. The `spatial_clipped` mode clips each pie chart to its polygon boundary
-#' and requires the suggested `sf` package.
+#' `plotSpatialPolygonPies` summarizes one receptor column for each polygon. It
+#' plots the result as pie charts or stacked bars.
 #'
-#' @param dominance Object returned by `spatialCloneDominance()`.
-#' @param object Seurat object with spatial images, or a SIRUP object.
-#' @param fill Column in `dominance$region_receptors` summarized in each pie
-#'   chart. When omitted, the clone column recorded by
-#'   `spatialCloneDominance()` is used.
-#' @param mode Plot style. `side_by_side` shows ordinary pies beside a polygon
-#'   map. `spatial_clipped` clips pies to polygon boundaries on the tissue.
-#'   `dominance_only` draws just the per-polygon pies (no map). `stacked_bar`
-#'   draws one stacked bar per polygon in a single panel (no map), each bar
-#'   stacked by `fill` level in dominance order -- the bar analogue of
-#'   `dominance_only`.
-#' @param top_n Number of most frequent `fill` levels to identify within each
-#'   polygon. The union of these polygon-level top levels is shown individually
-#'   everywhere; remaining levels are grouped as `other_label`.
-#' @param label_top_n Number of levels to label per polygon. Defaults to
-#'   0 because this gets messy fast.
-#' @param other_label Label for grouped lower-frequency levels.
-#' @param other_color Color used for `other_label`.
-#' @param plot_other Plot grouped lower-frequency BCRs as `other_label`.
-#' @param images Optional Seurat image names to show.
-#' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
-#' @param image_scale Image scale passed to
-#'   `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param polygon_val Optional polygon ID value(s) to select from the dominance
-#'   result.
-#' @param polygon_alpha Fill opacity for polygons in the numbered map.
-#' @param image_alpha Tissue image opacity.
-#' @param pie_alpha Pie opacity.
-#' @param label_size Text size for polygon and pie labels.
-#' @param pies_per_page Maximum number of ordinary pie charts to show per page
-#'   when `mode = "side_by_side"`. When more polygons are present, a named list
-#'   of page plots is returned.
-#' @param pie_order Order of the pie charts when `mode = "side_by_side"`.
-#'   `"receptors"` (the default) shows the polygon with the most receptors
-#'   first, then the next most, and so on. Each pie keeps its map label, so
-#'   only the arrangement changes. `"polygon"` keeps the numbered map order
-#'   (polygon 1, 2, 3, ...). Ignored when `mode = "spatial_clipped"`.
-#' @param spatial_legend Show a shared fill legend for `spatial_clipped` pie
-#'   plots. Defaults to `FALSE`.
-#' @param zoom Zoom to the plotted polygon extents. Defaults to `FALSE`, which
-#'   shows the full tissue image.
-#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
-#'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
-#'   multi-sample calls return a named list of per-sample plots.
-#' @return A ggplot, patchwork object, or named list of ggplots.
+#' @details
+#' The function uses the receptor rows in the result of
+#' [spatialCloneDominance()]. The `mode` argument sets the plot style:
+#' \itemize{
+#'   \item `side_by_side`: pie charts next to a numbered map of the polygons.
+#'   \item `spatial_clipped`: pie charts inside the polygon boundaries on
+#'     the tissue. It needs the `sf` package.
+#'   \item `dominance_only`: the pie charts only, with no map.
+#'   \item `stacked_bar`: one stacked bar for each polygon in one panel, with no
+#'     map. Each bar stacks the `fill` levels in dominance order.
+#' }
+#'
+#' If there are multiple samples or images, the function creates separate plots for each.
+#'
+#' @param dominance Result of [spatialCloneDominance()].
+#' @param object Seurat object or SIRUP object.
+#' @param fill Name of the column in `dominance$region_receptors` to summarize.
+#'   If you omit it, the function uses the clone column that
+#'   [spatialCloneDominance()] recorded (default `"clone_id"`).
+#' @param mode Plot style: `side_by_side`, `spatial_clipped`, `dominance_only`,
+#'   or `stacked_bar`. See Details.
+#' @param top_n Number of the most frequent `fill` levels to find in each
+#'   polygon (default 10). The function shows the union of these levels on their
+#'   own in all polygons. It groups the other levels under `other_label`.
+#' @param label_top_n Number of levels to label in each polygon (default 0).
+#' @param other_label Label for the grouped levels (default `"Other"`).
+#' @param other_color Color of the grouped levels (default `"#D3D3D3"`).
+#' @param plot_other Plot the grouped levels (default `TRUE`)?
+#' @param images Names of the Seurat images to use.
+#' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
+#'   objects. If `NULL`, the function plots all samples.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param polygon_val IDs of the polygons to select from `dominance`.
+#' @param polygon_alpha Opacity of the polygon fill in the numbered map (default
+#'   0.2).
+#' @param image_alpha Opacity of the tissue image.
+#' @param pie_alpha Opacity of the pies (default 0.9).
+#' @param label_size Text size of the polygon labels and pie labels (default 3).
+#' @param pies_per_page Largest number of pie charts on one page, if
+#'   `mode = "side_by_side"` (default 6). If there are more polygons, the
+#'   function returns a named list with one plot for each page.
+#' @param pie_order Order of the pie charts, if `mode = "side_by_side"`:
+#'   `"receptors"` (default) puts the polygon with the most receptors first,
+#'   then the next, and so on. `"polygon"` keeps the order of the numbered map.
+#'   Each pie keeps its map label. The function ignores this argument if `mode =
+#'   "spatial_clipped"`.
+#' @param spatial_legend Show one shared fill legend for the `spatial_clipped`
+#'   plots (default `FALSE`)?
+#' @param zoom Zoom to the extent of the plotted polygons (default `FALSE`)? If
+#'   `FALSE`, the plot shows the full tissue image.
+#' @param combine_sample_plots Combine the plots of all samples into one
+#'   patchwork (default `FALSE`)? The function uses it only for multi-sample
+#'   objects. If `FALSE`, it returns a named list with one plot for each sample.
+#'
+#' @return A ggplot object, a patchwork object, or a named list of ggplot
+#'   objects.
+#' @seealso [spatialCloneDominance()], [plotSpatialRegionReceptors()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' dominance <- spatialCloneDominance(x)
+#' plotSpatialPolygonPies(dominance, x)
+#' plotSpatialPolygonPies(dominance, x, mode = "stacked_bar")
 #' @export
 plotSpatialPolygonPies <- function(dominance,
                                    object,
@@ -1962,7 +2093,6 @@ plotSpatialPolygonPies <- function(dominance,
   if (fill_missing && !is.null(dominance$metadata$receptor_fields$clone)) {
     fill <- dominance$metadata$receptor_fields$clone
   }
-  .require_namespace("SeuratObject")
   mode <- match.arg(mode)
   pie_order <- match.arg(pie_order)
   if (is.null(label_top_n)) {
@@ -2048,34 +2178,53 @@ plotSpatialPolygonPies <- function(dominance,
   }
 }
 
-#' Subset a Seurat object to spatial IDs inside polygons
+#' Subset a Seurat object to the spots inside polygons
 #'
-#' Keeps only Seurat spatial IDs whose spatial coordinates fall inside one or more
-#' polygon regions and records polygon membership in the returned object's
-#' metadata.
+#' `seuratSubsetPolygon` keeps only the spatial IDs inside the polygons. It also
+#' records the polygon of each spot in the metadata.
 #'
-#' @param object Seurat object with spatial coordinates.
-#' @param polygon Data frame of polygon vertices in order. Must contain `x` and
-#'   `y` columns by default. If a `polygon` column is present, each polygon is
-#'   evaluated independently. If `object` is a SIRUP object and `polygon` is
-#'   omitted, the object's stored polygons are used.
-#' @param images Optional Seurat image names to use for spatial coordinates.
-#' @param image_scale Image scale passed to
-#'   `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param polygon_val Optional polygon ID value(s) to select when `polygon_id`
-#'   exists.
-#' @param x Coordinate column in `polygon`.
-#' @param y Coordinate column in `polygon`.
-#' @param polygon_id Optional polygon grouping column in `polygon`.
-#' @param metadata Metadata column added to the returned Seurat object with the
-#'   primary polygon assignment. Barcodes in overlapping polygons are assigned to
-#'   the smallest polygon by area.
-#' @param include_boundary Include Seurat spots on polygon edges.
-#' @return A Seurat object subset to spatial IDs inside the selected polygon(s),
-#'   with `metadata` appended to `@meta.data`.
+#' @param object Seurat object, or a named list of Seurat objects.
+#' @param polygon Data frame of polygon vertices in order. It needs the columns
+#'   set by `x` and `y`. If the column set by `polygon_id` exists, the function
+#'   treats each polygon on its own.
+#' @param images Names of the Seurat images to use.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Swap the two Seurat coordinate axes? You must give a
+#'   value.
+#' @param polygon_val IDs of the polygons to use. If `NULL`, the function uses
+#'   all polygons.
+#' @param x Name of the x-coordinate column in `polygon` (default `"x"`).
+#' @param y Name of the y-coordinate column in `polygon` (default `"y"`).
+#' @param polygon_id Name of the column in `polygon` that groups the vertices
+#'   by polygon (default `"polygon"`).
+#' @param metadata Name of the metadata column that holds the primary polygon of
+#'   each spot (default `"polygon"`). A spot in overlapping polygons gets the
+#'   smallest polygon by area.
+#' @param include_boundary Count spots on a polygon edge as inside the polygon
+#'   (default `TRUE`)?
+#'
+#' @return A Seurat object with only the spatial IDs inside the selected
+#'   polygons. For a list of Seurat objects, a list of the subset objects. The
+#'   function drops an object with no spot inside a polygon. It adds the
+#'   `metadata` column to `@meta.data`.
+#' @seealso [assignSpatialPolygons()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' flat <- data.frame(
+#'   polygon = "block",
+#'   x = c(3.5, 5.5, 5.5, 3.5),
+#'   y = c(0.5, 0.5, 2.5, 2.5)
+#' )
+#'
+#' # Keep the four spots inside the polygon.
+#' subset <- seuratSubsetPolygon(
+#'   getSpatial(x),
+#'   polygon = flat,
+#'   image_scale = "hires",
+#'   swap_coords = FALSE
+#' )
+#' ncol(subset)
 #' @export
 seuratSubsetPolygon <- function(object,
                                 polygon = NULL,
@@ -2124,37 +2273,56 @@ seuratSubsetPolygon <- function(object,
   subset
 }
 
-#' Assign polygon IDs to spatial metadata
+#' Add polygon IDs to the spatial metadata
 #'
-#' Adds polygon-membership columns to a Seurat object's metadata without
-#' subsetting the object. Spatial IDs outside the selected polygon(s) receive
-#' `NA` in the primary metadata column. Spatial IDs inside overlapping polygons
-#' are assigned to the smallest polygon by area in the primary metadata column.
-#' Additional logical columns named `polygon_<ID>` record membership in each
-#' individual polygon. When `object` is a SIRUP object and `polygon` is omitted,
-#' the stored polygons in the SIRUP object are used.
+#' `assignSpatialPolygons` adds polygon columns to the Seurat metadata. It keeps
+#' all spots.
 #'
-#' @param object Seurat object with spatial coordinates, or a SIRUP object.
-#' @param polygon Data frame of polygon vertices in order. Must contain `x` and
-#'   `y` columns by default. If a `polygon` column is present, each polygon is
-#'   evaluated independently. If `object` is a SIRUP object and `polygon` is
-#'   omitted, the object's stored polygons are used.
-#' @param images Optional Seurat image names to use for spatial coordinates.
-#' @param image_scale Image scale passed to
-#'   `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param polygon_val Optional polygon ID value(s) to select when `polygon_id`
-#'   exists.
-#' @param x Coordinate column in `polygon`.
-#' @param y Coordinate column in `polygon`.
-#' @param polygon_id Optional polygon grouping column in `polygon`.
-#' @param metadata Metadata column added to the returned Seurat object with the
-#'   primary polygon assignment. Spatial IDs in overlapping polygons are assigned
-#'   to the smallest polygon by area.
-#' @param include_boundary Include Seurat spots on polygon edges.
-#' @return A Seurat object with `metadata` added to `@meta.data`.
+#' @details
+#' A spot outside the selected polygons gets `NA` in the primary column. A spot
+#' in overlapping polygons gets the smallest polygon by area. The function also
+#' adds one logical column `polygon_<ID>` for each polygon. These columns show
+#' membership in every polygon.
+#'
+#' @param object Seurat object or SIRUP object.
+#' @param polygon Data frame of polygon vertices in order. It needs the columns
+#'   set by `x` and `y`. If the column set by `polygon_id` exists, the function
+#'   treats each polygon on its own. If `object` is a SIRUP object and `polygon`
+#'   is `NULL`, the function uses the stored polygons.
+#' @param images Names of the Seurat images to use.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param polygon_val IDs of the polygons to use. If `NULL`, the function uses
+#'   all polygons.
+#' @param x Name of the x-coordinate column in `polygon` (default `"x"`).
+#' @param y Name of the y-coordinate column in `polygon` (default `"y"`).
+#' @param polygon_id Name of the column in `polygon` that groups the vertices
+#'   by polygon (default `"polygon"`).
+#' @param metadata Name of the metadata column that holds the primary polygon of
+#'   each spot (default `"polygon_id"`).
+#' @param include_boundary Count spots on a polygon edge as inside the polygon
+#'   (default `TRUE`)?
+#'
+#' @return A Seurat object with the `metadata` column added to `@meta.data`.
+#' @seealso [seuratSubsetPolygon()], [assignReceptorPolygons()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' flat <- data.frame(
+#'   polygon = "block",
+#'   x = c(3.5, 5.5, 5.5, 3.5),
+#'   y = c(0.5, 0.5, 2.5, 2.5)
+#' )
+#' spatial <- assignSpatialPolygons(
+#'   getSpatial(x),
+#'   polygon = flat,
+#'   image_scale = "hires",
+#'   swap_coords = FALSE
+#' )
+#' table(spatial$polygon_id, useNA = "ifany")
 #' @export
 assignSpatialPolygons <- function(object,
                                   polygon = NULL,
@@ -2167,7 +2335,6 @@ assignSpatialPolygons <- function(object,
                                   polygon_id = "polygon",
                                   metadata = "polygon_id",
                                   include_boundary = TRUE) {
-  .require_namespace("SeuratObject")
   if (!.sirup_is_non_empty_string(metadata)) {
     rlang::abort("`metadata` must be a non-empty character string.")
   }
@@ -2228,46 +2395,64 @@ assignSpatialPolygons <- function(object,
   object
 }
 
-#' Assign polygon IDs to a receptor table
+#' Add polygon IDs to a receptor table
 #'
-#' Adds polygon-membership columns to an AIRR-style receptor table without
-#' subsetting the table. When `object` is supplied, receptor rows whose spatial
-#' ID falls outside the selected polygon(s), or does not match the spatial
-#' object, receive `NA`. When `object = NULL`, polygon membership is computed
-#' directly from coordinate columns in `receptors`.
-#' Receptors in spatial IDs inside overlapping polygons are assigned to the
-#' smallest polygon by area in the primary polygon column. Additional logical
-#' columns named `polygon_<ID>` record membership in each individual polygon.
-#' When `receptors` is a SIRUP object and `object` and `polygon` are omitted,
-#' the stored spatial object and polygons are used.
+#' `assignReceptorPolygons` adds polygon columns to a receptor table. It keeps
+#' all rows.
 #'
-#' @param receptors AIRR-style receptor data frame, or a SIRUP object when
-#'   `object` is omitted.
-#' @param object Seurat object with spatial coordinates, or a SIRUP object.
-#' @param column Column added to the returned receptor table with polygon
-#'   membership.
-#' @param spatial_id Column in `receptors` matching Seurat spot/cell spatial IDs.
-#'   If `NULL`, a spatial ID-like column is guessed or pulled from the SIRUP
-#'   object.
-#' @param polygon Data frame of polygon vertices in order. Must contain `x` and
-#'   `y` columns by default. If a `polygon` column is present, each polygon is
-#'   evaluated independently. If `object` is a SIRUP object and `polygon` is
-#'   omitted, the object's stored polygons are used.
-#' @param images Optional Seurat image names to use for spatial coordinates.
-#' @param image_scale Image scale passed to
-#'   `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param polygon_val Optional polygon ID value(s) to select when `polygon_id`
-#'   exists.
-#' @param x Coordinate column in `polygon`.
-#' @param y Coordinate column in `polygon`.
-#' @param receptor_x,receptor_y Coordinate columns in `receptors` used when
-#'   `object = NULL`.
-#' @param polygon_id Optional polygon grouping column in `polygon`.
-#' @param include_boundary Include Seurat spots on polygon edges.
-#' @return A tibble with `column` added.
+#' @details
+#' If you give `object`, a receptor row gets `NA` if its spatial ID is outside
+#' the selected polygons or does not match the spatial object. If `object` is
+#' `NULL`, the function finds the polygons from the coordinate columns in
+#' `receptors`.
+#'
+#' A row in overlapping polygons gets the smallest polygon by area in the
+#' primary column. The function also adds one logical column `polygon_<ID>` for
+#' each polygon. These columns show membership in every polygon.
+#'
+#' If `receptors` is a SIRUP object and you omit `object` and `polygon`, the
+#' function uses the stored spatial object and polygons.
+#'
+#' @param receptors AIRR-style receptor table. You can give a SIRUP object here
+#'   if you omit `object`.
+#' @param object Seurat object or SIRUP object.
+#' @param column Name of the column to add to the receptor table (default
+#'   `"polygon_id"`).
+#' @param spatial_id Name of the `receptors` column that holds the spatial IDs.
+#'   If `NULL`, the function uses the stored field of a SIRUP object, or looks
+#'   for a standard spatial ID column.
+#' @param polygon Data frame of polygon vertices in order. It needs the columns
+#'   set by `x` and `y`. If the column set by `polygon_id` exists, the function
+#'   treats each polygon on its own. If `object` is a SIRUP object and `polygon`
+#'   is `NULL`, the function uses the stored polygons.
+#' @param images Names of the Seurat images to use.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param polygon_val IDs of the polygons to use. If `NULL`, the function uses
+#'   all polygons.
+#' @param x Name of the x-coordinate column in `polygon` (default `"x"`).
+#' @param y Name of the y-coordinate column in `polygon` (default `"y"`).
+#' @param receptor_x Name of the x-coordinate column in `receptors`, for
+#'   `object = NULL` (default `"x"`).
+#' @param receptor_y Name of the y-coordinate column in `receptors`, for
+#'   `object = NULL` (default `"y"`).
+#' @param polygon_id Name of the column in `polygon` that groups the vertices
+#'   by polygon (default `"polygon"`).
+#' @param include_boundary Count spots on a polygon edge as inside the polygon
+#'   (default `TRUE`)?
+#'
+#' @return A tibble with the `column` added.
+#' @seealso [assignSpatialPolygons()], [withPolygons()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#'
+#' # Use the spatial object and the polygons stored in the SIRUP object.
+#' receptors <- assignReceptorPolygons(x)
+#' table(receptors$polygon_id, useNA = "ifany")
 #' @export
 assignReceptorPolygons <- function(receptors,
                                    object = NULL,
@@ -2476,36 +2661,52 @@ assignReceptorPolygons <- function(receptors,
   is.data.frame(polygon) && all(c(x, y) %in% colnames(polygon)) && nrow(polygon) >= 3L
 }
 
-#' Summarize receptor content inside spatial polygons
+#' Summarize columns in receptors data inside polygons
 #'
-#' Builds one receptor summary row per polygon from a SIRUP object or from an
-#' already polygon-annotated receptor table. For SIRUP objects, the summary is
-#' also stored as a named analysis and the updated object is returned. For a
-#' receptor table input, the summary tibble is returned directly.
+#' `polygonReceptorSummary` makes one summary row for each polygon.
 #'
-#' @param object A SIRUP object or an AIRR-style receptor data frame.
-#' @param polygons Optional polygon table used to define the output polygon
-#'   order. When `NULL`, polygon IDs are taken from the SIRUP object or from
-#'   `polygon_id` values already present in `receptors`.
-#' @param spatial_id Column identifying spatial spots/cells. If `NULL`, the
-#'   value is pulled from the SIRUP object or guessed from `receptors`.
-#' @param polygon_id Primary polygon assignment column in `receptors`.
-#' @param clone Clone column used for `n_clones` and `top_clone_fraction`.
-#'   If this column is absent, those clone summaries are omitted.
-#' @param weight Optional numeric receptor weight column. When supplied,
-#'   `n_receptors`, `top_clone_fraction`, and numeric custom summaries are
-#'   weighted by this column.
-#' @param summary_columns Optional receptor columns to summarize.
-#' @param summary_operations Operations to apply to `summary_columns`. Must be
-#'   length 1 or the same length as `summary_columns`. Supported operations are
-#'   `count`, `sum`, `mean`, `median`, `variance`, `var`, `sd`, `min`, `max`,
-#'   `any`, `all`, and `cat`.
-#' @param include_total_spots For SIRUP objects, include `n_total_spatial_ids`,
-#'   the number of all spatial spots assigned to each polygon, including spots
-#'   without receptor rows.
-#' @param analysis_name Name used when storing the summary in a SIRUP object.
-#' @param validate Whether to validate an updated SIRUP object.
-#' @return An updated SIRUP object for SIRUP input, otherwise a summary tibble.
+#' @details
+#' The input can be a SIRUP object or a receptor table that already has polygon
+#' columns. For a SIRUP object, the function stores the summary as an analysis
+#' and returns the updated object. For a receptor table, it returns the summary
+#' tibble.
+#'
+#' @param object SIRUP object, or an AIRR-style receptor table.
+#' @param polygons Polygon table that sets the order of the output polygons. If
+#'   `NULL`, the function takes the polygon IDs from the SIRUP object, or from
+#'   the `polygon_id` values in `object`.
+#' @param spatial_id Name of the column that holds the spatial IDs. If `NULL`,
+#'   the function uses the stored field of a SIRUP object, or looks for a
+#'   standard spatial ID column in the receptor table.
+#' @param polygon_id Name of the column that holds the primary polygon of each
+#'   receptor (default `"polygon"`).
+#' @param clone Name of the column that holds the clone IDs (default
+#'   `"clone_id"`). The function uses it for `n_clones` and
+#'   `top_clone_fraction`. If the column does not exist, the function leaves out
+#'   these two summaries.
+#' @param weight Name of a numeric column that holds the receptor weights. If
+#'   you give it, `n_receptors`, `top_clone_fraction`, and the numeric custom
+#'   summaries use the weights.
+#' @param summary_columns Names of the receptor columns to summarize.
+#' @param summary_operations Operations for `summary_columns`. Give one
+#'   operation, or one for each column. The operations are `count`, `sum`,
+#'   `mean`, `median`, `variance`, `var`, `sd`, `min`, `max`, `any`, `all`, and
+#'   `cat`.
+#' @param include_total_spots Add `n_total_spatial_ids` (default `FALSE`)? This
+#'   column holds the number of all spots in each polygon, including spots with
+#'   no receptor rows. It works only for SIRUP objects.
+#' @param analysis_name Name for the stored summary in a SIRUP object (default
+#'   `"polygon_receptor_summary"`).
+#' @param validate Validate the updated SIRUP object (default `TRUE`)?
+#'
+#' @return For a SIRUP object, the updated SIRUP object. Otherwise, a summary
+#'   tibble.
+#' @seealso [assignReceptorPolygons()], [polygonDiversity()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' x <- polygonReceptorSummary(x)
+#' getAnalysis(x, "polygon_receptor_summary")
 #' @export
 polygonReceptorSummary <- function(object,
                                    polygons = NULL,
@@ -2595,14 +2796,28 @@ polygonReceptorSummary <- function(object,
   out
 }
 
-#' Calculate spatial polygon centroids
+#' Calculate polygon centroids
 #'
-#' @param object SIRUP object with stored polygons, or a polygon vertex table.
-#' @param polygons Optional polygon vertex table. When supplied, `object` may be
-#'   omitted or used only for context.
-#' @param polygon_id Polygon ID column for flat polygon input.
-#' @param x,y Coordinate columns for flat polygon input.
-#' @return Tibble with one row per polygon and sample-aware centroid coordinates.
+#' `polygonCentroids` returns the centroid of each polygon.
+#'
+#' @param object SIRUP object with stored polygons, or a table of polygon
+#'   vertices.
+#' @param polygons Table of polygon vertices. If you give it, you can omit
+#'   `object`, or use `object` only for context.
+#' @param polygon_id Name of the polygon ID column, for flat polygon input
+#'   (default `"polygon"`).
+#' @param x Name of the x-coordinate column, for flat polygon input (default
+#'   `"x"`).
+#' @param y Name of the y-coordinate column, for flat polygon input (default
+#'   `"y"`).
+#'
+#' @return A tibble with one row for each polygon. The columns are `sample`,
+#'   `polygon_id`, `polygon_label`, `x`, `y`, `.sirup_y`, and `n_vertices`.
+#' @seealso [polygonPairwiseDistance()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' polygonCentroids(x)
 #' @export
 polygonCentroids <- function(object = NULL,
                              polygons = NULL,
@@ -2652,18 +2867,30 @@ polygonCentroids <- function(object = NULL,
   tibble::as_tibble(dplyr::bind_rows(rows))
 }
 
-#' Calculate pairwise distances between polygon centroids
+#' Calculate distances between polygon centroids
+#'
+#' `polygonPairwiseDistance` calculates the distance between the centroids of
+#' each pair of polygons in a sample.
 #'
 #' @param object SIRUP object with stored polygons.
-#' @param polygons Optional polygon vertex table.
-#' @param normalize_by_diagonal Divide distances by each sample's spatial
-#'   coordinate diagonal.
-#' @param images Optional image or spatial sample names used for coordinate
-#'   extents.
-#' @param image_scale Image scale used for Seurat image coordinates.
-#' @param swap_coords Whether to swap x/y coordinates before calculating
-#'   coordinate extents.
-#' @return Tibble with one row per within-sample polygon pair.
+#' @param polygons Table of polygon vertices.
+#' @param normalize_by_diagonal Divide each distance by the diagonal of the
+#'   coordinate range of its sample (default `TRUE`)?
+#' @param images Names of the images or spatial samples to use for the
+#'   coordinate range.
+#' @param image_scale Image scale for the Seurat image coordinates.
+#' @param swap_coords Swap the x and y coordinates before the function
+#'   calculates the coordinate range?
+#'
+#' @return A tibble with one row for each pair of polygons in a sample. The
+#'   columns are `sample`, `polygon_id_1`, `polygon_id_2`, `polygon_label_1`,
+#'   `polygon_label_2`, `distance`, `normalized_distance`, and
+#'   `section_diagonal`.
+#' @seealso [polygonCentroids()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' polygonPairwiseDistance(x)
 #' @export
 polygonPairwiseDistance <- function(object,
                                     polygons = NULL,
@@ -2727,7 +2954,7 @@ polygonPairwiseDistance <- function(object,
   keep <- is.finite(x) & is.finite(y)
   x <- x[keep]
   y <- y[keep]
-  if (length(x) >= 3L && requireNamespace("sf", quietly = TRUE)) {
+  if (length(x) >= 3L) {
     xy <- cbind(x, y)
     if (!all(xy[1L, ] == xy[nrow(xy), ])) {
       xy <- rbind(xy, xy[1L, ])
@@ -2747,24 +2974,38 @@ polygonPairwiseDistance <- function(object,
   c(mean(x, na.rm = TRUE), mean(y, na.rm = TRUE))
 }
 
-#' Run a function on receptor rows from stored spatial polygons
+#' Apply a function to the receptors of each polygon
 #'
-#' Splits the receptor table by polygon membership and applies a function to
-#' each polygon's receptor rows, or applies the function once to all receptors
-#' that fall in any polygon.
+#' `withPolygons` splits the receptor table by polygon and applies a function to
+#' the rows of each polygon. Or it applies the function once to all receptors in
+#' any polygon.
 #'
-#' @param receptors A SIRUP object or an AIRR-style receptor data frame.
+#' @param receptors SIRUP object, or an AIRR-style receptor table.
 #' @param .f Function to apply.
-#' @param ... Additional arguments passed to `.f`.
-#' @param polygons Optional polygon table used to define the output polygon
-#'   order. When `NULL`, polygon IDs are taken from the SIRUP object or from
-#'   `polygon_id` values already present in `receptors`.
-#' @param polygon_id Primary polygon assignment column in `receptors`.
-#' @param mode `"by_polygon"` runs `.f` once per polygon; `"all_polygons"` runs
-#'   `.f` once on all receptors in any polygon.
-#' @param pass_polygon_id Pass the current polygon ID to `.f` as `polygon_id`
-#'   when `.f` can accept it. Defaults to `FALSE`.
-#' @return A named list for `mode = "by_polygon"`, otherwise the function result.
+#' @param ... Other arguments for `.f`.
+#' @param polygons Polygon table that sets the order of the output polygons. If
+#'   `NULL`, the function takes the polygon IDs from the SIRUP object, or from
+#'   the `polygon_id` values in `receptors`.
+#' @param polygon_id Name of the column that holds the primary polygon of each
+#'   receptor (default `"polygon"`).
+#' @param mode `"by_polygon"` runs `.f` once for each polygon. `"all_polygons"`
+#'   runs `.f` once on all receptors in any polygon.
+#' @param pass_polygon_id Pass the current polygon ID to `.f` as the argument
+#'   `polygon_id`, if `.f` accepts it (default `FALSE`)?
+#'
+#' @return For `mode = "by_polygon"`, a named list with one result for each
+#'   polygon. Otherwise, the result of `.f`.
+#' @seealso [assignReceptorPolygons()], [polygonAbundance()],
+#'   [polygonDiversity()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#'
+#' # Count the receptors in each polygon.
+#' withPolygons(x, nrow)
+#'
+#' # Count the receptors in all polygons together.
+#' withPolygons(x, nrow, mode = "all_polygons")
 #' @export
 withPolygons <- function(receptors,
                          .f,
@@ -2800,46 +3041,64 @@ withPolygons <- function(receptors,
   )
 }
 
-#' Estimate receptor clonal abundance inside spatial polygons
+#' Estimate clonal abundance inside polygons
 #'
-#' Runs [alakazam::estimateAbundance()] on receptor rows in each polygon, or on
-#' all receptors that fall in any polygon. Polygons with fewer than `min_n`
-#' receptor rows return `NULL`. SIRUP input stores the result as an analysis and
-#' returns the updated object.
+#' `polygonAbundance` runs [alakazam::estimateAbundance()] on the receptors of
+#' each polygon.
 #'
-#' @param receptors A SIRUP object or an AIRR-style receptor data frame.
-#' @param polygons Optional polygon table used to define the output polygon
-#'   order. When `NULL`, polygon IDs are taken from the SIRUP object or from
-#'   `polygon_id` values already present in `receptors`.
-#' @param polygon_id Primary polygon assignment column in `receptors`.
-#' @param mode `"by_polygon"` runs the abundance calculation once per polygon;
+#' @details
+#' With `mode = "by_polygon"`, the function runs once for each polygon. With
+#' `mode = "all_polygons"`, it runs once on all receptors in any polygon. A
+#' polygon with fewer than `min_n` receptor rows returns `NULL`. For a SIRUP
+#' object, the function stores the result as an analysis and returns the updated
+#' object.
+#'
+#' The arguments from `clone` to `progress` go to
+#' [alakazam::estimateAbundance()].
+#'
+#' @param receptors SIRUP object, or an AIRR-style receptor table.
+#' @param polygons Polygon table that sets the order of the output polygons. If
+#'   `NULL`, the function takes the polygon IDs from the SIRUP object, or from
+#'   the `polygon_id` values in `receptors`.
+#' @param polygon_id Name of the column that holds the primary polygon of each
+#'   receptor (default `"polygon"`).
+#' @param mode `"by_polygon"` runs the calculation once for each polygon.
 #'   `"all_polygons"` runs it once on all receptors in any polygon.
-#' @param analysis_name Name used when storing the abundance result in a SIRUP
-#'   object.
-#' @param clone alakazam: name of the data column containing clone identifiers.
-#' @param copy alakazam: name of the data column containing copy numbers for
-#'   each sequence. If copy=NULL (the default), then clone abundance is
-#'   determined by the number of sequences. If a copy column is specified, then
-#'   clone abundances is determined by the sum of copy numbers within each
-#'   clonal group.
-#' @param group alakazam: name of the data column containing group identifiers.
-#'   If NULL then no grouping is performed and the group column of the output
-#'   will contain the value NA for each row.
-#' @param min_n alakazam: minimum number of observations to sample. A group with
-#'   less observations than the minimum is excluded.
-#' @param max_n alakazam: maximum number of observations to sample. If NULL then
-#'   no maximum is set.
-#' @param uniform alakazam: if TRUE then uniformly resample each group to the
-#'   same number of observations. If FALSE then allow each group to be resampled
-#'   to its original size or, if specified, max_size.
-#' @param ci alakazam: confidence interval to calculate; the value must be
-#'   between 0 and 1.
-#' @param nboot alakazam: number of bootstrap realizations to generate.
-#' @param cell_id alakazam: name of the data column containing cell identifiers.
-#'   If cell_id=NULL then the function will assume bulk data.
-#' @param progress alakazam: if TRUE show a progress bar.
-#' @param validate Whether to validate an updated SIRUP object.
-#' @return An updated SIRUP object for SIRUP input, otherwise abundance result(s).
+#' @param analysis_name Name for the stored result in a SIRUP object (default
+#'   `"polygon_abundance"`).
+#' @param clone Name of the column that holds the clone IDs (default
+#'   `"clone_id"`).
+#' @param copy Name of the column that holds the copy number of each sequence
+#'   (default `NULL`). If `NULL`, the function measures clone abundance as the
+#'   number of sequences. Otherwise, it uses the sum of the copy numbers in each
+#'   clone.
+#' @param group Name of the column that holds the group IDs (default `NULL`). If
+#'   `NULL`, the function does not group, and the `group` column of the result
+#'   is `NA`.
+#' @param min_n Smallest number of observations in a group (default 5). The
+#'   function drops a group with fewer observations.
+#' @param max_n Largest number of observations to sample (default `NULL`). If
+#'   `NULL`, there is no maximum.
+#' @param uniform Resample each group to the same number of observations
+#'   (default `TRUE`)? If `FALSE`, the function resamples each group to its
+#'   original size, or to `max_n` if you give it.
+#' @param ci Confidence interval, between 0 and 1 (default 0.95).
+#' @param nboot Number of bootstrap samples (default 2000).
+#' @param cell_id Name of the column that holds the cell IDs (default `NULL`).
+#'   If `NULL`, the function assumes bulk data.
+#' @param progress Show a progress bar (default `FALSE`)?
+#' @param validate Validate the updated SIRUP object (default `TRUE`)?
+#'
+#' @return For a SIRUP object, the updated SIRUP object. Otherwise, the
+#'   abundance results.
+#' @seealso [polygonDiversity()], [withPolygons()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#'
+#' # Use all polygons together. The example polygons have few receptors.
+#' x <- polygonAbundance(x, mode = "all_polygons", min_n = 2, nboot = 50)
+#' listAnalyses(x)
 #' @export
 polygonAbundance <- function(receptors,
                              polygons = NULL,
@@ -2857,7 +3116,6 @@ polygonAbundance <- function(receptors,
                              cell_id = NULL,
                              progress = FALSE,
                              validate = TRUE) {
-  .require_namespace("alakazam")
   clone_missing <- missing(clone)
   polygon_id_missing <- missing(polygon_id)
   if (isSIRUP(receptors) && isTRUE(clone_missing)) {
@@ -2889,42 +3147,56 @@ polygonAbundance <- function(receptors,
   result
 }
 
-#' Estimate receptor clonal diversity inside spatial polygons
+#' Estimate clonal diversity inside polygons
 #'
-#' Runs [alakazam::alphaDiversity()] on receptor rows in each polygon, or on all
-#' receptors that fall in any polygon. Polygons with fewer than `min_n` receptor
-#' rows return `NULL`. SIRUP input stores the result as an analysis and returns
-#' the updated object.
+#' `polygonDiversity` runs [alakazam::alphaDiversity()] on the receptors of each
+#' polygon.
 #'
-#' @param receptors A SIRUP object or an AIRR-style receptor data frame.
-#' @param polygons Optional polygon table used to define the output polygon
-#'   order. When `NULL`, polygon IDs are taken from the SIRUP object or from
-#'   `polygon_id` values already present in `receptors`.
-#' @param polygon_id Primary polygon assignment column in `receptors`.
-#' @param mode `"by_polygon"` runs the diversity calculation once per polygon;
+#' @details
+#' With `mode = "by_polygon"`, the function runs once for each polygon. With
+#' `mode = "all_polygons"`, it runs once on all receptors in any polygon. A
+#' polygon with fewer than `min_n` receptor rows returns `NULL`. For a SIRUP
+#' object, the function stores the result as an analysis and returns the updated
+#' object.
+#'
+#' The arguments from `clone` to `...` go to [alakazam::alphaDiversity()].
+#'
+#' @param receptors SIRUP object, or an AIRR-style receptor table.
+#' @param polygons Polygon table that sets the order of the output polygons. If
+#'   `NULL`, the function takes the polygon IDs from the SIRUP object, or from
+#'   the `polygon_id` values in `receptors`.
+#' @param polygon_id Name of the column that holds the primary polygon of each
+#'   receptor (default `"polygon"`).
+#' @param mode `"by_polygon"` runs the calculation once for each polygon.
 #'   `"all_polygons"` runs it once on all receptors in any polygon.
-#' @param analysis_name Name used when storing the diversity result in a SIRUP
-#'   object.
-#' @param clone alakazam: name of the data column containing clone identifiers.
-#' @param copy alakazam: name of the data column containing copy numbers for
-#'   each sequence. If copy=NULL (the default), then clone abundance is
-#'   determined by the number of sequences. If a copy column is specified, then
-#'   clone abundances is determined by the sum of copy numbers within each
-#'   clonal group.
-#' @param group alakazam: name of the data column containing group identifiers.
-#'   If NULL then no grouping is performed and the group column of the output
-#'   will contain the value NA for each row.
-#' @param min_n alakazam: minimum number of observations to sample. A group with
-#'   less observations than the minimum is excluded.
-#' @param min_q alakazam: minimum value of q.
-#' @param max_q alakazam: maximum value of q.
-#' @param step_q alakazam: value by which to increment q.
-#' @param ci alakazam: confidence interval to calculate; the value must be
-#'   between 0 and 1.
-#' @param ... alakazam: additional arguments to pass to estimateAbundance.
-#'   Additional arguments are ignored if a AbundanceCurve is provided as input.
-#' @param validate Whether to validate an updated SIRUP object.
-#' @return An updated SIRUP object for SIRUP input, otherwise diversity result(s).
+#' @param analysis_name Name for the stored result in a SIRUP object (default
+#'   `"polygon_diversity"`).
+#' @param clone Name of the column that holds the clone IDs (default
+#'   `"clone_id"`).
+#' @param copy Name of the column that holds the copy number of each sequence
+#'   (default `NULL`). If `NULL`, the function measures clone abundance as the
+#'   number of sequences. Otherwise, it uses the sum of the copy numbers in each
+#'   clone.
+#' @param group Name of the column that holds the group IDs (default `NULL`). If
+#'   `NULL`, the function does not group, and the `group` column of the result
+#'   is `NA`.
+#' @param min_n Smallest number of observations in a group (default 30). The
+#'   function drops a group with fewer observations.
+#' @param min_q Smallest diversity order q (default 0).
+#' @param max_q Largest diversity order q (default 4).
+#' @param step_q Step between the values of q (default 0.1).
+#' @param ci Confidence interval, between 0 and 1 (default 0.95).
+#' @param ... Other arguments for [alakazam::alphaDiversity()].
+#' @param validate Validate the updated SIRUP object (default `TRUE`)?
+#'
+#' @return For a SIRUP object, the updated SIRUP object. Otherwise, the
+#'   diversity results.
+#' @seealso [summarizePolygonDiversity()], [polygonAbundance()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' x <- polygonDiversity(x, min_n = 2, max_q = 2, step_q = 1)
+#' listAnalyses(x)
 #' @export
 polygonDiversity <- function(receptors,
                              polygons = NULL,
@@ -2941,7 +3213,6 @@ polygonDiversity <- function(receptors,
                              ci = 0.95,
                              ...,
                              validate = TRUE) {
-  .require_namespace("alakazam")
   clone_missing <- missing(clone)
   polygon_id_missing <- missing(polygon_id)
   if (isSIRUP(receptors) && isTRUE(clone_missing)) {
@@ -2972,20 +3243,30 @@ polygonDiversity <- function(receptors,
   result
 }
 
-#' Summarize stored polygon diversity at one q value
+#' Summarize polygon diversity at one value of q
 #'
-#' Extracts the diversity estimate for a specific diversity order from a stored
-#' polygon diversity analysis, producing one table row per polygon and saving
-#' that table as a new SIRUP analysis.
+#' `summarizePolygonDiversity` takes the diversity estimate for one diversity
+#' order q from a stored analysis. It makes one table row for each polygon and
+#' stores the table as a new analysis.
 #'
-#' @param object A SIRUP object.
-#' @param q Diversity order to extract, such as `2` for Simpson diversity.
-#' @param diversity_analysis Name of the stored analysis produced by
-#'   [polygonDiversity()].
-#' @param analysis_name Name used to store the summarized table.
-#' @param tolerance Numeric tolerance used when matching `q`.
-#' @param validate Whether to validate the updated SIRUP object.
-#' @return An updated SIRUP object containing the diversity summary analysis.
+#' @param object SIRUP object.
+#' @param q Diversity order to take, for example `2` for Simpson diversity.
+#' @param diversity_analysis Name of the stored analysis from
+#'   [polygonDiversity()] (default `"polygon_diversity"`).
+#' @param analysis_name Name for the stored table. If `NULL`, the function uses
+#'   `polygon_diversity_q` followed by the value of `q`.
+#' @param tolerance Tolerance for the match of `q` (default
+#'   `sqrt(.Machine$double.eps)`).
+#' @param validate Validate the updated SIRUP object (default `TRUE`)?
+#'
+#' @return The updated SIRUP object, with the diversity summary as an analysis.
+#' @seealso [polygonDiversity()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' x <- polygonDiversity(x, min_n = 2, max_q = 2, step_q = 1)
+#' x <- summarizePolygonDiversity(x, q = 1)
+#' listAnalyses(x)
 #' @export
 summarizePolygonDiversity <- function(object,
                                       q,
@@ -4686,9 +4967,6 @@ summarizePolygonDiversity <- function(object,
       ) +
       ggplot2::labs(title = paste("Polygon", unique(dat$polygon_label)))
   })
-  if (!requireNamespace("patchwork", quietly = TRUE)) {
-    return(pie_plots)
-  }
   patchwork::wrap_plots(pie_plots, ncol = max(1L, ceiling(sqrt(length(pie_plots)))))
 }
 
@@ -4837,25 +5115,18 @@ summarizePolygonDiversity <- function(object,
     page_names <- paste0("page_", seq_along(page_indices))
     names(page_indices) <- page_names
 
-    if (requireNamespace("patchwork", quietly = TRUE)) {
-      pages <- lapply(seq_along(page_indices), function(page_i) {
-        idx <- page_indices[[page_i]]
-        page_pies <- pie_plots[idx]
-        pie_panel <- patchwork::wrap_plots(page_pies, ncol = max(1L, ceiling(sqrt(length(page_pies)))))
-        page <- map_plot + pie_panel + patchwork::plot_layout(widths = c(1, 1))
-        if (length(page_indices) > 1L) {
-          page <- page + patchwork::plot_annotation(title = paste0("Page ", page_i, " of ", length(page_indices)))
-        }
-        page
-      })
-      names(pages) <- page_names
-      if (length(pages) == 1L) pages[[1L]] else pages
-    } else {
-      pages <- lapply(page_indices, function(idx) {
-        list(pies = pie_plots[idx], polygons = map_plot)
-      })
-      if (length(pages) == 1L) pages[[1L]] else pages
-    }
+    pages <- lapply(seq_along(page_indices), function(page_i) {
+      idx <- page_indices[[page_i]]
+      page_pies <- pie_plots[idx]
+      pie_panel <- patchwork::wrap_plots(page_pies, ncol = max(1L, ceiling(sqrt(length(page_pies)))))
+      page <- map_plot + pie_panel + patchwork::plot_layout(widths = c(1, 1))
+      if (length(page_indices) > 1L) {
+        page <- page + patchwork::plot_annotation(title = paste0("Page ", page_i, " of ", length(page_indices)))
+      }
+      page
+    })
+    names(pages) <- page_names
+    if (length(pages) == 1L) pages[[1L]] else pages
   }
 
   if (is.list(map_plots) && !inherits(map_plots, "ggplot")) {
@@ -4891,7 +5162,6 @@ summarizePolygonDiversity <- function(object,
                                                 spatial_legend,
                                                 zoom,
                                                 combine_sample_plots = FALSE) {
-  .require_namespace("sf")
   clipped <- .sirup_clipped_pie_polygons(polygon_plot_data, centers, pie_data)
   labels <- .sirup_spatial_pie_labels(centers, pie_data)
   legend_ncol <- max(1L, min(4L, ceiling(length(fill_values) / 8)))

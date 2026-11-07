@@ -1,5 +1,4 @@
 make_test_sirup <- function(spatial_id = "spatial_id", clone = "clone_id") {
-  skip_if_not_installed("SeuratObject")
   spatial <- sirup_test_seurat(
     counts = matrix(
       1,
@@ -34,7 +33,6 @@ make_test_sirup <- function(spatial_id = "spatial_id", clone = "clone_id") {
 }
 
 make_collapse_test_sirup <- function() {
-  skip_if_not_installed("SeuratObject")
   coords <- expand.grid(x = seq_len(5), y = seq_len(5))
   cells <- paste0("cell", seq_len(nrow(coords)))
   spatial <- sirup_test_seurat(
@@ -88,7 +86,6 @@ test_that("createSIRUP creates a validated tibble-backed container", {
 })
 
 test_that("createSIRUP supports named spatial lists keyed by receptor sample", {
-  skip_if_not_installed("SeuratObject")
   make_spatial <- function(prefix) {
     spatial <- sirup_test_seurat(
       counts = matrix(
@@ -144,7 +141,6 @@ test_that("createSIRUP supports named spatial lists keyed by receptor sample", {
 })
 
 test_that("mergeSIRUP combines single-sample objects into a multisample object", {
-  skip_if_not_installed("SeuratObject")
 
   make_object <- function(cells, clones) {
     spatial <- sirup_test_seurat(
@@ -184,7 +180,6 @@ test_that("mergeSIRUP combines single-sample objects into a multisample object",
 })
 
 test_that("mergeSIRUP validates existing sample fields", {
-  skip_if_not_installed("SeuratObject")
 
   spatial <- sirup_test_seurat(
     counts = matrix(1, nrow = 1, ncol = 1, dimnames = list("gene", "cell1"))
@@ -216,7 +211,6 @@ test_that("mergeSIRUP validates existing sample fields", {
 })
 
 test_that("mergeSIRUP preserves sample-tagged polygons when inputs differ", {
-  skip_if_not_installed("SeuratObject")
 
   make_object <- function(cell) {
     spatial <- sirup_test_seurat(
@@ -250,7 +244,6 @@ test_that("mergeSIRUP preserves sample-tagged polygons when inputs differ", {
 })
 
 test_that("spatial list coordinate options resolve per sample", {
-  skip_if_not_installed("SeuratObject")
 
   make_spatial <- function(x, y) {
     spatial <- sirup_test_seurat(
@@ -286,7 +279,6 @@ test_that("spatial list coordinate options resolve per sample", {
 })
 
 test_that("spatial list SIRUP objects require a sample receptor field", {
-  skip_if_not_installed("SeuratObject")
   spatial <- sirup_test_seurat(
     counts = matrix(1, nrow = 1, ncol = 1, dimnames = list("gene", "cell1"))
   )
@@ -305,7 +297,6 @@ test_that("spatial list SIRUP objects require a sample receptor field", {
 })
 
 test_that("stored polygons annotate spatial list SIRUP objects by sample", {
-  skip_if_not_installed("SeuratObject")
   make_spatial <- function() {
     spatial <- sirup_test_seurat(
       counts = matrix(
@@ -357,7 +348,6 @@ test_that("stored polygons annotate spatial list SIRUP objects by sample", {
 })
 
 test_that("direct polygon dominance honors polygon sample columns", {
-  skip_if_not_installed("SeuratObject")
 
   make_spatial <- function() {
     spatial <- sirup_test_seurat(
@@ -410,7 +400,6 @@ test_that("direct polygon dominance honors polygon sample columns", {
 })
 
 test_that("addPolygons can tag multisample polygons from named paths", {
-  skip_if_not_installed("SeuratObject")
 
   make_spatial <- function() {
     spatial <- sirup_test_seurat(
@@ -625,7 +614,6 @@ test_that("withPolygons applies functions by polygon and across all polygons", {
 })
 
 test_that("formatSpatialClones asks for germlines before formatting", {
-  skip_if_not_installed("dowser")
   x <- make_test_sirup()
 
   expect_error(
@@ -635,7 +623,6 @@ test_that("formatSpatialClones asks for germlines before formatting", {
 })
 
 test_that("polygonAbundance and polygonDiversity return NULL below threshold", {
-  skip_if_not_installed("alakazam")
   x <- make_test_sirup()
   polygon <- data.frame(
     polygon = "GC1",
@@ -652,7 +639,6 @@ test_that("polygonAbundance and polygonDiversity return NULL below threshold", {
 })
 
 test_that("polygonAbundance runs above threshold with bulk default cell_id", {
-  skip_if_not_installed("alakazam")
   x <- make_test_sirup()
   polygon <- data.frame(
     polygon = "GC1",
@@ -668,7 +654,6 @@ test_that("polygonAbundance runs above threshold with bulk default cell_id", {
 })
 
 test_that("summarizePolygonDiversity stores a q-specific diversity table", {
-  skip_if_not_installed("alakazam")
   x <- make_test_sirup()
   polygon <- data.frame(
     polygon = "GC1",
@@ -814,7 +799,6 @@ test_that("update spatial functions operate on the Seurat object", {
 })
 
 test_that("accessor and update methods can target one spatial sample", {
-  skip_if_not_installed("SeuratObject")
 
   make_section <- function() {
     spatial <- sirup_test_seurat(
@@ -900,7 +884,6 @@ test_that("receptor summaries and QC plots accept SIRUP objects", {
 })
 
 test_that("spatialReceptorSummary counts sample and spatial ID pairs", {
-  skip_if_not_installed("SeuratObject")
 
   make_section <- function() {
     spatial <- sirup_test_seurat(
@@ -931,9 +914,6 @@ test_that("spatialReceptorSummary counts sample and spatial ID pairs", {
 })
 
 test_that("collapseIdenticalNeighbors updates SIRUP objects", {
-  skip_if_not_installed("kedd")
-  skip_if_not_installed("RANN")
-  skip_if_not_installed("igraph")
 
   set.seed(1)
   x <- make_collapse_test_sirup()
@@ -962,9 +942,6 @@ test_that("collapseIdenticalNeighbors updates SIRUP objects", {
 })
 
 test_that("collapseIdenticalNeighbors accepts receptor tables with a Seurat object", {
-  skip_if_not_installed("kedd")
-  skip_if_not_installed("RANN")
-  skip_if_not_installed("igraph")
 
   set.seed(1)
   x <- make_collapse_test_sirup()
@@ -989,7 +966,6 @@ test_that("collapseIdenticalNeighbors accepts receptor tables with a Seurat obje
 })
 
 test_that("default optional receptor fields are NULL when absent", {
-  skip_if_not_installed("SeuratObject")
   spatial <- sirup_test_seurat(
     counts = matrix(1, nrow = 1, ncol = 1, dimnames = list("gene", "cell1"))
   )
@@ -1006,7 +982,6 @@ test_that("default optional receptor fields are NULL when absent", {
 })
 
 test_that("createSIRUP rejects receptor tables without spatial overlap", {
-  skip_if_not_installed("SeuratObject")
   spatial <- sirup_test_seurat(
     counts = matrix(1, nrow = 1, ncol = 1, dimnames = list("gene", "cell1"))
   )
@@ -1030,7 +1005,6 @@ test_that("createSIRUP rejects receptor tables without spatial overlap", {
 })
 
 test_that("spatial options require explicit values without SIRUP metadata", {
-  skip_if_not_installed("SeuratObject")
   spatial <- sirup_test_seurat(
     counts = matrix(1, nrow = 1, ncol = 1, dimnames = list("gene", "cell1"))
   )
@@ -1066,7 +1040,6 @@ test_that("SIRUP metadata supplies receptor inputs to spatial analyses", {
 })
 
 test_that("spatialLocalMoran uses the receptor ID stored in SIRUP metadata", {
-  skip_if_not_installed("spdep")
   x <- make_test_sirup(spatial_id = "spot", clone = "clonal_group")
 
   local <- spatialLocalMoran(
@@ -1080,7 +1053,6 @@ test_that("spatialLocalMoran uses the receptor ID stored in SIRUP metadata", {
 })
 
 test_that("spatialCloneJoinCount uses receptor fields stored in SIRUP metadata", {
-  skip_if_not_installed("spdep")
   spatial <- sirup_test_seurat(
     counts = matrix(
       1,
@@ -1162,7 +1134,6 @@ test_that("SIRUP summaries align values and report stored polygons", {
 })
 
 test_that("multi-sample SIRUP summaries include per-sample counts", {
-  skip_if_not_installed("SeuratObject")
 
   make_section <- function() {
     spatial <- sirup_test_seurat(

@@ -2,7 +2,7 @@
 % Please edit documentation in R/processing.R
 \name{collapseIdenticalNeighbors}
 \alias{collapseIdenticalNeighbors}
-\title{Collapse spatially contiguous spots with identical receptor sequences}
+\title{Collapse neighboring spots with identical receptor sequences}
 \usage{
 collapseIdenticalNeighbors(
   object,
@@ -18,51 +18,51 @@ collapseIdenticalNeighbors(
 )
 }
 \arguments{
-\item{object}{A SIRUP object, or an AIRR-style receptor data frame.}
+\item{object}{SIRUP object, or an AIRR-style receptor data frame.}
 
-\item{seurat_object}{Optional Seurat object used only when \code{object} is a
-receptor data frame.}
+\item{seurat_object}{Seurat object. Use it only if \code{object} is a receptor
+data frame.}
 
-\item{spatial_id}{Column in the receptor table matching Seurat spot/cell
-spatial IDs. When omitted for a SIRUP object, the recorded SIRUP spatial ID field
-is used. When omitted for a receptor table, a spatial ID-like column is
-guessed.}
+\item{spatial_id}{Name of the receptor column that holds the Seurat spot
+names. For a SIRUP object, if you omit it, the function uses the stored
+spatial ID field. For a receptor table, if you omit it, the function looks
+for a standard spatial ID column.}
 
-\item{sequence}{Column containing receptor sequence strings.}
+\item{sequence}{Name of the column that holds the receptor sequences (default
+\code{"sequence"}).}
 
-\item{consensus_count}{Column containing consensus counts used to choose
-the representative spot within a connected component.}
+\item{consensus_count}{Name of the column that holds the consensus counts
+(default \code{"consensus_count"}). The function uses it to choose the
+representative spot of a group.}
 
-\item{images}{Optional Seurat image names to use for spatial coordinates.}
+\item{images}{Names of the Seurat images to use for the coordinates.}
 
-\item{image_scale}{Image scale passed to
-\code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.}
 
-\item{swap_coords}{Swap x/y coordinates after reading Seurat tissue
-coordinates.}
+\item{swap_coords}{Swap the x and y coordinates after the function reads the
+Seurat coordinates?}
 
-\item{num_neighbors_non_boundary}{Number of nearby points needed to be
-considered non-boundary.}
+\item{num_neighbors_non_boundary}{Number of nearby spots that makes a spot a
+non-boundary spot (default 6).}
 
-\item{validate}{Whether to validate the updated SIRUP object before
-returning it. Only used when \code{object} is a SIRUP object.}
+\item{validate}{Validate the updated SIRUP object (default \code{TRUE})? The
+function uses it only if \code{object} is a SIRUP object.}
 }
 \value{
-A SIRUP object or receptor data frame with bleedover rows removed,
-retaining only the representative spot for each contiguous group of
-identical sequences.
+For a SIRUP object, the updated SIRUP object with a new receptor
+table. For a receptor table, the collapsed table. Both keep only the
+representative spot of each group of identical sequences.
 }
 \description{
-For each unique receptor sequence, finds connected components of neighboring
-spots sharing that sequence, then collapses each component to a single
-representative spot. A SIRUP object is the preferred input: receptor IDs
-are read from the SIRUP field mapping and spatial coordinates are read from
-the stored Seurat object. If you are not using a SIRUP object, pass an
-AIRR-style receptor table as \code{object} and the matching Seurat object as
-\code{seurat_object}.
+\code{collapseIdenticalNeighbors} finds groups of neighboring spots that share a
+receptor sequence. It keeps one representative spot for each group.
 }
 \details{
-When \code{object} is a SIRUP object, the returned value is the updated SIRUP
-object with its receptor table replaced. When \code{object} is a receptor table,
-the returned value is the collapsed receptor table.
+For each unique receptor sequence, the function finds the connected groups of
+neighboring spots that hold that sequence. It keeps the spot with the highest
+consensus count in each group. This hopefully reduces bleedover, but in a very
+coarse manner.
+}
+\seealso{
+\code{\link[=filterAirr]{filterAirr()}}, \code{\link[=updateReceptors]{updateReceptors()}}
 }

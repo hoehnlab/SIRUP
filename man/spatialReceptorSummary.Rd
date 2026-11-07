@@ -2,19 +2,30 @@
 % Please edit documentation in R/processing.R
 \name{spatialReceptorSummary}
 \alias{spatialReceptorSummary}
-\title{Summarize a spatial receptor table}
+\title{Count the sequences and spots of a receptor table}
 \usage{
 spatialReceptorSummary(airr_df, spatial_id = "spatial_id_2um")
 }
 \arguments{
-\item{airr_df}{AIRR-style data frame or a SIRUP object.}
+\item{airr_df}{AIRR-style data frame, or a SIRUP object.}
 
-\item{spatial_id}{Spatial ID column to count. When omitted for a SIRUP object,
-the spatial ID field recorded in its metadata is used.}
+\item{spatial_id}{Name of the spatial ID column to count (default
+\code{"spatial_id_2um"}). For a SIRUP object, if you omit it, the function uses
+the stored spatial ID field. If the object has a sample field, the function
+counts each spatial ID once for each sample.}
 }
 \value{
-One-row tibble of basic counts.
+A one-row tibble with the columns \code{n_sequences}, \code{n_spatial_ids},
+\code{n_loci}, and \code{n_productive}. \code{n_loci} and \code{n_productive} are \code{NA} if the
+table has no \code{locus} or \code{productive} column.
 }
 \description{
-Summarize a spatial receptor table
+\code{spatialReceptorSummary} returns the basic counts of a receptor table.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+spatialReceptorSummary(x)
+}
+\seealso{
+\code{\link[=filterAirr]{filterAirr()}}, \code{\link[=spatialCloneDominance]{spatialCloneDominance()}}
 }

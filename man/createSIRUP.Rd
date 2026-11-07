@@ -24,80 +24,108 @@ createSIRUP(
 )
 }
 \arguments{
-\item{spatial}{A Seurat object containing spatial expression data, or a named
-list of Seurat objects representing multiple spatial contexts.}
+\item{spatial}{Seurat object with spatial expression data, or a named list of
+Seurat objects (one per spatial sample).}
 
-\item{receptors}{A data-frame-like AIRR-style receptor table.}
+\item{receptors}{AIRR-style receptor table (a data frame or similar).}
 
-\item{spatial_id}{Column in \code{receptors} matching spatial cell or spot
-spatial IDs. When \code{NULL}, a spatial ID-like column is guessed once and recorded
-in the object metadata.}
+\item{spatial_id}{Name of the \code{receptors} column that holds the spatial cell
+or spot IDs. If \code{NULL}, the function uses the first column found from this
+list: \code{spatial_id}, \code{spatial_id_8um}, \code{spatial_id_2um}, \code{spatial_id_16um},
+\code{barcode_8um}, \code{barcode_2um}, \code{cell}, \code{cell_barcode}. It stores the name in
+the metadata and gives an error if none exists.}
 
-\item{image}{Optional receptor column identifying the Seurat image.}
+\item{image}{Name of the \code{receptors} column that identifies the Seurat image
+(default \code{NULL}).}
 
-\item{sample}{Optional sample column present in \code{receptors}. It is recorded
-for sample-aware analyses and validation. When \code{spatial} is a named list,
-this field is required and maps receptor rows to spatial object names;
-values that do not match any spatial object are retained as nonspatial
-receptor records. If this metadata column is absent from a Seurat section,
-it is auto-populated from the spatial-list name.}
+\item{sample}{Name of the \code{receptors} column that holds the sample name. If
+\code{spatial} is a named list, this argument is required. If a Seurat object
+has no such metadata column, the function fills it with the list name.}
 
-\item{clone}{Optional clone-assignment column. The default is recorded
-when present and otherwise stored as \code{NULL}.}
+\item{clone}{Name of the \code{receptors} column that holds the clone ID (default
+\code{NULL}). The function gives an error if the column does not exist.}
 
-\item{locus}{Optional receptor-locus column. The default is recorded
-when present and otherwise stored as \code{NULL}.}
+\item{locus}{Name of the \code{receptors} column that holds the receptor locus
+(default \code{"locus"}). If you use the default and the column does not exist,
+the function stores \code{NULL}. If you give another name that does not exist,
+the function gives an error.}
 
-\item{count}{Optional column containing receptor observation weights or
-counts. Default is \code{NULL}.}
+\item{count}{Name of the \code{receptors} column that holds the observation count
+or weight (default \code{NULL}).}
 
-\item{image_scale}{Optional default Seurat image scale used by spatial
-plotting and spatial-statistic functions when they receive this SIRUP
-object and their own \code{image_scale} argument is \code{NULL}. For multi-spatial
-objects, may be a named character vector/list keyed by spatial sample; an
-unnamed value is used as the global fallback.}
+\item{image_scale}{Default Seurat image scale (default \code{NULL}). Plotting and
+spatial statistics functions use it when their own \code{image_scale} is \code{NULL}.
+For multi-sample objects, give a named vector or list with one value for
+each sample, or one unnamed value that applies to all samples.}
 
-\item{swap_coords}{Optional default coordinate-orientation flag used by
-spatial plotting and spatial-statistic functions when they receive this
-SIRUP object and their own \code{swap_coords} argument is \code{NULL}. For
-multi-spatial objects, may be a named logical vector/list keyed by spatial
-sample; an unnamed value is used as the global fallback.}
+\item{swap_coords}{Swap the two Seurat coordinate axes by default (default
+\code{NULL})? Plotting and spatial statistics functions use this value when their
+own \code{swap_coords} is \code{NULL}. For multi-sample objects, give a named vector
+or list with one value for each sample, or one unnamed value that applies to
+all samples.}
 
-\item{metadata}{Optional named list of dataset-level metadata.}
+\item{metadata}{Named list of dataset-level metadata.}
 
-\item{polygons}{Optional polygon table. A canonical table has one row per
-polygon with \code{polygon_id} and a list-column \code{vertices}; each vertices
-table must contain \code{x} and \code{y}, and may contain \code{spatial_id} and \code{image}.
-Stored polygons automatically annotate both Seurat metadata and receptor
-tables with a primary \code{polygon_id} column plus logical \verb{polygon_<ID>}
-membership columns for each individual polygon.}
+\item{polygons}{Polygon table (default \code{NULL}). The table has one row per
+polygon, with a \code{polygon_id} column and a list column \code{vertices}. Each
+\code{vertices} table needs columns \code{x} and \code{y}. It can also have \code{spatial_id}
+and \code{image}. The function adds a \code{polygon_id} column and one logical
+\verb{polygon_<ID>} column per polygon to both the Seurat metadata and the
+receptor table.}
 
-\item{polygons_path}{Optional path to a flat polygon vertex CSV. It may use
-\code{polygon_id} or \code{polygon} for the polygon identifier and must contain \code{x}
-and \code{y} coordinate columns. Stored polygons from this path receive the same
-automatic annotation as \code{polygons}.}
+\item{polygons_path}{Path to a flat CSV file of polygon vertices (default
+\code{NULL}). The file needs \code{x} and \code{y} columns and a \code{polygon_id} or \code{polygon}
+column. The function annotates these polygons in the same way as
+\code{polygons}.}
 
-\item{include_boundary}{Whether spots exactly on stored polygon edges should
-be annotated as polygon members when polygons are attached.}
+\item{include_boundary}{Count spots on a polygon edge as members of the
+polygon (default \code{TRUE})?}
 
-\item{analyses}{Optional named list of derived analysis results.}
+\item{analyses}{Named list of derived analysis results.}
 
-\item{validate}{Whether to validate the completed object.}
+\item{validate}{Validate the new object (default \code{TRUE})?}
 }
 \value{
-A SIRUP object with S3 class \code{sirup}.
+A SIRUP object (S3 class \code{sirup}).
 }
 \description{
-A SIRUP object keeps spatial Seurat data and an AIRR-style receptor table
-together with receptor field mappings needed to join and interpret them.
-\code{spatial} may be one Seurat object or a named list of Seurat objects. When a
-list is supplied, the receptor \code{sample} field maps receptor rows to the
-corresponding spatial object name; receptor rows whose sample does not match
-a spatial object are retained as nonspatial receptor records. Field mappings
-are stored in \code{metadata$receptor_fields}. Derived results can be kept in the
-optional named \code{analyses} list so that the data and the analyses made from
-them can travel together.
-The receptor table is stored as a \code{\link[tibble:tibble]{tibble::tibble()}}. Unmatched receptor
-rows are retained, which allows a table to contain bulk or other
-nonspatial receptor records alongside spatial records.
+\code{createSIRUP} joins a Seurat spatial object and an AIRR receptor table into
+one SIRUP object.
+}
+\details{
+\code{spatial} can be one Seurat object or a named list of Seurat objects. If you
+give a list, the \code{sample} column of \code{receptors} must name the corresponding
+list entry for each row. The function keeps rows with no matching entry as
+nonspatial records. For example, these rows can hold bulk or single-cell
+data.
+
+The function stores key receptor column names in \code{metadata$receptor_fields}
+and converts \code{receptors} to a \code{\link[tibble:tibble]{tibble::tibble()}}. The optional \code{analyses}
+list keeps derived results.
+
+The examples in this package use a small synthetic SIRUP object. It has 25
+spots, 10 genes, 5 clones, and 2 polygons. The spots and gene counts are
+simulated. The receptor rows are real BCR sequences from a human thymus
+section, assigned to synthetic spots. Load the object with
+\code{readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))}.
+The script \code{data-raw/make_synthetic_example.R} builds it.
+}
+\examples{
+# Use the small synthetic object that comes with the package.
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+x
+
+# Build a SIRUP object from a Seurat object and a receptor table.
+sirup <- createSIRUP(
+  spatial = getSpatial(x),
+  receptors = getReceptors(x),
+  spatial_id = "spatial_id",
+  clone = "clone_id",
+  image_scale = "hires",
+  swap_coords = FALSE
+)
+sirup
+}
+\seealso{
+\code{\link[=validateSIRUP]{validateSIRUP()}}, \code{\link[=mergeSIRUP]{mergeSIRUP()}}, \code{\link[=saveSIRUP]{saveSIRUP()}}
 }

@@ -19,8 +19,6 @@ make_image_free_spatial <- function() {
 }
 
 test_that("shared spatial plotting helpers use metadata coordinates without images", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("Matrix")
 
   object <- make_image_free_spatial()
 
@@ -42,9 +40,6 @@ test_that("shared spatial plotting helpers use metadata coordinates without imag
 })
 
 test_that("core spatial ggplot functions work without Seurat images", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("Matrix")
-  skip_if_not_installed("patchwork")
 
   object <- make_image_free_spatial()
   receptors <- data.frame(
@@ -131,8 +126,6 @@ test_that("core spatial ggplot functions work without Seurat images", {
 })
 
 test_that("spatialDiscretePlot reads multisample metadata without barcode bleed", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("Matrix")
 
   make_section <- function(cell_type) {
     object <- make_image_free_spatial()
@@ -244,8 +237,6 @@ test_that(".sirup_fetch_data reports ordered layer and slot failures", {
 })
 
 test_that("spatial statistic and polygon plots work without Seurat images", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("Matrix")
 
   object <- make_image_free_spatial()
   local_moran <- data.frame(
@@ -283,8 +274,6 @@ test_that("spatial statistic and polygon plots work without Seurat images", {
 })
 
 test_that("3D clone density prepares image-free plot data", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("Matrix")
   skip_if_not_installed("pals")
 
   object <- make_image_free_spatial()
@@ -335,8 +324,6 @@ polygon_layer_data <- function(plot) {
 }
 
 test_that("plotReceptors overlays polygons from a data frame and a CSV path", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("Matrix")
 
   object <- make_image_free_spatial()
   receptors <- data.frame(
@@ -394,8 +381,6 @@ test_that("plotReceptors overlays polygons from a data frame and a CSV path", {
 })
 
 test_that("plotSpatialColorTips overlays SIRUP object polygons", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("Matrix")
 
   object <- make_image_free_spatial()
   receptors <- data.frame(
@@ -434,8 +419,6 @@ test_that("plotSpatialColorTips overlays SIRUP object polygons", {
 })
 
 test_that("stored polygon overlays are filtered per spatial sample", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("Matrix")
 
   make_section <- function() {
     make_image_free_spatial()
@@ -498,9 +481,6 @@ test_that("stored polygon overlays are filtered per spatial sample", {
 })
 
 test_that("spatialExpressionBlendPlot forwards assay and layer to per-feature panels", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("Matrix")
-  skip_if_not_installed("patchwork")
 
   object <- make_image_free_spatial()
 
@@ -548,8 +528,6 @@ receptor_color_scale_name <- function(plot) {
 }
 
 test_that("plotReceptors colours spots by a continuous value column", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("Matrix")
 
   object <- make_image_free_spatial()
   # cell1 carries two receptors, so it must be combined to one number.
@@ -607,8 +585,6 @@ test_that("plotReceptors colours spots by a continuous value column", {
 })
 
 test_that("plotReceptors value = 'count' counts receptors per spot", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("Matrix")
 
   object <- make_image_free_spatial()
   receptors <- data.frame(
@@ -636,8 +612,6 @@ test_that("plotReceptors value = 'count' counts receptors per spot", {
 })
 
 test_that("plotReceptors validates value and accepts multi-stop palettes", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("Matrix")
 
   object <- make_image_free_spatial()
   receptors <- data.frame(

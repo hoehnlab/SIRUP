@@ -19,9 +19,7 @@ knitr::opts_chunk$set(
   dev = "jpeg",
   dev.args = list(quality = 90),
   out.width = "100%",
-  eval = requireNamespace("Seurat", quietly = TRUE) &&
-    requireNamespace("airr", quietly = TRUE) &&
-    requireNamespace("scoper", quietly = TRUE)
+  eval = requireNamespace("Seurat", quietly = TRUE)
 )
 ```
 
@@ -62,23 +60,17 @@ if (!requireNamespace("SIRUP", quietly = TRUE)) remotes::install_github("hjm2217
 devtools::load_all("/Volumes/HoehnK/Hunter/spatial_bcr_tcr_package/SIRUP") 
 ```
 
-SIRUP uses Seurat objects for spatial expression. Most analysis functions also
-use packages from the Immcantation framework and from the spatial statistics
-community. Install the packages that the vignettes use. This code installs
-only the packages that you do not have yet:
+SIRUP uses Seurat objects for spatial expression. SIRUP installs the packages
+that most analysis functions need. These include packages from the Immcantation
+framework (such as dowser, scoper, and alakazam) and from the spatial
+statistics community (such as spdep). A few packages are optional. The
+vignettes use them. This code installs only the optional packages that you do
+not have yet:
 
 ```{r install-suggests, eval = FALSE}
-packages <- c(
-  "Seurat", "airr", "alakazam", "scoper", "dowser", "spdep", "spatstat.explore",
-  "spatstat.geom", "spatstat.random", "cowplot", "patchwork", "pals"
-)
+packages <- c("Seurat", "spatstat.explore", "spatstat.geom", "spatstat.random", "pals")
 missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
 if (length(missing) > 0) install.packages(missing)
-
-if (!requireNamespace("ggtree", quietly = TRUE)) {
-  if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-  BiocManager::install("ggtree")
-}
 ```
 
 The processing step also needs command-line tools: IgBLAST, pRESTO, vsearch,

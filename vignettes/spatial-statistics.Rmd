@@ -19,10 +19,7 @@ knitr::opts_chunk$set(
   dev = "jpeg",
   dev.args = list(quality = 90),
   out.width = "100%",
-  eval = requireNamespace("Seurat", quietly = TRUE) &&
-    requireNamespace("spdep", quietly = TRUE) &&
-    requireNamespace("airr", quietly = TRUE) &&
-    requireNamespace("scoper", quietly = TRUE)
+  eval = requireNamespace("Seurat", quietly = TRUE)
 )
 has_spatstat <- requireNamespace("spatstat.explore", quietly = TRUE) &&
   requireNamespace("spatstat.geom", quietly = TRUE) &&

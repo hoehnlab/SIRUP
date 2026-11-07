@@ -13,19 +13,28 @@ spatialCoordinateExtents(
 )
 }
 \arguments{
-\item{object}{SIRUP object or spatial Seurat object.}
+\item{object}{SIRUP object, or Seurat object with spatial images.}
 
-\item{by}{Summarize by spatial \code{sample} or by \code{image}.}
+\item{by}{Group the ranges by \code{sample} or by \code{image}.}
 
-\item{images}{Optional image or spatial sample names.}
+\item{images}{Names of the images or samples to include.}
 
-\item{image_scale}{Image scale used for Seurat image coordinates.}
+\item{image_scale}{Image scale for the Seurat image coordinates.}
 
-\item{swap_coords}{Whether to swap x/y coordinates before summarizing.}
+\item{swap_coords}{Swap the x and y coordinates?}
 }
 \value{
-Tibble with coordinate ranges, width, height, diagonal, and spot count.
+A tibble with the ranges (\code{x_min}, \code{x_max}, \code{y_min}, \code{y_max}), the
+\code{width}, \code{height}, and \code{diagonal}, and the number of spots
+(\code{n_spatial_ids}).
 }
 \description{
-Summarize spatial coordinate ranges
+\code{spatialCoordinateExtents} gives the x and y range of each sample or image.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+spatialCoordinateExtents(x)
+}
+\seealso{
+\code{\link[=spatialCoordinateTable]{spatialCoordinateTable()}}
 }

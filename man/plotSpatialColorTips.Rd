@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_ggplot_visualization.R
 \name{plotSpatialColorTips}
 \alias{plotSpatialColorTips}
-\title{Plot tip colors over a tissue image}
+\title{Plot tip colors on a tissue image}
 \usage{
 plotSpatialColorTips(
   object,
@@ -42,94 +42,117 @@ plotSpatialColorTips(
 )
 }
 \arguments{
-\item{object}{Seurat object, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{tip_data}{Data frame with spatial ID and color columns.}
+\item{tip_data}{Data frame with a spatial ID column and a color column. For
+example, use the result of \code{\link[=assignTipColors]{assignTipColors()}}.}
 
-\item{spatial_id}{Spatial ID column in \code{tip_data} matching Seurat spot names.}
+\item{spatial_id}{Name of the column in \code{tip_data} that holds the Seurat spot
+names (default \code{"spatial_id_8um"}).}
 
-\item{sample}{Optional column in \code{tip_data} matching names of a spatial
-object list.}
+\item{sample}{Name of the column in \code{tip_data} that matches the names of a
+list of spatial objects.}
 
-\item{color}{Column containing colors.}
+\item{color}{Name of the column that holds the colors (default
+\code{"tip_color"}).}
 
-\item{label}{Optional column containing legend labels for colors.}
+\item{label}{Name of the column that holds the legend labels of the colors.}
 
-\item{legend_title}{Title for the color legend.}
+\item{legend_title}{Title of the color legend (default \code{"Tip color"}).}
 
-\item{legend_colors}{Optional named color vector used for the legend.}
+\item{legend_colors}{Named vector of colors for the legend.}
 
-\item{title}{Optional title.}
+\item{title}{Plot title.}
 
-\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{point_size}{Size of plotted tips.}
+\item{point_size}{Size of the spots. The default is 1.6.}
 
-\item{point_alpha}{Opacity for plotted tips.}
+\item{point_alpha}{Opacity of the spots.}
 
-\item{order_points}{Plot earlier tip-color groups first so later groups
-appear on top.}
+\item{order_points}{Draw the early color groups first, so that the later
+groups show on top (default \code{TRUE})?}
 
-\item{images}{Optional Seurat image names.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
+\item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
+objects. If \code{NULL}, the function plots all samples.}
 
-\item{image_alpha}{Tissue image opacity.}
+\item{image_alpha}{Opacity of the tissue image.}
 
-\item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
-full tissue area covered by the spatial coordinates.}
+\item{zoom}{Zoom to the plotted spots (default \code{FALSE})? If \code{FALSE}, the plot
+shows the full tissue area that the spatial coordinates cover.}
 
-\item{show_legend}{Show color legend.}
+\item{show_legend}{Show the color legend (default \code{FALSE})?}
 
-\item{polygons}{Draw region polygons under the tip points on each spatial
-panel. \code{FALSE} (the default) draws no polygons. \code{TRUE} uses the polygons
-stored in the SIRUP object. You can also pass a data frame of polygon
-vertices, or a path to a CSV file of polygon vertices. Vertex tables need
-\code{polygon_x} and \code{polygon_y} columns, plus \code{polygon_id} to separate
-multiple polygons.}
+\item{polygons}{Draw polygons under the points on each spatial panel. With
+\code{FALSE} (default), the function draws no polygons. With \code{TRUE}, it uses the
+polygons stored in the SIRUP object. You can also give a data frame of
+polygon vertices, or the path of a CSV file of polygon vertices. A vertex
+table needs the columns set by \code{polygon_x} and \code{polygon_y}. It needs the
+column set by \code{polygon_id} if it holds more than one polygon.}
 
-\item{polygon_x, polygon_y}{Vertex coordinate columns in a supplied polygon
-data frame or CSV file.}
+\item{polygon_x}{Name of the x-coordinate column in the polygon table
+(default \code{"x"}).}
 
-\item{polygon_id}{Column that separates multiple polygons in a supplied
-polygon data frame or CSV file. When the named column is absent, a
-\code{polygon} or \code{polygon_id} column is used if present; otherwise all rows
-form one polygon.}
+\item{polygon_y}{Name of the y-coordinate column in the polygon table
+(default \code{"y"}).}
 
-\item{polygon_val}{Optional polygon ID value(s) to draw. When \code{NULL}, all
-polygons are drawn.}
+\item{polygon_id}{Name of the column that separates the polygons in the
+polygon table (default \code{"polygon"}). If the column does not exist, the
+function uses a \code{polygon} or \code{polygon_id} column. If neither exists, all
+rows form one polygon.}
 
-\item{polygon_alpha}{Fill opacity for polygons.}
+\item{polygon_val}{IDs of the polygons to draw. If \code{NULL}, the function draws
+all polygons.}
 
-\item{polygon_fill}{Fill color for polygons.}
+\item{polygon_alpha}{Opacity of the polygon fill (default 0.2).}
 
-\item{polygon_color}{Outline color for polygons.}
+\item{polygon_fill}{Fill color of the polygons (default \code{"#0072B2"}).}
 
-\item{polygon_linewidth}{Outline width for polygons.}
+\item{polygon_color}{Color of the polygon outlines (default \code{"#0072B2"}).}
 
-\item{polygon_label}{Label each polygon at its center.}
+\item{polygon_linewidth}{Width of the polygon outlines (default 0.6).}
 
-\item{polygon_label_by}{Column used for polygon labels. When \code{NULL}, the
-polygon ID is used.}
+\item{polygon_label}{Write a label at the center of each polygon (default
+\code{FALSE})?}
 
-\item{polygon_label_size}{Text size for polygon labels.}
+\item{polygon_label_by}{Name of the column that holds the labels. If \code{NULL},
+the function uses the polygon ID.}
 
-\item{polygon_label_color}{Text color for polygon labels.}
+\item{polygon_label_size}{Text size of the polygon labels (default 3).}
 
-\item{combine}{Combine image panels with patchwork.}
+\item{polygon_label_color}{Text color of the polygon labels (default
+\code{"black"}).}
 
-\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
-from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
-multi-sample calls return a named list of per-sample plots.}
+\item{combine}{Combine the image panels with patchwork (default \code{TRUE})?}
+
+\item{combine_sample_plots}{Combine the plots of all samples into one
+patchwork (default \code{FALSE})? The function uses it only for multi-sample
+objects. If \code{FALSE}, it returns a named list with one plot for each sample.}
 }
 \value{
-A ggplot/patchwork object.
+A ggplot object or a patchwork object.
 }
 \description{
-Plot tip colors over a tissue image
+\code{plotSpatialColorTips} plots the spots of tree tips. Each spot gets the color
+of its tip.
+}
+\details{
+If the object has multiple images or samples, the function draws one plot
+for each image or sample.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+colors <- assignTipColors(getReceptors(x), shared_color = "spatial_id")
+plotSpatialColorTips(x, tip_data = colors, spatial_id = "spatial_id")
+}
+\seealso{
+\code{\link[=plotSpatialCloneColorTips]{plotSpatialCloneColorTips()}}, \code{\link[=plotSpatialCloneTreePairs]{plotSpatialCloneTreePairs()}},
+\code{\link[=assignTipColors]{assignTipColors()}}
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{plotSpatialPolygons}
 \alias{plotSpatialPolygons}
-\title{Plot spatial polygons on a tissue image}
+\title{Plot polygons on a tissue image}
 \usage{
 plotSpatialPolygons(
   object,
@@ -38,92 +38,109 @@ plotSpatialPolygons(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
-\code{y} columns by default. If \code{object} is a SIRUP object and \code{polygon} is
-omitted, the object's stored polygons are used.}
+\item{polygon}{Data frame of polygon vertices in order. It needs the columns
+set by \code{x} and \code{y}. If the column set by \code{polygon_id} exists, the function
+treats each polygon on its own. If \code{object} is a SIRUP object and \code{polygon}
+is \code{NULL}, the function uses the stored polygons.}
 
-\item{images}{Optional Seurat image names to show.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
+\item{sample}{Alias for \code{sample_id}.}
 
-\item{image_scale}{Image scale passed to
-\code{SeuratObject::GetTissueCoordinates()}.}
+\item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
+objects. If \code{NULL}, the function plots all samples.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
-exists.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{x}{Coordinate column in \code{polygon}.}
+\item{polygon_val}{IDs of the polygons to use. If \code{NULL}, the function uses
+all polygons.}
 
-\item{y}{Coordinate column in \code{polygon}.}
+\item{x}{Name of the x-coordinate column in \code{polygon} (default \code{"x"}).}
 
-\item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
+\item{y}{Name of the y-coordinate column in \code{polygon} (default \code{"y"}).}
 
-\item{polygon_alpha}{Fill opacity for polygons.}
+\item{polygon_id}{Name of the column in \code{polygon} that groups the vertices
+by polygon (default \code{"polygon"}).}
 
-\item{polygon_fill}{Fill color for polygons when no analysis is mapped.}
+\item{polygon_alpha}{Opacity of the polygon fill (default 0.2).}
 
-\item{fill_analysis}{Optional name of a stored SIRUP analysis containing
-one row per polygon.}
+\item{polygon_fill}{Fill color of the polygons, if no analysis is mapped
+(default \code{"#0072B2"}).}
 
-\item{fill_column}{Optional column used to color polygon interiors. When
-\code{fill_analysis} is \code{NULL}, this column is read from the polygon data. When
-\code{fill_analysis} is supplied, this column is read from that analysis, which
-must contain \code{polygon_id} or \code{polygon} as its polygon key.}
+\item{fill_analysis}{Name of a stored SIRUP analysis that has one row for
+each polygon. The function colors the polygons with it.}
 
-\item{analysis_fill}{Character vector of two colors used as the low and high
-ends of the numeric analysis gradient. Defaults to
-\code{c("#D3D3D3", "#FFFF00")}. Non-numeric analysis values use the Glasbey
-palette.}
+\item{fill_column}{Name of the column that sets the fill color. If
+\code{fill_analysis} is \code{NULL}, the function reads the column from the polygon
+data. Otherwise, it reads the column from the analysis. The analysis must
+have a \code{polygon_id} or \code{polygon} column as the polygon key.}
 
-\item{polygon_color}{Outline color for polygons.}
+\item{analysis_fill}{Two colors for the low and high end of the gradient for
+numeric analysis values (default \code{c("#D3D3D3", "#FFFF00")}). The function
+uses the Glasbey palette for other values.}
 
-\item{linewidth}{Outline width for polygons.}
+\item{polygon_color}{Color of the polygon outlines (default \code{"#0072B2"}).}
 
-\item{image_alpha}{Tissue image opacity.}
+\item{linewidth}{Width of the polygon outlines (default 0.6).}
 
-\item{label}{Plot labels at polygon centers.}
+\item{image_alpha}{Opacity of the tissue image.}
 
-\item{label_by}{Column in the polygon data to use for labels.}
+\item{label}{Write a label at the center of each polygon (default \code{TRUE})?}
 
-\item{label_size}{Text size for polygon labels.}
+\item{label_by}{Name of the column in the polygon data that holds the labels
+(default \code{"polygon"}).}
 
-\item{label_color}{Text color for polygon labels.}
+\item{label_size}{Text size of the labels (default 3).}
 
-\item{label_outside}{Place each label OUTSIDE its polygon instead of at the
-center. The label is pushed radially away from the centroid of all plotted
-polygons (so labels fan outward from a cluster of small polygons, e.g.
-crowded thymic eGCs), clearing the polygon by \code{label_offset}. A thin leader
-line links each label to its polygon unless \code{label_leader = FALSE}.}
+\item{label_color}{Text color of the labels (default \code{"black"}).}
 
-\item{label_offset}{When \code{label_outside = TRUE}, the gap between the polygon
-edge and its label, as a fraction of the plotted coordinate span
-(default 0.08).}
+\item{label_outside}{Put each label outside its polygon (default \code{FALSE})?
+The function pushes each label away from the centroid of all plotted
+polygons, so that labels spread outward from a group of small polygons. The
+label is \code{label_offset} away from the polygon.}
 
-\item{label_leader}{When \code{label_outside = TRUE}, draw a leader segment from
-each polygon to its displaced label.}
+\item{label_offset}{Gap between a polygon edge and its label, if
+\code{label_outside} is \code{TRUE} (default 0.08). The value is a fraction of the
+plotted coordinate range.}
 
-\item{label_leader_color}{Color of the leader segments.}
+\item{label_leader}{Draw a line from each polygon to its label, if
+\code{label_outside} is \code{TRUE} (default \code{TRUE})?}
 
-\item{zoom}{Zoom to the polygon extents instead of the full tissue.}
+\item{label_leader_color}{Color of the leader lines (default \code{"grey40"}).}
 
-\item{combine}{Combine plots with patchwork when possible.}
+\item{zoom}{Zoom to the extent of the polygons, not the full tissue (default
+\code{FALSE})?}
 
-\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
-from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
-multi-sample calls return a named list of per-sample plots.}
+\item{combine}{Combine the plots with patchwork, if possible (default
+\code{TRUE})?}
+
+\item{combine_sample_plots}{Combine the plots of all samples into one
+patchwork (default \code{FALSE})? The function uses it only for multi-sample
+objects. If \code{FALSE}, it returns a named list with one plot for each sample.}
 }
 \value{
-A ggplot/patchwork object or a named list of ggplots when
-\code{combine = FALSE}.
+A ggplot or patchwork object. If \code{combine = FALSE}, a named list of
+ggplot objects.
 }
 \description{
-Plots one or more polygon vertex tables, such as the output of
-\code{selectSpatialPolygons()}, over the Seurat tissue image.
+Plot polygons on a tissue image
+}
+\details{
+\code{plotSpatialPolygons} plots polygons over the Seurat tissue image. If there
+are multiple samples or images, the function creates separate plots for each.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+plotSpatialPolygons(x)
+plotSpatialPolygons(x, label_outside = TRUE)
+}
+\seealso{
+\code{\link[=selectSpatialPolygons]{selectSpatialPolygons()}}, \code{\link[=spatialCloneDominance]{spatialCloneDominance()}}
 }

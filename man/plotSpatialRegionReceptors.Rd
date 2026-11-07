@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{plotSpatialRegionReceptors}
 \alias{plotSpatialRegionReceptors}
-\title{Plot receptors inside spatial polygons}
+\title{Plot receptors inside polygons using the results of \code{\link[=spatialCloneDominance]{spatialCloneDominance()}}}
 \usage{
 plotSpatialRegionReceptors(
   dominance,
@@ -29,64 +29,77 @@ plotSpatialRegionReceptors(
 )
 }
 \arguments{
-\item{dominance}{Object returned by \code{spatialCloneDominance()}.}
+\item{dominance}{Result of \code{\link[=spatialCloneDominance]{spatialCloneDominance()}}.}
 
-\item{object}{Seurat object with spatial images, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{color}{Column in \code{dominance$region_receptors} used to color receptor
-points. When omitted, the clone column recorded by
-\code{spatialCloneDominance()} is used.}
+\item{color}{Name of the column in \code{dominance$region_receptors} that sets the
+color of the points. If you omit it, the function uses the clone column
+that \code{\link[=spatialCloneDominance]{spatialCloneDominance()}} recorded (default \code{"clone_id"}).}
 
-\item{images}{Optional Seurat image names to show.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
+\item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
+objects. If \code{NULL}, the function plots all samples.}
 
-\item{image_scale}{Image scale passed to
-\code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{polygon_val}{Optional polygon ID value(s) to select from the dominance
-result.}
+\item{polygon_val}{IDs of the polygons to select from \code{dominance}.}
 
-\item{point_size}{Size of receptor points.}
+\item{point_size}{Size of the receptor points (default 1).}
 
-\item{point_alpha}{Opacity for receptor points.}
+\item{point_alpha}{Opacity of the receptor points (default 0.5).}
 
-\item{polygon_alpha}{Fill opacity for polygons.}
+\item{polygon_alpha}{Opacity of the polygon fill (default 0.12).}
 
-\item{polygon_fill}{Fill color for polygons.}
+\item{polygon_fill}{Fill color of the polygons (default \code{"#FFFFFF"}).}
 
-\item{polygon_color}{Outline color for polygons.}
+\item{polygon_color}{Color of the polygon outlines (default \code{"black"}).}
 
-\item{image_alpha}{Tissue image opacity.}
+\item{image_alpha}{Opacity of the tissue image.}
 
-\item{top_n}{Optional number of most frequent \code{color} levels to keep
-before grouping remaining levels as \code{other_label}.}
+\item{top_n}{Number of the most frequent \code{color} levels to show. The function
+groups the other levels under \code{other_label}. If \code{NULL}, it shows all
+levels.}
 
-\item{other_label}{Label for grouped lower-frequency levels.}
+\item{other_label}{Label for the grouped levels (default \code{"Other"}).}
 
-\item{other_color}{Color used for \code{other_label}.}
+\item{other_color}{Color of the grouped levels (default \code{"#D3D3D3"}).}
 
-\item{plot_other}{Plot receptors grouped into \code{other_label}.}
+\item{plot_other}{Plot the grouped levels (default \code{TRUE})?}
 
-\item{zoom}{Zoom to the selected polygon extents. Defaults to \code{FALSE}, which
-shows the full tissue image.}
+\item{zoom}{Zoom to the extent of the selected polygons (default \code{FALSE})? If
+\code{FALSE}, the plot shows the full tissue image.}
 
-\item{combine}{Combine plots with patchwork when possible.}
+\item{combine}{Combine the plots with patchwork, if possible (default
+\code{TRUE})?}
 
-\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
-from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
-multi-sample calls return a named list of per-sample plots.}
+\item{combine_sample_plots}{Combine the plots of all samples into one
+patchwork (default \code{FALSE})? The function uses it only for multi-sample
+objects. If \code{FALSE}, it returns a named list with one plot for each sample.}
 }
 \value{
-A ggplot/patchwork object or a named list of ggplots when
-\code{combine = FALSE}.
+A ggplot or patchwork object. If \code{combine = FALSE}, a named list of
+ggplot objects.
 }
 \description{
-Plots regional receptor rows from \code{spatialCloneDominance()} over the tissue
-image, colored by a receptor-table column.
+Plot receptors inside polygons using the results of \code{\link[=spatialCloneDominance]{spatialCloneDominance()}}
+}
+\details{
+\code{plotSpatialRegionReceptors} plots the receptors inside the polygons on the
+tissue image. The result of \code{\link[=spatialCloneDominance]{spatialCloneDominance()}} supplies the receptors.
+If there are multiple samples or images, the function creates separate plots for each.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+dominance <- spatialCloneDominance(x)
+plotSpatialRegionReceptors(dominance, x)
+}
+\seealso{
+\code{\link[=spatialCloneDominance]{spatialCloneDominance()}}, \code{\link[=plotSpatialPolygonPies]{plotSpatialPolygonPies()}}
 }

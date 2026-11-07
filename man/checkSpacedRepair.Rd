@@ -2,7 +2,7 @@
 % Please edit documentation in R/spaced_pairing.R
 \name{checkSpacedRepair}
 \alias{checkSpacedRepair}
-\title{Check for the SPaCeD-compatible REPAIR fork}
+\title{Check for the REPAIR fork that SPaCeD needs}
 \usage{
 checkSpacedRepair(
   conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair"),
@@ -12,21 +12,37 @@ checkSpacedRepair(
 )
 }
 \arguments{
-\item{conda_env}{Conda environment name. Set to \code{NULL} or \code{""} to run
-\code{python_bin} directly without \verb{conda run}.}
+\item{conda_env}{Name of the conda environment (default: the environment
+variable \code{REPAIR_CONDA_ENV}, or \code{"repair"}). Use \code{NULL} or \code{""} to run
+\code{python_bin} directly, without \verb{conda run}.}
 
-\item{conda_exe}{Conda executable.}
+\item{conda_exe}{Conda program (default: the environment variable
+\code{CONDA_EXE}, or \code{"conda"}).}
 
-\item{python_bin}{Python executable to run inside the conda environment.}
+\item{python_bin}{Python program to run in the conda environment (default
+\code{"python"}).}
 
-\item{verbose}{Print the detected REPAIR path.}
+\item{verbose}{Print the path of the REPAIR analyze file that the function
+finds (default \code{TRUE})?}
 }
 \value{
-Invisibly, a list with the detected REPAIR analyze path.
+A list with the path of the REPAIR analyze file, invisibly.
 }
 \description{
-SPaCeD needs a modified REPAIR installation that writes a
-\verb{*_model_matrix.tsv} file. This helper checks the Python REPAIR source in a
-conda environment and fails early if the installed package does not appear to
-be the modified fork used by SPaCeD.
+\code{checkSpacedRepair} checks that the REPAIR installation is the modified fork
+that SPaCeD needs. It stops with an error if it is not.
+}
+\details{
+SPaCeD needs a modified REPAIR that writes a \verb{*_model_matrix.tsv} file. The
+function reads the Python source of REPAIR in a conda environment. It checks
+that the source writes this file.
+}
+\examples{
+\dontrun{
+# This example needs a conda environment with the modified REPAIR.
+checkSpacedRepair(conda_env = "repair")
+}
+}
+\seealso{
+\code{\link[=repairAnalyzeCommand]{repairAnalyzeCommand()}}
 }

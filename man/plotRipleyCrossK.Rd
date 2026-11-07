@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_statistics.R
 \name{plotRipleyCrossK}
 \alias{plotRipleyCrossK}
-\title{Plot Ripley's cross K versus distance}
+\title{Plot Ripley's cross K against distance}
 \usage{
 plotRipleyCrossK(
   kcross,
@@ -16,25 +16,44 @@ plotRipleyCrossK(
 )
 }
 \arguments{
-\item{kcross}{Output from \code{spatialRipleyCrossK()}.}
+\item{kcross}{Result of \code{\link[=spatialRipleyCrossK]{spatialRipleyCrossK()}}.}
 
-\item{title}{Optional title.}
+\item{title}{Plot title.}
 
-\item{observed_color}{Color for the observed cross-K curve.}
+\item{observed_color}{Color of the observed curve.}
 
-\item{simulated_color}{Color for the dotted simulated curve.}
+\item{simulated_color}{Color of the dotted simulated curve.}
 
-\item{envelope_fill}{Fill color for the simulation envelope.}
+\item{envelope_fill}{Fill color of the simulation envelope.}
 
-\item{envelope_alpha}{Alpha for the simulation envelope.}
+\item{envelope_alpha}{Opacity of the simulation envelope.}
 
-\item{facet}{Facet by image when multiple spatial images are present.}
+\item{facet}{Make one panel for each image if the result has several images
+(default \code{TRUE})?}
 
-\item{log_y}{Use a log10 y scale.}
+\item{log_y}{Use a log10 scale for the y-axis (default \code{FALSE})?}
 }
 \value{
 A ggplot object.
 }
 \description{
-Plot Ripley's cross K versus distance
+\code{plotRipleyCrossK} plots the observed cross K, with the simulation envelope if
+there is one.
+}
+\examples{
+\dontshow{if (requireNamespace("spatstat.explore", quietly = TRUE)) withAutoprint(\{ # examplesIf}
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+set.seed(1)
+kcross <- spatialRipleyCrossK(
+  x,
+  mark_col = "cell_type",
+  i = "A",
+  j = "B",
+  nsim = 19
+)
+plotRipleyCrossK(kcross)
+\dontshow{\}) # examplesIf}
+}
+\seealso{
+\code{\link[=spatialRipleyCrossK]{spatialRipleyCrossK()}}
 }

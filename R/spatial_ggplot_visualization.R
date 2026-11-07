@@ -1,9 +1,21 @@
-#' Plot V/J/junction length QC histograms
+#' Plot length histograms of V, J, and junction regions
 #'
-#' @param airr_df AIRR-style data frame or a SIRUP object.
-#' @param bin_width Width of histogram bins.
-#' @param title Optional plot title prefix.
-#' @return A ggplot object.
+#' `plotLengthQc` plots one histogram each for the V length, the J length, and
+#' the junction length of the receptors. Used to choose length thresholds for
+#' [filterAirr()].
+#'
+#' @param airr_df AIRR-style receptor table, or a SIRUP object. The table needs
+#'   the columns `v_sequence_start`, `v_sequence_end`, `j_sequence_start`,
+#'   `j_sequence_end`, and `junction_length`.
+#' @param bin_width Width of the histogram bins (default 5).
+#' @param title Plot title.
+#'
+#' @return A ggplot object with one panel for each length.
+#' @seealso [filterAirr()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' plotLengthQc(x)
 #' @export
 plotLengthQc <- function(airr_df, bin_width = 5, title = NULL) {
   airr_df <- .sirup_receptor_input(airr_df)$receptors
@@ -25,40 +37,62 @@ plotLengthQc <- function(airr_df, bin_width = 5, title = NULL) {
     ggplot2::labs(title = title, x = "Length", y = "Count")
 }
 
-#' Plot spatial features after excluding zero-expression spots
+#' Plot gene expression on a tissue image
 #'
-#' @param object Seurat object with spatial images, or a SIRUP object.
-#' @param features Feature names to plot.
-#' @param assay Optional assay to set before plotting.
-#' @param layer Seurat expression layer to fetch.
-#' @param images Optional Seurat image names.
-#' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
-#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param feature_colors Optional colors used, in order, for the continuous
-#'   expression scale. The first color is the low value and the last color is
-#'   the high value. When supplied, this overrides `feature_color_palette`.
-#' @param feature_color_palette Color palette used when `feature_colors` is
-#'   `NULL`. One of `"viridis"`, `"inferno"`, `"plasma"`, `"cividis"`,
-#'   `"rocket"`, or `"mako"`.
-#' @param zero_tol Values at or below this threshold are treated as zero.
-#' @param point_size Size of plotted spots.
-#' @param point_alpha Opacity for plotted spots.
-#' @param order_points Plot lower values first so higher values appear on top.
-#' @param title Optional plot title. For a single panel, this replaces the
-#'   feature-name title. For multiple combined panels, this is used as an
-#'   overall patchwork title and individual panels keep their feature titles.
-#' @param image_alpha Tissue image opacity.
-#' @param zoom Zoom to non-zero spots. Defaults to `FALSE`, which shows the
-#'   full tissue area covered by the spatial coordinates.
-#' @param combine Combine plots into one figure with patchwork if multiple images/features.
-#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
-#'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
-#'   multi-sample calls return a named list of per-sample plots.
-#' @return A ggplot/patchwork object, list, or `NULL` when all spots are zero.
+#' `spatialExpressionPlot` plots the expression of one or more features. By default, it
+#' draws only the spots with expression above zero.
+#' 
+#' If the object has multiple images or samples, the function draws one plot
+#' for each image or sample. If given several features, the function draws one
+#' panel for each feature. 
+#'
+#' @param object Seurat object or SIRUP object.
+#' @param features Names of the features to plot.
+#' @param assay Assay to use.
+#' @param layer Seurat expression layer to use (default `"counts"`).
+#' @param images Names of the Seurat images to use.
+#' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
+#'   objects. If `NULL`, the function plots all samples.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param feature_colors Colors for the continuous expression scale, from the
+#'   low value to the high value. If you give them, they replace
+#'   `feature_color_palette`.
+#' @param feature_color_palette Color palette for the expression scale, if
+#'   `feature_colors` is `NULL`: `"viridis"` (default), `"inferno"`, `"plasma"`,
+#'   `"cividis"`, `"rocket"`, or `"mako"`.
+#' @param zero_tol Values at or below this threshold count as zero (default 0).
+#'    Set to -Inf to plot all spots.
+#' @param point_size Size of the spots. The default is 0.6.
+#' @param point_alpha Opacity of the spots.
+#' @param order_points Draw the low values first, so that the high values show
+#'   on top (default `TRUE`)?
+#' @param title Plot title. For one panel, it replaces the feature name. For
+#'   several panels that the function combines, it is the title of the whole
+#'   patchwork, and each panel keeps its feature name.
+#' @param image_alpha Opacity of the tissue image.
+#' @param zoom Zoom to the plotted spots (default `FALSE`)? If `FALSE`, the plot
+#'   shows the full tissue area that the spatial coordinates cover.
+#' @param combine Combine the panels into one figure with patchwork, if there
+#'   are several images or features (default `TRUE`)?
+#' @param combine_sample_plots Combine the plots of all samples into one
+#'   patchwork (default `FALSE`)? The function uses it only for multi-sample
+#'   objects. If `FALSE`, it returns a named list with one plot for each sample.
+#'
+#' @return A ggplot object, a patchwork object, or a list of plots. The function
+#'   returns `NULL` if all spots have zero expression.
+#' @seealso [spatialExpressionBlendPlot()], [spatialExpressionMultiPlot()],
+#'   [plotReceptorsExpression()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' spatialExpressionPlot(x, "gene1")
+#'
+#' # Plot two features. The function combines the panels with patchwork.
+#' spatialExpressionPlot(x, c("gene1", "gene2"))
 #' @export
 spatialExpressionPlot <- function(object,
                                       features,
@@ -84,8 +118,6 @@ spatialExpressionPlot <- function(object,
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
-  .require_namespace("SeuratObject")
-  .require_namespace("patchwork")
   if (!is.null(assay)) {
     object <- .sirup_set_default_assay(object, assay)
   }
@@ -163,30 +195,47 @@ spatialExpressionPlot <- function(object,
   )
 }
 
-#' Plot spatial metadata groups after excluding zero/blank spots
+#' Plot a metadata column on a tissue image
 #'
-#' @param object Seurat object with spatial images, or a SIRUP object.
-#' @param meta_col Metadata column to plot.
-#' @param zero_value Value treated as not present.
-#' @param images Optional Seurat image names.
-#' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
-#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param cols Optional named color vector.
-#' @param point_size Size of plotted spots.
-#' @param point_alpha Opacity for plotted spots.
-#' @param order_points Plot lower numeric values or earlier factor levels first
-#'   so higher/later values appear on top.
-#' @param image_alpha Tissue image opacity.
-#' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
-#'   full tissue area covered by the spatial coordinates.
-#' @param combine Combine plots with patchwork when possible.
-#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
-#'   from different spatial samples into one patchwork. Defaults to `FALSE`.
-#' @return A ggplot/patchwork object, list, or `NULL` when all spots are blank.
+#' `spatialDiscretePlot` colors each spot by the value of a metadata column. It
+#' leaves out the spots that have the "zero_value" value.
+#' 
+#' #' If the object has multiple images or samples, the function draws one plot
+#' for each image or sample.
+#'
+#' @param object Seurat object or SIRUP object.
+#' @param meta_col Name of the metadata column to plot.
+#' @param zero_value Value that means "not present" (default 0). The function
+#'   does not draw these spots.
+#' @param images Names of the Seurat images to use.
+#' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
+#'   objects. If `NULL`, the function plots all samples.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param cols Named vector of colors, one for each value.
+#' @param point_size Size of the spots. The default is 1.6.
+#' @param point_alpha Opacity of the spots.
+#' @param order_points Draw the low numeric values, or the early factor levels,
+#'   first, so that the high or late values show on top (default `TRUE`)?
+#' @param image_alpha Opacity of the tissue image.
+#' @param zoom Zoom to the plotted spots (default `FALSE`)? If `FALSE`, the plot
+#'   shows the full tissue area that the spatial coordinates cover.
+#' @param combine Combine the panels with patchwork, if possible (default
+#'   `TRUE`)?
+#' @param combine_sample_plots Combine the plots of all samples into one
+#'   patchwork (default `FALSE`)? The function uses it only for multi-sample
+#'   objects. If `FALSE`, it returns a named list with one plot for each sample.
+#'
+#' @return A ggplot object, a patchwork object, or a list of plots. The function
+#'   returns `NULL` if all spots have the blank value.
+#' @seealso [spatialExpressionPlot()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' spatialDiscretePlot(x, "cell_type")
 #' @export
 spatialDiscretePlot <- function(object,
                                   meta_col,
@@ -256,41 +305,61 @@ spatialDiscretePlot <- function(object,
   .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
 }
 
-#' Blend two spatial features after excluding double-zero spots
+#' Blend the expression of two features on a tissue image
 #'
-#' @param object Seurat object with spatial images, or a SIRUP object.
-#' @param features Two feature names.
-#' @param combine Combine plots with patchwork.
-#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
-#'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
-#'   multi-sample calls return a named list of per-sample plots.
-#' @param feature_1_alt_name Optional axis label for the first feature in the
-#'   blend legend.
-#' @param feature_2_alt_name Optional axis label for the second feature in the
-#'   blend legend.
-#' @param assay Optional assay to set before plotting.
-#' @param layer Seurat expression layer to fetch.
-#' @param only_blended Return only the blended spatial panel and legend.
-#' @param bottom_left Bottom-left corner color for the two-feature blend grid.
-#' @param bottom_right Bottom-right corner color for the two-feature blend grid.
-#' @param top_left Top-left corner color for the two-feature blend grid.
-#' @param top_right Top-right corner color for the two-feature blend grid.
-#' @param zero_tol Values at or below this threshold are treated as zero.
-#' @param images Optional Seurat image names.
-#' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
-#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param point_size Size of plotted spots.
-#' @param point_alpha Opacity for plotted spots.
-#' @param order_points Plot lower blended expression intensity first so higher
-#'   intensity spots appear on top.
-#' @param image_alpha Tissue image opacity.
-#' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
-#'   full tissue area covered by the spatial coordinates.
-#' @return A ggplot/patchwork object or a list when `combine = FALSE`.
+#' `spatialExpressionBlendPlot` colors each spot by the expression of two
+#' features at once. By default, it leaves out the spots where both features are zero.
+#' 
+#' #' If the object has multiple images or samples, the function draws one plot
+#' for each image or sample. 
+#'
+#' @param object Seurat object or SIRUP object.
+#' @param features Names of two features.
+#' @param combine Combine the panels and the legend with patchwork (default
+#'   `TRUE`)?
+#' @param combine_sample_plots Combine the plots of all samples into one
+#'   patchwork (default `FALSE`)? The function uses it only for multi-sample
+#'   objects. If `FALSE`, it returns a named list with one plot for each sample.
+#' @param feature_1_alt_name Label of the first feature in the blend legend. If
+#'   `NULL`, the function uses the feature name.
+#' @param feature_2_alt_name Label of the second feature in the blend legend. If
+#'   `NULL`, the function uses the feature name.
+#' @param assay Assay to use.
+#' @param layer Seurat expression layer to use (default `"counts"`).
+#' @param only_blended Return only the blended panel and the legend (default
+#'   `FALSE`)?
+#' @param bottom_left Color of the bottom-left corner of the blend grid (low in
+#'   both features). The default is `"#FFFFFF"`.
+#' @param bottom_right Color of the bottom-right corner of the blend grid (high
+#'   in the first feature). The default is `"#0000FF"`.
+#' @param top_left Color of the top-left corner of the blend grid (high in the
+#'   second feature). The default is `"#FFFF00"`.
+#' @param top_right Color of the top-right corner of the blend grid (high in
+#'   both features). The default is `"#00FF00"`.
+#' @param zero_tol Values at or below this threshold count as zero (default 0).
+#'   Set to -Inf to plot all spots.
+#' @param images Names of the Seurat images to use.
+#' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
+#'   objects. If `NULL`, the function plots all samples.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param point_size Size of the spots. The default is 0.6.
+#' @param point_alpha Opacity of the spots.
+#' @param order_points Draw the spots with low blended expression first, so that
+#'   the spots with high expression show on top (default `TRUE`)?
+#' @param image_alpha Opacity of the tissue image.
+#' @param zoom Zoom to the plotted spots (default `FALSE`)? If `FALSE`, the plot
+#'   shows the full tissue area that the spatial coordinates cover.
+#'
+#' @return A ggplot object or a patchwork object. If `combine = FALSE`, a list.
+#' @seealso [spatialExpressionPlot()], [spatialExpressionMultiPlot()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' spatialExpressionBlendPlot(x, c("gene1", "gene2"))
 #' @export
 spatialExpressionBlendPlot <- function(object,
                                                 features,
@@ -320,8 +389,6 @@ spatialExpressionBlendPlot <- function(object,
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
-  .require_namespace("SeuratObject")
-  .require_namespace("patchwork")
   if (length(features) != 2L) {
     rlang::abort(paste0("Requires two features, received ", length(features), "."))
   }
@@ -419,36 +486,54 @@ spatialExpressionBlendPlot <- function(object,
   .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
 }
 
-#' Plot multiple spatial features as ordered color layers
+#' Plot several features as ordered color layers
 #'
-#' @param object Seurat object with spatial images, or a SIRUP object.
-#' @param features Feature names.
-#' @param feat_order Optional plotting priority, broad/low priority first and
-#'   rare/high priority last.
-#' @param combine Combine spatial panels and legends with patchwork.
-#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
-#'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
-#'   multi-sample calls return a named list of per-sample plots.
-#' @param assay Optional assay to set before plotting.
-#' @param layer Seurat expression layer to fetch.
-#' @param colors One color per feature.
-#' @param breadth_metric Metric used to choose default feature order.
-#' @param images Optional Seurat image names.
-#' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
-#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param point_size Size of plotted spots.
-#' @param point_alpha Opacity for plotted spots.
-#' @param order_points Plot lower-priority feature assignments first so later
-#'   feature levels appear on top.
-#' @param zero_tol Values at or below this threshold are treated as zero.
-#' @param image_alpha Tissue image opacity.
-#' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
-#'   full tissue area covered by the spatial coordinates.
-#' @return A ggplot/patchwork object or a list when `combine = FALSE`.
+#' `spatialExpressionMultiPlot` draws each feature in its own color on one
+#' tissue image. The features are layers. A feature that the function draws
+#' later shows on top.
+#' 
+#' If the object has multiple images or samples, the function draws one plot
+#' for each image or sample.
+#'
+#' @param object Seurat object or SIRUP object.
+#' @param features Names of the features to plot.
+#' @param feat_order Order of the layers. Put broad features (low priority)
+#'   first and rare features (high priority) last. If `NULL`, the function
+#'   orders the features with `breadth_metric`.
+#' @param combine Combine the spatial panels and the legends with patchwork
+#'   (default `TRUE`)?
+#' @param combine_sample_plots Combine the plots of all samples into one
+#'   patchwork (default `FALSE`)? The function uses it only for multi-sample
+#'   objects. If `FALSE`, it returns a named list with one plot for each sample.
+#' @param assay Assay to use.
+#' @param layer Seurat expression layer to use (default `"counts"`).
+#' @param colors Colors, one for each feature.
+#' @param breadth_metric Measure that sets the default order of the features
+#'   (default `"n_expressing"`, the number of spots that express the feature).
+#' @param images Names of the Seurat images to use.
+#' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
+#'   objects. If `NULL`, the function plots all samples.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param point_size Size of the spots. The default is 0.6.
+#' @param point_alpha Opacity of the spots.
+#' @param order_points Draw the low-priority features first, so that the
+#'   high-priority features show on top (default `TRUE`)?
+#' @param zero_tol Values at or below this threshold count as zero (default 0).
+#'  Set to -Inf to plot all spots.
+#' @param image_alpha Opacity of the tissue image.
+#' @param zoom Zoom to the plotted spots (default `FALSE`)? If `FALSE`, the plot
+#'   shows the full tissue area that the spatial coordinates cover.
+#'
+#' @return A ggplot object or a patchwork object. If `combine = FALSE`, a list.
+#' @seealso [spatialExpressionPlot()], [spatialExpressionBlendPlot()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' spatialExpressionMultiPlot(x, c("gene1", "gene2", "gene3"))
 #' @export
 spatialExpressionMultiPlot <- function(object,
                                     features,
@@ -474,7 +559,6 @@ spatialExpressionMultiPlot <- function(object,
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
-  .require_namespace("SeuratObject")
   breadth_metric <- match.arg(breadth_metric)
   if (length(features) < 2L) {
     rlang::abort("Requires at least 2 features.")
@@ -537,75 +621,86 @@ spatialExpressionMultiPlot <- function(object,
   .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
 }
 
-#' Plot grouped receptors over spatial gene expression
+#' Plot receptor groups over gene expression
 #'
-#' Plot one gene-expression feature together with one or more receptor groups.
-#' Expression-positive spots are drawn with a continuous color ramp, while
-#' receptors are drawn as hollow circles. This is useful for displaying BCR- and
-#' TCR-positive spots on the same expression map.
+#' `plotReceptorsExpression` plots one feature together with one or more groups
+#' of receptors on a tissue image. For example, it shows the BCR-positive and
+#' TCR-positive spots on one expression map.
 #'
-#' Expression always uses the fill scale and receptors always use the colour
-#' scale. The receptor circles therefore look the same whether you colour them
-#' by `group` or by a continuous `value`.
+#' @details
+#' The function draws the spots with expression above zero with a continuous
+#' fill scale. It draws the spots with receptors on top as hollow circles.
+#' 
+#' If the object has multiple images or samples, the function draws one plot
+#' for each image or sample. 
 #'
-#' @param object Seurat object, or a SIRUP object containing both spatial and
-#'   receptor data.
-#' @param receptors AIRR-style receptor table containing a spatial ID and
-#'   grouping column. May be omitted when `object` is a SIRUP object.
-#' @param group Column in `receptors` defining receptor groups, for example
-#'   `"receptor_type"` with values `"BCR"` and `"TCR"`. Optional when `value`
-#'   is given; if both are given, `group` and `group_val` only select which
-#'   receptors to draw.
-#' @param group_val Optional group values to plot and their display order.
-#'   Defaults to all non-missing values in `group`.
-#' @param spatial_id Column in `receptors` matching Seurat spot names. If
-#'   `NULL`, the SIRUP spatial_id field is used or a spatial ID-like column is guessed.
-#' @param feature Gene or feature plotted beneath receptor-positive spots.
+#' @param object Seurat object, or a SIRUP object with spatial data and
+#'   receptors.
+#' @param receptors AIRR-style receptor table with a spatial ID column and a
+#'   group column. Omit it if `object` is a SIRUP object.
+#' @param group Name of the `receptors` column that defines the receptor groups,
+#'   for example `"receptor_type"` with the values `"BCR"` and `"TCR"`. You can
+#'   omit it if you give `value`. If you give both, `group` and `group_val` only
+#'   select the receptors to draw.
+#' @param group_val Group values to plot, in the order of the plot. If `NULL`,
+#'   the function uses all non-missing values of `group`.
+#' @param spatial_id Name of the `receptors` column that holds the Seurat spot
+#'   names. If `NULL`, the function uses the stored field of a SIRUP object, or
+#'   looks for a standard spatial ID column.
+#' @param feature Feature to plot under the spots with receptors.
 #' @param gene Alias for `feature`.
-#' @param colors Optional colors for receptor groups. Named colors are matched
-#'   to `values`; otherwise colors are used in value order.
-#' @param overlap How to color a spot that carries more than one receptor
-#'   group. Such a spot is drawn once as a combined group (members joined by
-#'   `" + "`). `"average"` (default) colors it with the mean of its members'
-#'   colors; any single color instead colors all combined spots with that color.
-#' @param receptor_size Size for receptor-positive spots.
-#' @param receptor_stroke Stroke width for hollow receptor circles.
-#' @param receptor_alpha Alpha for receptor circles.
-#' @param value Fill each receptor spot on a continuous gradient instead of
-#'   giving each `group` its own colour. Give the name of a numeric column in
-#'   `receptors`, or `"count"` for the number of receptors on the spot. The
-#'   receptors use the fill scale, because the expression layer already uses
-#'   the colour scale.
-#' @param value_colors Colours for the `value` gradient. Two colours give a
-#'   low-to-high gradient; more give a multi-stop gradient.
-#' @param value_limits Limits for the `value` gradient scale.
-#' @param value_combine How to combine `value` when a spot carries more than
-#'   one receptor. One of `"mean"` (default), `"median"`, `"mode"`, `"max"`,
-#'   `"min"` or `"sum"`. Ignored when `value = "count"`.
-#' @param feature_colors Colors used to build the continuous expression ramp.
-#' @param feature_size Size for gene-expression points.
-#' @param feature_alpha Alpha for gene-expression points.
-#' @param zero_tol Values at or below this threshold are treated as zero.
-#' @param title Optional plot title.
-#' @param order_points Plot lower expression values first so higher expression
-#'   appears on top. Receptor groups are drawn in `values` order.
-#' @param assay Optional assay to set before plotting.
-#' @param layer Seurat expression layer to fetch.
-#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate axes.
-#' @param images Optional Seurat image names.
-#' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
-#' @param image_alpha Tissue image opacity.
-#' @param zoom Zoom to plotted spots. Defaults to `FALSE`.
-#' @param receptor_legend_title Title for the receptor-group legend. Defaults
-#'   to `group`.
-#' @param show_receptor_legend Show the receptor-group legend.
-#' @param combine Combine image panels with patchwork.
-#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
-#'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
-#'   multi-sample calls return a named list of per-sample plots.
-#' @return A ggplot/patchwork object, or a list when `combine = FALSE`.
+#' @param colors Colors of the receptor groups. Named colors match the group
+#'   values. Unnamed colors follow the order of the values.
+#' @param overlap Color of a spot that holds more than one receptor group. The
+#'   function draws such a spot once, as a combined group with the member names
+#'   joined by `" + "`. With `"average"` (default), the spot gets the mean color
+#'   of its members. With one color, all combined spots get that color.
+#' @param value Color the receptor spots on a continuous gradient and not by
+#'   group. Give the name of a numeric `receptors` column, or `"count"` for the
+#'   number of receptors in the spot.
+#' @param value_colors Colors of the `value` gradient (default white to navy).
+#'   Two colors give a low-to-high gradient. More colors give a gradient with
+#'   several stops.
+#' @param value_limits Limits of the `value` scale (default `c(0, NA)`).
+#' @param value_combine How to combine `value` if a spot holds more than one
+#'   receptor: `"mean"` (default), `"median"`, `"mode"`, `"max"`, `"min"`, or
+#'   `"sum"`. The function ignores it if `value = "count"`.
+#' @param receptor_size Size of the receptor circles (default 1).
+#' @param receptor_stroke Line width of the receptor circles (default 0.7).
+#' @param receptor_alpha Opacity of the receptor circles (default 1).
+#' @param feature_colors Colors that make the expression scale (default
+#'   `c("#939393", "#FFFF00")`).
+#' @param feature_size Size of the expression points (default 1).
+#' @param feature_alpha Opacity of the expression points (default 1).
+#' @param zero_tol Values at or below this threshold count as zero (default 0).
+#' @param title Plot title.
+#' @param order_points Draw the low expression values first, so that the high
+#'   values show on top (default `TRUE`)? The function draws the receptor groups
+#'   in the order of `group_val`.
+#' @param assay Assay to use.
+#' @param layer Seurat expression layer to use (default `"counts"`).
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Swap the two Seurat coordinate axes?
+#' @param images Names of the Seurat images to use.
+#' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
+#'   objects. If `NULL`, the function plots all samples.
+#' @param image_alpha Opacity of the tissue image.
+#' @param zoom Zoom to the plotted spots (default `FALSE`)? If `FALSE`, the plot
+#'   shows the full tissue area that the spatial coordinates cover.
+#' @param receptor_legend_title Title of the receptor legend. If `NULL`, the
+#'   function uses `group`.
+#' @param show_receptor_legend Show the receptor legend (default `TRUE`)?
+#' @param combine Combine the image panels with patchwork (default `TRUE`)?
+#' @param combine_sample_plots Combine the plots of all samples into one
+#'   patchwork (default `FALSE`)? The function uses it only for multi-sample
+#'   objects. If `FALSE`, it returns a named list with one plot for each sample.
+#'
+#' @return A ggplot object or a patchwork object. If `combine = FALSE`, a list.
+#' @seealso [plotReceptors()], [spatialExpressionPlot()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' plotReceptorsExpression(x, group = "clone_id", feature = "gene1")
 #' @export
 plotReceptorsExpression <- function(object,
                                     receptors = NULL,
@@ -662,7 +757,6 @@ plotReceptorsExpression <- function(object,
     rlang::abort("`feature_colors` must contain at least two colors.")
   }
 
-  .require_namespace("SeuratObject")
   receptors <- .as_data_frame(receptors)
   spatial_id <- .guess_spatial_id_col(receptors, spatial_id)
   if (is.null(group) && is.null(value)) {
@@ -873,84 +967,103 @@ plotReceptorsExpression <- function(object,
   .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
 }
 
-#' Plot one or more receptor groups over a tissue image
+#' Plot receptor groups on a tissue image
 #'
-#' @param object Seurat object, or a SIRUP object containing both spatial and
-#'   receptor data.
-#' @param receptors AIRR-style receptor table containing a spatial ID and
-#'   grouping column. May be omitted when `object` is a SIRUP object.
-#' @param group Column in `receptors` used to select and color receptor
-#'   groups, for example `"clone_id"`.
-#' @param group_val Optional values from `group` to plot. Defaults to all
-#'   non-missing values in `group`.
-#' @param spatial_id Column in `receptors` matching Seurat spot names. If
-#'   `NULL`, the first available spatial ID-like column is used.
-#' @param colors Optional colors for receptor groups. Named colors are matched
-#'   to `values`; otherwise colors are used in value order.
-#' @param overlap How to color a spot that carries more than one receptor
-#'   group. Such a spot is drawn once as a combined group (members joined by
-#'   `" + "`). `"average"` (default) colors it with the mean of its members'
-#'   colors; any single color instead colors all combined spots with that color.
-#' @param receptor_size Size for receptor points.
-#' @param receptor_alpha Alpha for receptor points.
-#' @param title Optional title.
-#' @param order_points Plot earlier receptor groups first so later groups appear
-#'   on top.
-#' @param image_scale Image scale passed to
-#'   `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param images Optional Seurat image names.
-#' @param image_alpha Tissue image opacity.
-#' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
-#'   full tissue area covered by the spatial coordinates.
-#' @param receptor_legend_title Legend title for receptor groups. Defaults to
-#'   `group`.
-#' @param show_receptor_legend Show the receptor group legend.
-#' @param polygons Draw region polygons under the receptor points on each
-#'   spatial panel. `FALSE` (the default) draws no polygons. `TRUE` uses the
-#'   polygons stored in the SIRUP object. You can also pass a data frame of
-#'   polygon vertices, or a path to a CSV file of polygon vertices. Vertex
-#'   tables need `polygon_x` and `polygon_y` columns, plus `polygon_id` to
-#'   separate multiple polygons.
-#' @param polygon_x,polygon_y Vertex coordinate columns in a supplied polygon
-#'   data frame or CSV file.
-#' @param polygon_id Column that separates multiple polygons in a supplied
-#'   polygon data frame or CSV file. When the named column is absent, a
-#'   `polygon` or `polygon_id` column is used if present; otherwise all rows
-#'   form one polygon.
-#' @param polygon_val Optional polygon ID value(s) to draw. When `NULL`, all
-#'   polygons are drawn.
-#' @param polygon_alpha Fill opacity for polygons.
-#' @param polygon_fill Fill color for polygons.
-#' @param polygon_color Outline color for polygons.
-#' @param polygon_linewidth Outline width for polygons.
-#' @param polygon_label Label each polygon at its center.
-#' @param polygon_label_by Column used for polygon labels. When `NULL`, the
-#'   polygon ID is used.
-#' @param polygon_label_size Text size for polygon labels.
-#' @param polygon_label_color Text color for polygon labels.
-#' @param value Colour each spot on a continuous gradient instead of discrete
-#'   `group` colours. Give the name of a numeric column in `receptors`, or the
-#'   special value `"count"` to colour by the number of receptors on the spot.
-#'   `group` is optional in this mode; if supplied (with `group_val`), only
-#'   matching receptors are used.
-#' @param value_colors Colours for the `value` gradient. Two colours give a
-#'   low-to-high gradient. More than two give a multi-stop gradient, so you can
-#'   pass a palette such as `viridisLite::viridis(9)`. Defaults to white to navy.
-#' @param value_limits Limits for the `value` gradient scale (default
-#'   `c(0, NA)`, anchoring the scale at zero).
-#' @param value_combine How to combine `value` when a spot carries more than one
-#'   receptor. One of `"mean"` (default), `"median"`, `"mode"`, `"max"`,
-#'   `"min"` or `"sum"`. Ignored when `value = "count"`.
-#' @param combine Combine image panels with patchwork.
-#' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
-#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
-#'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
-#'   multi-sample calls return a named list of per-sample plots.
-#' @return A ggplot/patchwork object or a list when `combine = FALSE`.
+#' `plotReceptors` plots the spots that hold receptors. It colors the spots by
+#' receptor group, or by a continuous value.
+#' 
+#' #' If the object has multiple images or samples, the function draws one plot
+#' for each image or sample. 
+#'
+#' @param object Seurat object, or a SIRUP object with spatial data and
+#'   receptors.
+#' @param receptors AIRR-style receptor table with a spatial ID column and a
+#'   group column. Omit it if `object` is a SIRUP object.
+#' @param group Name of the `receptors` column that selects and colors the
+#'   receptor groups, for example `"clone_id"`.
+#' @param group_val Values of `group` to plot. If `NULL`, the function uses all
+#'   non-missing values.
+#' @param spatial_id Name of the `receptors` column that holds the Seurat spot
+#'   names. If `NULL`, the function uses the stored field of a SIRUP object, or
+#'   uses the first standard spatial ID column that it finds.
+#' @param colors Colors of the receptor groups. Named colors match the group
+#'   values. Unnamed colors follow the order of the values.
+#' @param overlap Color of a spot that holds more than one receptor group. The
+#'   function draws such a spot once, as a combined group with the member names
+#'   joined by `" + "`. With `"average"` (default), the spot gets the mean color
+#'   of its members. With one color, all combined spots get that color.
+#' @param value Color each spot on a continuous gradient and not by group. Give
+#'   the name of a numeric `receptors` column, or `"count"` for the number of
+#'   receptors in the spot. You can omit `group` in this mode. If you give it
+#'   (with `group_val`), the function uses only the matching receptors.
+#' @param value_colors Colors of the `value` gradient (default white to navy).
+#'   Two colors give a low-to-high gradient. More colors give a gradient with
+#'   several stops, so you can give a palette such as `viridisLite::viridis(9)`.
+#' @param value_limits Limits of the `value` scale (default `c(0, NA)`, which
+#'   starts the scale at zero).
+#' @param value_combine How to combine `value` if a spot holds more than one
+#'   receptor: `"mean"` (default), `"median"`, `"mode"`, `"max"`, `"min"`, or
+#'   `"sum"`. The function ignores it if `value = "count"`.
+#' @param receptor_size Size of the receptor points (default 1).
+#' @param receptor_alpha Opacity of the receptor points (default 1).
+#' @param title Plot title.
+#' @param order_points Draw the early receptor groups first, so that the later
+#'   groups show on top (default `TRUE`)?
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param images Names of the Seurat images to use.
+#' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
+#'   objects. If `NULL`, the function plots all samples.
+#' @param image_alpha Opacity of the tissue image.
+#' @param zoom Zoom to the plotted spots (default `FALSE`)? If `FALSE`, the plot
+#'   shows the full tissue area that the spatial coordinates cover.
+#' @param receptor_legend_title Title of the receptor legend. If `NULL`, the
+#'   function uses `group`.
+#' @param show_receptor_legend Show the receptor legend (default `TRUE`)?
+#' @param polygons Draw polygons under the points on each spatial panel. With
+#'   `FALSE` (default), the function draws no polygons. With `TRUE`, it uses the
+#'   polygons stored in the SIRUP object. You can also give a data frame of
+#'   polygon vertices, or the path of a CSV file of polygon vertices. A vertex
+#'   table needs the columns set by `polygon_x` and `polygon_y`. It needs the
+#'   column set by `polygon_id` if it holds more than one polygon.
+#' @param polygon_x Name of the x-coordinate column in the polygon table
+#'   (default `"x"`).
+#' @param polygon_y Name of the y-coordinate column in the polygon table
+#'   (default `"y"`).
+#' @param polygon_id Name of the column that separates the polygons in the
+#'   polygon table (default `"polygon"`). If the column does not exist, the
+#'   function uses a `polygon` or `polygon_id` column. If neither exists, all
+#'   rows form one polygon.
+#' @param polygon_val IDs of the polygons to draw. If `NULL`, the function draws
+#'   all polygons.
+#' @param polygon_alpha Opacity of the polygon fill (default 0.2).
+#' @param polygon_fill Fill color of the polygons (default `"#0072B2"`).
+#' @param polygon_color Color of the polygon outlines (default `"#0072B2"`).
+#' @param polygon_linewidth Width of the polygon outlines (default 0.6).
+#' @param polygon_label Write a label at the center of each polygon (default
+#'   `FALSE`)?
+#' @param polygon_label_by Name of the column that holds the labels. If `NULL`,
+#'   the function uses the polygon ID.
+#' @param polygon_label_size Text size of the polygon labels (default 3).
+#' @param polygon_label_color Text color of the polygon labels (default
+#'   `"black"`).
+#' @param combine Combine the image panels with patchwork (default `TRUE`)?
+#' @param combine_sample_plots Combine the plots of all samples into one
+#'   patchwork (default `FALSE`)? The function uses it only for multi-sample
+#'   objects. If `FALSE`, it returns a named list with one plot for each sample.
+#'
+#' @return A ggplot object or a patchwork object. If `combine = FALSE`, a list.
+#' @seealso [plotReceptorsExpression()], [plotSpatialColorTips()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' plotReceptors(x, group = "clone_id")
+#'
+#' # Color the spots by the number of receptors in each spot.
+#' plotReceptors(x, value = "count")
 #' @export
 plotReceptors <- function(object,
                           receptors = NULL,
@@ -1013,7 +1126,6 @@ plotReceptors <- function(object,
   if (is.null(receptors)) {
     rlang::abort("`receptors` is required when `object` is not a SIRUP object.")
   }
-  .require_namespace("SeuratObject")
   receptors <- .as_data_frame(receptors)
   spatial_id <- .guess_spatial_id_col(receptors, spatial_id)
 
@@ -1198,61 +1310,83 @@ plotReceptors <- function(object,
   .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
 }
 
-#' Plot tip colors over a tissue image
+#' Plot tip colors on a tissue image
 #'
-#' @param object Seurat object, or a SIRUP object.
-#' @param tip_data Data frame with spatial ID and color columns.
-#' @param spatial_id Spatial ID column in `tip_data` matching Seurat spot names.
-#' @param color Column containing colors.
-#' @param label Optional column containing legend labels for colors.
-#' @param legend_title Title for the color legend.
-#' @param legend_colors Optional named color vector used for the legend.
-#' @param title Optional title.
-#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param point_size Size of plotted tips.
-#' @param point_alpha Opacity for plotted tips.
-#' @param order_points Plot earlier tip-color groups first so later groups
-#'   appear on top.
-#' @param images Optional Seurat image names.
-#' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
-#' @param image_alpha Tissue image opacity.
-#' @param zoom Zoom to plotted spots. Defaults to `FALSE`, which shows the
-#'   full tissue area covered by the spatial coordinates.
-#' @param show_legend Show color legend.
-#' @param polygons Draw region polygons under the tip points on each spatial
-#'   panel. `FALSE` (the default) draws no polygons. `TRUE` uses the polygons
-#'   stored in the SIRUP object. You can also pass a data frame of polygon
-#'   vertices, or a path to a CSV file of polygon vertices. Vertex tables need
-#'   `polygon_x` and `polygon_y` columns, plus `polygon_id` to separate
-#'   multiple polygons.
-#' @param polygon_x,polygon_y Vertex coordinate columns in a supplied polygon
-#'   data frame or CSV file.
-#' @param polygon_id Column that separates multiple polygons in a supplied
-#'   polygon data frame or CSV file. When the named column is absent, a
-#'   `polygon` or `polygon_id` column is used if present; otherwise all rows
-#'   form one polygon.
-#' @param polygon_val Optional polygon ID value(s) to draw. When `NULL`, all
-#'   polygons are drawn.
-#' @param polygon_alpha Fill opacity for polygons.
-#' @param polygon_fill Fill color for polygons.
-#' @param polygon_color Outline color for polygons.
-#' @param polygon_linewidth Outline width for polygons.
-#' @param polygon_label Label each polygon at its center.
-#' @param polygon_label_by Column used for polygon labels. When `NULL`, the
-#'   polygon ID is used.
-#' @param polygon_label_size Text size for polygon labels.
-#' @param polygon_label_color Text color for polygon labels.
-#' @param sample Optional column in `tip_data` matching names of a spatial
-#'   object list.
-#' @param combine Combine image panels with patchwork.
-#' @param combine_sample_plots For multi-sample SIRUP objects, combine plots
-#'   from different spatial samples into one patchwork. Defaults to `FALSE`, so
-#'   multi-sample calls return a named list of per-sample plots.
-#' @return A ggplot/patchwork object.
+#' `plotSpatialColorTips` plots the spots of tree tips. Each spot gets the color
+#' of its tip.
+#' 
+#' If the object has multiple images or samples, the function draws one plot
+#' for each image or sample. 
+#'
+#' @param object Seurat object or SIRUP object.
+#' @param tip_data Data frame with a spatial ID column and a color column. For
+#'   example, use the result of [assignTipColors()].
+#' @param spatial_id Name of the column in `tip_data` that holds the Seurat spot
+#'   names (default `"spatial_id_8um"`).
+#' @param sample Name of the column in `tip_data` that matches the names of a
+#'   list of spatial objects.
+#' @param color Name of the column that holds the colors (default
+#'   `"tip_color"`).
+#' @param label Name of the column that holds the legend labels of the colors.
+#' @param legend_title Title of the color legend (default `"Tip color"`).
+#' @param legend_colors Named vector of colors for the legend.
+#' @param title Plot title.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param point_size Size of the spots. The default is 1.6.
+#' @param point_alpha Opacity of the spots.
+#' @param order_points Draw the early color groups first, so that the later
+#'   groups show on top (default `TRUE`)?
+#' @param images Names of the Seurat images to use.
+#' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
+#'   objects. If `NULL`, the function plots all samples.
+#' @param image_alpha Opacity of the tissue image.
+#' @param zoom Zoom to the plotted spots (default `FALSE`)? If `FALSE`, the plot
+#'   shows the full tissue area that the spatial coordinates cover.
+#' @param show_legend Show the color legend (default `FALSE`)?
+#' @param polygons Draw polygons under the points on each spatial panel. With
+#'   `FALSE` (default), the function draws no polygons. With `TRUE`, it uses the
+#'   polygons stored in the SIRUP object. You can also give a data frame of
+#'   polygon vertices, or the path of a CSV file of polygon vertices. A vertex
+#'   table needs the columns set by `polygon_x` and `polygon_y`. It needs the
+#'   column set by `polygon_id` if it holds more than one polygon.
+#' @param polygon_x Name of the x-coordinate column in the polygon table
+#'   (default `"x"`).
+#' @param polygon_y Name of the y-coordinate column in the polygon table
+#'   (default `"y"`).
+#' @param polygon_id Name of the column that separates the polygons in the
+#'   polygon table (default `"polygon"`). If the column does not exist, the
+#'   function uses a `polygon` or `polygon_id` column. If neither exists, all
+#'   rows form one polygon.
+#' @param polygon_val IDs of the polygons to draw. If `NULL`, the function draws
+#'   all polygons.
+#' @param polygon_alpha Opacity of the polygon fill (default 0.2).
+#' @param polygon_fill Fill color of the polygons (default `"#0072B2"`).
+#' @param polygon_color Color of the polygon outlines (default `"#0072B2"`).
+#' @param polygon_linewidth Width of the polygon outlines (default 0.6).
+#' @param polygon_label Write a label at the center of each polygon (default
+#'   `FALSE`)?
+#' @param polygon_label_by Name of the column that holds the labels. If `NULL`,
+#'   the function uses the polygon ID.
+#' @param polygon_label_size Text size of the polygon labels (default 3).
+#' @param polygon_label_color Text color of the polygon labels (default
+#'   `"black"`).
+#' @param combine Combine the image panels with patchwork (default `TRUE`)?
+#' @param combine_sample_plots Combine the plots of all samples into one
+#'   patchwork (default `FALSE`)? The function uses it only for multi-sample
+#'   objects. If `FALSE`, it returns a named list with one plot for each sample.
+#'
+#' @return A ggplot object or a patchwork object.
+#' @seealso [plotSpatialCloneColorTips()], [plotSpatialCloneTreePairs()],
+#'   [assignTipColors()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' colors <- assignTipColors(getReceptors(x), shared_color = "spatial_id")
+#' plotSpatialColorTips(x, tip_data = colors, spatial_id = "spatial_id")
 #' @export
 plotSpatialColorTips <- function(object,
                                  tip_data,
@@ -1308,7 +1442,6 @@ plotSpatialColorTips <- function(object,
   object <- context$object
   image_scale <- context$image_scale
   swap_coords <- context$swap_coords
-  .require_namespace("SeuratObject")
   tip_data <- .as_data_frame(tip_data)
   .check_required_cols(tip_data, c(spatial_id, color), "tip_data")
   sample <- sample %||% if (.sirup_is_spatial_list(object) && "sample" %in% colnames(tip_data)) "sample" else NULL
@@ -1427,21 +1560,38 @@ plotSpatialColorTips <- function(object,
   .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
 }
 
-#' Plot a clone with tip colors over a spatial tissue image
+#' Plot the tip colors of one clone on a tissue image
 #'
-#' @param colored_clones Output from `assignTipColors()`, or a SIRUP object
-#'   whose receptor table contains tip colors.
-#' @param clone_val Clone ID to plot.
-#' @param tissue_positions Seurat object with spatial images, or a SIRUP
-#'   object. May be omitted when `colored_clones` is a SIRUP object.
-#' @param clone Clone ID column.
-#' @param spatial_id Spatial ID column in `colored_clones`.
-#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate axes.
-#' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRUP objects. Defaults to `NULL`, which plots all samples.
-#' @param ... Additional arguments passed to `plotSpatialColorTips()`.
+#' `plotSpatialCloneColorTips` plots the spots of one clone. Each spot gets the
+#' color of its tip. The function calls [plotSpatialColorTips()].
+#'
+#' @param colored_clones Result of [assignTipColors()], or a SIRUP object whose
+#'   receptor table has the tip colors.
+#' @param clone_val ID of the clone to plot.
+#' @param tissue_positions Seurat object or SIRUP object. Omit it if
+#'   `colored_clones` is a SIRUP object.
+#' @param clone Name of the column that holds the clone IDs (default
+#'   `"clone_id"`). If `colored_clones` is a SIRUP object and you omit this
+#'   argument, the function uses the stored clone field.
+#' @param spatial_id Name of the column in `colored_clones` that holds the
+#'   spatial IDs (default `"spatial_id_8um"`). If `colored_clones` is a SIRUP
+#'   object and you omit this argument, the function uses the stored spatial ID
+#'   field.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`. If
+#'   `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object.
+#' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
+#'   objects. If `NULL`, the function plots all samples.
+#' @param ... Other arguments for [plotSpatialColorTips()].
+#'
 #' @return A ggplot object.
+#' @seealso [plotSpatialColorTips()], [assignTipColors()], [plotSpatialCloneTreePairs()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' x <- updateReceptors(x, assignTipColors, shared_color = "spatial_id")
+#' plotSpatialCloneColorTips(x, clone_val = "1")
 #' @export
 plotSpatialCloneColorTips <- function(colored_clones,
                                     clone_val,
@@ -1504,99 +1654,144 @@ plotSpatialCloneColorTips <- function(colored_clones,
   )
 }
 
-#' Plot paired BCR lineage trees and matching spatial clone colors
+#' Plot each clone tree next to its tissue map
 #'
-#' Tips without spatial coordinates or spatial IDs can still appear in the
-#' tree panel. The spatial panel only plots tips whose `spatial_id` matches a
-#' spot in `object`.
+#' `plotSpatialCloneTreePairs` makes two plots for each clone: the lineage tree,
+#' and a tissue map of the tips. Each tip has one color in both plots, so you
+#' can find a tip of the tree on the tissue.
 #'
-#' @param trees Dowser `getTrees()` output, or a list containing a `trees`
-#'   element with that output.
-#' @param object Seurat object with spatial images, or a SIRUP object.
-#' @param spatial_id Column in the dowser clone data matching Seurat spot
-#'   names. May be omitted when `object` is a SIRUP object.
-#' @param clone_val Optional clone IDs to plot.
-#' @param id Column in the dowser clone data matching tree tip labels.
-#' @param sequence_id Column in `object` receptor data used to decide which
-#'   tree tips belong to the current spatial object. Defaults to `id`. This is
-#'   only applied when `object` is a SIRUP object; tips absent from this receptor
-#'   column remain in the tree panel but are not plotted in the spatial panel.
-#' @param clone Clone ID column.
-#' @param color_by Column used to assign matching tree and spatial colors.
-#'   Use `"identity"` to give each tip its own color. Use another column name,
-#'   such as `"tree_cluster"` or a spatial ID column, to color tips by
-#'   groups in that column.
-#' @param palette Optional colors. If fewer colors are supplied than needed,
-#'   additional colors are generated by averaging supplied colors.
-#' @param image_scale Image scale passed to `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Logical; if `TRUE`, swap the two Seurat coordinate
-#'   axes before plotting or polygon membership checks. If `NULL`, the
-#'   value must be supplied explicitly or by SIRUP object metadata.
-#' @param images Optional Seurat image names.
-#' @param sample Optional spatial sample name(s) to show for multi-spatial
+#' @details
+#' A tip with no spatial ID, or with a spatial ID that is not in `object`, shows
+#' in the tree plot only. The map shows only the tips whose spatial ID matches a
+#' spot in `object`. In the tree, by default tips with a spot are circles, and tips without
+#' a spot are squares.
+#' 
+#' If the object has multiple images or samples, the function draws one paired plot
+#' for each image or sample.
+#'
+#' To match the tips to receptors, see [formatSpatialClones()].
+#'
+#' @param trees Result of [dowser::getTrees()], or a list with an element
+#'   `trees` that holds this result.
+#' @param object Seurat object or SIRUP object.
+#' @param spatial_id Name of the column in the dowser clone data that holds the
+#'   Seurat spot names. Omit it if `object` is a SIRUP object.
+#' @param clone_val IDs of the clones to plot. If `NULL`, the function plots all
+#'   clones.
+#' @param id Name of the column in the dowser clone data that matches the tree
+#'   tip labels (default `"sequence_id"`).
+#' @param sequence_id Name of the column in the receptor table of `object` that
+#'   decides which tree tips belong to the current spatial object (default: the
+#'   value of `id`). The function uses it only if `object` is a SIRUP object. A
+#'   tip that is not in this column stays in the tree plot, but the map does not
+#'   show it.
+#' @param clone Name of the column that holds the clone IDs (default
+#'   `"clone_id"`).
+#' @param color_by Column that sets the colors of the tips in both plots. With
+#'   `"identity"` (default), each tip gets its own color. With another column,
+#'   such as `"tree_cluster"` or a spatial ID column, tips that share a value
+#'   get one color.
+#' @param palette Colors to use. If you give fewer colors than the function
+#'   needs, it makes more colors by averaging the colors that you give.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#'   If `NULL`, the function uses the value stored in the SIRUP object.
+#' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
+#'   function uses the value stored in the SIRUP object. Give a value if
+#'   `object` is a Seurat object.
+#' @param images Names of the Seurat images to use.
+#' @param sample Names of the spatial samples to show. Use it for multi-sample
 #'   SIRUP objects.
-#' @param sample_id Optional spatial sample ID(s) to plot for multi-sample
-#'   SIRUP objects. Defaults to `NULL`, which plots all samples. This is a
-#'   clearer alias for `sample` when selecting spatial samples.
-#' @param zoom Zoom spatial plots to the clone. Defaults to `FALSE`, which
-#'   shows the full tissue area covered by spatial coordinates.
-#' @param layout Tree layout passed to `ggtree::ggtree()`.
-#' @param tipsize Size of tree tip points.
-#' @param tree_linewidth Line width of the tree branches, passed to
-#'   `ggtree::ggtree()`.
-#' @param tip_stroke Stroke width for filled tree tip shapes.
-#' @param treescale_fontsize Font size for the tree scale bar label.
-#' @param scale Mutational distance shown in the tree scale bar.
-#' @param title Whether to title each tree panel with the clone ID. A character
-#'   value is used as the tree title directly.
-#' @param shape_by Column in dowser clone data used to assign tree tip shapes.
-#'   The default marks tips as `"spatial"` when they have a non-missing spatial
-#'   ID and `"not_spatial"` otherwise.
-#' @param shape_values Named shape vector passed to
-#'   [ggplot2::scale_shape_manual()]. The default uses filled, outlined shapes
-#'   (pch 21/22): the tip colour becomes the shape fill and the outline is drawn
-#'   black. Any shape values in 21-25 get this fill + black-outline treatment;
-#'   other (solid) shapes colour the whole marker as before.
-#' @param tree_layout Backward-compatible alias for `layout`.
-#' @param tree_tip_size Backward-compatible alias for `tipsize`.
-#' @param treescale Backward-compatible alias for `scale`.
-#' @param treescale_position Where to draw the tree scale bar: `"bottomleft"`
-#'   (default, ggtree default position), `"topleft"` (near the root, at the top of
-#'   the tip range), or `"midleft"` (near the root, halfway down the tip range).
-#' @param spatial_tip_size Size of spatial tip points.
-#' @param spatial_tip_alpha Opacity for spatial tip points.
-#' @param order_points Plot earlier spatial tip-color groups first so later
-#'   groups appear on top.
-#' @param show_spatial_legend Show a color legend based on the tree tip colors
-#'   below the spatial plot.
-#' @param combine_sample_plots For multi-sample SIRUP objects, combine spatial
-#'   plots from different samples into one patchwork. Defaults to `FALSE`, so
-#'   multi-sample calls return one tree/spatial pair per sample.
-#' @param polygons Draw region polygons on each spatial panel. `FALSE` (the
-#'   default) draws no polygons. `TRUE` uses the polygons stored in the SIRUP
-#'   object. You can also pass a data frame of polygon vertices, or a path to a
-#'   CSV file of polygon vertices. Vertex tables need `polygon_x` and
-#'   `polygon_y` columns, plus `polygon_id` to separate multiple polygons.
-#' @param polygon_x,polygon_y Vertex coordinate columns in a supplied polygon
-#'   data frame or CSV file.
-#' @param polygon_id Column that separates multiple polygons in a supplied
-#'   polygon data frame or CSV file. When the named column is absent, a
-#'   `polygon` or `polygon_id` column is used if present; otherwise all rows
-#'   form one polygon.
-#' @param polygon_val Optional polygon ID value(s) to draw. When `NULL`, all
-#'   polygons are drawn.
-#' @param polygon_alpha Fill opacity for polygons.
-#' @param polygon_fill Fill color for polygons.
-#' @param polygon_color Outline color for polygons.
-#' @param polygon_linewidth Outline width for polygons.
-#' @param polygon_label Label each polygon at its center.
-#' @param polygon_label_by Column used for polygon labels. When `NULL`, the
-#'   polygon ID is used.
-#' @param polygon_label_size Text size for polygon labels.
-#' @param polygon_label_color Text color for polygon labels.
-#' @param nproc Number of processes used to build clone tree/spatial plot pairs.
-#' @param ... Additional arguments passed to `plotSpatialColorTips()`.
-#' @return Named list. Each clone element contains `tree` and `spatial_clone`.
+#' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
+#'   objects. If `NULL`, the function plots all samples. It is a clearer alias
+#'   for `sample`.
+#' @param zoom Zoom the maps to the clone (default `FALSE`)? If `FALSE`, the
+#'   maps show the full tissue area that the spatial coordinates cover.
+#' @param tipsize Size of the tip points of the tree.
+#' @param scale Distance that the scale bar of the tree shows, in mutations for
+#'   each site (default 0.01).
+#' @param layout Layout of the tree, for `ggtree::ggtree()` (default
+#'   `"rectangular"`).
+#' @param title Title of each tree plot. With `TRUE` (default), the title is the
+#'   clone ID. Give a character string to use it as the title.
+#' @param shape_by Name of the column in the dowser clone data that sets the
+#'   shape of the tree tips. The default marks a tip as `"spatial"` if it has a
+#'   spatial ID, and as `"not_spatial"` if it has none.
+#' @param shape_values Named vector of shapes, for
+#'   [ggplot2::scale_shape_manual()] (default `c(spatial = 21, not_spatial =
+#'   22)`). Shapes 21 to 25 are filled shapes: the tip color fills the shape,
+#'   and the outline is black. Other shapes get the tip color on the whole mark.
+#' @param tree_layout Alias for `layout`.
+#' @param tree_tip_size Alias for `tipsize`.
+#' @param tree_linewidth Line width of the tree branches, for `ggtree::ggtree()`
+#'   (default 0.5).
+#' @param tip_stroke Outline width of the filled tree tips (default 0.3).
+#' @param treescale_fontsize Font size of the label of the scale bar (default
+#'   3.88).
+#' @param treescale Alias for `scale`.
+#' @param treescale_position Position of the scale bar: `"bottomleft"`
+#'   (default), `"topleft"` (near the root, at the top of the tips), or
+#'   `"midleft"` (near the root, halfway down the tips).
+#' @param spatial_tip_size Size of the tip points on the map (default 1.6).
+#' @param spatial_tip_alpha Opacity of the tip points on the map (default 1).
+#' @param order_points Draw the early color groups first on the map, so that the
+#'   later groups show on top (default `FALSE`)?
+#' @param show_spatial_legend Show a color legend below the map, based on the
+#'   tip colors of the tree (default `FALSE`)?
+#' @param combine_sample_plots Combine the maps of all samples into one
+#'   patchwork (default `FALSE`)? The function uses it only for multi-sample
+#'   objects. If `FALSE`, it returns one tree and map pair for each sample.
+#' @param polygons Draw polygons under the points on each spatial panel. With
+#'   `FALSE` (default), the function draws no polygons. With `TRUE`, it uses the
+#'   polygons stored in the SIRUP object. You can also give a data frame of
+#'   polygon vertices, or the path of a CSV file of polygon vertices. A vertex
+#'   table needs the columns set by `polygon_x` and `polygon_y`. It needs the
+#'   column set by `polygon_id` if it holds more than one polygon.
+#' @param polygon_x Name of the x-coordinate column in the polygon table
+#'   (default `"x"`).
+#' @param polygon_y Name of the y-coordinate column in the polygon table
+#'   (default `"y"`).
+#' @param polygon_id Name of the column that separates the polygons in the
+#'   polygon table (default `"polygon"`). If the column does not exist, the
+#'   function uses a `polygon` or `polygon_id` column. If neither exists, all
+#'   rows form one polygon.
+#' @param polygon_val IDs of the polygons to draw. If `NULL`, the function draws
+#'   all polygons.
+#' @param polygon_alpha Opacity of the polygon fill (default 0.2).
+#' @param polygon_fill Fill color of the polygons (default `"#0072B2"`).
+#' @param polygon_color Color of the polygon outlines (default `"#0072B2"`).
+#' @param polygon_linewidth Width of the polygon outlines (default 0.6).
+#' @param polygon_label Write a label at the center of each polygon (default
+#'   `FALSE`)?
+#' @param polygon_label_by Name of the column that holds the labels. If `NULL`,
+#'   the function uses the polygon ID.
+#' @param polygon_label_size Text size of the polygon labels (default 3).
+#' @param polygon_label_color Text color of the polygon labels (default
+#'   `"black"`).
+#' @param nproc Number of processes for building the plot pairs (default 1).
+#' @param ... Other arguments for [plotSpatialColorTips()].
+#'
+#' @return A named list with one element for each clone. Each element is a list
+#'   with the items `tree` and `spatial_clone` (the two plots), and `legend` and
+#'   `legend_rel_height` (for the optional legend).
+#' @seealso [spatialCloneTreePairsToPDF()], [clusterTreesTips()],
+#'   [getSpatialTrees()], [plotSpatialColorTips()], [plotSpatialCloneColorTips()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' x <- formatSpatialClones(
+#'   x,
+#'   id = "sequence_id",
+#'   germ = "germline_alignment_d_mask",
+#'   traits = "spatial_id"
+#' )
+#' x <- getSpatialTrees(x)
+#' trees <- getAnalysis(x, "trees")
+#'
+#' pairs <- plotSpatialCloneTreePairs(trees, x, clone_val = "4")
+#' names(pairs)
+#'
+#' # Show the tree and the map side by side.
+#' cowplot::plot_grid(pairs[["4"]]$tree, pairs[["4"]]$spatial_clone)
 #' @export
 plotSpatialCloneTreePairs <- function(trees,
                                       object,
@@ -1691,7 +1886,6 @@ plotSpatialCloneTreePairs <- function(trees,
   if (is.null(spatial_id)) {
     rlang::abort("`spatial_id` is required when `object` is not a SIRUP object.")
   }
-  .require_namespace("ggtree")
   nproc <- .sirup_plot_check_nproc(nproc)
   records <- .sirup_dowser_tree_records(trees)
   if (!is.null(clone_val)) {
@@ -2089,17 +2283,37 @@ plotSpatialCloneTreePairs <- function(trees,
   plot
 }
 
-#' Save paired clone tree and spatial plots to a PDF
+#' Save the tree and map pairs to a PDF file
 #'
-#' @param pairs Output from `plotSpatialCloneTreePairs()`.
-#' @param path PDF path.
-#' @param width PDF page width in inches.
-#' @param height PDF page height in inches.
-#' @param rel_widths Relative widths for tree and spatial panels.
-#' @param nproc Number of processes used to render PDF pages. Parallel PDF
-#'   rendering requires the optional `qpdf` package to combine pages; otherwise
-#'   the function falls back to serial rendering.
-#' @return Invisibly returns `path`.
+#' `spatialCloneTreePairsToPDF` writes one page for each clone to a PDF file.
+#' Each page shows the tree and the tissue map of the clone side by side.
+#'
+#' @param pairs Result of [plotSpatialCloneTreePairs()].
+#' @param path Path of the PDF file.
+#' @param width Width of a page, in inches (default 12).
+#' @param height Height of a page, in inches (default 6).
+#' @param rel_widths Relative widths of the tree panel and the map panel
+#'   (default `c(1.2, 1)`).
+#' @param nproc Number of processes for the pages (default 1). The function
+#'   needs the `qpdf` package to join the pages that it makes in parallel. If
+#'   `qpdf` is not installed, it makes the pages one after the other.
+#'
+#' @return `path`, invisibly.
+#' @seealso [plotSpatialCloneTreePairs()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' x <- formatSpatialClones(
+#'   x,
+#'   id = "sequence_id",
+#'   germ = "germline_alignment_d_mask",
+#'   traits = "spatial_id"
+#' )
+#' x <- getSpatialTrees(x)
+#' trees <- getAnalysis(x, "trees")
+#'
+#' pairs <- plotSpatialCloneTreePairs(trees, x, clone_val = c("1", "4"))
+#' spatialCloneTreePairsToPDF(pairs, tempfile(fileext = ".pdf"))
 #' @export
 spatialCloneTreePairsToPDF <- function(pairs,
                                        path,
@@ -2568,7 +2782,6 @@ spatialCloneTreePairsToPDF <- function(pairs,
     }
     return(image_index$label[keep])
   }
-  .require_namespace("SeuratObject")
   if (!is.null(sample_id)) {
     rlang::abort("`sample_id` can only select among samples in a multi-sample SIRUP object.")
   }
@@ -2587,7 +2800,6 @@ spatialCloneTreePairsToPDF <- function(pairs,
 }
 
 .sirup_spatial_image_index <- function(object) {
-  .require_namespace("SeuratObject")
   do.call(rbind, lapply(names(object), function(sample) {
     object_images <- SeuratObject::Images(object[[sample]])
     if (length(object_images) == 0L) {
@@ -2610,15 +2822,23 @@ spatialCloneTreePairsToPDF <- function(pairs,
   list(sample = parts[[1L]], image = paste(parts[-1L], collapse = "::"))
 }
 
-#' Extract spatial sample names from SIRUP image labels
+#' Get the sample name from an image label
 #'
-#' Multi-sample SIRUP objects label spatial images as `"<sample>::<image>"` so
-#' image names remain unique across sections. This helper returns the sample
-#' component for composite labels and `NA` for non-composite labels.
+#' `sirupSampleFromImage` returns the sample name in an image label.
+#'
+#' @details
+#' A multi-sample SIRUP object labels each spatial image as
+#' `"<sample>::<image>"`, so that image names stay unique across sections. The
+#' function returns the sample part of such a label. For a label without a
+#' sample part, it returns `NA`.
 #'
 #' @param image Character vector of image labels.
-#' @return Character vector of sample names, with `NA` for labels that do not
-#'   contain a sample component.
+#'
+#' @return A character vector of sample names, with `NA` for each label that has
+#'   no sample part.
+#'
+#' @examples
+#' sirupSampleFromImage(c("sample1::image1", "image2"))
 #' @export
 sirupSampleFromImage <- function(image) {
   vapply(as.character(image), function(label) {
@@ -2729,7 +2949,6 @@ sirupSampleFromImage <- function(image) {
   options <- .sirup_require_spatial_options(image_scale, swap_coords)
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
-  .require_namespace("SeuratObject")
   object_images <- SeuratObject::Images(object)
   if (identical(image, "metadata") && !"metadata" %in% object_images) {
     coords <- .sirup_metadata_coordinate_table(object)
@@ -2992,7 +3211,6 @@ sirupSampleFromImage <- function(image) {
 }
 
 .sirup_image_raster <- function(image, alpha = 1) {
-  .require_namespace("SeuratObject")
   img <- tryCatch(methods::slot(image, "image"), error = function(e) NULL)
   if (is.null(img) || length(dim(img)) < 2L) {
     img <- tryCatch(SeuratObject::GetImage(image, mode = "raw"), error = function(e) NULL)
@@ -3031,7 +3249,6 @@ sirupSampleFromImage <- function(image) {
     plots <- .sirup_name_spatial_plot_list(plots)
     return(if (length(plots) == 1L && isTRUE(combine)) plots[[1L]] else plots)
   }
-  .require_namespace("patchwork")
   patchwork::wrap_plots(plots, ncol = 1)
 }
 

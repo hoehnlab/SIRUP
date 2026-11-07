@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{polygonCentroids}
 \alias{polygonCentroids}
-\title{Calculate spatial polygon centroids}
+\title{Calculate polygon centroids}
 \usage{
 polygonCentroids(
   object = NULL,
@@ -13,18 +13,32 @@ polygonCentroids(
 )
 }
 \arguments{
-\item{object}{SIRUP object with stored polygons, or a polygon vertex table.}
+\item{object}{SIRUP object with stored polygons, or a table of polygon
+vertices.}
 
-\item{polygons}{Optional polygon vertex table. When supplied, \code{object} may be
-omitted or used only for context.}
+\item{polygons}{Table of polygon vertices. If you give it, you can omit
+\code{object}, or use \code{object} only for context.}
 
-\item{polygon_id}{Polygon ID column for flat polygon input.}
+\item{polygon_id}{Name of the polygon ID column, for flat polygon input
+(default \code{"polygon"}).}
 
-\item{x, y}{Coordinate columns for flat polygon input.}
+\item{x}{Name of the x-coordinate column, for flat polygon input (default
+\code{"x"}).}
+
+\item{y}{Name of the y-coordinate column, for flat polygon input (default
+\code{"y"}).}
 }
 \value{
-Tibble with one row per polygon and sample-aware centroid coordinates.
+A tibble with one row for each polygon. The columns are \code{sample},
+\code{polygon_id}, \code{polygon_label}, \code{x}, \code{y}, \code{.sirup_y}, and \code{n_vertices}.
 }
 \description{
-Calculate spatial polygon centroids
+\code{polygonCentroids} returns the centroid of each polygon.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+polygonCentroids(x)
+}
+\seealso{
+\code{\link[=polygonPairwiseDistance]{polygonPairwiseDistance()}}
 }

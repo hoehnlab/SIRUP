@@ -1,92 +1,94 @@
-#' Cluster tree tips by cutting tree branches
+#' Cluster the tips of a tree
 #'
-#' Partitions a phylogenetic tree into connected components by cutting `k - 1`
-#' branches. A connected component is one disconnected tree piece left after
-#' branch cuts; tips in the same component receive the same cluster label.
+#' `clusterTreeTips` groups the tips of a phylogenetic tree into `k` connected
+#' clusters.
 #'
-#' With `method = "cut_largest_branches"`, the function cuts the longest
-#' eligible branches globally. This is the graph-theoretic tree clustering
-#' heuristic used for fixed-k minimum spanning tree clustering, applied to a
-#' phylogenetic tree.
+#' @details
+#' The function groups the tips of the tree into `k` connected clusters. This
+#' helps with visualization: tips in the same cluster get the same label, and you
+#' can give them the same color. Each cluster is a subtree. The function makes
+#' the `k` subtrees by cutting `k - 1` branches. The `method` argument sets how
+#' the function chooses the branches to cut:
+#' \itemize{
+#'   \item `split_largest_subtrees` (default): The function splits one subtree
+#'     at each step. It picks the subtree with the largest genetic span, which
+#'     is the largest patristic distance between two of its tips. If two subtrees
+#'     tie, it picks the subtree with more tips. In that subtree, a candidate
+#'     branch must leave two subtrees that each have at least one tip. The
+#'     function cuts the branch that makes the smaller of the two subtrees as
+#'     large as possible (by tip count). If branches tie, it cuts the longest
+#'     branch. If `cut_terminal_edges` is `FALSE`, the function considers
+#'     internal branches first. It considers terminal branches (the branches
+#'     that end in a tip) only if no internal branch is valid. This stops the
+#'     function from cutting off long terminal branches before it splits the
+#'     larger clades. The function stops after `k - 1` cuts, or when no valid
+#'     cut remains.
+#'   \item `cut_largest_branches`: The function cuts the `k - 1` longest
+#'     branches of the whole tree. If `cut_terminal_edges` is `FALSE`, it cuts
+#'     the longest internal branches first. It cuts terminal branches only if
+#'     the tree has fewer than `k - 1` internal branches. This is the heuristic
+#'     for fixed-k minimum spanning tree clustering, applied to a phylogenetic
+#'     tree.
+#'   \item `monophyletic_clades`: Each cluster is one complete clade, which is
+#'     a node and all of its descendants. No cluster is a paraphyletic
+#'     remainder. Use this method if each cluster must match a real clade, for
+#'     example if each tip color in a figure must mark one monophyletic group.
+#'     The function starts with the whole tree as one clade. At each step it
+#'     picks the clade with the largest genetic span (the clade needs at least
+#'     two tips). It replaces that clade with all of its child clades, which are
+#'     the subtrees that start at the children of its root node. The function
+#'     stops when `k` clades exist, or when no clade can split.
+#'     `cut_terminal_edges` has no effect. For a bifurcating tree, the result
+#'     has exactly `k` clades. At a multifurcation, one step adds all child
+#'     clades, so the result can have more than `k` clades. If an ignored tip
+#'     (such as the germline) forms its own clade, the function removes that
+#'     clade. The result can then have fewer than `k` clusters.
+#' }
+#' The function labels the clusters with `prefix` and a number, such as
+#' `tree_cluster_1`.
 #'
-#' With `method = "split_largest_subtrees"`, the function recursively splits the
-#' current component with the largest genetic span, measured as the largest
-#' patristic distance between any two tips in that component. Within that
-#' component, candidate cuts must split it into two non-empty tip-containing
-#' components. The selected cut maximizes the size of the smaller daughter
-#' component, and branch length is used as a tie-breaker. Setting
-#' `cut_terminal_edges = FALSE` makes the function prefer internal branches,
-#' which usually avoids peeling off long single-tip branches before larger clades
-#' have been split.
+#' @param tree Phylogenetic tree with the fields `edge`, `edge.length`, and
+#'   `tip.label`.
+#' @param k Number of subtrees to make, before the function removes the ignored
+#'   tips. If `k` is larger than the number of tips, the function gives a
+#'   warning and uses the number of tips.
+#' @param id Name of the tip ID column in the result (default `"sequence_id"`).
+#' @param cluster Name of the cluster column in the result (default
+#'   `"tree_cluster"`).
+#' @param ignore_tips Tip labels to remove **before** the clustering (default
+#'   `"Germline"`). These tips do not form a cluster, do not use up a cluster,
+#'   and do not appear in the result. The function always removes a tip named
+#'   `"Germline"` (in any case). It prunes the tree with `ape::drop.tip()`. If
+#'   `ape` is not installed, the function removes the tips from the result table
+#'   after the clustering.
+#' @param prefix Prefix of the cluster labels (default `"tree_cluster_"`).
+#' @param method Clustering method: `"split_largest_subtrees"` (default),
+#'   `"cut_largest_branches"`, or `"monophyletic_clades"`. See Details.
+#' @param cut_terminal_edges Allow cuts of terminal branches (default `TRUE`)? If
+#'   `FALSE`, the function cuts internal branches first, so that it splits larger
+#'   clades before it cuts off single tips.
 #'
-#' More explicitly, `method = "split_largest_subtrees"` works as follows:
-#' 1. Start with the full tree as one connected component.
-#' 2. Repeat until `k - 1` branches have been cut, or no valid cut remains.
-#' 3. Calculate the genetic span of each current component as the largest
-#'    patristic distance between any two tips in that component.
-#' 4. Choose the component with the largest genetic span, using tip count as a
-#'    tie-breaker.
-#' 5. Consider eligible branches inside that component. If
-#'    `cut_terminal_edges = FALSE`, internal branches are tried first and
-#'    terminal branches are used only as a fallback.
-#' 6. Keep only candidate cuts that split the component into two non-empty
-#'    tip-containing daughter components.
-#' 7. Choose the candidate cut that maximizes the size of the smaller daughter
-#'    component, using branch length as the tie-breaker.
-#' 8. Cut that branch and repeat.
-#' 9. Label the final connected components as `tree_cluster_1`,
-#'    `tree_cluster_2`, and so on.
+#' @return A data frame with one row for each kept tip. It has the tip ID column
+#'   (named by `id`) and the cluster label column (named by `cluster`).
+#' @seealso [chooseTreeTipK()], [clusterTreesTips()]
 #'
-#' With `method = "monophyletic_clades"`, the function guarantees that every
-#' returned group is a single clade (the complete set of descendants of one
-#' node), so no group is a paraphyletic remainder. Instead of cutting arbitrary
-#' branches, it splits a clade into its own child clades. This is the method to
-#' use when each cluster must correspond to a real clade on the tree, for example
-#' when tip colours in a figure should each mark one monophyletic group.
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' x <- formatSpatialClones(
+#'   x,
+#'   id = "sequence_id",
+#'   germ = "germline_alignment_d_mask",
+#'   traits = "spatial_id"
+#' )
+#' x <- getSpatialTrees(x)
+#' trees <- getAnalysis(x, "trees")
+#' tree <- trees$trees[[1]]
 #'
-#' More explicitly, `method = "monophyletic_clades"` works as follows:
-#' 1. Start with the whole tree as one clade (every tip descends from the root).
-#' 2. Repeat until `k` clades exist, or no clade can be split further.
-#' 3. Calculate the genetic span of each current clade as the largest patristic
-#'    distance between any two tips in that clade.
-#' 4. Choose the clade with the largest genetic span, using tip count as a
-#'    tie-breaker; it must contain at least two tips.
-#' 5. Replace that clade with ALL of its child clades (the subtrees rooted at the
-#'    children of that clade's root node), then repeat.
-#' 6. Label the final clades as `tree_cluster_1`, `tree_cluster_2`, and so on.
+#' # Cut the tree into 3 clusters.
+#' clusterTreeTips(tree, k = 3)
 #'
-#' Because a clade is only ever replaced by its own children, every group stays
-#' monophyletic and the groups always cover all tips. `cut_terminal_edges` has no
-#' effect for this method. For a bifurcating tree this returns exactly `k`
-#' clades; at a multifurcation one step adds all children at once, so the result
-#' can have more than `k` clades. Ignored tips (for example the germline) may
-#' occupy a clade of their own that is then removed, which can leave fewer than
-#' `k` returned groups.
-#'
-#' @param tree A phylogenetic tree object with `edge`, `edge.length`, and
-#'   `tip.label` fields.
-#' @param k Number of connected tree components to form before ignored tips are
-#'   removed. If larger than the number of tips in the tree, a warning is
-#'   raised and `k` is set to the number of tips for that tree.
-#' @param id Name of the returned tip identifier column.
-#' @param cluster Name of the returned cluster column.
-#' @param ignore_tips Optional tip labels to exclude **before** clustering, so
-#'   they neither form nor consume a cluster and are absent from the returned
-#'   data frame (for example `"Germline"`). A tip named `"Germline"` (any case)
-#'   is always excluded. Pruning uses `ape::drop.tip()`; if `ape` is unavailable
-#'   the tips are instead dropped from the returned table after clustering.
-#' @param prefix Prefix used for cluster labels.
-#' @param method Tree clustering method. `"cut_largest_branches"` removes the
-#'   `k - 1` longest eligible branches globally. `"split_largest_subtrees"`
-#'   repeatedly splits the largest remaining tip-containing subtree.
-#'   `"monophyletic_clades"` repeatedly replaces the largest-span clade by all of
-#'   its child clades, so every returned group is strictly monophyletic (the full
-#'   descendant set of a single node) with no paraphyletic remainder; for a
-#'   bifurcating tree this yields exactly `k` clades.
-#' @param cut_terminal_edges Cut terminal branches when choosing the longest
-#'   branches to remove. Defaults to `TRUE`; set to `FALSE` to prioritize
-#'   internal branches that split larger clades.
-#' @return Data frame with one row per retained tip and a tree-cluster label.
+#' # Make each cluster one complete clade.
+#' clusterTreeTips(tree, k = 3, method = "monophyletic_clades")
 #' @export
 clusterTreeTips <- function(tree,
                             k,
@@ -216,25 +218,46 @@ clusterTreeTips <- function(tree,
   out[, c(id, cluster), drop = FALSE]
 }
 
-#' Choose k for tree tip clustering
+#' Choose the number of tip clusters for a tree
 #'
-#' Evaluates fixed-k tree partitions from `clusterTreeTips()` and chooses a
-#' useful number of connected tip clusters. The default rule picks the previous
-#' k when the relative improvement in within-cluster patristic distance falls
-#' below `improvement_threshold`.
+#' `chooseTreeTipK` picks a number of tip clusters for one tree.
 #'
-#' @param tree A phylogenetic tree object with `edge`, `edge.length`, and
-#'   `tip.label` fields.
-#' @param k_range Candidate k values.
-#' @param improvement_threshold Relative improvement threshold. The previous
-#'   `k` is chosen once the improvement in mean within-cluster patristic
-#'   distance falls below this value.
-#' @param ignore_tips Optional tip labels to drop before scoring, for example
-#'   `"Germline"`.
-#' @param method Tree clustering method passed to `clusterTreeTips()`.
-#' @param cut_terminal_edges Cut terminal branches when choosing branches to
-#'   remove, passed to `clusterTreeTips()`.
-#' @return List with selected `k` and a candidate score data frame.
+#' @details
+#' For each value in `k_range`, the function runs [clusterTreeTips()]. It scores
+#' the result as the mean within cluster patristic distance. It finds the
+#' first `k` where the relative improvement of the score is below
+#' `improvement_threshold`, and picks the `k` before it. If the improvement
+#' never falls below the threshold, it picks the largest `k`.
+#'
+#' @param tree Phylogenetic tree with the fields `edge`, `edge.length`, and
+#'   `tip.label`.
+#' @param k_range Values of `k` to test (default `1:10`).
+#' @param improvement_threshold Smallest relative improvement of the score that
+#'   justifies a larger `k` (default 0.10).
+#' @param ignore_tips Tip labels to remove before the scoring (default
+#'   `"Germline"`).
+#' @param method Clustering method for [clusterTreeTips()]. The default is
+#'   `"cut_largest_branches"`.
+#' @param cut_terminal_edges Allow cuts of terminal branches (default `TRUE`)?
+#'   The function passes the value to [clusterTreeTips()].
+#'
+#' @return A list with the chosen `k` and `scores`, a data frame with the columns
+#'   `k`, `score`, and `relative_improvement`.
+#' @seealso [clusterTreeTips()], [clusterTreesTips()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' x <- formatSpatialClones(
+#'   x,
+#'   id = "sequence_id",
+#'   germ = "germline_alignment_d_mask",
+#'   traits = "spatial_id"
+#' )
+#' x <- getSpatialTrees(x)
+#' trees <- getAnalysis(x, "trees")
+#' tree <- trees$trees[[1]]
+#'
+#' chooseTreeTipK(tree)
 #' @export
 chooseTreeTipK <- function(tree,
                            k_range = 1:10,
@@ -295,33 +318,58 @@ chooseTreeTipK <- function(tree,
   list(k = as.integer(chosen_k), scores = scores)
 }
 
-#' Cluster tips across a dowser trees object
+#' Cluster the tips of all trees in a dowser result
 #'
-#' Applies `clusterTreeTips()` to each tree in a dowser `getTrees()` result and
-#' adds the resulting cluster column back to each tree's clone data.
+#' `clusterTreesTips` runs [clusterTreeTips()] on each tree of a dowser result.
+#' It adds the cluster column to the clone data of each tree.
 #'
-#' @param trees Dowser `getTrees()` output, or a list containing a `trees`
-#'   element with that output.
-#' @param k Number of connected tree components to form for each tree, or
-#'   `"auto"` to choose k separately for each tree with `chooseTreeTipK()`.
-#' @param id Column in each clone data frame matching tree tip labels.
-#' @param cluster Name of the cluster column to add.
-#' @param ignore_tips Optional tip labels to drop before joining clusters.
-#' @param prefix Prefix used for cluster labels.
-#' @param keep Optional column in each clone data frame used to choose
-#'   whether a tree has the expected retained tips. Clustering is run before
-#'   any keep-filtering; tips where `keep != keep_val` then have their
-#'   computed cluster labels overwritten with their `keep` value.
-#' @param keep_val Value in `keep` that indicates a tip should be kept.
-#' @param method Tree clustering method passed to `clusterTreeTips()`.
-#' @param cut_terminal_edges Cut terminal branches when choosing branches to
-#'   remove. Defaults to `FALSE`, which prioritizes internal clade splits; set
-#'   to `TRUE` to allow terminal tips to be peeled off by branch cuts.
-#' @param k_range Candidate k values passed to `chooseTreeTipK()` when
-#'   `k = "auto"`.
-#' @param improvement_threshold Relative improvement threshold passed to
-#'   `chooseTreeTipK()` when `k = "auto"`.
-#' @return `trees`, with `cluster` added to each clone data object.
+#' @param trees Result of [dowser::getTrees()], or a list with an element
+#'   `trees` that holds this result.
+#' @param k Number of subtrees to make in each tree. Use `"auto"`
+#'   (default) to choose `k` for each tree with [chooseTreeTipK()].
+#' @param id Name of the column in each clone data frame that matches the tree
+#'   tip labels (default `"sequence_id"`).
+#' @param cluster Name of the cluster column to add (default `"tree_cluster"`).
+#' @param prefix Prefix of the cluster labels (default `"tree_cluster_"`).
+#' @param ignore_tips Tip labels to remove before the clustering (default
+#'   `"Germline"`).
+#' @param keep Name of a column in each clone data frame (default `NULL`). The
+#'   function runs the clustering first. Then, for each tip where `keep` differs
+#'   from `keep_val`, it replaces the cluster label with the value of `keep`.
+#' @param keep_val Value of `keep` that marks a tip to keep.
+#' @param method Clustering method for [clusterTreeTips()]. The default is
+#'   `"split_largest_subtrees"`.
+#' @param cut_terminal_edges Allow cuts of terminal branches (default `FALSE`)?
+#'   With `FALSE`, the function prefers internal splits of clades. With `TRUE`,
+#'   branch cuts can remove single terminal tips.
+#' @param k_range Values of `k` to test, if `k = "auto"` (default `1:8`). The
+#'   function passes it to [chooseTreeTipK()].
+#' @param improvement_threshold Smallest relative improvement that justifies a
+#'   larger `k`, if `k = "auto"` (default 0.10). The function passes it to
+#'   [chooseTreeTipK()].
+#'
+#' @return `trees`, with the `cluster` column added to the clone data of each
+#'   tree.
+#' @seealso [clusterTreeTips()], [chooseTreeTipK()], [plotSpatialCloneTreePairs()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' x <- formatSpatialClones(
+#'   x,
+#'   id = "sequence_id",
+#'   germ = "germline_alignment_d_mask",
+#'   traits = "spatial_id"
+#' )
+#' x <- getSpatialTrees(x)
+#' trees <- getAnalysis(x, "trees")
+#' tree <- trees$trees[[1]]
+#'
+#' # Use 3 clusters for every tree.
+#' clustered <- clusterTreesTips(trees, k = 3)
+#' table(clustered$data[[1]]@data$tree_cluster)
+#'
+#' # Choose k for each tree.
+#' clustered <- clusterTreesTips(trees, k = "auto")
 #' @export
 clusterTreesTips <- function(trees,
                              k = "auto",
@@ -444,79 +492,102 @@ clusterTreesTips <- function(trees,
   out
 }
 
-#' Format SIRUP receptors as dowser clones
+#' Format the receptors of a SIRUP object as in dowser's `formatClones()`
 #'
-#' Runs [dowser::formatClones()] on the SIRUP receptor table and stores the
-#' result as a named analysis. The default germline column follows dowser's
-#' default; if it is missing, add germlines to the receptor table first with
-#' `updateReceptors()` and [dowser::createGermlines()].
+#' `formatSpatialClones` runs [dowser::formatClones()] on the receptor table of a
+#' SIRUP object. It stores the result as an analysis.
+#'
+#' @details
+#' The function puts clones into a standardized format for downstream analysis.
+#' See [dowser::formatClones()] for details. The function stores the result as an
+#' analysis in the SIRUP object. The default analysis name is `"f_clones"`.
+#'
+#' [dowser::formatClones()] takes a data frame and returns a tibble of
+#' `airrClone` objects. `formatSpatialClones` calls it with the receptor table of
+#' a SIRUP object and adds four things that spatial analysis needs:
+#
+#' This function automatically does not collapse identical sequences across distinct samples.
+#' To plot the tips on the tissue, add the spatial ID column to `traits`.
+#'
 #'
 #' @param object A SIRUP object.
-#' @param analysis_name Name used to store the formatted clone analysis.
-#' @param seq dowser: name of the column containing observed DNA sequences. All
-#'   sequences in this column must be multiple aligned.
-#' @param clone dowser: name of the column containing the identifier for the
-#'   clone. All entries in this column should be identical.
-#' @param subgroup dowser: name of the column containing the identifier for the
-#'   subgroup.
-#' @param id dowser: name of the column containing sequence identifiers.
-#' @param germ dowser: name of the column containing germline DNA sequences.
-#'   All entries in this column should be identical for any given clone, and
-#'   they must be multiple aligned with the data in the seq column.
-#' @param v_call dowser: name of the column containing V-segment allele
-#'   assignments. All entries in this column should be identical to the gene
-#'   level.
-#' @param j_call dowser: name of the column containing J-segment allele
-#'   assignments. All entries in this column should be identical to the gene
-#'   level.
-#' @param junc_len dowser: name of the column containing the length of the
-#'   junction as a numeric value. All entries in this column should be identical
-#'   for any given clone.
-#' @param mask_char dowser: character to use for masking and padding.
-#' @param max_mask dowser: maximum number of characters to mask at the leading
-#'   and trailing sequence ends. If NULL then the upper masking bound will be
-#'   automatically determined from the maximum number of observed leading or
-#'   trailing Ns amongst all sequences. If set to 0 (default) then masking will
-#'   not be performed.
-#' @param pad_end dowser: if TRUE pad the end of each sequence with mask_char to
-#'   make every sequence the same length.
-#' @param text_fields dowser: text annotation columns to retain and merge during
-#'   duplicate removal.
-#' @param num_fields dowser: numeric annotation columns to retain and sum during
-#'   duplicate removal.
-#' @param seq_fields dowser: sequence annotation columns to retain and collapse
-#'   during duplicate removal. Note, this is distinct from the seq and germ
-#'   arguments, which contain the primary sequence data for the clone and should
-#'   not be repeated in this argument.
-#' @param add_count dowser: if TRUE add an additional annotation column called
-#'   COLLAPSE_COUNT during duplicate removal that indicates the number of
-#'   sequences that were collapsed.
-#' @param verbose dowser: passed on to collapseDuplicates. If TRUE, report the
-#'   numbers of input, discarded and output sequences; otherwise, process
-#'   sequences silently.
-#' @param collapse dowser: collapse identical sequences?
-#' @param cell dowser: name of the column containing cell assignment information
-#' @param locus dowser: name of the column containing locus information
-#' @param traits dowser: column ids to keep distinct during sequence collapse
-#' @param mod3 dowser: pad sequences to length multiple three?
-#' @param randomize dowser: randomize sequence order? Important if using PHYLIP
-#' @param use_regions dowser: assign CDR/FWR regions?
-#' @param dup_singles dowser: Duplicate sequences in singleton clones to include
-#'   them as trees?
-#' @param nproc dowser: number of cores to parallelize formatting over.
-#' @param chain dowser: if HL, include light chain information if available.
-#' @param heavy dowser: name of heavy chain locus (default = "IGH")
-#' @param filterstop dowser: only use sequences that do not contain an in-frame
-#'   stop codon
-#' @param minseq dowser: minimum number of sequences per clone
-#' @param split_light dowser: split or lump subgroups? See resolveLightChains.
-#' @param light_traits dowser: Include the traits from the light chain when
-#'   concatenating and collapsing trees?
-#' @param majoronly dowser: only return largest subgroup and sequences without
-#'   light chains
-#' @param columns dowser: additional data columns to include in output
-#' @param validate Whether to validate the updated SIRUP object.
-#' @return An updated SIRUP object with the formatted clones stored as an analysis.
+#' @param analysis_name Name for the stored formatted clones (default
+#'   `"f_clones"`).
+#' @param seq Name of the column that holds the observed DNA sequences (default
+#'   `"sequence_alignment"`). The sequences must be aligned to each other.
+#' @param clone Name of the column that holds the clone ID (default
+#'   `"clone_id"`).
+#' @param subgroup Name of the column that holds the subgroup ID (default
+#'   `"clone_subgroup"`).
+#' @param id Name of the column that holds the sequence IDs (default
+#'   `"sequence_id"`).
+#' @param germ Name of the column that holds the germline DNA sequences (default
+#'   `"germline_alignment_d_mask"`). Each clone must have one germline. It must
+#'   be aligned to the sequences in `seq`.
+#' @param v_call Name of the column that holds the V-segment alleles (default
+#'   `"v_call"`). Within a clone, the entries must be the same at the gene level.
+#' @param j_call Name of the column that holds the J-segment alleles (default
+#'   `"j_call"`). Within a clone, the entries must be the same at the gene level.
+#' @param junc_len Name of the numeric column that holds the junction length
+#'   (default `"junction_length"`). Within a clone, the entries must be the same.
+#' @param mask_char Character for masking and padding (default `"N"`).
+#' @param max_mask Largest number of characters to mask at the start and at the
+#'   end of the sequences (default 0). With `0`, the function does not mask. With
+#'   `NULL`, the function uses the largest number of leading or trailing Ns in
+#'   the sequences.
+#' @param pad_end Pad the end of each sequence with `mask_char` so that all
+#'   sequences have the same length (default `TRUE`)?
+#' @param text_fields Names of the text columns to keep and merge when the
+#'   function removes duplicates.
+#' @param num_fields Names of the numeric columns to keep and sum when the
+#'   function removes duplicates.
+#' @param seq_fields Names of the sequence columns to keep and collapse when the
+#'   function removes duplicates. Do not repeat `seq` or `germ` here.
+#' @param add_count Add the column `COLLAPSE_COUNT`, which holds the number of
+#'   sequences that the function collapsed (default `TRUE`)?
+#' @param verbose Report the numbers of input, dropped, and output sequences
+#'   (default `FALSE`)? The function passes it to `collapseDuplicates`.
+#' @param collapse Collapse identical sequences (default `TRUE`)?
+#' @param cell Name of the column that holds the cell IDs (default `"cell_id"`).
+#' @param locus Name of the column that holds the locus (default `"locus"`).
+#' @param traits Names of the columns to keep separate when the function
+#'   collapses sequences. Include the spatial ID column if you want to plot the
+#'   tips on the tissue.
+#' @param mod3 Pad the sequences to a length that is a multiple of three
+#'   (default `TRUE`)?
+#' @param randomize Put the sequences in random order (default `TRUE`)? This is
+#'   important for PHYLIP.
+#' @param use_regions Assign the CDR and FWR regions (default `TRUE`)?
+#' @param dup_singles Duplicate the sequence of a clone that has one sequence, so
+#'   that the clone gives a tree (default `FALSE`)?
+#' @param nproc Number of cores for the formatting (default 1).
+#' @param chain Use `"HL"` to include the light chain, if it exists. The default
+#'   is `"H"`.
+#' @param heavy Name of the heavy chain locus (default `"IGH"`).
+#' @param filterstop Use only sequences with no in-frame stop codon (default
+#'   `TRUE`)?
+#' @param minseq Smallest number of sequences in a clone (default 2).
+#' @param split_light Split the subgroups, or lump them together (default
+#'   `FALSE`)? See `resolveLightChains` in dowser.
+#' @param light_traits Include the traits of the light chain when the function
+#'   joins and collapses the sequences (default `FALSE`)?
+#' @param majoronly Return only the largest subgroup and the sequences with no
+#'   light chain (default `FALSE`)?
+#' @param columns Names of other columns to keep in the result.
+#' @param validate Validate the updated SIRUP object (default `TRUE`)?
+#'
+#' @return The updated SIRUP object, with the formatted clones as an analysis.
+#' @seealso [getSpatialTrees()], [dowser::formatClones()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' x <- formatSpatialClones(
+#'   x,
+#'   id = "sequence_id",
+#'   germ = "germline_alignment_d_mask",
+#'   traits = "spatial_id"
+#' )
+#' getAnalysis(x, "f_clones")
 #' @export
 formatSpatialClones <- function(object,
                                 analysis_name = "f_clones",
@@ -554,7 +625,6 @@ formatSpatialClones <- function(object,
                                 majoronly = FALSE,
                                 columns = NULL,
                                 validate = TRUE) {
-  .require_namespace("dowser")
   validateSIRUP(object)
   receptors <- getReceptors(object)
   if (!germ %in% colnames(receptors)) {
@@ -617,35 +687,73 @@ formatSpatialClones <- function(object,
   setAnalysis(object, analysis_name, f_clones, validate = validate)
 }
 
-#' Infer dowser trees from formatted SIRUP clone analyses
+#' Build trees from the formatted clones of a SIRUP object
 #'
-#' Runs [dowser::getTrees()] on a stored formatted-clone analysis and stores the
-#' resulting trees as another SIRUP analysis.
+#' `getSpatialTrees` runs [dowser::getTrees()] on the stored formatted clones. It
+#' stores the trees as an analysis.
+#'
+#' @details
+#' [dowser::getTrees()] takes a tibble of formatted clones and returns a tibble
+#' with a `trees` column. `getSpatialTrees` does not change how dowser builds the
+#' trees. It reads the formatted clones from the SIRUP object by name
+#' (`f_clones_analysis`) and stores the trees in the object as an analysis. The
+#' trees and the clone data of each tree then stay with the spatial data.
+#' [plotSpatialCloneTreePairs()] and [clusterTreesTips()] can use them without
+#' more input.
+#'
+#' By default, the function builds maximum parsimony trees with
+#' `phangorn::pratchet()`. It estimates the branch lengths with `ape::acctran()`.
+#' If you use `build = "igphyml"`, the function predicts the values of the
+#' internal nodes with maximum parsimony. In this case, give `dir` (a directory
+#' for the temporary files) and `id` (a unique name for this analysis). Use a
+#' different `id` for each call that shares a `dir`, so that the calls do not
+#' overwrite each other's files. The function writes `modelfile` if you do not
+#' give it. The file has no constraints. The function deletes the temporary files
+#' unless you set `rm_temp = FALSE`.
+#'
+#' The arguments from `trait` to `...` go to [dowser::getTrees()].
 #'
 #' @param object A SIRUP object.
-#' @param f_clones_analysis Name of the stored formatted-clone analysis.
-#' @param analysis_name Name used to store the tree analysis.
-#' @param trait dowser: trait to use for parsimony models (required if igphyml
-#'   specified)
-#' @param id dowser: unique identifier for this analysis (required if igphyml or
-#'   dnapars specified)
-#' @param dir dowser: directory where temporary files will be placed.
-#' @param modelfile dowser: file specifying parsimony model to use
-#' @param build dowser: program to use for tree building (pratchet, pml,
-#'   dnapars, dnaml, igphyml, raxml)
-#' @param exec dowser: location of desired phylogenetic executable
-#' @param igphyml dowser: optional location of igphyml executable for parsimony
-#' @param fixtrees dowser: if TRUE, use supplied tree topologies
-#' @param nproc dowser: number of cores to parallelize computations
-#' @param quiet dowser: amount of rubbish to print to console
-#' @param rm_temp dowser: remove temporary files (default=TRUE)
-#' @param palette dowser: deprecated
-#' @param seq dowser: column name containing sequence information
-#' @param collapse dowser: Collapse internal nodes with identical sequences?
-#' @param check_divergence dowser: run checkDivergence on trees?
-#' @param ... dowser: Additional arguments passed to tree building programs
-#' @param validate Whether to validate the updated SIRUP object.
-#' @return An updated SIRUP object with dowser trees stored as an analysis.
+#' @param f_clones_analysis Name of the stored formatted clones (default
+#'   `"f_clones"`).
+#' @param analysis_name Name for the stored trees (default `"trees"`).
+#' @param trait Trait for the parsimony models. You need it if you use
+#'   `igphyml`.
+#' @param id Unique name for this analysis. You need it if you use `igphyml` or
+#'   `dnapars`.
+#' @param dir Directory for the temporary files.
+#' @param modelfile File that sets the parsimony model.
+#' @param build Program that builds the trees: `pratchet` (default), `pml`,
+#'   `dnapars`, `dnaml`, `igphyml`, or `raxml`.
+#' @param exec Location of the phylogenetic program.
+#' @param igphyml Location of the `igphyml` program, for parsimony.
+#' @param fixtrees Use the tree topologies that you supply (default `FALSE`)?
+#' @param nproc Number of cores for the calculations (default 1).
+#' @param quiet Amount of text that the function prints to the console (default
+#'   0).
+#' @param rm_temp Delete the temporary files (default `TRUE`)?
+#' @param palette Deprecated.
+#' @param seq Name of the column that holds the sequences.
+#' @param collapse Collapse the internal nodes that have identical sequences
+#'   (default `FALSE`)?
+#' @param check_divergence Run `checkDivergence` on the trees (default `TRUE`)?
+#' @param ... Other arguments for the tree-building programs.
+#' @param validate Validate the updated SIRUP object (default `TRUE`)?
+#'
+#' @return The updated SIRUP object, with the trees as an analysis.
+#' @seealso [formatSpatialClones()], [clusterTreesTips()],
+#'   [plotSpatialCloneTreePairs()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' x <- formatSpatialClones(
+#'   x,
+#'   id = "sequence_id",
+#'   germ = "germline_alignment_d_mask",
+#'   traits = "spatial_id"
+#' )
+#' x <- getSpatialTrees(x)
+#' getAnalysis(x, "trees")
 #' @export
 getSpatialTrees <- function(object,
                             f_clones_analysis = "f_clones",
@@ -667,7 +775,6 @@ getSpatialTrees <- function(object,
                             check_divergence = TRUE,
                             ...,
                             validate = TRUE) {
-  .require_namespace("dowser")
   validateSIRUP(object)
   clones <- getAnalysis(object, f_clones_analysis)
   trees <- dowser::getTrees(
@@ -692,20 +799,36 @@ getSpatialTrees <- function(object,
   setAnalysis(object, analysis_name, trees, validate = validate)
 }
 
-#' Assign stable colors within selected clones
+#' Assign colors to the tips of clones
 #'
-#' Adds a per-tip color identifier and color value that can be used consistently
-#' in tree plots and matched spatial plots.
+#' `assignTipColors` gives each tip of each clone a color ID and a color. Tree
+#' plots and the matching spatial plots use the same colors.
 #'
-#' @param clones Clone-assigned AIRR data frame.
-#' @param clone_val Optional clone IDs to retain before assigning colors.
-#' @param clone Column name for clone identifiers.
-#' @param id Column name for sequence/tip identifiers.
-#' @param shared_color Optional column whose shared values should receive
-#'   the same tip color within each clone, for example a spatial ID column.
-#' @param palette Optional color vector. Defaults to `pals::glasbey()` when
-#'   available, otherwise base R qualitative colors.
-#' @return Data frame with `tip_color_id` and `tip_color` columns.
+#' @details
+#' The function numbers the tips of each clone in the order of `id`. If you give
+#' `shared_color`, tips with the same value of that column get the same number
+#' within a clone. For example, tips in the same spot get the same color.
+#'
+#' @param clones Data frame of AIRR data with clone IDs.
+#' @param clone_val Clone IDs to keep before the function assigns the colors. If
+#'   `NULL`, the function keeps all clones.
+#' @param clone Name of the column that holds the clone IDs (default
+#'   `"clone_id"`).
+#' @param id Name of the column that holds the sequence or tip IDs (default
+#'   `"sequence_id"`).
+#' @param shared_color Name of a column. Tips that share a value in this column
+#'   get the same color within a clone, for example a spatial ID column.
+#' @param palette Vector of colors. If `NULL`, the function uses
+#'   `pals::glasbey()` if the package is installed. Otherwise, it uses the base R
+#'   colors from `grDevices::hcl.colors()`.
+#'
+#' @return A data frame with the columns `tip_color_id` and `tip_color` added.
+#' @seealso [plotSpatialCloneTreePairs()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' colors <- assignTipColors(getReceptors(x), shared_color = "spatial_id")
+#' head(colors[, c("clone_id", "spatial_id", "tip_color_id", "tip_color")])
 #' @export
 assignTipColors <- function(clones,
                               clone_val = NULL,
@@ -1125,15 +1248,32 @@ assignTipColors <- function(clones,
   }
 }
 
-#' Calculate patristic distances among selected tree tips
+#' Calculate patristic distances between tips in a tree
 #'
-#' Returns a pairwise patristic-distance matrix for selected tip labels,
-#' preserving the requested tip order. This is the public wrapper around
-#' SIRUP's tree-tip distance helper used by tree-tip clustering workflows.
+#' `tipPatristicMatrix` returns the matrix of patristic distances between the
+#' selected tips of a tree. The rows and columns follow the order of
+#' `tip_labels`.
 #'
-#' @param tree A phylogenetic tree with `edge`, `edge.length`, and `tip.label`.
-#' @param tip_labels Character vector of tip labels to include.
-#' @return A numeric matrix of pairwise patristic distances.
+#' @param tree Phylogenetic tree with the fields `edge`, `edge.length`, and
+#'   `tip.label`.
+#' @param tip_labels Character vector of the tip labels to use.
+#'
+#' @return A numeric matrix of patristic distances.
+#' @seealso [clusterTreeTips()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' x <- formatSpatialClones(
+#'   x,
+#'   id = "sequence_id",
+#'   germ = "germline_alignment_d_mask",
+#'   traits = "spatial_id"
+#' )
+#' x <- getSpatialTrees(x)
+#' trees <- getAnalysis(x, "trees")
+#' tree <- trees$trees[[1]]
+#'
+#' tipPatristicMatrix(tree, tree$tip.label[1:4])
 #' @export
 tipPatristicMatrix <- function(tree, tip_labels) {
   .sirup_tip_patristic_matrix(tree = tree, tip_labels = tip_labels)

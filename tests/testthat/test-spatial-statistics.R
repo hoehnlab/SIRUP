@@ -12,7 +12,6 @@ test_that("kcross data frame conversion uses theoretical fallback", {
 })
 
 test_that("spatial coordinate table falls back to metadata coordinates", {
-  skip_if_not_installed("SeuratObject")
 
   object <- sirup_test_seurat(
     counts = matrix(
@@ -38,7 +37,6 @@ test_that("spatial coordinate table falls back to metadata coordinates", {
 })
 
 test_that("spatialRipleyCrossK keeps all non-missing marks in the point pattern", {
-  skip_if_not_installed("SeuratObject")
   skip_if_not_installed("spatstat.geom")
   skip_if_not_installed("spatstat.explore")
 
@@ -87,8 +85,6 @@ test_that("spatialRipleyCrossK keeps all non-missing marks in the point pattern"
 })
 
 test_that("spatialMoran can test a particular clone from a SIRUP object", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("spdep")
 
   object <- sirup_test_seurat(
     counts = matrix(
@@ -135,8 +131,6 @@ test_that("spatialMoran can test a particular clone from a SIRUP object", {
 })
 
 test_that("spatialLee tests bivariate feature association", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("spdep")
 
   object <- sirup_test_seurat(
     counts = matrix(
@@ -170,8 +164,6 @@ test_that("spatialLee tests bivariate feature association", {
 })
 
 test_that("spatialCloneJoinCount tests clone marks from receptor IDs", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("spdep")
 
   object <- sirup_test_seurat(
     counts = matrix(
@@ -208,9 +200,6 @@ test_that("spatialCloneJoinCount tests clone marks from receptor IDs", {
 })
 
 test_that("plotSpatialCloneJoinCount returns one combined plot", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("spdep")
-  skip_if_not_installed("cowplot")
 
   object <- sirup_test_seurat(
     counts = matrix(
@@ -258,8 +247,6 @@ test_that("plotSpatialCloneJoinCount returns one combined plot", {
 })
 
 test_that("plotSpatialCloneJoinCount requires stored mark data", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("cowplot")
 
   object <- sirup_test_seurat(
     counts = matrix(1, nrow = 1, ncol = 2, dimnames = list("gene", c("cell1", "cell2")))
@@ -282,8 +269,6 @@ test_that("plotSpatialCloneJoinCount requires stored mark data", {
 })
 
 test_that("spatialLee can use the Monte Carlo method", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("spdep")
 
   object <- sirup_test_seurat(
     counts = matrix(
@@ -320,8 +305,6 @@ test_that("spatialLee can use the Monte Carlo method", {
 })
 
 test_that("spatialLee mc matches spdep::lee.mc under the same seed", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("spdep")
 
   set.seed(42)
   counts <- matrix(rpois(2 * 40, lambda = 5), nrow = 2,
@@ -351,8 +334,6 @@ test_that("spatialLee mc matches spdep::lee.mc under the same seed", {
 })
 
 test_that("clone spatial statistics distinguish duplicate barcodes across spatial samples", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("spdep")
 
   make_section <- function() {
     object <- sirup_test_seurat(
@@ -410,8 +391,6 @@ test_that("clone spatial statistics distinguish duplicate barcodes across spatia
 })
 
 test_that("spatialLee builds independent neighbor graphs per spatial sample", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("spdep")
 
   make_section <- function(offset = 0) {
     object <- sirup_test_seurat(
@@ -448,7 +427,6 @@ test_that("spatialLee builds independent neighbor graphs per spatial sample", {
 })
 
 test_that("spatialRipleyCrossK reads marks from multisample spatial metadata", {
-  skip_if_not_installed("SeuratObject")
   skip_if_not_installed("spatstat.geom")
   skip_if_not_installed("spatstat.explore")
 
@@ -487,8 +465,6 @@ test_that("spatialRipleyCrossK reads marks from multisample spatial metadata", {
 })
 
 test_that("spatialCloneJoinCount uses sample-aware receptor coordinate joins", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("spdep")
 
   make_section <- function() {
     object <- sirup_test_seurat(
@@ -536,8 +512,6 @@ test_that("spatialCloneJoinCount uses sample-aware receptor coordinate joins", {
 })
 
 test_that("spatialCloneJoinCount honors use_stored_polygons for multisample objects", {
-  skip_if_not_installed("SeuratObject")
-  skip_if_not_installed("spdep")
 
   make_section <- function() {
     object <- sirup_test_seurat(

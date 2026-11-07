@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{assignSpatialPolygons}
 \alias{assignSpatialPolygons}
-\title{Assign polygon IDs to spatial metadata}
+\title{Add polygon IDs to the spatial metadata}
 \usage{
 assignSpatialPolygons(
   object,
@@ -19,46 +19,66 @@ assignSpatialPolygons(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial coordinates, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
-\code{y} columns by default. If a \code{polygon} column is present, each polygon is
-evaluated independently. If \code{object} is a SIRUP object and \code{polygon} is
-omitted, the object's stored polygons are used.}
+\item{polygon}{Data frame of polygon vertices in order. It needs the columns
+set by \code{x} and \code{y}. If the column set by \code{polygon_id} exists, the function
+treats each polygon on its own. If \code{object} is a SIRUP object and \code{polygon}
+is \code{NULL}, the function uses the stored polygons.}
 
-\item{images}{Optional Seurat image names to use for spatial coordinates.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{image_scale}{Image scale passed to
-\code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
-exists.}
+\item{polygon_val}{IDs of the polygons to use. If \code{NULL}, the function uses
+all polygons.}
 
-\item{x}{Coordinate column in \code{polygon}.}
+\item{x}{Name of the x-coordinate column in \code{polygon} (default \code{"x"}).}
 
-\item{y}{Coordinate column in \code{polygon}.}
+\item{y}{Name of the y-coordinate column in \code{polygon} (default \code{"y"}).}
 
-\item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
+\item{polygon_id}{Name of the column in \code{polygon} that groups the vertices
+by polygon (default \code{"polygon"}).}
 
-\item{metadata}{Metadata column added to the returned Seurat object with the
-primary polygon assignment. Spatial IDs in overlapping polygons are assigned
-to the smallest polygon by area.}
+\item{metadata}{Name of the metadata column that holds the primary polygon of
+each spot (default \code{"polygon_id"}).}
 
-\item{include_boundary}{Include Seurat spots on polygon edges.}
+\item{include_boundary}{Count spots on a polygon edge as inside the polygon
+(default \code{TRUE})?}
 }
 \value{
-A Seurat object with \code{metadata} added to \verb{@meta.data}.
+A Seurat object with the \code{metadata} column added to \verb{@meta.data}.
 }
 \description{
-Adds polygon-membership columns to a Seurat object's metadata without
-subsetting the object. Spatial IDs outside the selected polygon(s) receive
-\code{NA} in the primary metadata column. Spatial IDs inside overlapping polygons
-are assigned to the smallest polygon by area in the primary metadata column.
-Additional logical columns named \verb{polygon_<ID>} record membership in each
-individual polygon. When \code{object} is a SIRUP object and \code{polygon} is omitted,
-the stored polygons in the SIRUP object are used.
+\code{assignSpatialPolygons} adds polygon columns to the Seurat metadata. It keeps
+all spots.
+}
+\details{
+A spot outside the selected polygons gets \code{NA} in the primary column. A spot
+in overlapping polygons gets the smallest polygon by area. The function also
+adds one logical column \verb{polygon_<ID>} for each polygon. These columns show
+membership in every polygon.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+flat <- data.frame(
+  polygon = "block",
+  x = c(3.5, 5.5, 5.5, 3.5),
+  y = c(0.5, 0.5, 2.5, 2.5)
+)
+spatial <- assignSpatialPolygons(
+  getSpatial(x),
+  polygon = flat,
+  image_scale = "hires",
+  swap_coords = FALSE
+)
+table(spatial$polygon_id, useNA = "ifany")
+}
+\seealso{
+\code{\link[=seuratSubsetPolygon]{seuratSubsetPolygon()}}, \code{\link[=assignReceptorPolygons]{assignReceptorPolygons()}}
 }

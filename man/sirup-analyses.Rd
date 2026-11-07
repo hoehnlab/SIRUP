@@ -19,31 +19,38 @@ removeAnalysis(x, name, validate = TRUE)
 \arguments{
 \item{x}{A SIRUP object.}
 
-\item{name}{A single non-empty analysis name.}
+\item{name}{Name of the analysis. Give one non-empty character string.}
 
-\item{sample}{Optional spatial sample name for per-sample analysis storage
-or retrieval.}
+\item{sample}{Name of a spatial sample. Use it to store or get a result for
+one sample.}
 
-\item{value}{Any R object to store, including \code{NULL}.}
+\item{value}{R object to store. It can be \code{NULL}.}
 
-\item{validate}{Whether to validate the updated SIRUP object.}
+\item{validate}{Validate the updated SIRUP object?}
 }
 \value{
-\code{getAnalysis()} returns the stored object. \code{listAnalyses()} returns
-a character vector. \code{setAnalysis()} and \code{removeAnalysis()} return an
-updated SIRUP object.
+\code{getAnalysis} returns the stored object. \code{listAnalyses} returns a
+character vector. \code{setAnalysis} and \code{removeAnalysis} return the updated
+SIRUP object.
 }
 \description{
-Analysis results are stored as arbitrary R objects in the named
-\code{analyses} list. This is useful for keeping derived objects such as
-Dowser-formatted clones or trees, spatial statistics, and polygon summaries
-with the spatial and receptor data that produced them.
+\code{getAnalysis} returns one stored result. \code{setAnalysis} adds or replaces a
+result. \code{listAnalyses} returns the names of the stored results.
+\code{removeAnalysis} deletes a result.
 }
 \details{
-\code{getAnalysis()} retrieves one stored result. \code{setAnalysis()} adds or
-replaces a result and returns the updated SIRUP object. \code{listAnalyses()}
-returns the stored names, and \code{removeAnalysis()} removes a result.
-
-Older SIRUP objects without an \code{analyses} component are treated as having an
-empty analysis list and gain the component when \code{setAnalysis()} is called.
+The \code{analyses} list of a SIRUP object holds any R object. Use it to keep
+derived results with the data that produced them. Examples are Dowser clones
+and trees, spatial statistics, and polygon summaries.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+x <- setAnalysis(x, "n_clones", 5)
+listAnalyses(x)
+getAnalysis(x, "n_clones")
+x <- removeAnalysis(x, "n_clones")
+listAnalyses(x)
+}
+\seealso{
+\code{\link[=updateAnalysis]{updateAnalysis()}}, \code{\link[=mergeSIRUP]{mergeSIRUP()}}
 }

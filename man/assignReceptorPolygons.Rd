@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_polygons.R
 \name{assignReceptorPolygons}
 \alias{assignReceptorPolygons}
-\title{Assign polygon IDs to a receptor table}
+\title{Add polygon IDs to a receptor table}
 \usage{
 assignReceptorPolygons(
   receptors,
@@ -23,58 +23,78 @@ assignReceptorPolygons(
 )
 }
 \arguments{
-\item{receptors}{AIRR-style receptor data frame, or a SIRUP object when
-\code{object} is omitted.}
+\item{receptors}{AIRR-style receptor table. You can give a SIRUP object here
+if you omit \code{object}.}
 
-\item{object}{Seurat object with spatial coordinates, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{polygon}{Data frame of polygon vertices in order. Must contain \code{x} and
-\code{y} columns by default. If a \code{polygon} column is present, each polygon is
-evaluated independently. If \code{object} is a SIRUP object and \code{polygon} is
-omitted, the object's stored polygons are used.}
+\item{polygon}{Data frame of polygon vertices in order. It needs the columns
+set by \code{x} and \code{y}. If the column set by \code{polygon_id} exists, the function
+treats each polygon on its own. If \code{object} is a SIRUP object and \code{polygon}
+is \code{NULL}, the function uses the stored polygons.}
 
-\item{column}{Column added to the returned receptor table with polygon
-membership.}
+\item{column}{Name of the column to add to the receptor table (default
+\code{"polygon_id"}).}
 
-\item{spatial_id}{Column in \code{receptors} matching Seurat spot/cell spatial IDs.
-If \code{NULL}, a spatial ID-like column is guessed or pulled from the SIRUP
-object.}
+\item{spatial_id}{Name of the \code{receptors} column that holds the spatial IDs.
+If \code{NULL}, the function uses the stored field of a SIRUP object, or looks
+for a standard spatial ID column.}
 
-\item{images}{Optional Seurat image names to use for spatial coordinates.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{image_scale}{Image scale passed to
-\code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{polygon_val}{Optional polygon ID value(s) to select when \code{polygon_id}
-exists.}
+\item{polygon_val}{IDs of the polygons to use. If \code{NULL}, the function uses
+all polygons.}
 
-\item{x}{Coordinate column in \code{polygon}.}
+\item{x}{Name of the x-coordinate column in \code{polygon} (default \code{"x"}).}
 
-\item{y}{Coordinate column in \code{polygon}.}
+\item{y}{Name of the y-coordinate column in \code{polygon} (default \code{"y"}).}
 
-\item{receptor_x, receptor_y}{Coordinate columns in \code{receptors} used when
-\code{object = NULL}.}
+\item{receptor_x}{Name of the x-coordinate column in \code{receptors}, for
+\code{object = NULL} (default \code{"x"}).}
 
-\item{polygon_id}{Optional polygon grouping column in \code{polygon}.}
+\item{receptor_y}{Name of the y-coordinate column in \code{receptors}, for
+\code{object = NULL} (default \code{"y"}).}
 
-\item{include_boundary}{Include Seurat spots on polygon edges.}
+\item{polygon_id}{Name of the column in \code{polygon} that groups the vertices
+by polygon (default \code{"polygon"}).}
+
+\item{include_boundary}{Count spots on a polygon edge as inside the polygon
+(default \code{TRUE})?}
 }
 \value{
-A tibble with \code{column} added.
+A tibble with the \code{column} added.
 }
 \description{
-Adds polygon-membership columns to an AIRR-style receptor table without
-subsetting the table. When \code{object} is supplied, receptor rows whose spatial
-ID falls outside the selected polygon(s), or does not match the spatial
-object, receive \code{NA}. When \code{object = NULL}, polygon membership is computed
-directly from coordinate columns in \code{receptors}.
-Receptors in spatial IDs inside overlapping polygons are assigned to the
-smallest polygon by area in the primary polygon column. Additional logical
-columns named \verb{polygon_<ID>} record membership in each individual polygon.
-When \code{receptors} is a SIRUP object and \code{object} and \code{polygon} are omitted,
-the stored spatial object and polygons are used.
+\code{assignReceptorPolygons} adds polygon columns to a receptor table. It keeps
+all rows.
+}
+\details{
+If you give \code{object}, a receptor row gets \code{NA} if its spatial ID is outside
+the selected polygons or does not match the spatial object. If \code{object} is
+\code{NULL}, the function finds the polygons from the coordinate columns in
+\code{receptors}.
+
+A row in overlapping polygons gets the smallest polygon by area in the
+primary column. The function also adds one logical column \verb{polygon_<ID>} for
+each polygon. These columns show membership in every polygon.
+
+If \code{receptors} is a SIRUP object and you omit \code{object} and \code{polygon}, the
+function uses the stored spatial object and polygons.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+
+# Use the spatial object and the polygons stored in the SIRUP object.
+receptors <- assignReceptorPolygons(x)
+table(receptors$polygon_id, useNA = "ifany")
+}
+\seealso{
+\code{\link[=assignSpatialPolygons]{assignSpatialPolygons()}}, \code{\link[=withPolygons]{withPolygons()}}
 }

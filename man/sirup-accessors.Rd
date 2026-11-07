@@ -16,15 +16,26 @@ getReceptors(x, sample = NULL)
 \arguments{
 \item{x}{A SIRUP object.}
 
-\item{sample}{Optional spatial sample name to retrieve when the SIRUP object
-contains a named spatial list.}
+\item{sample}{Name of one spatial sample. Use it only if the object holds a
+named list of Seurat objects.}
 }
 \value{
-\code{getSpatial()} returns the Seurat object, or the named list of
-Seurat objects for multi-spatial SIRUP objects. \code{spatialSamples()} returns
-spatial sample names. \code{getReceptors()} returns the receptor tibble, or the
-receptor rows for one spatial sample when \code{sample} is supplied.
+\code{getSpatial} returns the Seurat object. For a multi-sample object, it
+returns the named list of Seurat objects, or one Seurat object if you give
+\code{sample}. \code{spatialSamples} returns a character vector of sample names.
+\code{getReceptors} returns the receptor tibble. If you give \code{sample}, it
+returns only the rows for that sample.
 }
 \description{
-Extract data from a SIRUP object
+\code{getSpatial} returns the Seurat object(s). \code{spatialSamples} returns the
+spatial sample names. \code{getReceptors} returns the receptor table.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+getSpatial(x)
+head(getReceptors(x))
+spatialSamples(x)
+}
+\seealso{
+\code{\link[=getPolygons]{getPolygons()}}, \code{\link[=getAnalysis]{getAnalysis()}}
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/sirup_trees.R
 \name{chooseTreeTipK}
 \alias{chooseTreeTipK}
-\title{Choose k for tree tip clustering}
+\title{Choose the number of tip clusters for a tree}
 \usage{
 chooseTreeTipK(
   tree,
@@ -14,29 +14,51 @@ chooseTreeTipK(
 )
 }
 \arguments{
-\item{tree}{A phylogenetic tree object with \code{edge}, \code{edge.length}, and
-\code{tip.label} fields.}
+\item{tree}{Phylogenetic tree with the fields \code{edge}, \code{edge.length}, and
+\code{tip.label}.}
 
-\item{k_range}{Candidate k values.}
+\item{k_range}{Values of \code{k} to test (default \code{1:10}).}
 
-\item{improvement_threshold}{Relative improvement threshold. The previous
-\code{k} is chosen once the improvement in mean within-cluster patristic
-distance falls below this value.}
+\item{improvement_threshold}{Smallest relative improvement of the score that
+justifies a larger \code{k} (default 0.10).}
 
-\item{ignore_tips}{Optional tip labels to drop before scoring, for example
-\code{"Germline"}.}
+\item{ignore_tips}{Tip labels to remove before the scoring (default
+\code{"Germline"}).}
 
-\item{method}{Tree clustering method passed to \code{clusterTreeTips()}.}
+\item{method}{Clustering method for \code{\link[=clusterTreeTips]{clusterTreeTips()}}. The default is
+\code{"cut_largest_branches"}.}
 
-\item{cut_terminal_edges}{Cut terminal branches when choosing branches to
-remove, passed to \code{clusterTreeTips()}.}
+\item{cut_terminal_edges}{Allow cuts of terminal branches (default \code{TRUE})?
+The function passes the value to \code{\link[=clusterTreeTips]{clusterTreeTips()}}.}
 }
 \value{
-List with selected \code{k} and a candidate score data frame.
+A list with the chosen \code{k} and \code{scores}, a data frame with the columns
+\code{k}, \code{score}, and \code{relative_improvement}.
 }
 \description{
-Evaluates fixed-k tree partitions from \code{clusterTreeTips()} and chooses a
-useful number of connected tip clusters. The default rule picks the previous
-k when the relative improvement in within-cluster patristic distance falls
-below \code{improvement_threshold}.
+\code{chooseTreeTipK} picks a number of tip clusters for one tree.
+}
+\details{
+For each value in \code{k_range}, the function runs \code{\link[=clusterTreeTips]{clusterTreeTips()}}. It scores
+the result as the mean within cluster patristic distance. It finds the
+first \code{k} where the relative improvement of the score is below
+\code{improvement_threshold}, and picks the \code{k} before it. If the improvement
+never falls below the threshold, it picks the largest \code{k}.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+x <- formatSpatialClones(
+  x,
+  id = "sequence_id",
+  germ = "germline_alignment_d_mask",
+  traits = "spatial_id"
+)
+x <- getSpatialTrees(x)
+trees <- getAnalysis(x, "trees")
+tree <- trees$trees[[1]]
+
+chooseTreeTipK(tree)
+}
+\seealso{
+\code{\link[=clusterTreeTips]{clusterTreeTips()}}, \code{\link[=clusterTreesTips]{clusterTreesTips()}}
 }

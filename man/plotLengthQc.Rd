@@ -2,20 +2,31 @@
 % Please edit documentation in R/spatial_ggplot_visualization.R
 \name{plotLengthQc}
 \alias{plotLengthQc}
-\title{Plot V/J/junction length QC histograms}
+\title{Plot length histograms of V, J, and junction regions}
 \usage{
 plotLengthQc(airr_df, bin_width = 5, title = NULL)
 }
 \arguments{
-\item{airr_df}{AIRR-style data frame or a SIRUP object.}
+\item{airr_df}{AIRR-style receptor table, or a SIRUP object. The table needs
+the columns \code{v_sequence_start}, \code{v_sequence_end}, \code{j_sequence_start},
+\code{j_sequence_end}, and \code{junction_length}.}
 
-\item{bin_width}{Width of histogram bins.}
+\item{bin_width}{Width of the histogram bins (default 5).}
 
-\item{title}{Optional plot title prefix.}
+\item{title}{Plot title.}
 }
 \value{
-A ggplot object.
+A ggplot object with one panel for each length.
 }
 \description{
-Plot V/J/junction length QC histograms
+\code{plotLengthQc} plots one histogram each for the V length, the J length, and
+the junction length of the receptors. Used to choose length thresholds for
+\code{\link[=filterAirr]{filterAirr()}}.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+plotLengthQc(x)
+}
+\seealso{
+\code{\link[=filterAirr]{filterAirr()}}
 }

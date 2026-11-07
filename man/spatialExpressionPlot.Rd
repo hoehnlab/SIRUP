@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_ggplot_visualization.R
 \name{spatialExpressionPlot}
 \alias{spatialExpressionPlot}
-\title{Plot spatial features after excluding zero-expression spots}
+\title{Plot gene expression on a tissue image}
 \usage{
 spatialExpressionPlot(
   object,
@@ -27,59 +27,81 @@ spatialExpressionPlot(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{features}{Feature names to plot.}
+\item{features}{Names of the features to plot.}
 
-\item{assay}{Optional assay to set before plotting.}
+\item{assay}{Assay to use.}
 
-\item{layer}{Seurat expression layer to fetch.}
+\item{layer}{Seurat expression layer to use (default \code{"counts"}).}
 
-\item{images}{Optional Seurat image names.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
+\item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
+objects. If \code{NULL}, the function plots all samples.}
 
-\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{feature_colors}{Optional colors used, in order, for the continuous
-expression scale. The first color is the low value and the last color is
-the high value. When supplied, this overrides \code{feature_color_palette}.}
+\item{feature_colors}{Colors for the continuous expression scale, from the
+low value to the high value. If you give them, they replace
+\code{feature_color_palette}.}
 
-\item{feature_color_palette}{Color palette used when \code{feature_colors} is
-\code{NULL}. One of \code{"viridis"}, \code{"inferno"}, \code{"plasma"}, \code{"cividis"},
-\code{"rocket"}, or \code{"mako"}.}
+\item{feature_color_palette}{Color palette for the expression scale, if
+\code{feature_colors} is \code{NULL}: \code{"viridis"} (default), \code{"inferno"}, \code{"plasma"},
+\code{"cividis"}, \code{"rocket"}, or \code{"mako"}.}
 
-\item{zero_tol}{Values at or below this threshold are treated as zero.}
+\item{zero_tol}{Values at or below this threshold count as zero (default 0).
+Set to -Inf to plot all spots.}
 
-\item{point_size}{Size of plotted spots.}
+\item{point_size}{Size of the spots. The default is 0.6.}
 
-\item{point_alpha}{Opacity for plotted spots.}
+\item{point_alpha}{Opacity of the spots.}
 
-\item{order_points}{Plot lower values first so higher values appear on top.}
+\item{order_points}{Draw the low values first, so that the high values show
+on top (default \code{TRUE})?}
 
-\item{title}{Optional plot title. For a single panel, this replaces the
-feature-name title. For multiple combined panels, this is used as an
-overall patchwork title and individual panels keep their feature titles.}
+\item{title}{Plot title. For one panel, it replaces the feature name. For
+several panels that the function combines, it is the title of the whole
+patchwork, and each panel keeps its feature name.}
 
-\item{image_alpha}{Tissue image opacity.}
+\item{image_alpha}{Opacity of the tissue image.}
 
-\item{zoom}{Zoom to non-zero spots. Defaults to \code{FALSE}, which shows the
-full tissue area covered by the spatial coordinates.}
+\item{zoom}{Zoom to the plotted spots (default \code{FALSE})? If \code{FALSE}, the plot
+shows the full tissue area that the spatial coordinates cover.}
 
-\item{combine}{Combine plots into one figure with patchwork if multiple images/features.}
+\item{combine}{Combine the panels into one figure with patchwork, if there
+are several images or features (default \code{TRUE})?}
 
-\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
-from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
-multi-sample calls return a named list of per-sample plots.}
+\item{combine_sample_plots}{Combine the plots of all samples into one
+patchwork (default \code{FALSE})? The function uses it only for multi-sample
+objects. If \code{FALSE}, it returns a named list with one plot for each sample.}
 }
 \value{
-A ggplot/patchwork object, list, or \code{NULL} when all spots are zero.
+A ggplot object, a patchwork object, or a list of plots. The function
+returns \code{NULL} if all spots have zero expression.
 }
 \description{
-Plot spatial features after excluding zero-expression spots
+\code{spatialExpressionPlot} plots the expression of one or more features. By default, it
+draws only the spots with expression above zero.
+}
+\details{
+If the object has multiple images or samples, the function draws one plot
+for each image or sample. If given several features, the function draws one
+panel for each feature.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+spatialExpressionPlot(x, "gene1")
+
+# Plot two features. The function combines the panels with patchwork.
+spatialExpressionPlot(x, c("gene1", "gene2"))
+}
+\seealso{
+\code{\link[=spatialExpressionBlendPlot]{spatialExpressionBlendPlot()}}, \code{\link[=spatialExpressionMultiPlot]{spatialExpressionMultiPlot()}},
+\code{\link[=plotReceptorsExpression]{plotReceptorsExpression()}}
 }

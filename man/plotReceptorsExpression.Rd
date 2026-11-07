@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_ggplot_visualization.R
 \name{plotReceptorsExpression}
 \alias{plotReceptorsExpression}
-\title{Plot grouped receptors over spatial gene expression}
+\title{Plot receptor groups over gene expression}
 \usage{
 plotReceptorsExpression(
   object,
@@ -42,108 +42,119 @@ plotReceptorsExpression(
 )
 }
 \arguments{
-\item{object}{Seurat object, or a SIRUP object containing both spatial and
-receptor data.}
+\item{object}{Seurat object, or a SIRUP object with spatial data and
+receptors.}
 
-\item{receptors}{AIRR-style receptor table containing a spatial ID and
-grouping column. May be omitted when \code{object} is a SIRUP object.}
+\item{receptors}{AIRR-style receptor table with a spatial ID column and a
+group column. Omit it if \code{object} is a SIRUP object.}
 
-\item{group}{Column in \code{receptors} defining receptor groups, for example
-\code{"receptor_type"} with values \code{"BCR"} and \code{"TCR"}. Optional when \code{value}
-is given; if both are given, \code{group} and \code{group_val} only select which
-receptors to draw.}
+\item{group}{Name of the \code{receptors} column that defines the receptor groups,
+for example \code{"receptor_type"} with the values \code{"BCR"} and \code{"TCR"}. You can
+omit it if you give \code{value}. If you give both, \code{group} and \code{group_val} only
+select the receptors to draw.}
 
-\item{group_val}{Optional group values to plot and their display order.
-Defaults to all non-missing values in \code{group}.}
+\item{group_val}{Group values to plot, in the order of the plot. If \code{NULL},
+the function uses all non-missing values of \code{group}.}
 
-\item{spatial_id}{Column in \code{receptors} matching Seurat spot names. If
-\code{NULL}, the SIRUP spatial_id field is used or a spatial ID-like column is guessed.}
+\item{spatial_id}{Name of the \code{receptors} column that holds the Seurat spot
+names. If \code{NULL}, the function uses the stored field of a SIRUP object, or
+looks for a standard spatial ID column.}
 
-\item{feature}{Gene or feature plotted beneath receptor-positive spots.}
+\item{feature}{Feature to plot under the spots with receptors.}
 
 \item{gene}{Alias for \code{feature}.}
 
-\item{colors}{Optional colors for receptor groups. Named colors are matched
-to \code{values}; otherwise colors are used in value order.}
+\item{colors}{Colors of the receptor groups. Named colors match the group
+values. Unnamed colors follow the order of the values.}
 
-\item{overlap}{How to color a spot that carries more than one receptor
-group. Such a spot is drawn once as a combined group (members joined by
-\code{" + "}). \code{"average"} (default) colors it with the mean of its members'
-colors; any single color instead colors all combined spots with that color.}
+\item{overlap}{Color of a spot that holds more than one receptor group. The
+function draws such a spot once, as a combined group with the member names
+joined by \code{" + "}. With \code{"average"} (default), the spot gets the mean color
+of its members. With one color, all combined spots get that color.}
 
-\item{value}{Fill each receptor spot on a continuous gradient instead of
-giving each \code{group} its own colour. Give the name of a numeric column in
-\code{receptors}, or \code{"count"} for the number of receptors on the spot. The
-receptors use the fill scale, because the expression layer already uses
-the colour scale.}
+\item{value}{Color the receptor spots on a continuous gradient and not by
+group. Give the name of a numeric \code{receptors} column, or \code{"count"} for the
+number of receptors in the spot.}
 
-\item{value_colors}{Colours for the \code{value} gradient. Two colours give a
-low-to-high gradient; more give a multi-stop gradient.}
+\item{value_colors}{Colors of the \code{value} gradient (default white to navy).
+Two colors give a low-to-high gradient. More colors give a gradient with
+several stops.}
 
-\item{value_limits}{Limits for the \code{value} gradient scale.}
+\item{value_limits}{Limits of the \code{value} scale (default \code{c(0, NA)}).}
 
-\item{value_combine}{How to combine \code{value} when a spot carries more than
-one receptor. One of \code{"mean"} (default), \code{"median"}, \code{"mode"}, \code{"max"},
-\code{"min"} or \code{"sum"}. Ignored when \code{value = "count"}.}
+\item{value_combine}{How to combine \code{value} if a spot holds more than one
+receptor: \code{"mean"} (default), \code{"median"}, \code{"mode"}, \code{"max"}, \code{"min"}, or
+\code{"sum"}. The function ignores it if \code{value = "count"}.}
 
-\item{receptor_size}{Size for receptor-positive spots.}
+\item{receptor_size}{Size of the receptor circles (default 1).}
 
-\item{receptor_stroke}{Stroke width for hollow receptor circles.}
+\item{receptor_stroke}{Line width of the receptor circles (default 0.7).}
 
-\item{receptor_alpha}{Alpha for receptor circles.}
+\item{receptor_alpha}{Opacity of the receptor circles (default 1).}
 
-\item{feature_colors}{Colors used to build the continuous expression ramp.}
+\item{feature_colors}{Colors that make the expression scale (default
+\code{c("#939393", "#FFFF00")}).}
 
-\item{feature_size}{Size for gene-expression points.}
+\item{feature_size}{Size of the expression points (default 1).}
 
-\item{feature_alpha}{Alpha for gene-expression points.}
+\item{feature_alpha}{Opacity of the expression points (default 1).}
 
-\item{zero_tol}{Values at or below this threshold are treated as zero.}
+\item{zero_tol}{Values at or below this threshold count as zero (default 0).}
 
-\item{title}{Optional plot title.}
+\item{title}{Plot title.}
 
-\item{order_points}{Plot lower expression values first so higher expression
-appears on top. Receptor groups are drawn in \code{values} order.}
+\item{order_points}{Draw the low expression values first, so that the high
+values show on top (default \code{TRUE})? The function draws the receptor groups
+in the order of \code{group_val}.}
 
-\item{assay}{Optional assay to set before plotting.}
+\item{assay}{Assay to use.}
 
-\item{layer}{Seurat expression layer to fetch.}
+\item{layer}{Seurat expression layer to use (default \code{"counts"}).}
 
-\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate axes.}
+\item{swap_coords}{Swap the two Seurat coordinate axes?}
 
-\item{images}{Optional Seurat image names.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
+\item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
+objects. If \code{NULL}, the function plots all samples.}
 
-\item{image_alpha}{Tissue image opacity.}
+\item{image_alpha}{Opacity of the tissue image.}
 
-\item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}.}
+\item{zoom}{Zoom to the plotted spots (default \code{FALSE})? If \code{FALSE}, the plot
+shows the full tissue area that the spatial coordinates cover.}
 
-\item{receptor_legend_title}{Title for the receptor-group legend. Defaults
-to \code{group}.}
+\item{receptor_legend_title}{Title of the receptor legend. If \code{NULL}, the
+function uses \code{group}.}
 
-\item{show_receptor_legend}{Show the receptor-group legend.}
+\item{show_receptor_legend}{Show the receptor legend (default \code{TRUE})?}
 
-\item{combine}{Combine image panels with patchwork.}
+\item{combine}{Combine the image panels with patchwork (default \code{TRUE})?}
 
-\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
-from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
-multi-sample calls return a named list of per-sample plots.}
+\item{combine_sample_plots}{Combine the plots of all samples into one
+patchwork (default \code{FALSE})? The function uses it only for multi-sample
+objects. If \code{FALSE}, it returns a named list with one plot for each sample.}
 }
 \value{
-A ggplot/patchwork object, or a list when \code{combine = FALSE}.
+A ggplot object or a patchwork object. If \code{combine = FALSE}, a list.
 }
 \description{
-Plot one gene-expression feature together with one or more receptor groups.
-Expression-positive spots are drawn with a continuous color ramp, while
-receptors are drawn as hollow circles. This is useful for displaying BCR- and
-TCR-positive spots on the same expression map.
+\code{plotReceptorsExpression} plots one feature together with one or more groups
+of receptors on a tissue image. For example, it shows the BCR-positive and
+TCR-positive spots on one expression map.
 }
 \details{
-Expression always uses the fill scale and receptors always use the colour
-scale. The receptor circles therefore look the same whether you colour them
-by \code{group} or by a continuous \code{value}.
+The function draws the spots with expression above zero with a continuous
+fill scale. It draws the spots with receptors on top as hollow circles.
+
+If the object has multiple images or samples, the function draws one plot
+for each image or sample.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+plotReceptorsExpression(x, group = "clone_id", feature = "gene1")
+}
+\seealso{
+\code{\link[=plotReceptors]{plotReceptors()}}, \code{\link[=spatialExpressionPlot]{spatialExpressionPlot()}}
 }

@@ -6,13 +6,35 @@
 \alias{SIRUP-package}
 \title{SIRUP: Spatial Immune Receptor Utilities Package}
 \description{
-A consolidated toolkit for long-read spatial immune receptor sequencing.
-SIRUP takes demultiplexed reads from the companion RRAD package and runs
-an end-to-end IgBLAST and pRESTO pipeline to produce AIRR-style
-rearrangement tables with spatial IDs and coordinates. It also provides
-Visium HD spatial ID mapping, clonal summaries, lightweight SIRUP
-containers pairing spatial Seurat data with tibble-backed receptor tables,
-tree plotting, polygon annotation, and spatial statistics.
+SIRUP analyzes B cell and T cell receptor sequences from long-read spatial
+sequencing. It turns demultiplexed reads into standard-formatted AIRR data with
+spatial IDs, joins the AIRR data to Seurat spatial data, and includes tools for
+examining and analyzing clones, lineage trees, tissue regions, and more in \emph{space}.
+}
+\details{
+SIRUP takes demultiplexed reads from the companion RRAD package. The main
+steps are:
+\enumerate{
+\item Process the reads. \code{\link[=processSpatialSample]{processSpatialSample()}} intakes demultiplexed reads
+and writes an AIRR table.
+\item Build a SIRUP object. \code{\link[=createSIRUP]{createSIRUP()}} joins a Seurat object and the
+AIRR table. Use \code{\link[=saveSIRUP]{saveSIRUP()}} and \code{\link[=readSIRUP]{readSIRUP()}} to keep the object in
+a file.
+\item Draw and compare tissue regions. \code{\link[=selectSpatialPolygons]{selectSpatialPolygons()}} and
+\code{\link[=addPolygons]{addPolygons()}} store polygons. \code{\link[=spatialCloneDominance]{spatialCloneDominance()}} and
+\code{\link[=polygonDiversity]{polygonDiversity()}} summarize the receptors in each polygon.
+\item Test spatial patterns. \code{\link[=spatialMoran]{spatialMoran()}}, \code{\link[=spatialCloneJoinCount]{spatialCloneJoinCount()}},
+and \code{\link[=spatialRipleyCrossK]{spatialRipleyCrossK()}} test if genes or clones cluster in space.
+\item Work with AIRR data as you typically would using \code{\link[=updateReceptors]{updateReceptors()}}.
+Do the same with the spatial gene expression data with \code{\link[=updateSpatial]{updateSpatial()}}.
+Then work with both together.
+}
+The vignettes show each step: \code{vignette("SIRUP", package = "SIRUP")},
+\code{vignette("processing", package = "SIRUP")},
+\code{vignette("clones-and-trees", package = "SIRUP")},
+\code{vignette("regions", package = "SIRUP")},
+\code{vignette("spatial-statistics", package = "SIRUP")}, and
+\code{vignette("multisample", package = "SIRUP")}.
 }
 \author{
 \strong{Maintainer}: Hunter J. Melton \email{Hunter.J.Melton@dartmouth.edu}

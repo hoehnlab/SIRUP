@@ -1,37 +1,79 @@
-#' Filter AIRR-seq data
+#' Filter AIRR sequences
 #'
-#' Filters AIRR-seq data for productivity, V/J/junction length, a minimum
-#' consensus count, optional max opening gap length, and optionally adding a
-#' spatial sequence ID combining `sequence_id` and a spatial ID.
+#' `filterAirr` filters sequences from an AIRR table. ]
 #'
-#' @param airr_df AIRR-style data frame.
-#' @param locus_val Character vector of locus values to keep. Use `NULL` to skip
-#'   filtering.
-#' @param min_v_length Minimum accepted V gene length.
-#' @param min_j_length Minimum accepted J gene length.
-#' @param min_junction_length Minimum accepted junction length.
-#' @param productive_only Keep only productive rearrangements.
-#' @param complete_vdj Keep only rows with a complete V(D)J. IgBLAST writes
-#'   this column as `"T"`/`"F"`. Skipped when the column is absent.
-#' @param min_consensus_count Optional minimum consensus_count.
-#' @param max_opening_gap Optional maximum opening gap in `sequence_alignment`.
-#' @param max_gap_length Optional maximum gap run in `sequence_alignment`. A real
-#'   somatic-hypermutation indel is a multiple of three and rarely longer than
-#'   12 nt, so a longer run points to a chimeric or truncated consensus. The
-#'   metric is measured on the IMGT-numbered alignment, where the padding is
-#'   locus-specific: IGHV is padded at 6/9/12 nt and TRBV at 18/21 nt, so a
-#'   ceiling tuned for IGH rejects every TRB sequence. Set it per locus.
-#' @param sequence_alignment Sequence alignment column for gap filtering.
-#' @param id Column containing read or consensus identifiers.
-#' @param spatial_id Optional name of a spatial ID column that is already
-#'   present in `airr_df`.
-#' @param add_spatial_sequence_id Add a combined ID with the original sequence ID
-#'   and spatial ID. `spatial_id` must be provided if `TRUE`.
-#' @param spatial_sequence_id Name of the combined spatial sequence ID column.
-#' @param spatial_id_key Spatial ID field name to use in the combined spatial
-#'   sequence ID.
-#' @return Preprocessed data frame with `v_sequence_length`,
-#'   `j_sequence_length`, and optional spatial sequence ID columns.
+#' @details
+#' The function keeps the rows that pass all of these filters. It skips a filter
+#' if its column is missing, unless you set the argument yourself. In that case,
+#' it gives a warning.
+#' \itemize{
+#'   \item the locus (`locus_val`);
+#'   \item the V length, J length, and junction length (`min_v_length`,
+#'     `min_j_length`, `min_junction_length`);
+#'   \item productive rearrangements (`productive_only`);
+#'   \item complete V(D)J rearrangements (`complete_vdj`);
+#'   \item the consensus count (`min_consensus_count`);
+#'   \item the gap lengths in `sequence_alignment` (`max_opening_gap`,
+#'     `max_gap_length`).
+#' }
+#' The function prints the number of rows that it kept.
+#'
+#' @param airr_df AIRR-style data frame. It needs the columns
+#'   `v_sequence_start`, `v_sequence_end`, `j_sequence_start`, `j_sequence_end`,
+#'   and `junction_length`.
+#' @param locus_val Loci to keep. If `NULL` (default), the function does not
+#'   filter by locus.
+#' @param min_v_length Smallest V length to keep (default 100).
+#' @param min_j_length Smallest J length to keep (default 10).
+#' @param min_junction_length Smallest junction length to keep (default 1).
+#' @param productive_only Keep only productive rearrangements (default `TRUE`)?
+#' @param complete_vdj Keep only rows with a complete V(D)J (default `FALSE`)?
+#'   IgBLAST writes this column as `"T"` or `"F"`. The function skips the filter
+#'   if the column does not exist.
+#' @param min_consensus_count Smallest `consensus_count` to keep (default 2).
+#'   Use `NULL` to skip the filter.
+#' @param max_opening_gap Longest gap at the start of `sequence_alignment` to
+#'   keep. If `NULL` (default), the function does not filter by this gap.
+#' @param max_gap_length Longest run of gap characters in `sequence_alignment`
+#'   to keep. If `NULL` (default), the function does not filter by this gap. A
+#'   real somatic hypermutation indel has a length that is a multiple of three.
+#'   It is rarely longer than 12 nucleotides. A longer gap points to a chimeric
+#'   or truncated consensus. The function measures the gap in the IMGT-numbered
+#'   alignment. In this alignment, the padding depends on the locus: IGHV has
+#'   padding of 6, 9, or 12 nucleotides, and TRBV has padding of 18 or 21. A
+#'   limit that suits IGH rejects every TRB sequence, so set the limit for each
+#'   locus.
+#' @param sequence_alignment Name of the alignment column for the gap filters
+#'   (default `"sequence_alignment"`).
+#' @param id Name of the column that holds the read or consensus IDs (default
+#'   `"sequence_id"`).
+#' @param spatial_id Name of a spatial ID column that exists in `airr_df`.
+#' @param add_spatial_sequence_id Add a column that combines the sequence ID and
+#'   the spatial ID (default `FALSE`)? You must give `spatial_id` if you use
+#'   `TRUE`.
+#' @param spatial_sequence_id Name of the combined column (default
+#'   `"spatial_sequence_id"`).
+#' @param spatial_id_key Field name for the spatial ID in the combined column
+#'   (default `"spatial_id"`). A value looks like
+#'   `sequence_id=<id>|<key>=<spatial ID>`.
+#'
+#' @return The filtered data frame. It has the added columns `v_sequence_length`
+#'   and `j_sequence_length`, and the combined ID column if you asked for it.
+#' @seealso [addSequenceQualityMetrics()], [plotLengthQc()],
+#'   [processSpatialSample()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' receptors <- getReceptors(x)
+#'
+#' # The thresholds of the SIRUP paper.
+#' filterAirr(
+#'   receptors,
+#'   locus_val = "IGH",
+#'   min_v_length = 250,
+#'   min_j_length = 30,
+#'   min_junction_length = 10
+#' )
 #' @export
 filterAirr <- function(airr_df,
                        locus_val = NULL,
@@ -139,176 +181,223 @@ filterAirr <- function(airr_df,
   out
 }
 
-#' Process one spatial sample from raw reads to an AIRR table
+#' Process one spatial sample from reads to an AIRR table
 #'
-#' This function runs the full external processing pipeline for one sample
-#' and one receptor locus group (`ig` or `tr`). The `input` can be one of:
+#' `processSpatialSample`processes demultiplexed reads for one sample and
+#' one receptor group (`ig` or `tr`). It outputs an AIRR table of filtered
+#' consensus sequences, with the V(D)J genes assigned and IMGT-gaps added.
 #'
-#' * Raw reads: a FASTA or FASTQ file, optionally gzipped, as written by the
-#'   rrad package. Export rrad FASTA with `to_fasta = TRUE` and
-#'   `header_format = "presto"` so barcode/UMI tags remain in the IgBLAST
-#'   identifier. The function first annotates the reads with
-#'   [runIgblast()] (`airrblast::assignGenes()`), which needs `igblast_base`
-#'   and `igblast_refs`.
-#' * An AIRR table: a `.tsv` path or a data frame. The raw IgBLAST step is
-#'   skipped. A data frame input requires `output_dir`.
-#' * A pRESTO-ready spatial FASTA (`input_type = "spatial_fasta"`): the
-#'   IgBLAST and filter steps are both skipped and the FASTA goes straight
-#'   to the consensus pipeline below.
+#' @details
+#' The function calls external programs: IgBLAST, pRESTO, vsearch, and MUSCLE.
+#' It prints each command before it runs it. The function runs all commands with
+#' `system2()` and no shell. A non-zero exit status stops the function, and the
+#' error message shows the command that failed. The final output is the
+#' `db_pass` AIRR TSV, which is in the returned list of paths.
 #'
-#' For raw reads and AIRR input, the function then:
+#' The `input` can be one of these:
+#' \itemize{
+#'   \item Raw reads: a FASTA or FASTQ file, optionally gzipped, from RRAD (or RAD).
+#'     Export the rrad FASTA with `to_fasta = TRUE` and
+#'     `header_format = "presto"`, so that the barcode and UMI tags stay in the
+#'     IgBLAST identifier. The function first annotates the reads with
+#'     [runIgblast()] (which calls `airrblast::assignGenes()`). This step needs
+#'     `igblast_base` and `igblast_refs`.
+#'   \item An AIRR table: a `.tsv` path or a data frame. The function skips the
+#'     IgBLAST step. A data frame needs `output_dir`.
+#'   \item A FASTA that is ready for pRESTO (`input_type = "spatial_fasta"`).
+#'     The function skips the IgBLAST and filter steps, and starts with the
+#'     consensus workflow.
+#' }
 #'
-#' * splits rrad `|BARCODE=...|UMI=...` tags (or legacy colon tags) out of
-#'   `sequence_id` with
-#'   [parseRadSequenceIds()];
-#' * removes junk sequences with [filterAirr()]. Pipeline defaults:
-#'   `complete_vdj = TRUE`, `spatial_id = "barcode"`, and a combined header
-#'   ID keyed by `cluster_field`. Override with `filter_args`;
-#' * writes the raw and filtered AIRR tables to `output_dir` for
-#'   inspection;
-#' * writes the filtered sequences to a spatial FASTA whose headers carry
-#'   the spatial ID.
+#' For raw reads and AIRR tables, the function first does these steps:
+#' \enumerate{
+#'   \item It splits the rrad tags `|BARCODE=...|UMI=...` (or the legacy colon
+#'     tags) out of `sequence_id` with [parseRadSequenceIds()].
+#'   \item It filters sequences with [filterAirr()]. The pipeline
+#'     defaults are `complete_vdj = TRUE`, `spatial_id = "barcode"`, and a
+#'     combined header ID with the key `cluster_field`. Change them with
+#'     `filter_args`.
+#'   \item It writes the raw and the filtered AIRR tables to `output_dir`, so
+#'     that you can inspect them.
+#'   \item It writes the filtered sequences to a spatial FASTA file. The headers
+#'     of the file hold the spatial ID.
+#' }
 #'
-#' The spatial FASTA then goes through the external Immcantation/pRESTO
-#' consensus workflow:
+#' The spatial FASTA then goes through a number of Immcantation functions:
+#' \enumerate{
+#'   \item `ClusterSets.py set` groups the reads within each spatial ID. It uses
+#'     `cluster_field`, the identity threshold `identity`, and vsearch.
+#'   \item `ParseHeaders.py merge` writes a new header field, `parse_key`.
+#'     The field combines the spatial ID and the cluster ID (`parse_fields`)
+#'     with the action `parse_act`. `delimiters` sets the delimiters of the
+#'     FASTA header.
+#'   \item `AlignSets.py muscle` aligns the reads within each `parse_key` group.
+#'     `muscle_exec` is the path of the MUSCLE program
+#'     (<https://github.com/rcedgar/muscle>). The function can write a log to
+#'     `align_log`.
+#'   \item `BuildConsensus.py` makes a consensus sequence for each
+#'     `parse_key` group. `consensus_min_count` is the smallest number of
+#'     sequences that give a valid consensus. `consensus_freq` is the fraction
+#'     of occurrences below which the function assigns an ambiguous character.
+#'     The function can write a log to `consensus_log`. To copy more header
+#'     fields to the consensus file, give their names in
+#'     `consensus_copy_fields` and the way to copy them in
+#'     `consensus_copy_action` (`majority`, `first`, `last`, or `all`).
+#'   \item `airrblast::assignGenes()` assigns the V(D)J genes with IgBLAST. It
+#'     replaces `AssignGenes.py`. `receptor` is `ig` (BCR) or `tr` (TCR).
+#'     `organism` is the species (human, mouse, or rhesus_monkey).
+#'     `igblast_base` is the IgBLAST installation, which must hold
+#'     `bin/igblastn`. `igblast_refs` is the folder with the IgBLAST `database/`
+#'     and `fasta/` folders.
+#'   \item `airrblast::addGaps()` adds the IMGT-gapped sequences from the
+#'     germlines in `imgt_dir`. SIRUP then reads the pRESTO header fields into
+#'     columns, as `MakeDb.py --extended` did. It keeps the sequences that have
+#'     a V call, a J call, a productive flag, an aligned sequence, and a
+#'     junction. The result is the `db_pass` table.
+#' }
 #'
-#' * `ClusterSets.py set` groups reads within each spatial ID using `cluster_field`,
-#'   the requested identity threshold `identity`, and vsearch.
-#' * `ParseHeaders.py merge` is used to write a new field into the headers that combines
-#'   the spatial ID and the cluster id (provided with parse_fields). These are
-#'   combined using `parse_act` (default set) and written to a new header field `parse_key`.
-#'   Uses `delimiters` to specify the FASTA header delimiters.
-#' * `AlignSets.py muscle` aligns reads within each `parse_key` group created by `ParseHeaders`.
-#'   Takes `muscle_exec` as the path to the muscle aligner (https://github.com/rcedgar/muscle).
-#'   Optionally logs results to `align_log`. Uses `delimiters` to specify the FASTA header delimiters.
-#' * `BuildConsensus.py` creates consensus sequences within each `parse_key` group. `consensus_min_count`
-#'   specifies the minimum number of sequences needed to define a valid consensus sequence, and
-#'   `consensus_freq` specifies the fraction of character occurrences under which an ambiguous
-#'   character is assigned. Optionally logs results to `consensus_log`. If there are additional
-#'   fields in the FASTA header that should be carried forward and copied to the consensus file,
-#'   `consensus_copy_fields` specifies the field names and `consensus_copy_action` specifies how
-#'   to copy them (majority, first, last, or all).
-#' * `airrblast::assignGenes()` assigns V(D)J genes with IgBLAST. It replaces `AssignGenes.py`.
-#'   Takes either `ig` or `tr` as the argument to `receptor` (for bcr/tcr respectively). Takes
-#'   `organism` as the argument to specify the species (human, mouse, or rhesus_monkey).
-#'   `igblast_base` is the IgBLAST installation (it must hold `bin/igblastn`), and `igblast_refs`
-#'   is the folder with the IgBLAST `database/` and `fasta/` folders.
-#' * `airrblast::addGaps()` adds the IMGT-gapped sequences from the germlines in `imgt_dir`.
-#'   SIRUP then reads the pRESTO header fields into columns, as `MakeDb.py --extended` did,
-#'   and keeps the sequences that have a V call, a J call, a productive flag, an aligned sequence,
-#'   and a junction. The result is the `db_pass` table.
-#'
-#' Each command is printed before it is run, and any non-zero exit status stops
-#' the function with the failing command in the error message. All commands
-#' run through `system2()` without a shell. The final output is the
-#' `db_pass` AIRR TSV in the returned path list.
-#'
-#' @param input Raw reads (FASTA/FASTQ, optionally gzipped), an AIRR TSV
-#'   path, an AIRR data frame, or a pRESTO-ready spatial FASTA.
-#' @param output_dir Directory for all outputs. Defaults to the input file's
-#'   directory. Required when `input` is a data frame.
-#' @param receptor Either `ig` for BCR or `tr` for TCR IgBLAST loci.
-#' @param organism The organism for which to perform the analysis.
-#' @param input_type How to treat `input`. The default `"auto"` detects the
-#'   type from the object class and file extension: FASTA/FASTQ paths become
-#'   `"raw_reads"`. Pass `"spatial_fasta"` to feed a pRESTO-ready FASTA
-#'   straight to the consensus pipeline.
-#'   Newly demultiplexed rrad FASTA should use `"auto"` or `"raw_reads"`:
-#'   `"spatial_fasta"` skips the first read-level V(D)J annotation and filtering.
-#' @param filter_args Named list of [filterAirr()] overrides. Pipeline
-#'   defaults: `complete_vdj = TRUE`, `min_consensus_count = NULL`,
-#'   `spatial_id = "barcode"`, `add_spatial_sequence_id = TRUE`,
-#'   `spatial_id_key = cluster_field`. An explicit `NULL` disables an
-#'   optional filter (`locus_val`, `min_consensus_count`, `max_opening_gap`,
-#'   or `spatial_id`); other parameters do not accept `NULL`.
+#' @param input Raw reads (FASTA or FASTQ, optionally gzipped), the path of an
+#'   AIRR TSV, an AIRR data frame, or a FASTA that is ready for pRESTO.
+#' @param output_dir Directory for all outputs. The default is the directory of
+#'   the input file. You must give it if `input` is a data frame.
+#' @param receptor `"ig"` for BCR loci or `"tr"` for TCR loci.
+#' @param organism Organism of the sample (default `"human"`).
+#' @param input_type How to treat `input`: `"auto"` (default), `"raw_reads"`,
+#'   `"airr"`, or `"spatial_fasta"`. With `"auto"`, the function finds the type
+#'   from the class of the object and the file extension. A FASTA or FASTQ path
+#'   becomes `"raw_reads"`. Use `"spatial_fasta"` to send a FASTA that is ready
+#'   for pRESTO straight to the consensus workflow. For a new rrad FASTA, use
+#'   `"auto"` or `"raw_reads"`, because `"spatial_fasta"` skips the first
+#'   annotation of V(D)J genes and the filtering of the reads.
+#' @param filter_args Named list that changes arguments of [filterAirr()]. The
+#'   pipeline defaults are `complete_vdj = TRUE`, `min_consensus_count = NULL`,
+#'   `spatial_id = "barcode"`, `add_spatial_sequence_id = TRUE`, and
+#'   `spatial_id_key = cluster_field`. A `NULL` value turns off an optional
+#'   filter (`locus_val`, `min_consensus_count`, `max_opening_gap`, or
+#'   `spatial_id`). The other arguments do not accept `NULL`.
 #' @param invalid_spatial_ids What to do with filtered rows whose spatial
-#'   barcode is missing or contains a delimiter: `"abort"` (default) stops
-#'   with a count, `"drop"` removes those rows with a warning.
-#' @param fasta_sequence_col AIRR column written to the spatial FASTA.
-#'   Defaults to `sequence_alignment` (the V(D)J-aligned region), which
-#'   keeps flanking read junk out of clustering and consensus calling. Use
-#'   `sequence` for the full read.
-#' @param sample_name Stem for intermediate file names. Defaults to the
-#'   input file name without extension, or `"sample"` for data frames.
-#' @param identity Cluster identity threshold passed to `ClusterSets.py`.
-#' @param consensus_freq Consensus frequency threshold passed to
-#'   `BuildConsensus.py`.
-#' @param germline_glob Optional. Only used to find `imgt_dir` when that is
-#'   `NULL`: a glob such as `<imgt_dir>/human/vdj/imgt_human_*.fasta`.
-#' @param igblast_base IgBLAST installation folder, passed to
-#'   `airrblast::assignGenes()` as `igblast`. It must hold `bin/igblastn`.
-#' @param muscle_exec Path passed to `AlignSets.py --exec`.
-#' @param nproc Number of processors for the raw IgBLAST step, pRESTO, and
-#'   gene assignment.
-#' @param cluster_field FASTA header field used for within-spot clustering.
-#'   The pipeline writes headers keyed by this name; the default `"barcode"`
-#'   uses the parsed rrad `BARCODE` field. Override it for other spatial ID fields, for
-#'   example `barcode_8um`.
-#' @param delimiters Character vector of pRESTO delimiter values passed
-#'   after `--delim`. Defaults to `c("|", "=", ",")`.
-#' @param parse_fields Header fields passed to `ParseHeaders.py merge -f`.
-#' @param parse_key Header field name created by `ParseHeaders.py merge -k`.
-#' @param parse_act Action passed to `ParseHeaders.py merge --act`. The default
-#'   `"set"` joins the spatial ID and the cluster ID with a comma, so the spatial
-#'   ID stays recoverable from the consensus header. `"cat"` joins them with no
-#'   separator, which makes the spatial ID unrecoverable for any variable-length
-#'   barcode. Both produce the same grouping, so prefer `"set"`.
-#' @param consensus_min_count Minimum sequence count passed to
-#'   `BuildConsensus.py -n`. Recommended to be at least 2 for non-single-cell resolution data.
-#'   This gates which groups are written, not the consensus of a group that
-#'   passes, so a run at `1` can be filtered to any higher value afterwards with
-#'   `filterAirr(min_consensus_count = )`. Note `BuildConsensus.py -q` is fixed at
-#'   20 and has no effect here, because the pipeline input is FASTA and carries
-#'   no base qualities.
-#' @param umi_support Group reads by spatial barcode AND UMI before the barcode
-#'   step. Reads of one molecule that differ by a sequencing error cluster apart
-#'   at `identity = 1.0` and are then dropped as singletons; this stage joins
-#'   them first, at `umi_identity`, so they support each other. Each
-#'   barcode-UMI cluster yields one consensus carrying `cc_bc_umi` (its reads,
-#'   counted before the productive subset) and `n_productive_reads` (the reads
-#'   the consensus was built from; a cluster with none is discarded). The
-#'   barcode step then runs with `BuildConsensus -n 1` and sums both fields, and
-#'   `min_umi_support` replaces the read floor. Each consensus is written
-#'   `n_productive_reads` times, so one read is one vote in the barcode
-#'   consensus. A short read from one molecule then cannot trim the consensus of
-#'   many full-length reads. Because of this, `consensus_count` counts reads, not
-#'   molecules. Needs an AIRR table with `umi` and `productive` columns.
-#' @param umi_weight With `umi_support`, write each molecule consensus once per
-#'   productive read, so one read is one vote in the barcode consensus. Set
-#'   `FALSE` to write each molecule once, so one UMI cluster is one vote.
-#' @param umi_field Column holding the UMI, used with `umi_support`.
-#' @param umi_identity Cluster identity for the barcode-UMI step. Looser than
-#'   the barcode step on purpose, so error-bearing reads of one molecule group.
-#' @param min_umi_support Lowest summed `cc_bc_umi` a barcode consensus needs.
-#'   Applied after gene assignment, writing a filtered copy beside `db_pass`, so a
-#'   run can be re-thresholded without reprocessing.
-#' @param consensus_copy_fields Optional fields passed to `BuildConsensus.py
-#'   --cf`. With `umi_support`, `CC_BC_UMI` and `N_PRODUCTIVE_READS` are
-#'   prepended and summed.
-#' @param consensus_copy_action Action passed to `BuildConsensus.py --act` when
-#'   `consensus_copy_fields` is provided.
-#' @param consensus_max_error Maximum error rate passed to
-#'   `BuildConsensus.py --maxerror`.
-#' @param consensus_max_gap Maximum gap fraction passed to
-#'   `BuildConsensus.py --maxgap`.
-#' @param igblast_refs Folder that holds the IgBLAST `database/` and `fasta/`
-#'   folders (the `refs` argument of `airrblast::assignGenes()`). When `NULL`,
-#'   uses `igblast_base`.
-#' @param imgt_dir IMGT folder with gapped germlines at
+#'   barcode is missing or holds a delimiter: `"abort"` (default) stops with a
+#'   count, and `"drop"` removes the rows with a warning.
+#' @param fasta_sequence_col Name of the AIRR column to write to the spatial
+#'   FASTA (default `"sequence_alignment"`, the aligned V(D)J region). This
+#'   keeps extra read sequence out of the clustering and consensus steps. Use
+#'   `"sequence"` to write the full read.
+#' @param sample_name Stem of the intermediate file names. The default is the
+#'   input file name without the extension, or `"sample"` for a data frame.
+#' @param identity Identity threshold for the clusters, passed to
+#'   `ClusterSets.py` (default 0.975).
+#' @param consensus_freq Frequency threshold for the consensus, passed to
+#'   `BuildConsensus.py` (default 0.51).
+#' @param germline_glob Pattern of the germline files, such as
+#'   `<imgt_dir>/human/vdj/imgt_human_*.fasta`. The function uses it only to
+#'   find `imgt_dir` if `imgt_dir` is `NULL`.
+#' @param igblast_base IgBLAST installation folder (default
+#'   `"~/software/igblast"`). The function passes it to
+#'   `airrblast::assignGenes()` as `igblast`. The folder must hold
+#'   `bin/igblastn`.
+#' @param muscle_exec Path of the MUSCLE program, passed to `AlignSets.py
+#'   --exec` (default `"~/software/muscle3.8.31_i86linux64"`).
+#' @param nproc Number of processors for the IgBLAST step on raw reads, for
+#'   pRESTO, and for the gene assignment (default 8).
+#' @param cluster_field FASTA header field for the clustering within a spot
+#'   (default `"barcode"`, the parsed rrad `BARCODE` field). The pipeline writes
+#'   the headers with this field name. Change it for other spatial ID fields,
+#'   such as `barcode_8um`.
+#' @param delimiters Character vector of the pRESTO delimiters, passed after
+#'   `--delim` (default `c("|", "=", ",")`).
+#' @param parse_fields Header fields for `ParseHeaders.py merge -f` (default
+#'   `c(cluster_field, "cluster")`).
+#' @param parse_key Name of the header field that `ParseHeaders.py merge -k`
+#'   makes (default `paste0(cluster_field, "_cluster")`).
+#' @param parse_act Action for `ParseHeaders.py merge --act` (default `"set"`).
+#'   With `"set"`, the function joins the spatial ID and the cluster ID with a
+#'   comma, so that you can recover the spatial ID from the consensus header.
+#'   With `"cat"`, it joins them with no separator, so that you cannot recover
+#'   the spatial ID of a barcode that has a variable length. Both give the same
+#'   groups, so use `"set"`.
+#' @param consensus_min_count Smallest number of sequences for a consensus,
+#'   passed to `BuildConsensus.py -n` (default 1). Use at least 2 for data that
+#'   do not have single-cell resolution. This value decides which groups the
+#'   function writes. It does not change the consensus of a group that passes.
+#'   So you can run with `1` and filter to a higher value later with
+#'   `filterAirr(min_consensus_count = )`. `BuildConsensus.py -q` is fixed at 20
+#'   and has no effect here, because the pipeline input is FASTA and has no base
+#'   qualities.
+#' @param umi_support Group the reads by spatial barcode and UMI before the
+#'   barcode step (default `FALSE`)? Reads of one molecule that differ by a
+#'   sequencing error end up in different clusters at `identity = 1.0`, and the
+#'   function then drops them as singletons. This stage first joins them at
+#'   `umi_identity`, so that they support each other. Each barcode-UMI cluster
+#'   gives one consensus. The consensus carries `cc_bc_umi` (the number of reads
+#'   in the cluster, counted before the productive subset) and
+#'   `n_productive_reads` (the number of reads that the consensus uses). The
+#'   function discards a cluster that has no such reads. The barcode step then
+#'   runs with `BuildConsensus -n 1` and sums both fields, and `min_umi_support`
+#'   replaces the read minimum. With `umi_weight = TRUE`, the function writes
+#'   each consensus once for each productive read, so that one read is one vote
+#'   in the barcode consensus. A short read from one molecule then cannot trim
+#'   the consensus of many full-length reads. For this reason, `consensus_count`
+#'   counts reads and not molecules. The option needs an AIRR table with the
+#'   columns `umi` and `productive`.
+#' @param umi_weight Write each molecule consensus once for each productive read
+#'   (default `TRUE`)? The function uses it only with `umi_support`. If `FALSE`,
+#'   it writes each molecule once, so that one UMI cluster is one vote.
+#' @param umi_field Name of the column that holds the UMI (default `"umi"`). The
+#'   function uses it only with `umi_support`.
+#' @param umi_identity Identity threshold for the barcode-UMI clusters (default
+#'   0.95). It is lower than `identity` on purpose, so that reads of one
+#'   molecule with errors form one group.
+#' @param min_umi_support Smallest summed `cc_bc_umi` that a barcode consensus
+#'   needs (default 2). The function applies it after the gene assignment. It
+#'   writes a filtered copy next to `db_pass`, so that you can change the
+#'   threshold without a new run of the pipeline.
+#' @param consensus_copy_fields Header fields for `BuildConsensus.py --cf`. With
+#'   `umi_support`, the function adds `CC_BC_UMI` and `N_PRODUCTIVE_READS` at
+#'   the start of the list and sums them.
+#' @param consensus_copy_action Action for `BuildConsensus.py --act`, if you
+#'   give `consensus_copy_fields` (default `"majority"`).
+#' @param consensus_max_error Largest error rate, passed to
+#'   `BuildConsensus.py --maxerror` (default 0.1).
+#' @param consensus_max_gap Largest gap fraction, passed to
+#'   `BuildConsensus.py --maxgap` (default 0.3).
+#' @param igblast_refs Folder with the IgBLAST `database/` and `fasta/` folders
+#'   (the `refs` argument of `airrblast::assignGenes()`). If `NULL`, the
+#'   function uses `igblast_base`.
+#' @param imgt_dir IMGT folder with the gapped germlines, at
 #'   `<imgt_dir>/<organism>/vdj` (the `gapdb` argument of
-#'   `airrblast::addGaps()`). When `NULL`, it is taken from `germline_glob`,
-#'   which must then point into a `<organism>/vdj` folder.
-#' @param skip_existing Skip a pipeline command when its output already exists
-#'   and is not empty. Use this to restart an interrupted run, or to reuse one
-#'   clustering and alignment pass across several `consensus_freq` values,
-#'   since those steps depend only on `identity`.
-#' @param align_log Optional log path passed to `AlignSets.py --log`.
-#' @param consensus_log Optional log path passed to `BuildConsensus.py --log`.
-#' @return A named list, invisibly: `raw_airr`, `filtered_airr`,
-#'   `spatial_fasta`, `n_raw`, `n_filtered` (each `NULL` for steps that did
-#'   not run), plus the pRESTO/IgBLAST output paths. `db_pass` is the final
-#'   AIRR TSV. With `umi_support`, `db_pass_umi` is that table filtered to
-#'   `min_umi_support`.
+#'   `airrblast::addGaps()`). If `NULL`, the function finds it from
+#'   `germline_glob`, which must point into a `<organism>/vdj` folder.
+#' @param skip_existing Skip a pipeline command if its output already exists and
+#'   is not empty (default `FALSE`)? Use it to restart an interrupted run. You
+#'   can also use it to reuse one clustering and alignment pass for several
+#'   `consensus_freq` values, because those steps depend only on `identity`.
+#' @param align_log Path of a log file for `AlignSets.py --log`.
+#' @param consensus_log Path of a log file for `BuildConsensus.py --log`.
+#'
+#' @return A named list, invisibly. It holds `raw_airr`, `filtered_airr`,
+#'   `spatial_fasta`, `n_raw`, and `n_filtered`, which are `NULL` for the steps
+#'   that did not run. It also holds the output paths of pRESTO and IgBLAST.
+#'   `db_pass` is the final AIRR TSV. With `umi_support`, `db_pass_umi` is the
+#'   same table, filtered to `min_umi_support`.
+#' @seealso [processSpatialSamples()], [runIgblast()], [filterAirr()],
+#'   [parseRadSequenceIds()]
+#'
+#' @examples
+#' \dontrun{
+#' # This example needs IgBLAST, pRESTO, vsearch, and MUSCLE. See
+#' # vignette("processing", package = "SIRUP").
+#' result <- processSpatialSample(
+#'   "sample1_reads.fasta.gz",
+#'   output_dir = "sample1_output",
+#'   receptor = "ig",
+#'   organism = "human",
+#'   igblast_base = "~/software/igblast",
+#'   imgt_dir = "~/share/germlines/imgt",
+#'   muscle_exec = "~/software/muscle",
+#'   nproc = 8
+#' )
+#' bcrs <- airr::read_rearrangement(result$db_pass)
+#' }
 #' @export
 processSpatialSample <- function(input,
                                  output_dir = NULL,
@@ -713,15 +802,33 @@ processSpatialSample <- function(input,
   ))
 }
 
-#' Process multiple spatial samples
+#' Process several spatial samples
 #'
-#' @param inputs List or character vector of inputs, one per sample. Each is
-#'   passed to `processSpatialSample()` and can be a reads file, an AIRR TSV
-#'   path, or an AIRR data frame.
-#' @param output_dirs Optional vector of output directories, one per input.
-#' @param sample_names Optional vector of sample names, one per input.
-#' @param ... Passed to `processSpatialSample()`.
-#' @return A list of output path lists, invisibly.
+#' `processSpatialSamples` runs [processSpatialSample()] on each input in turn.
+#'
+#' @param inputs List or character vector of inputs, one for each sample. Each
+#'   input goes to [processSpatialSample()]. It can be a reads file, the path of
+#'   an AIRR TSV, or an AIRR data frame.
+#' @param output_dirs Vector of output directories, one for each input. If
+#'   `NULL`, each sample uses the default of [processSpatialSample()].
+#' @param sample_names Vector of sample names, one for each input. If `NULL`,
+#'   the function uses the file name of each input, or `sample_<i>` for a data
+#'   frame.
+#' @param ... Other arguments for [processSpatialSample()].
+#'
+#' @return A list with one list of output paths for each sample, invisibly.
+#' @seealso [processSpatialSample()]
+#'
+#' @examples
+#' \dontrun{
+#' # This example needs IgBLAST, pRESTO, vsearch, and MUSCLE.
+#' results <- processSpatialSamples(
+#'   c("sample1_reads.fasta.gz", "sample2_reads.fasta.gz"),
+#'   output_dirs = c("sample1_output", "sample2_output"),
+#'   receptor = "ig",
+#'   imgt_dir = "~/share/germlines/imgt"
+#' )
+#' }
 #' @export
 processSpatialSamples <- function(inputs,
                                   output_dirs = NULL,
@@ -766,19 +873,38 @@ processSpatialSamples <- function(inputs,
   invisible(results)
 }
 
-#' Collapse to the most abundant consensus sequence per spatial ID and locus
+#' Keep the most abundant consensus sequence of each spatial ID and locus
 #'
-#' Adds `prop_total_consensus`, `non_N_nucleotide_prop`, `max_gap_length`, and
-#' `opening_gap_length`, then keeps the highest-consensus row per spatial ID/locus.
+#' `collapseTopConsensusPerSpatialId` keeps the row with the highest consensus
+#' count for each spatial ID and locus.
+#'
+#' @details
+#' The function adds the column `prop_total_consensus`. It then adds the quality
+#' columns from [addSequenceQualityMetrics()]: `non_N_nucleotide_prop`,
+#' `max_gap_length`, and `opening_gap_length`. If several rows tie for the top
+#' consensus count, the function prints how many groups have a tie.
 #'
 #' @param airr_df AIRR-style data frame.
-#' @param spatial_id Spatial ID column name used for grouping.
-#' @param locus Locus column name used for grouping.
-#' @param consensus Consensus-count column name used for ranking rows.
-#' @param sequence Sequence column for non-N proportion.
-#' @param alignment Alignment column for gap metrics.
-#' @param ties Keep all tied top rows or only the first tied row.
-#' @return Collapsed data frame.
+#' @param spatial_id Name of the spatial ID column for the grouping (default
+#'   `"spatial_id_2um"`).
+#' @param locus Name of the locus column for the grouping (default `"locus"`).
+#' @param consensus Name of the consensus count column for the ranking (default
+#'   `"consensus_count"`).
+#' @param sequence Name of the sequence column for the proportion of called
+#'   bases (default `"sequence"`).
+#' @param alignment Name of the alignment column for the gap measures (default
+#'   `"sequence_alignment"`).
+#' @param ties Keep `"all"` rows that tie for the top count (default), or only
+#'   the `"first"` of them.
+#'
+#' @return The collapsed data frame. It has the column `prop_total_consensus`
+#'   (the count of the row divided by the total count of its group) and the
+#'   quality columns.
+#' @seealso [addSequenceQualityMetrics()], [filterAirr()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' collapseTopConsensusPerSpatialId(getReceptors(x), spatial_id = "spatial_id")
 #' @export
 collapseTopConsensusPerSpatialId <- function(airr_df,
                                            spatial_id = "spatial_id_2um",
@@ -817,26 +943,40 @@ collapseTopConsensusPerSpatialId <- function(airr_df,
   addSequenceQualityMetrics(out, sequence = sequence, alignment = alignment)
 }
 
-#' Add per-sequence quality metrics to an AIRR table
+#' Add quality measures to an AIRR table
 #'
-#' Adds the columns used to judge consensus quality, without dropping any rows.
-#' Use this to inspect the metric distributions before choosing thresholds for
-#' [filterAirr()]. Previously these columns could only be obtained as a side
-#' effect of [collapseTopConsensusPerSpatialId()], which also discards rows.
+#' `addSequenceQualityMetrics` adds columns that can help indicate the quality of each
+#' consensus sequence. It keeps all rows.
 #'
-#' Added columns, when the source column is present:
+#' @details
+#' Use this function to look at the distributions of the measures before you
+#' choose the thresholds for [filterAirr()].
+#' [collapseTopConsensusPerSpatialId()] also adds these columns, but it removes
+#' rows.
 #'
-#' * `non_N_nucleotide_prop` -- the share of called bases (`A`, `C`, `G`, `T`)
-#'   in `sequence`. A low value means an ambiguous consensus. This must be taken
-#'   from the ungapped sequence; using the alignment would put IMGT gap
-#'   characters into the denominator.
-#' * `max_gap_length` -- the longest gap run in `alignment`.
-#' * `opening_gap_length` -- the leading gap run in `alignment`.
+#' The function adds these columns, if the source column exists:
+#' \itemize{
+#'   \item `non_N_nucleotide_prop`: the share of called bases (`A`, `C`, `G`,
+#'     `T`) in `sequence`. A low value means an ambiguous consensus. The
+#'     function takes this value from the ungapped sequence. The alignment
+#'     would put IMGT gap characters in the denominator.
+#'   \item `max_gap_length`: the longest run of gap characters in `alignment`.
+#'   \item `opening_gap_length`: the gap run at the start of `alignment`.
+#' }
 #'
 #' @param airr_df AIRR-style data frame.
-#' @param sequence Sequence column for the called-base proportion.
-#' @param alignment Alignment column for the gap metrics.
-#' @return `airr_df` with the metric columns added.
+#' @param sequence Name of the sequence column for the share of called bases
+#'   (default `"sequence"`).
+#' @param alignment Name of the alignment column for the gap measures (default
+#'   `"sequence_alignment"`).
+#'
+#' @return `airr_df` with the quality columns added.
+#' @seealso [filterAirr()], [collapseTopConsensusPerSpatialId()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' metrics <- addSequenceQualityMetrics(getReceptors(x))
+#' head(metrics[, c("non_N_nucleotide_prop", "max_gap_length", "opening_gap_length")])
 #' @export
 addSequenceQualityMetrics <- function(airr_df,
                                       sequence = "sequence",
@@ -852,12 +992,24 @@ addSequenceQualityMetrics <- function(airr_df,
   out
 }
 
-#' Summarize a spatial receptor table
+#' Count the sequences and spots of a receptor table
 #'
-#' @param airr_df AIRR-style data frame or a SIRUP object.
-#' @param spatial_id Spatial ID column to count. When omitted for a SIRUP object,
-#'   the spatial ID field recorded in its metadata is used.
-#' @return One-row tibble of basic counts.
+#' `spatialReceptorSummary` returns the basic counts of a receptor table.
+#'
+#' @param airr_df AIRR-style data frame, or a SIRUP object.
+#' @param spatial_id Name of the spatial ID column to count (default
+#'   `"spatial_id_2um"`). For a SIRUP object, if you omit it, the function uses
+#'   the stored spatial ID field. If the object has a sample field, the function
+#'   counts each spatial ID once for each sample.
+#'
+#' @return A one-row tibble with the columns `n_sequences`, `n_spatial_ids`,
+#'   `n_loci`, and `n_productive`. `n_loci` and `n_productive` are `NA` if the
+#'   table has no `locus` or `productive` column.
+#' @seealso [filterAirr()], [spatialCloneDominance()]
+#'
+#' @examples
+#' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+#' spatialReceptorSummary(x)
 #' @export
 spatialReceptorSummary <- function(airr_df, spatial_id = "spatial_id_2um") {
   spatial_id_missing <- missing(spatial_id)
@@ -886,42 +1038,42 @@ spatialReceptorSummary <- function(airr_df, spatial_id = "spatial_id_2um") {
   )
 }
 
-#' Collapse spatially contiguous spots with identical receptor sequences
+#' Collapse neighboring spots with identical receptor sequences
 #'
-#' For each unique receptor sequence, finds connected components of neighboring
-#' spots sharing that sequence, then collapses each component to a single
-#' representative spot. A SIRUP object is the preferred input: receptor IDs
-#' are read from the SIRUP field mapping and spatial coordinates are read from
-#' the stored Seurat object. If you are not using a SIRUP object, pass an
-#' AIRR-style receptor table as `object` and the matching Seurat object as
-#' `seurat_object`.
+#' `collapseIdenticalNeighbors` finds groups of neighboring spots that share a
+#' receptor sequence. It keeps one representative spot for each group.
 #'
-#' When `object` is a SIRUP object, the returned value is the updated SIRUP
-#' object with its receptor table replaced. When `object` is a receptor table,
-#' the returned value is the collapsed receptor table.
+#' @details
+#' For each unique receptor sequence, the function finds the connected groups of
+#' neighboring spots that hold that sequence. It keeps the spot with the highest
+#' consensus count in each group. This hopefully reduces bleedover, but in a very 
+#' coarse manner.
 #'
-#' @param object A SIRUP object, or an AIRR-style receptor data frame.
-#' @param seurat_object Optional Seurat object used only when `object` is a
-#'   receptor data frame.
-#' @param spatial_id Column in the receptor table matching Seurat spot/cell
-#'   spatial IDs. When omitted for a SIRUP object, the recorded SIRUP spatial ID field
-#'   is used. When omitted for a receptor table, a spatial ID-like column is
-#'   guessed.
-#' @param sequence Column containing receptor sequence strings.
-#' @param consensus_count Column containing consensus counts used to choose
-#'   the representative spot within a connected component.
-#' @param images Optional Seurat image names to use for spatial coordinates.
-#' @param image_scale Image scale passed to
-#'   `SeuratObject::GetTissueCoordinates()`.
-#' @param swap_coords Swap x/y coordinates after reading Seurat tissue
-#'   coordinates.
-#' @param num_neighbors_non_boundary Number of nearby points needed to be
-#'   considered non-boundary.
-#' @param validate Whether to validate the updated SIRUP object before
-#'   returning it. Only used when `object` is a SIRUP object.
-#' @return A SIRUP object or receptor data frame with bleedover rows removed,
-#'   retaining only the representative spot for each contiguous group of
-#'   identical sequences.
+#' @param object SIRUP object, or an AIRR-style receptor data frame.
+#' @param seurat_object Seurat object. Use it only if `object` is a receptor
+#'   data frame.
+#' @param spatial_id Name of the receptor column that holds the Seurat spot
+#'   names. For a SIRUP object, if you omit it, the function uses the stored
+#'   spatial ID field. For a receptor table, if you omit it, the function looks
+#'   for a standard spatial ID column.
+#' @param sequence Name of the column that holds the receptor sequences (default
+#'   `"sequence"`).
+#' @param consensus_count Name of the column that holds the consensus counts
+#'   (default `"consensus_count"`). The function uses it to choose the
+#'   representative spot of a group.
+#' @param images Names of the Seurat images to use for the coordinates.
+#' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
+#' @param swap_coords Swap the x and y coordinates after the function reads the
+#'   Seurat coordinates?
+#' @param num_neighbors_non_boundary Number of nearby spots that makes a spot a
+#'   non-boundary spot (default 6).
+#' @param validate Validate the updated SIRUP object (default `TRUE`)? The
+#'   function uses it only if `object` is a SIRUP object.
+#'
+#' @return For a SIRUP object, the updated SIRUP object with a new receptor
+#'   table. For a receptor table, the collapsed table. Both keep only the
+#'   representative spot of each group of identical sequences.
+#' @seealso [filterAirr()], [updateReceptors()]
 #' @export
 collapseIdenticalNeighbors <- function(object,
                                        seurat_object = NULL,
@@ -1499,17 +1651,27 @@ collapseIdenticalNeighbors <- function(object,
 }
 .datatable.aware = TRUE
 
-#' Write a data.table of sequences to FASTQ/FASTA
+#' Write sequences to a FASTQ or FASTA file
 #'
-#' @param df data.table or data.frame with at least `seq` (and `qual` for
-#'   fastq). The header column is chosen by `header_col`.
-#' @param fn output path.
-#' @param type one of `"fq"`, `"fastq"`, `"fa"`, `"fasta"`.
-#' @param header_col column name to use as the record header. Defaults to
-#'   `"id"`. Pass `"full_id"` to write the full header instead.
-#' @param append append to an existing file?
-#' @param nthreads `data.table::fwrite` thread count.
-#' @return Invisibly returns `fn`.
+#' `writeFastqas` writes a table of sequences to a FASTQ or FASTA file.
+#'
+#' @param df Data frame or data.table with a `seq` column. For FASTQ, it also
+#'   needs a `qual` column. The `header_col` column holds the record headers.
+#' @param fn Path of the output file.
+#' @param type File type: `"fq"` (default), `"fastq"`, `"fa"`, or `"fasta"`.
+#' @param header_col Name of the column that holds the record headers (default
+#'   `"id"`). Use `"full_id"` to write the full header.
+#' @param append Add the records to an existing file (default `FALSE`)?
+#' @param nthreads Number of threads for `data.table::fwrite()` (default 1).
+#'
+#' @return `fn`, invisibly.
+#' @seealso [processSpatialSample()]
+#'
+#' @examples
+#' reads <- data.frame(id = c("read1", "read2"), seq = c("ACGTACGT", "TTGACCGA"))
+#' path <- tempfile(fileext = ".fasta")
+#' writeFastqas(reads, path, type = "fasta")
+#' readLines(path)
 #' @export
 writeFastqas <- function(df, fn, type = "fq", header_col = "id",
                           append = FALSE, nthreads = 1) {
@@ -1540,39 +1702,6 @@ writeFastqas <- function(df, fn, type = "fq", header_col = "id",
   invisible(fn)
 }
 
-#' Run garbage collection and request OS memory cleanup
-#'
-#' Calls [gc()] and, on macOS, requests memory cleanup with the system `purge`
-#' command when it is available.
-#'
-#' @return Invisibly returns `NULL`.
-#' @export
-aggc <- function() {
-  gc()
-  sysname <- Sys.info()[["sysname"]]
-  if (sysname == "Darwin") {  
-    # macOS
-    system("purge", ignore.stdout = TRUE, ignore.stderr = TRUE)
-  }
-  invisible(NULL)
-}
-
-#' Probability of observing a subsequence by chance
-#'
-#' Calculates the chance of seeing at least one exact subsequence of length
-#' `subsequence_length` in a random nucleotide sequence of length
-#' `sequence_length`, assuming independent bases with equal probability.
-#'
-#' @param subsequence_length Length of the queried subsequence.
-#' @param sequence_length Length of the sequence being searched.
-#' @return Numeric vector of probabilities.
-#' @export
-substringOdds<-function(subsequence_length, sequence_length){
-  return((mapply(sequence_length, subsequence_length, FUN = 
-                   function(seq_len, sub_seq){
-                     1-(1-(0.25)^sub_seq)^(seq_len-sub_seq+1)
-  }, USE.NAMES = FALSE, SIMPLIFY = TRUE)))
-}
 
 # Shared FASTQ/FASTA header contract for writeFastqas:
 #   - `id`      always present; short id (everything before first space),
@@ -1734,27 +1863,44 @@ substringOdds<-function(subsequence_length, sequence_length){
 
 #' Annotate raw reads with IgBLAST
 #'
-#' Runs `airrblast::assignGenes()` on raw reads and writes an AIRR
-#' rearrangement table. The input can be FASTA or FASTQ, optionally gzipped.
-#' Gzipped and FASTQ inputs are first normalized to a plain FASTA next to
-#' `output_tsv` (FASTQ quality strings are dropped, because igblastn only
-#' accepts FASTA). One receptor group runs per call: `ig` or `tr`.
+#' `runIgblast` runs `airrblast::assignGenes()` on raw reads. It writes an AIRR
+#' table.
 #'
-#' `assignGenes()` does not search the C-region database, so raw-read tables
-#' have no `c_call` from this step.
+#' @details
+#' The input can be FASTA or FASTQ, optionally gzipped. The function first
+#' writes gzipped and FASTQ inputs as a plain FASTA next to `output_tsv`. It
+#' drops the FASTQ quality strings, because `igblastn` accepts only FASTA. Each
+#' call runs one receptor group: `ig` or `tr`.
 #'
-#' @param input Path to a FASTA/FASTQ file, optionally gzipped. A plain FASTA
-#'   must end in `.fasta` or `.fa`.
-#' @param output_tsv Path for the AIRR TSV. It must end in `.tsv`.
-#' @param receptor Either `ig` for BCR or `tr` for TCR.
-#' @param organism `human`, `mouse`, or `rhesus_monkey`.
-#' @param igblast_base IgBLAST installation folder. It must hold
-#'   `bin/igblastn`, `internal_data`, and `optional_file`.
-#' @param igblast_refs Folder with the IgBLAST `database/` and `fasta/`
-#'   folders (the `refs` argument of `airrblast::assignGenes()`). When
-#'   `NULL`, uses `igblast_base`.
-#' @param num_threads Threads passed to `assignGenes()` as `nproc`.
-#' @return The path to `output_tsv`, invisibly.
+#' `assignGenes()` does not search the C-region database, so the tables of raw
+#' reads have no `c_call` from this step.
+#'
+#' @param input Path of a FASTA or FASTQ file, optionally gzipped. A plain FASTA
+#'   file must end in `.fasta` or `.fa`.
+#' @param output_tsv Path of the AIRR TSV file. It must end in `.tsv`.
+#' @param receptor `"ig"` for BCR or `"tr"` for TCR.
+#' @param organism `"human"`, `"mouse"`, or `"rhesus_monkey"`.
+#' @param igblast_base IgBLAST installation folder. It must hold `bin/igblastn`,
+#'   `internal_data`, and `optional_file`.
+#' @param igblast_refs Folder with the IgBLAST `database/` and `fasta/` folders
+#'   (the `refs` argument of `airrblast::assignGenes()`). If `NULL`, the
+#'   function uses `igblast_base`.
+#' @param num_threads Number of threads, passed to `assignGenes()` as `nproc`.
+#'
+#' @return `output_tsv`, invisibly.
+#' @seealso [processSpatialSample()], [parseRadSequenceIds()]
+#'
+#' @examples
+#' \dontrun{
+#' # This example needs IgBLAST and the IgBLAST reference files.
+#' runIgblast(
+#'   "sample1_reads.fasta.gz",
+#'   output_tsv = "sample1_igblast.tsv",
+#'   receptor = "ig",
+#'   organism = "human",
+#'   igblast_base = "~/software/igblast"
+#' )
+#' }
 #' @export
 runIgblast <- function(input,
                        output_tsv,
@@ -1788,25 +1934,37 @@ runIgblast <- function(input,
   invisible(output_tsv)
 }
 
-#' Parse rrad tags out of AIRR sequence IDs
+#' Split the rrad tags out of sequence IDs
 #'
-#' Parses `id|BARCODE=YYY|UMI=XXX`, written by
-#' `rrad::rad_reformat(..., to_fasta = TRUE, header_format = "presto")`.
-#' Legacy `|barcode:YYY|umi:XXX` tags are also accepted; field names are
-#' case-insensitive. Existing `barcode` and `umi` columns are preserved when
-#' a tag is absent. Conflicting values or repeated tags raise an error.
-#' Missing UMIs are allowed. With `strip = TRUE`, the ID column is replaced
-#' with the bare read ID. For other header formats, see [extractSpatialIds()].
+#' `parseRadSequenceIds` reads the barcode and the UMI from the sequence IDs of
+#' an AIRR table. It adds them as columns.
 #'
-#' Metadata must be inside the identifier, before any whitespace, to survive
-#' IgBLAST. SAM-style comments from unformatted RAD output should be converted
-#' upstream with `header_format = "presto"` before annotation.
+#' @details
+#' The function reads IDs of the form `id|BARCODE=YYY|UMI=XXX`.
+#'
+#' If an ID has no tag, the function keeps the values in an existing `barcode`
+#' or `umi` column. A conflict between values, or a repeated tag, gives an
+#' error. A missing UMI is allowed. For other header formats, use
+#' [extractSpatialIds()].
+#'
+#' The metadata must be in the ID, before any white space, so that it stays in
+#' the IgBLAST output. For unformatted rrad output with SAM-style comments,
+#' reformat the reads first with `header_format = "presto"`.
 #'
 #' @param airr_df AIRR-style data frame.
-#' @param id Column that contains the read identifiers.
-#' @param strip Replace the ID column with the part before the first `|` or
-#'   whitespace character.
-#' @return The data frame with `umi` and `barcode` columns added.
+#' @param id Name of the column that holds the read IDs (default
+#'   `"sequence_id"`).
+#' @param strip Replace the ID column with the read ID (default `TRUE`)? The
+#'   read ID is the part before the first `|` or white space.
+#'
+#' @return The data frame with the columns `umi` and `barcode` added.
+#' @seealso [extractSpatialIds()], [processSpatialSample()]
+#'
+#' @examples
+#' reads <- data.frame(
+#'   sequence_id = c("read1|BARCODE=ACGTACGT|UMI=TTGCA", "read2|BARCODE=GGGTTTAA|UMI=CCATG")
+#' )
+#' parseRadSequenceIds(reads)
 #' @export
 parseRadSequenceIds <- function(airr_df, id = "sequence_id", strip = TRUE) {
   .check_required_cols(airr_df, id, "airr_df")
@@ -2095,4 +2253,149 @@ parseRadSequenceIds <- function(airr_df, id = "sequence_id", strip = TRUE) {
     n_groups = n_groups,
     n_molecules = nrow(cons)
   )
+}
+
+# ---- Spatial ID and tissue position helpers ----------------------------------
+
+#' Read a spatial ID mapping file
+#'
+#' `readSpatialIdMapping` reads a table that maps spatial IDs to other values,
+#' such as tissue positions. The file can be CSV, TSV, or parquet.
+#'
+#' @details
+#' The function chooses the format from the file extension. A parquet file needs
+#' the `arrow` package.
+#'
+#' @param path Path of the mapping file.
+#'
+#' @return A data frame.
+#' @seealso [addTissuePositions()]
+#'
+#' @examples
+#' positions <- data.frame(
+#'   barcode = c("s1", "s2"),
+#'   pxl_col_in_fullres = c(100, 200),
+#'   pxl_row_in_fullres = c(50, 60)
+#' )
+#' path <- tempfile(fileext = ".csv")
+#' write.csv(positions, path, row.names = FALSE)
+#' readSpatialIdMapping(path)
+#' @export
+readSpatialIdMapping <- function(path) {
+  ext <- tolower(tools::file_ext(path))
+  if (ext == "parquet") {
+    .require_namespace("arrow")
+    return(.as_data_frame(arrow::read_parquet(path)))
+  }
+  if (ext %in% c("tsv", "tab")) {
+    return(.as_data_frame(data.table::fread(path, sep = "\t")))
+  }
+  .as_data_frame(data.table::fread(path))
+}
+
+#' Extract spatial IDs from sequence IDs
+#'
+#' `extractSpatialIds` copies the spatial ID out of the sequence ID with a
+#' regular expression. It adds the spatial ID as a column.
+#'
+#' @param airr_df AIRR-style data frame.
+#' @param id Name of the column that holds the read or consensus IDs (default
+#'   `"sequence_id"`).
+#' @param spatial_id Name of the new spatial ID column (default `"spatial_id"`).
+#' @param regex Regular expression that matches the spatial ID. If it has a
+#'   capture group, the function uses the first group. Otherwise, it uses the
+#'   whole match.
+#' @param prefix Text to add before the match (default `""`).
+#' @param suffix Text to add after the match (default `""`).
+#'
+#' @return `airr_df` with the `spatial_id` column added. A row with no match
+#'   gets `NA`.
+#' @seealso [parseRadSequenceIds()], [addTissuePositions()]
+#'
+#' @examples
+#' reads <- data.frame(
+#'   sequence_id = c("consensus1,ACGTACGTACGTACGT", "consensus2,TTTTGGGGCCCCAAAA")
+#' )
+#'
+#' # Take the 16-nucleotide barcode and add the suffix of the Seurat spot names.
+#' extractSpatialIds(reads, regex = ",([ACGT]{16})$", suffix = "-1")
+#' @export
+extractSpatialIds <- function(airr_df,
+                                    id = "sequence_id",
+                                    spatial_id = "spatial_id",
+                                    regex,
+                                    prefix = "",
+                                    suffix = "") {
+  .check_required_cols(airr_df, id, "airr_df")
+  out <- .as_data_frame(airr_df)
+  ids <- as.character(out[[id]])
+
+  # str_match makes a matrix with the full match in the first column and capture groups in subsequent columns
+  match_matrix <- stringr::str_match(ids, regex)
+  if (ncol(match_matrix) > 1) {
+    extracted_spatial_id <- match_matrix[, 2]
+  } else {
+    extracted_spatial_id <- match_matrix[, 1]
+  }
+  out[[spatial_id]] <- ifelse(is.na(extracted_spatial_id), NA_character_, paste0(prefix, extracted_spatial_id, suffix))
+  out
+}
+
+#' Add tissue coordinates to an AIRR table
+#'
+#' `addTissuePositions` joins the tissue positions of the spots to an AIRR
+#' table. It adds the columns `x` and `y`.
+#'
+#' @param airr_df AIRR-style data frame with a spatial ID column.
+#' @param positions Data frame of tissue positions, or the path of a CSV or
+#'   parquet file.
+#' @param spatial_id Name of the column in `airr_df` to match (default
+#'   `"spatial_id_8um"`).
+#' @param position_spatial_id Name of the spatial ID column in `positions`
+#'   (default `"barcode"`).
+#' @param x Name of the column in `positions` to copy to `x` (default
+#'   `"pxl_col_in_fullres"`).
+#' @param y Name of the column in `positions` to copy to `y` (default
+#'   `"pxl_row_in_fullres"`).
+#' @param keep_position_cols Keep all columns of `positions` (default `TRUE`)?
+#'   If `FALSE`, the result has the columns of `airr_df`, `x`, and `y`.
+#'
+#' @return A data frame with the columns `x` and `y` added.
+#' @seealso [readSpatialIdMapping()], [extractSpatialIds()]
+#'
+#' @examples
+#' reads <- data.frame(sequence_id = c("a", "b"), spatial_id_8um = c("s1", "s2"))
+#' positions <- data.frame(
+#'   barcode = c("s1", "s2"),
+#'   pxl_col_in_fullres = c(100, 200),
+#'   pxl_row_in_fullres = c(50, 60)
+#' )
+#' addTissuePositions(reads, positions)
+#' @export
+addTissuePositions <- function(airr_df,
+                                 positions,
+                                 spatial_id = "spatial_id_8um",
+                                 position_spatial_id = "barcode",
+                                 x = "pxl_col_in_fullres",
+                                 y = "pxl_row_in_fullres",
+                                 keep_position_cols = TRUE) {
+  .check_required_cols(airr_df, spatial_id, "airr_df")
+  if (is.character(positions) && length(positions) == 1) {
+    positions <- readSpatialIdMapping(positions)
+  }
+  .check_required_cols(positions, c(position_spatial_id, x, y), "positions")
+
+  out <- dplyr::left_join(
+    .as_data_frame(airr_df),
+    .as_data_frame(positions),
+    by = stats::setNames(position_spatial_id, spatial_id)
+  )
+  out$x <- out[[x]]
+  out$y <- out[[y]]
+
+  if (!keep_position_cols) {
+    keep <- union(colnames(airr_df), c("x", "y"))
+    out <- out[, keep, drop = FALSE]
+  }
+  out
 }

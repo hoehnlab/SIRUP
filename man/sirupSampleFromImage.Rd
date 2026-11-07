@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_ggplot_visualization.R
 \name{sirupSampleFromImage}
 \alias{sirupSampleFromImage}
-\title{Extract spatial sample names from SIRUP image labels}
+\title{Get the sample name from an image label}
 \usage{
 sirupSampleFromImage(image)
 }
@@ -10,11 +10,18 @@ sirupSampleFromImage(image)
 \item{image}{Character vector of image labels.}
 }
 \value{
-Character vector of sample names, with \code{NA} for labels that do not
-contain a sample component.
+A character vector of sample names, with \code{NA} for each label that has
+no sample part.
 }
 \description{
-Multi-sample SIRUP objects label spatial images as \code{"<sample>::<image>"} so
-image names remain unique across sections. This helper returns the sample
-component for composite labels and \code{NA} for non-composite labels.
+\code{sirupSampleFromImage} returns the sample name in an image label.
+}
+\details{
+A multi-sample SIRUP object labels each spatial image as
+\code{"<sample>::<image>"}, so that image names stay unique across sections. The
+function returns the sample part of such a label. For a label without a
+sample part, it returns \code{NA}.
+}
+\examples{
+sirupSampleFromImage(c("sample1::image1", "image2"))
 }

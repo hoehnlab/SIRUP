@@ -1,34 +1,61 @@
-#' Build a SPaCeD-style clone spatial table
+#' Build a clone table for SPaCeD pairing
 #'
-#' SPaCeD pairs heavy and light chain clones over a weighted combination of
-#' spatial evidence and a REPAIR model matrix. These helpers implement that
-#' pairing surface while using sparse native spatial-bin operations that scale
-#' better for Visium HD-sized data.
+#' `buildSpacedCloneTable` makes a table that has one row for each clone and
+#' spatial bin. The pairing functions use this table.
 #'
-#' The method follows the SPaCeD repository by H. J. Melton et al.
-#' (https://github.com/hjm2217/spaced) and its use of a REPAIR model matrix
-#' (https://github.com/almaan/star-repair; modified SPaCeD notes reference
-#' https://github.com/Floraliu7/star-repair). The original SPaCeD spatial term
-#' was computed with `spatstat::pppdist(type = "mat")`; SIRUP's default spatial
-#' term uses sparse clone-by-barcode matrices. For Visium HD, use the Space
-#' Ranger 8um barcodes as the native spatial bins rather than adding another
-#' coordinate downsampling step.
+#' @details
+#' SPaCeD pairs heavy chain clones and light chain clones with a weighted sum of
+#' two scores: a spatial score and a score from a REPAIR model matrix. The
+#' functions of this family do the pairing. They use sparse spatial-bin
+#' operations, which scale better to data of the size of Visium HD.
 #'
-#' @param data Clone-assigned data frame.
-#' @param positions Optional spatial positions data frame. If supplied, it is
-#'   joined to `data` by barcode.
-#' @param barcode Barcode column in `data`.
-#' @param position_barcode Barcode column in `positions`.
-#' @param clone Clone identifier column in `data`.
-#' @param x Spatial x-coordinate column. If `positions` is supplied, this is
-#'   read after the join.
-#' @param y Spatial y-coordinate column. If `positions` is supplied, this is
-#'   read after the join.
-#' @param count Optional count column. When `NULL`, each row contributes 1.
-#' @param clone_prefix Optional prefix added to clone IDs, for example
-#'   `"heavy_"` or `"light_kappa_"`.
-#' @param drop_missing_coords Drop rows missing spatial coordinates.
-#' @return Data frame with `clone_id`, `barcode`, `x`, `y`, and `n`.
+#' The method follows the SPaCeD repository of H. J. Melton and others
+#' (<https://github.com/hjm2217/spaced>). It uses the REPAIR model matrix
+#' (<https://github.com/almaan/star-repair>). SPaCeD used a modified REPAIR. Its
+#' notes refer to <https://github.com/Floraliu7/star-repair>. The original
+#' SPaCeD spatial score came from `spatstat::pppdist(type = "mat")`. The default
+#' spatial score of SIRUP uses sparse matrices of clones by barcodes. For Visium
+#' HD, use the 8 um barcodes of Space Ranger as the spatial bins. Do not
+#' downsample the coordinates again.
+#'
+#' @param data Data frame with clone IDs.
+#' @param positions Data frame of spatial positions. If you give it, the
+#'   function joins it to `data` by barcode.
+#' @param barcode Name of the barcode column in `data` (default `"barcode"`).
+#' @param position_barcode Name of the barcode column in `positions` (default
+#'   `"barcode"`).
+#' @param clone Name of the clone ID column in `data` (default `"clone_id"`).
+#' @param x Name of the x-coordinate column (default `"x"`). If you give
+#'   `positions`, the function reads it after the join.
+#' @param y Name of the y-coordinate column (default `"y"`). If you give
+#'   `positions`, the function reads it after the join.
+#' @param count Name of the count column. If `NULL`, each row counts as 1.
+#' @param clone_prefix Text to add before each clone ID, for example `"heavy_"`
+#'   or `"light_kappa_"`.
+#' @param drop_missing_coords Drop the rows with no coordinates (default
+#'   `TRUE`)?
+#'
+#' @return A data frame with the columns `clone_id`, `barcode`, `x`, `y`, and
+#'   `n`. The function sums the counts of rows that share a clone and a barcode.
+#' @seealso [spacedSpatialAffinity()], [buildRepairInputMatrix()]
+#'
+#' @examples
+#' spots <- data.frame(
+#'   barcode = paste0("s", 1:6),
+#'   x = c(1, 2, 3, 1, 2, 3),
+#'   y = c(1, 1, 1, 2, 2, 2)
+#' )
+#' heavy <- data.frame(
+#'   barcode = c("s1", "s2", "s3", "s4", "s5"),
+#'   clone_id = c("H1", "H1", "H1", "H2", "H2")
+#' )
+#' light <- data.frame(
+#'   barcode = c("s1", "s2", "s4", "s5", "s6"),
+#'   clone_id = c("L1", "L1", "L2", "L2", "L2")
+#' )
+#' heavy_points <- buildSpacedCloneTable(heavy, positions = spots, clone_prefix = "heavy_")
+#' light_points <- buildSpacedCloneTable(light, positions = spots, clone_prefix = "light_")
+#' heavy_points
 #' @export
 buildSpacedCloneTable <- function(data,
                                   positions = NULL,
@@ -90,16 +117,33 @@ buildSpacedCloneTable <- function(data,
   out[order(out$clone_id, out$barcode), c("clone_id", "barcode", "x", "y", "n")]
 }
 
-#' Convert a wide SPaCeD expression table to clone spatial points
+#' Convert a wide table to a clone table for SPaCeD pairing
 #'
-#' @param df Wide table with barcode, coordinate, and clone count columns.
-#' @param barcode Barcode column name.
-#' @param x Spatial x-coordinate column name.
-#' @param y Spatial y-coordinate column name.
-#' @param clone Optional clone columns. Defaults to all non-barcode and
-#'   non-coordinate columns.
-#' @param clone_prefix Optional prefix added to clone IDs.
-#' @return Data frame with `clone_id`, `barcode`, `x`, `y`, and `n`.
+#' `spacedCloneTableFromWide` converts a table that has one column for each
+#' clone into the long clone table of [buildSpacedCloneTable()].
+#'
+#' @param df Wide table with a barcode column, coordinate columns, and one count
+#'   column for each clone.
+#' @param barcode Name of the barcode column (default: the first column).
+#' @param x Name of the x-coordinate column (default `"x"`).
+#' @param y Name of the y-coordinate column (default `"y"`).
+#' @param clone Names of the clone columns. If `NULL`, the function uses all
+#'   columns that are not the barcode column or a coordinate column.
+#' @param clone_prefix Text to add before each clone ID.
+#'
+#' @return A data frame with the columns `clone_id`, `barcode`, `x`, `y`, and
+#'   `n`. The function drops the entries with a count of zero.
+#' @seealso [buildSpacedCloneTable()]
+#'
+#' @examples
+#' wide <- data.frame(
+#'   barcode = c("s1", "s2"),
+#'   x = c(1, 2),
+#'   y = c(1, 1),
+#'   heavy_A = c(2, 0),
+#'   heavy_B = c(0, 3)
+#' )
+#' spacedCloneTableFromWide(wide)
 #' @export
 spacedCloneTableFromWide <- function(df,
                                      barcode = colnames(df)[[1]],
@@ -138,49 +182,90 @@ spacedCloneTableFromWide <- function(df,
   out
 }
 
-#' Compute scalable SPaCeD spatial affinity
+#' Calculate the spatial affinity of heavy and light clones
 #'
-#' Builds clone-by-spatial-feature matrices and compares heavy/light clones by a
-#' spatial method. The default `method = "weighted_cosim"` is a scalable
-#' distance-aware overlap score: nearby 8um barcodes receive partial credit
-#' through a sparse Gaussian spatial kernel. `method = "ot"` uses the original
-#' SPaCeD-style point-pattern optimal-transport distance through
-#' `spatstat::pppdist()`.
+#' `spacedSpatialAffinity` scores how much each heavy chain clone and each light
+#' chain clone overlap in space.
 #'
-#' @param heavy_points Heavy-chain output from `buildSpacedCloneTable()` or any
-#'   data frame with `clone_id`, `barcode`, and `n`.
-#' @param light_points Light-chain output from `buildSpacedCloneTable()` or any
-#'   data frame with `clone_id`, `barcode`, and `n`.
-#' @param method Spatial scoring method. `"weighted_cosim"` is the scalable
-#'   SIRUP default, and `"ot"` is the original SPaCeD optimal-transport
-#'   point-pattern distance.
-#' @param feature Column containing the native spatial feature/bin ID.
-#' @param kernel_sigma Gaussian kernel scale for `method = "weighted_cosim"`,
-#'   in the same units as `x` and `y`. When `NULL`, SIRUP estimates the
-#'   median nearest-neighbor feature spacing and uses twice that value.
-#' @param kernel_radius Maximum feature-feature distance retained in the sparse
-#'   spatial kernel. Defaults to `3 * kernel_sigma`.
-#' @param kernel_max_neighbors Maximum nearby features retained per feature when
-#'   building the sparse kernel.
-#' @param x Spatial x-coordinate column.
-#' @param y Spatial y-coordinate column.
-#' @param ot_cutoff Maximum transport distance passed to `pppdist()` when
-#'   `method = "ot"`.
-#' @param ot_scale Distance scale used by `transformSpacedDistances()` for
-#'   `method = "ot"`.
-#' @param nproc Number of workers used by the slow `method = "ot"` clone-pair
-#'   distance loop. The sparse methods ignore this argument.
-#' @param top_n Optional number of top light candidates retained per heavy
-#'   clone. Non-retained affinities are set to zero.
-#' @param min_affinity Optional lower threshold for retained affinities.
-#' @param min_counts Optional minimum total clone count. Mirrors REPAIR's
-#'   `--min_counts` filter.
-#' @param min_x_obs Minimum number of spatial features where a clone has count
-#'   greater than or equal to `filter_x`. Mirrors REPAIR's `--min_x_obs`
-#'   filter.
-#' @param filter_x Count threshold used with `min_x_obs`.
-#' @return Heavy-by-light numeric affinity matrix with rows normalized to sum to
-#'   one when a row has nonzero affinity.
+#' @details
+#' The function builds a matrix of clones by spatial features for the heavy and
+#' the light clones. Then it compares each heavy clone with each light clone.
+#' `method` sets the comparison:
+#' \itemize{
+#'   \item `"weighted_cosim"` (default): a distance-aware overlap score that
+#'     scales to large data. Nearby 8 um barcodes get partial credit through a
+#'     sparse Gaussian spatial kernel.
+#'   \item `"ot"`: the point-pattern optimal-transport distance of the original
+#'     SPaCeD, from `spatstat::pppdist()`. It needs the `spatstat.geom` package
+#'     and is slow.
+#' }
+#'
+#' @param heavy_points Heavy chain table from [buildSpacedCloneTable()], or any
+#'   data frame with the columns `clone_id`, `barcode`, and `n`.
+#' @param light_points Light chain table from [buildSpacedCloneTable()], or any
+#'   data frame with the columns `clone_id`, `barcode`, and `n`.
+#' @param method Spatial scoring method: `"weighted_cosim"` (default) or `"ot"`.
+#'   See Details.
+#' @param feature Name of the column that holds the ID of the spatial feature or
+#'   bin (default `"barcode"`).
+#' @param kernel_sigma Scale of the Gaussian kernel for `method =
+#'   "weighted_cosim"`, in the units of `x` and `y`. If `NULL`, the function
+#'   estimates the median spacing between nearest features and uses twice that
+#'   value.
+#' @param kernel_radius Largest distance between two features that the sparse
+#'   kernel keeps. If `NULL`, the function uses `3 * kernel_sigma`.
+#' @param kernel_max_neighbors Largest number of nearby features that the sparse
+#'   kernel keeps for each feature (default 500).
+#' @param x Name of the x-coordinate column (default `"x"`).
+#' @param y Name of the y-coordinate column (default `"y"`).
+#' @param ot_cutoff Largest transport distance, passed to `pppdist()` for
+#'   `method = "ot"` (default 1e6).
+#' @param ot_scale Distance scale for [transformSpacedDistances()], for
+#'   `method = "ot"` (default 1).
+#' @param nproc Number of workers for the slow loop over clone pairs of
+#'   `method = "ot"` (default 1). The sparse method ignores it.
+#' @param top_n Number of top light candidates to keep for each heavy clone. The
+#'   function sets the other affinities to zero. If `NULL`, it keeps all.
+#' @param min_affinity Smallest affinity to keep (default 0). The function sets
+#'   smaller affinities to zero.
+#' @param min_counts Smallest total count of a clone. This matches the
+#'   `--min_counts` filter of REPAIR. If `NULL`, there is no filter.
+#' @param min_x_obs Smallest number of spatial features where a clone has a
+#'   count of at least `filter_x` (default 2). This matches the `--min_x_obs`
+#'   filter of REPAIR.
+#' @param filter_x Count threshold for `min_x_obs` (default 1).
+#'
+#' @return A numeric matrix of affinities, with one row for each heavy clone and
+#'   one column for each light clone. Each row that has a non-zero affinity sums
+#'   to one.
+#' @seealso [pairHeavyLightSpaced()], [transformSpacedDistances()]
+#'
+#' @examples
+#' spots <- data.frame(
+#'   barcode = paste0("s", 1:6),
+#'   x = c(1, 2, 3, 1, 2, 3),
+#'   y = c(1, 1, 1, 2, 2, 2)
+#' )
+#' heavy <- data.frame(
+#'   barcode = c("s1", "s2", "s3", "s4", "s5"),
+#'   clone_id = c("H1", "H1", "H1", "H2", "H2")
+#' )
+#' light <- data.frame(
+#'   barcode = c("s1", "s2", "s4", "s5", "s6"),
+#'   clone_id = c("L1", "L1", "L2", "L2", "L2")
+#' )
+#' heavy_points <- buildSpacedCloneTable(heavy, positions = spots, clone_prefix = "heavy_")
+#' light_points <- buildSpacedCloneTable(light, positions = spots, clone_prefix = "light_")
+#'
+#' # Use a kernel scale of one coordinate unit, because the example has few
+#' # spots.
+#' affinity <- spacedSpatialAffinity(
+#'   heavy_points,
+#'   light_points,
+#'   kernel_sigma = 1,
+#'   min_x_obs = 1
+#' )
+#' affinity
 #' @export
 spacedSpatialAffinity <- function(heavy_points,
                                   light_points,
@@ -199,9 +284,6 @@ spacedSpatialAffinity <- function(heavy_points,
                                   min_counts = NULL,
                                   min_x_obs = 2,
                                   filter_x = 1) {
-  if (!requireNamespace("Matrix", quietly = TRUE)) {
-    rlang::abort("Package 'Matrix' is required for `spacedSpatialAffinity()`.")
-  }
   method <- match.arg(method)
   if (!is.character(feature) || length(feature) != 1L || is.na(feature) || feature == "") {
     rlang::abort("`feature` must be a single non-empty column name.")
@@ -260,12 +342,27 @@ spacedSpatialAffinity <- function(heavy_points,
   .sirup_spaced_row_normalize(sim)
 }
 
-#' Transform SPaCeD spatial distances into affinities
+#' Convert distances to affinities
 #'
-#' @param dist_matrix Heavy-by-light distance matrix.
-#' @param scale Optional divisor applied before exponentiation. Use a larger
-#'   value when distances are in pixel units.
-#' @return Row-normalized heavy-by-light affinity matrix.
+#' `transformSpacedDistances` converts a matrix of distances between heavy and
+#' light clones to a matrix of affinities. It uses `exp(-distance / scale)`.
+#'
+#' @param dist_matrix Matrix of distances, with one row for each heavy clone and
+#'   one column for each light clone.
+#' @param scale Divisor of the distances before the function takes the
+#'   exponential (default 1). Use a larger value if the distances are in pixels.
+#'
+#' @return A matrix of affinities. Each row that has a non-zero affinity sums to
+#'   one.
+#' @seealso [spacedSpatialAffinity()], [pairHeavyLightSpaced()]
+#'
+#' @examples
+#' distances <- matrix(
+#'   c(0, 2, 3, 1),
+#'   nrow = 2,
+#'   dimnames = list(c("heavy_H1", "heavy_H2"), c("light_L1", "light_L2"))
+#' )
+#' transformSpacedDistances(distances, scale = 1)
 #' @export
 transformSpacedDistances <- function(dist_matrix, scale = 1) {
   dist_matrix <- as.matrix(dist_matrix)
@@ -280,28 +377,71 @@ transformSpacedDistances <- function(dist_matrix, scale = 1) {
   .sirup_spaced_row_normalize(affinity)
 }
 
-#' Pair heavy and light clones with SPaCeD's weighted scores
+#' Pair heavy and light clones with the SPaCeD scores
 #'
-#' Returns the top light-chain candidates for each heavy clone. Light clones are
-#' allowed to appear as candidates for multiple heavy clones, which is useful
-#' when public light chains are plausible.
+#' `pairHeavyLightSpaced` gives the top light chain candidates for each heavy
+#' chain clone.
 #'
-#' @param spatial_affinity Heavy-by-light spatial affinity matrix, data frame,
-#'   or path to a delimited matrix file.
-#' @param mapping_matrix Optional heavy-by-light REPAIR model matrix, data
-#'   frame, or path to a delimited matrix file. If `NULL`, only spatial affinity
-#'   is used. Unnamed matrices are aligned positionally to `spatial_affinity`,
-#'   matching the current SPaCeD behavior.
-#' @param weights Numeric vector of omega values. `1` is spatial-only; `0` is
-#'   mapping-only.
-#' @param top_n_light_chains Number of top light-chain candidates to report for
-#'   each heavy clone.
-#' @return If one weight is supplied, a data frame with up to
-#'   `top_n_light_chains` candidate light clones per heavy clone. If multiple
-#'   weights are supplied, a named list of those data frames. Each data frame
-#'   includes spatial score (cosine similarity/optimal transport score based on position, cite SPaCeD paper),
-#'   REPAIR score (score from REPAIR (cite Engblom '23)), combined score, row-normalized pairing score,
-#'   and light-chain specificity score (normalized pairing score for this pair across all pairs for this chain).
+#' @details
+#' A light clone can be a candidate for several heavy clones. This is useful if
+#' public light chains are likely.
+#'
+#' For each weight `w`, the combined score is
+#' `w * spatial_affinity + (1 - w) * mapping_matrix`. The function normalizes
+#' the score in each row to get the pairing score of a heavy clone. It
+#' normalizes the score in each column to get the specificity score of a light
+#' clone.
+#'
+#' @param spatial_affinity Matrix of spatial affinities, with one row for each
+#'   heavy clone and one column for each light clone. You can also give a data
+#'   frame or the path of a delimited matrix file. The row names and the column
+#'   names must be unique clone IDs.
+#' @param mapping_matrix Matrix of REPAIR model scores, with one row for each
+#'   heavy clone and one column for each light clone. You can also give a data
+#'   frame or the path of a delimited matrix file. If `NULL`, the function uses
+#'   only the spatial affinity. The function aligns a matrix with no names to
+#'   `spatial_affinity` by position, as SPaCeD does now.
+#' @param weights Numeric vector of the weights `w`, from 0 to 1 (default
+#'   `seq(0, 1, by = 0.1)`). `1` uses only the spatial affinity. `0` uses only
+#'   the mapping matrix.
+#' @param top_n_light_chains Number of top light chain candidates to report for
+#'   each heavy clone (default 5).
+#'
+#' @return For one weight, a data frame with up to `top_n_light_chains`
+#'   candidate light clones for each heavy clone. For several weights, a named
+#'   list of such data frames. Each data frame has these columns: `weight`,
+#'   `heavy_id`, `light_id`, `spatial_affinity_score` (the spatial score),
+#'   `repair_score` (the REPAIR score), `combined_score`,
+#'   `normalized_pairing_score` (the combined score, normalized in each row),
+#'   and `light_specificity_score` (the combined score, normalized in each
+#'   column).
+#' @seealso [spacedSpatialAffinity()], [buildRepairInputMatrix()]
+#'
+#' @examples
+#' spots <- data.frame(
+#'   barcode = paste0("s", 1:6),
+#'   x = c(1, 2, 3, 1, 2, 3),
+#'   y = c(1, 1, 1, 2, 2, 2)
+#' )
+#' heavy <- data.frame(
+#'   barcode = c("s1", "s2", "s3", "s4", "s5"),
+#'   clone_id = c("H1", "H1", "H1", "H2", "H2")
+#' )
+#' light <- data.frame(
+#'   barcode = c("s1", "s2", "s4", "s5", "s6"),
+#'   clone_id = c("L1", "L1", "L2", "L2", "L2")
+#' )
+#' heavy_points <- buildSpacedCloneTable(heavy, positions = spots, clone_prefix = "heavy_")
+#' light_points <- buildSpacedCloneTable(light, positions = spots, clone_prefix = "light_")
+#' affinity <- spacedSpatialAffinity(
+#'   heavy_points,
+#'   light_points,
+#'   kernel_sigma = 1,
+#'   min_x_obs = 1
+#' )
+#'
+#' # Use only the spatial score.
+#' pairHeavyLightSpaced(affinity, weights = 1, top_n_light_chains = 2)
 #' @export
 pairHeavyLightSpaced <- function(spatial_affinity,
                                  mapping_matrix = NULL,
@@ -346,27 +486,50 @@ pairHeavyLightSpaced <- function(spatial_affinity,
   out
 }
 
-#' Build REPAIR input for SPaCeD
+#' Build the REPAIR input table
 #'
-#' REPAIR expects a spatial observation-by-clone expression table with heavy and
-#' light clone columns distinguishable by regex patterns such as `"^heavy"` and
-#' `"^light"`. This helper builds that matrix directly from SPaCeD/SIRUP clone
-#' point tables.
+#' `buildRepairInputMatrix` makes the table that REPAIR reads. The table has one
+#' row for each spatial barcode and one column for each heavy or light clone.
 #'
-#' @param heavy_points Heavy-chain clone spatial table with `clone_id`,
+#' @details
+#' REPAIR expects a table of spatial observations by clones. It tells the heavy
+#' and light clone columns apart with patterns such as `"^heavy"` and
+#' `"^light"`. The function builds the table from the clone tables of SPaCeD and
+#' SIRUP.
+#'
+#' @param heavy_points Heavy chain clone table with the columns `clone_id`,
 #'   `barcode`, and `n`.
-#' @param light_points Light-chain clone spatial table with `clone_id`,
+#' @param light_points Light chain clone table with the columns `clone_id`,
 #'   `barcode`, and `n`.
-#' @param sparse Return a sparse `Matrix` instead of a dense data frame.
-#' @return Barcode-by-clone count table. Dense output includes a `barcode`
-#'   column; sparse output has barcodes as row names and clones as column names.
+#' @param sparse Return a sparse `Matrix` and not a dense data frame (default
+#'   `FALSE`)?
+#'
+#' @return A table of counts of barcodes by clones. The dense output is a data
+#'   frame with a `barcode` column. The sparse output has the barcodes as row
+#'   names and the clones as column names.
+#' @seealso [writeRepairInputMatrix()], [repairAnalyzeCommand()]
+#'
+#' @examples
+#' spots <- data.frame(
+#'   barcode = paste0("s", 1:6),
+#'   x = c(1, 2, 3, 1, 2, 3),
+#'   y = c(1, 1, 1, 2, 2, 2)
+#' )
+#' heavy <- data.frame(
+#'   barcode = c("s1", "s2", "s3", "s4", "s5"),
+#'   clone_id = c("H1", "H1", "H1", "H2", "H2")
+#' )
+#' light <- data.frame(
+#'   barcode = c("s1", "s2", "s4", "s5", "s6"),
+#'   clone_id = c("L1", "L1", "L2", "L2", "L2")
+#' )
+#' heavy_points <- buildSpacedCloneTable(heavy, positions = spots, clone_prefix = "heavy_")
+#' light_points <- buildSpacedCloneTable(light, positions = spots, clone_prefix = "light_")
+#' buildRepairInputMatrix(heavy_points, light_points)
 #' @export
 buildRepairInputMatrix <- function(heavy_points,
                                    light_points,
                                    sparse = FALSE) {
-  if (!requireNamespace("Matrix", quietly = TRUE)) {
-    rlang::abort("Package 'Matrix' is required for `buildRepairInputMatrix()`.")
-  }
   heavy_points <- .sirup_spaced_check_repair_points(heavy_points, "heavy_points")
   light_points <- .sirup_spaced_check_repair_points(light_points, "light_points")
   points <- rbind(heavy_points, light_points)
@@ -390,12 +553,39 @@ buildRepairInputMatrix <- function(heavy_points,
   out
 }
 
-#' Write REPAIR input matrix
+#' Write the REPAIR input table to a file
 #'
-#' @param repair_input Output from `buildRepairInputMatrix()`.
-#' @param path Output TSV path.
-#' @param include_barcode Include row/barcode IDs as the first column.
-#' @return Invisibly, `path`.
+#' `writeRepairInputMatrix` writes the table from [buildRepairInputMatrix()] to
+#' a TSV file.
+#'
+#' @param repair_input Result of [buildRepairInputMatrix()].
+#' @param path Path of the TSV file.
+#' @param include_barcode Write the barcodes as the first column (default
+#'   `TRUE`)?
+#'
+#' @return `path`, invisibly.
+#' @seealso [buildRepairInputMatrix()], [repairAnalyzeCommand()]
+#'
+#' @examples
+#' spots <- data.frame(
+#'   barcode = paste0("s", 1:6),
+#'   x = c(1, 2, 3, 1, 2, 3),
+#'   y = c(1, 1, 1, 2, 2, 2)
+#' )
+#' heavy <- data.frame(
+#'   barcode = c("s1", "s2", "s3", "s4", "s5"),
+#'   clone_id = c("H1", "H1", "H1", "H2", "H2")
+#' )
+#' light <- data.frame(
+#'   barcode = c("s1", "s2", "s4", "s5", "s6"),
+#'   clone_id = c("L1", "L1", "L2", "L2", "L2")
+#' )
+#' heavy_points <- buildSpacedCloneTable(heavy, positions = spots, clone_prefix = "heavy_")
+#' light_points <- buildSpacedCloneTable(light, positions = spots, clone_prefix = "light_")
+#' repair_input <- buildRepairInputMatrix(heavy_points, light_points)
+#' path <- tempfile(fileext = ".tsv")
+#' writeRepairInputMatrix(repair_input, path)
+#' readLines(path, n = 3)
 #' @export
 writeRepairInputMatrix <- function(repair_input,
                                    path,
@@ -427,19 +617,31 @@ writeRepairInputMatrix <- function(repair_input,
   invisible(path)
 }
 
-#' Construct a REPAIR analyze command for SPaCeD
+#' Make the REPAIR analyze command
 #'
-#' @param input_path REPAIR input TSV path.
-#' @param output_dir REPAIR output directory.
-#' @param a_pattern Heavy clone column regex.
-#' @param b_pattern Light clone column regex.
-#' @param mxo Maximum number of output candidates passed to `repair analyze`.
-#' @param x REPAIR `x` argument passed to `repair analyze`.
-#' @param b REPAIR `b` argument passed to `repair analyze`.
-#' @param nb REPAIR `nb` argument passed to `repair analyze`.
-#' @param min_counts Minimum count threshold passed to `repair analyze`.
-#' @param repair_bin REPAIR executable.
-#' @return Shell command string.
+#' `repairAnalyzeCommand` makes the shell command that runs `repair analyze` on
+#' the REPAIR input file. It does not run the command.
+#'
+#' @param input_path Path of the REPAIR input TSV file.
+#' @param output_dir Directory for the REPAIR output.
+#' @param a_pattern Regular expression for the heavy clone columns (default
+#'   `"^heavy"`).
+#' @param b_pattern Regular expression for the light clone columns (default
+#'   `"^light"`).
+#' @param mxo Largest number of candidates in the output, passed to
+#'   `repair analyze` (default 2).
+#' @param x The `x` argument of `repair analyze` (default 1).
+#' @param b The `b` argument of `repair analyze` (default 100).
+#' @param nb The `nb` argument of `repair analyze` (default 1).
+#' @param min_counts Smallest count, passed to `repair analyze`. If `NULL`, the
+#'   function does not pass it.
+#' @param repair_bin REPAIR program (default `"repair"`).
+#'
+#' @return The command, as a character string.
+#' @seealso [writeRepairInputMatrix()], [checkSpacedRepair()]
+#'
+#' @examples
+#' repairAnalyzeCommand("repair_input.tsv", "repair_output")
 #' @export
 repairAnalyzeCommand <- function(input_path,
                                  output_dir,
@@ -469,19 +671,34 @@ repairAnalyzeCommand <- function(input_path,
   paste(command, collapse = " ")
 }
 
-#' Check for the SPaCeD-compatible REPAIR fork
+#' Check for the REPAIR fork that SPaCeD needs
 #'
-#' SPaCeD needs a modified REPAIR installation that writes a
-#' `*_model_matrix.tsv` file. This helper checks the Python REPAIR source in a
-#' conda environment and fails early if the installed package does not appear to
-#' be the modified fork used by SPaCeD.
+#' `checkSpacedRepair` checks that the REPAIR installation is the modified fork
+#' that SPaCeD needs. It stops with an error if it is not.
 #'
-#' @param conda_env Conda environment name. Set to `NULL` or `""` to run
-#'   `python_bin` directly without `conda run`.
-#' @param conda_exe Conda executable.
-#' @param python_bin Python executable to run inside the conda environment.
-#' @param verbose Print the detected REPAIR path.
-#' @return Invisibly, a list with the detected REPAIR analyze path.
+#' @details
+#' SPaCeD needs a modified REPAIR that writes a `*_model_matrix.tsv` file. The
+#' function reads the Python source of REPAIR in a conda environment. It checks
+#' that the source writes this file.
+#'
+#' @param conda_env Name of the conda environment (default: the environment
+#'   variable `REPAIR_CONDA_ENV`, or `"repair"`). Use `NULL` or `""` to run
+#'   `python_bin` directly, without `conda run`.
+#' @param conda_exe Conda program (default: the environment variable
+#'   `CONDA_EXE`, or `"conda"`).
+#' @param python_bin Python program to run in the conda environment (default
+#'   `"python"`).
+#' @param verbose Print the path of the REPAIR analyze file that the function
+#'   finds (default `TRUE`)?
+#'
+#' @return A list with the path of the REPAIR analyze file, invisibly.
+#' @seealso [repairAnalyzeCommand()]
+#'
+#' @examples
+#' \dontrun{
+#' # This example needs a conda environment with the modified REPAIR.
+#' checkSpacedRepair(conda_env = "repair")
+#' }
 #' @export
 checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair"),
                               conda_exe = Sys.getenv("CONDA_EXE", "conda"),
@@ -843,9 +1060,6 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
   if (nrow(coords) < 2L) {
     rlang::abort("At least two spatial features are required to estimate `kernel_sigma`; supply `kernel_sigma` directly.")
   }
-  if (!requireNamespace("RANN", quietly = TRUE)) {
-    rlang::abort("Package 'RANN' is required to estimate `kernel_sigma`.")
-  }
   nn <- RANN::nn2(as.matrix(coords), k = 2L)
   d <- nn$nn.dists[, 2L]
   d <- d[is.finite(d) & d > 0]
@@ -856,9 +1070,6 @@ checkSpacedRepair <- function(conda_env = Sys.getenv("REPAIR_CONDA_ENV", "repair
 }
 
 .sirup_spaced_spatial_kernel <- function(coords, sigma, radius, max_neighbors) {
-  if (!requireNamespace("RANN", quietly = TRUE)) {
-    rlang::abort("Package 'RANN' is required for `method = \"weighted_cosim\"`.")
-  }
   max_neighbors <- as.integer(max_neighbors)
   if (is.na(max_neighbors) || max_neighbors < 1L) {
     rlang::abort("`kernel_max_neighbors` must be a positive integer.")

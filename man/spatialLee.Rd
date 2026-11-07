@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_statistics.R
 \name{spatialLee}
 \alias{spatialLee}
-\title{Calculate global Lee's L for two spatial variables}
+\title{Calculate global Lee's L}
 \usage{
 spatialLee(
   object,
@@ -24,59 +24,84 @@ spatialLee(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{x}{First feature or numeric metadata column to analyze.}
+\item{x}{Name of the first variable. It is a feature or a numeric metadata
+column.}
 
-\item{y}{Second feature or numeric metadata column to analyze.}
+\item{y}{Name of the second variable. It is a feature or a numeric metadata
+column.}
 
-\item{x_type}{Type of \code{x}: either \code{feature} or \code{metadata}.}
+\item{x_type}{Type of \code{x}: \code{feature} or \code{metadata}.}
 
-\item{y_type}{Type of \code{y}: either \code{feature} or \code{metadata}.}
+\item{y_type}{Type of \code{y}: \code{feature} or \code{metadata}.}
 
-\item{assay}{Optional assay to use when \code{x_type} or \code{y_type} is \code{"feature"}.}
+\item{assay}{Assay to use if \code{x_type} or \code{y_type} is \code{"feature"}.}
 
-\item{layer}{Seurat expression layer to fetch for features.}
+\item{layer}{Seurat expression layer to use for features (default
+\code{"counts"}).}
 
-\item{images}{Optional Seurat image names.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before calculating neighborhoods. If \code{NULL}, the value must be
-supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{radius}{Optional distance radius defining neighborhoods.}
+\item{radius}{Distance that defines a neighborhood. If \code{NULL}, the function
+uses \code{k}.}
 
-\item{k}{Number of nearest neighbors when \code{radius} is \code{NULL}. Use \code{k = 8}
-for Visium HD, whose bins form a square grid, and \code{k = 6} for the
-hexagonal spot layout of standard Visium.}
+\item{k}{Number of nearest neighbors, used if \code{radius} is \code{NULL} (default 6).
+Use \code{k = 8} for Visium HD, where the bins form a square grid. Use \code{k = 6}
+for standard Visium, where the spots form a hexagonal grid.}
 
-\item{alternative}{Alternative hypothesis passed to the significance test.}
+\item{alternative}{Alternative hypothesis for the significance test (default
+\code{"greater"}).}
 
-\item{method}{How to test significance. \code{analytical} uses
-\code{spdep::lee.test()}. \code{mc} uses \code{spdep::lee.mc()}, which permutes the
-labels instead.
+\item{method}{Significance test: \code{analytical} or \code{mc} (permutation). See
+Details.}
 
-\code{spdep::lee.test()} builds a DENSE n by n weights matrix to get the
-analytical moments, so its memory cost grows with the square of the number
-of spots: about 206 GB at 166,000 bins and 808 GB at 329,000. Use
-\code{method = "mc"} for Visium HD. It keeps the weights sparse and stays
-within a few GB.}
+\item{nsim}{Number of permutations for \code{method = "mc"} (default 999).}
 
-\item{nsim}{Number of permutations when \code{method = "mc"}.}
-
-\item{progress}{Logical; show a progress bar over the permutations when
-\code{method = "mc"}. Each permutation re-lags both variables over every spot,
-so a large \code{nsim} on Visium HD takes minutes per pair.}
+\item{progress}{Show a progress bar for the permutations (default \code{FALSE})?
+The function uses it only if \code{method = "mc"}. Each permutation re-lags both
+variables over every spot. For Visium HD, a large \code{nsim} takes minutes for
+each pair.}
 }
 \value{
-List containing the test, the observed Lee's L, the aligned input
-data, neighbors, and weights.
+A list with these items: \code{test} (the test result), \code{L} (the observed
+Lee's L), \code{method}, \code{data} (the values tested), \code{neighbors} and \code{weights}
+(from \code{spdep}), \code{radius}, \code{k}, \code{x}, \code{y}, \code{x_type}, and \code{y_type}.
 }
 \description{
-Tests bivariate spatial association between two continuous variables using
-\code{spdep::lee.test()}. For example, use two feature names to test whether
-expression of one gene is associated with the neighboring expression of a
-second gene.
+\code{spatialLee} tests the spatial association between two continuous variables.
+}
+\details{
+The function builds one neighbor graph from all spots, with \code{radius} or \code{k}
+as in \code{\link[=spatialMoran]{spatialMoran()}}. For example, give two gene names to test if the expression of one gene
+relates to the expression of the second gene in neighboring spots.
+
+\code{method = "analytical"} calls \code{spdep::lee.test()}. This function builds a
+dense n by n weights matrix. The memory use grows with the square of the
+number of spots, so be careful with larger datasets, like with Visium HD.
+For large datasets, use \code{method = "mc"}. It calls \code{spdep::lee.mc()}, which permutes
+the labels. It keeps the weights sparse and needs only a few GB.
+
+If the data come from more than one image, or a sirup object with multiple samples,
+then the function builds one graph and runs one test for each sample or image.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+
+# Test if gene1 and gene2 are associated.
+spatialLee(x, "gene1", "gene2", k = 4)$L
+
+# Use permutations. This method also works for large Visium HD data.
+set.seed(1)
+spatialLee(x, "gene1", "gene2", k = 4, method = "mc", nsim = 99)$test
+}
+\seealso{
+\code{\link[=spatialMoran]{spatialMoran()}}, \code{\link[=spatialLocalMoran]{spatialLocalMoran()}}
 }

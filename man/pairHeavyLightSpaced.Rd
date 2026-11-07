@@ -2,7 +2,7 @@
 % Please edit documentation in R/spaced_pairing.R
 \name{pairHeavyLightSpaced}
 \alias{pairHeavyLightSpaced}
-\title{Pair heavy and light clones with SPaCeD's weighted scores}
+\title{Pair heavy and light clones with the SPaCeD scores}
 \usage{
 pairHeavyLightSpaced(
   spatial_affinity,
@@ -12,30 +12,74 @@ pairHeavyLightSpaced(
 )
 }
 \arguments{
-\item{spatial_affinity}{Heavy-by-light spatial affinity matrix, data frame,
-or path to a delimited matrix file.}
+\item{spatial_affinity}{Matrix of spatial affinities, with one row for each
+heavy clone and one column for each light clone. You can also give a data
+frame or the path of a delimited matrix file. The row names and the column
+names must be unique clone IDs.}
 
-\item{mapping_matrix}{Optional heavy-by-light REPAIR model matrix, data
-frame, or path to a delimited matrix file. If \code{NULL}, only spatial affinity
-is used. Unnamed matrices are aligned positionally to \code{spatial_affinity},
-matching the current SPaCeD behavior.}
+\item{mapping_matrix}{Matrix of REPAIR model scores, with one row for each
+heavy clone and one column for each light clone. You can also give a data
+frame or the path of a delimited matrix file. If \code{NULL}, the function uses
+only the spatial affinity. The function aligns a matrix with no names to
+\code{spatial_affinity} by position, as SPaCeD does now.}
 
-\item{weights}{Numeric vector of omega values. \code{1} is spatial-only; \code{0} is
-mapping-only.}
+\item{weights}{Numeric vector of the weights \code{w}, from 0 to 1 (default
+\code{seq(0, 1, by = 0.1)}). \code{1} uses only the spatial affinity. \code{0} uses only
+the mapping matrix.}
 
-\item{top_n_light_chains}{Number of top light-chain candidates to report for
-each heavy clone.}
+\item{top_n_light_chains}{Number of top light chain candidates to report for
+each heavy clone (default 5).}
 }
 \value{
-If one weight is supplied, a data frame with up to
-\code{top_n_light_chains} candidate light clones per heavy clone. If multiple
-weights are supplied, a named list of those data frames. Each data frame
-includes spatial score (cosine similarity/optimal transport score based on position, cite SPaCeD paper),
-REPAIR score (score from REPAIR (cite Engblom '23)), combined score, row-normalized pairing score,
-and light-chain specificity score (normalized pairing score for this pair across all pairs for this chain).
+For one weight, a data frame with up to \code{top_n_light_chains}
+candidate light clones for each heavy clone. For several weights, a named
+list of such data frames. Each data frame has these columns: \code{weight},
+\code{heavy_id}, \code{light_id}, \code{spatial_affinity_score} (the spatial score),
+\code{repair_score} (the REPAIR score), \code{combined_score},
+\code{normalized_pairing_score} (the combined score, normalized in each row),
+and \code{light_specificity_score} (the combined score, normalized in each
+column).
 }
 \description{
-Returns the top light-chain candidates for each heavy clone. Light clones are
-allowed to appear as candidates for multiple heavy clones, which is useful
-when public light chains are plausible.
+\code{pairHeavyLightSpaced} gives the top light chain candidates for each heavy
+chain clone.
+}
+\details{
+A light clone can be a candidate for several heavy clones. This is useful if
+public light chains are likely.
+
+For each weight \code{w}, the combined score is
+\code{w * spatial_affinity + (1 - w) * mapping_matrix}. The function normalizes
+the score in each row to get the pairing score of a heavy clone. It
+normalizes the score in each column to get the specificity score of a light
+clone.
+}
+\examples{
+spots <- data.frame(
+  barcode = paste0("s", 1:6),
+  x = c(1, 2, 3, 1, 2, 3),
+  y = c(1, 1, 1, 2, 2, 2)
+)
+heavy <- data.frame(
+  barcode = c("s1", "s2", "s3", "s4", "s5"),
+  clone_id = c("H1", "H1", "H1", "H2", "H2")
+)
+light <- data.frame(
+  barcode = c("s1", "s2", "s4", "s5", "s6"),
+  clone_id = c("L1", "L1", "L2", "L2", "L2")
+)
+heavy_points <- buildSpacedCloneTable(heavy, positions = spots, clone_prefix = "heavy_")
+light_points <- buildSpacedCloneTable(light, positions = spots, clone_prefix = "light_")
+affinity <- spacedSpatialAffinity(
+  heavy_points,
+  light_points,
+  kernel_sigma = 1,
+  min_x_obs = 1
+)
+
+# Use only the spatial score.
+pairHeavyLightSpaced(affinity, weights = 1, top_n_light_chains = 2)
+}
+\seealso{
+\code{\link[=spacedSpatialAffinity]{spacedSpatialAffinity()}}, \code{\link[=buildRepairInputMatrix]{buildRepairInputMatrix()}}
 }

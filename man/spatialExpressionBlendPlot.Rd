@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial_ggplot_visualization.R
 \name{spatialExpressionBlendPlot}
 \alias{spatialExpressionBlendPlot}
-\title{Blend two spatial features after excluding double-zero spots}
+\title{Blend the expression of two features on a tissue image}
 \usage{
 spatialExpressionBlendPlot(
   object,
@@ -31,64 +31,84 @@ spatialExpressionBlendPlot(
 )
 }
 \arguments{
-\item{object}{Seurat object with spatial images, or a SIRUP object.}
+\item{object}{Seurat object or SIRUP object.}
 
-\item{features}{Two feature names.}
+\item{features}{Names of two features.}
 
-\item{combine}{Combine plots with patchwork.}
+\item{combine}{Combine the panels and the legend with patchwork (default
+\code{TRUE})?}
 
-\item{combine_sample_plots}{For multi-sample SIRUP objects, combine plots
-from different spatial samples into one patchwork. Defaults to \code{FALSE}, so
-multi-sample calls return a named list of per-sample plots.}
+\item{combine_sample_plots}{Combine the plots of all samples into one
+patchwork (default \code{FALSE})? The function uses it only for multi-sample
+objects. If \code{FALSE}, it returns a named list with one plot for each sample.}
 
-\item{feature_1_alt_name}{Optional axis label for the first feature in the
-blend legend.}
+\item{feature_1_alt_name}{Label of the first feature in the blend legend. If
+\code{NULL}, the function uses the feature name.}
 
-\item{feature_2_alt_name}{Optional axis label for the second feature in the
-blend legend.}
+\item{feature_2_alt_name}{Label of the second feature in the blend legend. If
+\code{NULL}, the function uses the feature name.}
 
-\item{assay}{Optional assay to set before plotting.}
+\item{assay}{Assay to use.}
 
-\item{layer}{Seurat expression layer to fetch.}
+\item{layer}{Seurat expression layer to use (default \code{"counts"}).}
 
-\item{only_blended}{Return only the blended spatial panel and legend.}
+\item{only_blended}{Return only the blended panel and the legend (default
+\code{FALSE})?}
 
-\item{bottom_left}{Bottom-left corner color for the two-feature blend grid.}
+\item{bottom_left}{Color of the bottom-left corner of the blend grid (low in
+both features). The default is \code{"#FFFFFF"}.}
 
-\item{bottom_right}{Bottom-right corner color for the two-feature blend grid.}
+\item{bottom_right}{Color of the bottom-right corner of the blend grid (high
+in the first feature). The default is \code{"#0000FF"}.}
 
-\item{top_left}{Top-left corner color for the two-feature blend grid.}
+\item{top_left}{Color of the top-left corner of the blend grid (high in the
+second feature). The default is \code{"#FFFF00"}.}
 
-\item{top_right}{Top-right corner color for the two-feature blend grid.}
+\item{top_right}{Color of the top-right corner of the blend grid (high in
+both features). The default is \code{"#00FF00"}.}
 
-\item{zero_tol}{Values at or below this threshold are treated as zero.}
+\item{zero_tol}{Values at or below this threshold count as zero (default 0).
+Set to -Inf to plot all spots.}
 
-\item{images}{Optional Seurat image names.}
+\item{images}{Names of the Seurat images to use.}
 
-\item{sample_id}{Optional spatial sample ID(s) to plot for multi-sample
-SIRUP objects. Defaults to \code{NULL}, which plots all samples.}
+\item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
+objects. If \code{NULL}, the function plots all samples.}
 
-\item{image_scale}{Image scale passed to \code{SeuratObject::GetTissueCoordinates()}.}
+\item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
+If \code{NULL}, the function uses the value stored in the SIRUP object.}
 
-\item{swap_coords}{Logical; if \code{TRUE}, swap the two Seurat coordinate
-axes before plotting or polygon membership checks. If \code{NULL}, the
-value must be supplied explicitly or by SIRUP object metadata.}
+\item{swap_coords}{Swap the two Seurat coordinate axes? If \code{NULL}, the
+function uses the value stored in the SIRUP object. Give a value if
+\code{object} is a Seurat object.}
 
-\item{point_size}{Size of plotted spots.}
+\item{point_size}{Size of the spots. The default is 0.6.}
 
-\item{point_alpha}{Opacity for plotted spots.}
+\item{point_alpha}{Opacity of the spots.}
 
-\item{order_points}{Plot lower blended expression intensity first so higher
-intensity spots appear on top.}
+\item{order_points}{Draw the spots with low blended expression first, so that
+the spots with high expression show on top (default \code{TRUE})?}
 
-\item{image_alpha}{Tissue image opacity.}
+\item{image_alpha}{Opacity of the tissue image.}
 
-\item{zoom}{Zoom to plotted spots. Defaults to \code{FALSE}, which shows the
-full tissue area covered by the spatial coordinates.}
+\item{zoom}{Zoom to the plotted spots (default \code{FALSE})? If \code{FALSE}, the plot
+shows the full tissue area that the spatial coordinates cover.}
 }
 \value{
-A ggplot/patchwork object or a list when \code{combine = FALSE}.
+A ggplot object or a patchwork object. If \code{combine = FALSE}, a list.
 }
 \description{
-Blend two spatial features after excluding double-zero spots
+\code{spatialExpressionBlendPlot} colors each spot by the expression of two
+features at once. By default, it leaves out the spots where both features are zero.
+}
+\details{
+#' If the object has multiple images or samples, the function draws one plot
+for each image or sample.
+}
+\examples{
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+spatialExpressionBlendPlot(x, c("gene1", "gene2"))
+}
+\seealso{
+\code{\link[=spatialExpressionPlot]{spatialExpressionPlot()}}, \code{\link[=spatialExpressionMultiPlot]{spatialExpressionMultiPlot()}}
 }
