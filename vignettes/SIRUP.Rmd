@@ -18,8 +18,7 @@ knitr::opts_chunk$set(
   dpi = 96,
   dev = "jpeg",
   dev.args = list(quality = 90),
-  out.width = "100%",
-  eval = requireNamespace("Seurat", quietly = TRUE)
+  out.width = "100%"
 )
 ```
 
@@ -68,7 +67,7 @@ vignettes use them. This code installs only the optional packages that you do
 not have yet:
 
 ```{r install-suggests, eval = FALSE}
-packages <- c("Seurat", "spatstat.explore", "spatstat.geom", "spatstat.random", "pals")
+packages <- c("spatstat.explore", "spatstat.geom", "spatstat.random", "pals")
 missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]
 if (length(missing) > 0) install.packages(missing)
 ```

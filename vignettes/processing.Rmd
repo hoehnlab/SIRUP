@@ -20,7 +20,6 @@ knitr::opts_chunk$set(
   dev.args = list(quality = 90),
   out.width = "100%"
 )
-has_seurat <- requireNamespace("Seurat", quietly = TRUE)
 ```
 
 This vignette takes you from demultiplexed long reads to an AIRR table in
@@ -483,7 +482,7 @@ middle of the tissue has: 6 on the standard Visium hexagonal grid, 8 on the
 Visium HD square grid. The example below runs it on the Visium thymus data
 only to show the call and the output:
 
-```{r collapse-neighbors, eval = has_seurat}
+```{r collapse-neighbors}
 thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
 sirup <- createSIRUP(
   spatial = thymus,
