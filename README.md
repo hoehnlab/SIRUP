@@ -1,6 +1,4 @@
-# SIRUP
-
-**S**patial **I**mmune **R**eceptor **U**tilities **P**ackage
+# SIRUP: Spatial Immune Receptor Utilities Package
 
 SIRUP is an R package for spatial adaptive immune receptor repertoire
 sequencing (spAIRR-seq). It works with B cell receptor (BCR) and T cell
@@ -12,222 +10,56 @@ SIRUP covers three stages:
 1. **Process.** Turn demultiplexed long reads into consensus receptor
    sequences. IgBLAST and pRESTO build an AIRR rearrangement table with one
    spatial ID per sequence.
-2. **Integrate.** Put the receptor table and the spatial Seurat object into
-   one validated SIRUP object. One object can hold several tissue sections,
-   bulk AIRR-seq, and blood.
-3. **Analyze and visualize.** Draw tissue regions, measure clonal dominance
-   and diversity, test spatial patterns, and show lineage trees on the tissue.
+2. **Integrate.** Put the receptor table and the spatial Seurat object into one
+   validated SIRUP object. One object can hold several tissue sections, bulk
+   AIRR-seq, and blood.
+3. **Analyze and visualize.** Draw tissue regions, measure clonal dominance and
+   diversity, test spatial patterns, and show lineage trees on the tissue.
 
-SIRUP is in active development. Function names and arguments can change
-before the first release.
-
-## Installation
-
-Install SIRUP from GitHub:
-
-```r
-if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
-remotes::install_github("hjm2217/SIRUP")
-```
-
-Most analyses also use Seurat, packages from the
-[Immcantation](https://immcantation.readthedocs.io) framework, and spatial
-statistics packages. These are suggested, not required. Install the ones that
-you need:
-
-```r
-install.packages(c(
-  "Seurat", "airr", "alakazam", "scoper", "shazam", "dowser",
-  "spdep", "spatstat.explore", "spatstat.geom", "spatstat.random",
-  "cowplot", "patchwork"
-))
-BiocManager::install("ggtree")
-```
-
-### Tools for read processing
-
-You need these command-line tools only to process raw reads. You do not need
-them to analyze an AIRR table that you already have.
-
-- [IgBLAST](https://ncbi.github.io/igblast/) (`igblastn`) and IMGT germline
-  references. The [airrblast](https://github.com/hoehnlab/airrblast) R package
-  runs IgBLAST for SIRUP. SIRUP installs airrblast. Use
-  `airrblast::downloadIMGT()` and `airrblast::imgtToIgblast()` to build the
-  IgBLAST databases one time.
-- [pRESTO](https://immcantation.readthedocs.io) (`pip install presto`)
-- [vsearch](https://github.com/torognes/vsearch) and
-  [MUSCLE](https://drive5.com/muscle/)
-
-The [Immcantation Docker image](https://immcantation.readthedocs.io/en/stable/docker/intro.html)
-contains most of these tools. Install airrblast in the container.
-
-Demultiplexing happens before SIRUP, in the separate
-[rrad](https://github.com/indianewok/rrad) package. rrad finds and corrects
-the spatial barcode and UMI of each read, and writes a FASTA file that SIRUP
-reads.
-
-## Quick start
-
-SIRUP includes a small spAIRR-seq data set: two Visium sections of a
-myasthenia gravis thymus that contains ectopic germinal centers. This example
-loads one section, calls clones, adds the germinal-center outlines, and
-measures clonal dominance in each one.
-
-```r
-library(SIRUP)
-extdata <- system.file("extdata", package = "SIRUP")
-
-# Spatial gene expression (Seurat) and BCR consensus sequences (AIRR)
-thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
-bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz"))
-
-# Move the spot barcode out of sequence_id, and keep high-quality sequences
-bcrs <- extractSpatialIds(
-  bcrs,
-  id = "sequence_id",
-  spatial_id = "barcode_10x",
-  regex = ",([ACGT]{16})$",
-  suffix = "-1"
-)
-bcrs <- filterAirr(
-  bcrs,
-  locus_val = "IGH",
-  min_v_length = 250,
-  min_j_length = 30,
-  min_junction_length = 10,
-  productive_only = TRUE,
-  min_consensus_count = NULL,
-  spatial_id = "barcode_10x"
-)
-bcrs <- bcrs[!grepl("[^ACGT]", bcrs$junction), ]
-
-# Pair the receptors with the tissue
-sirup <- createSIRUP(
-  spatial = thymus,
-  receptors = bcrs,
-  spatial_id = "barcode_10x",
-  image_scale = "lowres",
-  swap_coords = FALSE
-)
-
-# Run any function on the receptor table, here clone calling with scoper
-sirup <- updateReceptors(
-  sirup,
-  scoper::hierarchicalClones,
-  threshold = 0.1,
-  summarize_clones = FALSE
-)
-
-# Add the germinal-center outlines and plot them on the H&E image
-sirup <- addPolygons(
-  sirup,
-  polygons_path = file.path(extdata, "mg_thymus_slice2_gc_polygons.csv")
-)
-plotSpatialPolygons(sirup)
-
-# Fraction of each germinal center's BCRs that belongs to each clone
-dominance <- spatialCloneDominance(object = sirup)
-plotSpatialPolygonPies(dominance = dominance, object = sirup, top_n = 5)$page_1
-
-# Keep the result with the data, and save everything to one file
-sirup <- setAnalysis(sirup, "gc_dominance", dominance)
-saveSIRUP(sirup, "mg_thymus_slice2.sirup.rds")
-```
-
-## Process your own reads
-
-`processSpatialSample()` runs the full pipeline on one sample. It starts from
-the rrad FASTA, a read-level AIRR table, or a FASTA that is already filtered:
-
-| Step | Tool | What it does |
-|---|---|---|
-| 1 | IgBLAST (`airrblast::assignGenes()`) | Annotates each read with V(D)J genes |
-| 2 | `filterAirr()` | Removes reads that are not receptors or are too short |
-| 3 | pRESTO `ClusterSets.py` | Groups the reads of each spot by sequence identity |
-| 4 | pRESTO `AlignSets.py` | Aligns the reads in each group |
-| 5 | pRESTO `BuildConsensus.py` | Builds one consensus sequence per group |
-| 6 | `airrblast::assignGenes()` and `addGaps()` | Annotates the consensus sequences, adds the IMGT gaps, and writes the AIRR table |
-
-```r
-result <- processSpatialSample(
-  input = "prepared/sample-igblast.fasta",
-  output_dir = "processed/bcr",
-  receptor = "ig",            # "tr" for TCRs
-  igblast_base = "/path/to/igblast",
-  imgt_dir = "/path/to/imgt",
-  identity = 1.0,             # 0.99 for TCRs
-  consensus_freq = 0.51,
-  nproc = 8
-)
-```
-
-`igblast_base` is the IgBLAST folder. It holds `bin/igblastn`, `internal_data/`,
-`optional_file/`, and the `database/` and `fasta/` folders from
-`airrblast::imgtToIgblast()`. If `database/` and `fasta/` are in another
-folder, set `igblast_refs`. `imgt_dir` is the IMGT folder that
-`airrblast::downloadIMGT()` wrote. It holds the gapped germlines in
-`<imgt_dir>/human/vdj`.
-
-`runIgblast()` calls `airrblast::assignGenes()`. That function does not search
-a constant-region database. A table made from raw reads therefore has no
-`c_call` column.
-
-Use `umi_support = TRUE` to build one consensus per molecule first. Use
-`processSpatialSamples()` to run several samples with the same settings. For
-Visium HD, `readSpatialIdMapping()` maps 2 µm barcodes to 8 µm and 16 µm bins.
-The processing vignette explains each option.
-
-## Functions by task
-
-| Task | Functions |
-|---|---|
-| Process reads | `processSpatialSample()`, `processSpatialSamples()`, `runIgblast()`, `parseRadSequenceIds()` |
-| Clean AIRR tables | `extractSpatialIds()`, `filterAirr()`, `plotLengthQc()`, `addSequenceQualityMetrics()`, `collapseTopConsensusPerSpatialId()`, `collapseIdenticalNeighbors()`, `readSpatialIdMapping()` |
-| Build and manage objects | `createSIRUP()`, `mergeSIRUP()`, `subsetSIRUP()`, `validateSIRUP()`, `spatialSamples()`, `saveSIRUP()`, `readSIRUP()` |
-| Access and change data | `getSpatial()`, `getReceptors()`, `updateSpatial()`, `updateReceptors()`, `setAnalysis()`, `getAnalysis()`, `listAnalyses()` |
-| Plot on the tissue | `spatialExpressionPlot()`, `spatialExpressionBlendPlot()`, `spatialDiscretePlot()`, `plotReceptors()`, `plotReceptorsExpression()` |
-| Tissue regions | `selectSpatialPolygons()`, `addPolygons()`, `getPolygons()`, `plotSpatialPolygons()`, `withPolygons()`, `expandPolygons()` |
-| Regional repertoires | `polygonReceptorSummary()`, `spatialCloneDominance()`, `plotSpatialPolygonPies()`, `polygonDiversity()`, `polygonAbundance()`, `plotSpatialCloneDensity3D()` |
-| Spatial statistics | `spatialMoran()`, `spatialLocalMoran()`, `spatialLee()`, `spatialRipleyCrossK()`, `spatialCloneJoinCount()`, `spatialCloneSpread()` |
-| Lineage trees | `formatSpatialClones()`, `getSpatialTrees()`, `plotSpatialCloneTreePairs()`, `spatialCloneTreePairsToPDF()`, `tipPatristicMatrix()` |
-
-SIRUP does not wrap every AIRR tool. Use `updateReceptors()` to run functions
-from scoper, dowser, shazam, or your own code on the stored receptor table.
-SIRUP validates the object again after each change.
-
-## Documentation
-
-The vignettes use the example data and run from start to finish. Install with
-`build_vignettes = TRUE` to read them in R:
-
-```r
-remotes::install_github("hjm2217/SIRUP", build_vignettes = TRUE)
-browseVignettes("SIRUP")
-```
-
-| Vignette | Topic |
-|---|---|
-| `vignette("SIRUP")` | Get started: the SIRUP object, plots, and a first regional analysis |
-| `vignette("processing")` | Reads to AIRR tables with IgBLAST and pRESTO |
-| `vignette("regions")` | Tissue regions, clonal dominance, and diversity |
-| `vignette("spatial-statistics")` | Moran's I, Lee's L, Ripley's cross K, and join counts |
-| `vignette("clones-and-trees")` | Clones, germlines, and lineage trees on the tissue |
-| `vignette("multisample")` | Several sections, bulk AIRR-seq, and blood |
-
-More guides are in [`docs/readthedocs`](docs/readthedocs):
-
-- [Preparing FASTA with rrad](docs/readthedocs/markdown/demultiplexing-with-rad.md)
-- [Custom read layouts and whitelists](docs/readthedocs/markdown/custom-read-layouts-with-rad.md)
+SIRUP is in active development. Function names and arguments can change before
+the first release.
 
 ## Citation
 
-The SIRUP manuscript is in preparation. Until it is published, please cite
-this repository.
+Melton, H.J., Vaidya, C.M., Panda, A., Fielding, J.J., Sergison, E., Kolling, F.W., O'Connor, K.C. Hoehn, K.B. *SIRUP, a toolkit for spatial B and T cell receptor repertoires, reveals differences between normal and ectopic germinal centers in myasthenia gravis.*  bioRxiv, date, doi.
 
-## Authors
+## Getting started
 
-- Hunter J. Melton (maintainer)
-- Chinmay Vaidya
+Start with the [get-started guide](TODO). It shows how to build
+the SIRUP object and a few plots and analyses.
+
+A full tutorial is available at [TODO].
+
+
+## Install SIRUP and dependencies
+
+Use R 4.1 or later. For now, install it from GitHub with BiocManager. This also
+installs the Bioconductor packages that SIRUP needs, such as ggtree:
+
+```r
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+BiocManager::install("hjm2217/SIRUP")
+```
+
+TODO: CRAN
+
+### Other dependencies
+
+SIRUP needs these programs only to process reads with `processSpatialSample()`
+and `runIgblast()`. You do not need them to analyze an AIRR table that you
+already have.
+
+| Program | Use | Download | Install |
+|---|---|---|---|
+| [pRESTO](https://presto.readthedocs.io) | Clusters the reads of each spot, aligns them, and builds one consensus sequence for each group (`ClusterSets.py`, `ParseHeaders.py`, `AlignSets.py`, `BuildConsensus.py`) | [PyPI](https://pypi.org/project/presto/) or [GitHub](https://github.com/immcantation/presto) | `pip3 install presto --user`. It needs Python 3.7 or later. |
+| [vsearch](https://github.com/torognes/vsearch) | Clusters reads by sequence identity. Used with `ClusterSets.py` during `processSpatialSample()`. | [GitHub releases](https://github.com/torognes/vsearch/releases) | Download the binary for Linux, macOS, or Windows. Add its `bin` folder to your `PATH`. You can also use `conda install -c bioconda vsearch` or `brew install vsearch`. |
+| [MUSCLE](https://drive5.com/muscle/) v3.8.31 | Aligns the reads in each group. `AlignSets.py` calls it. | [drive5.com, MUSCLE v3 downloads](https://drive5.com/muscle/downloads_v3.htm) | Download the binary for your system. Unpack it with `tar -xvzf`. Give the path of the file to `muscle_exec`. |
+| [IgBLAST](https://ncbi.github.io/igblast/) | Assigns V(D)J genes to reads and to consensus sequences. Used during `processSpatialSample()` through the airrblast package. | [NCBI FTP](https://ftp.ncbi.nih.gov/blast/executables/igblast/release/) | Follow the instructions in the [airrblast repo](https://github.com/hoehnlab/airrblast/tree/main) to set IgBLAST up. |
+
+Notes:
+
+- **MUSCLE version.** SIRUP uses muscle through [pRESTO](https://presto.readthedocs.io), which requires MUSCLE v3. MUSCLE v5 is not yet supported to our knowledge.
+
 
 ## License
 
