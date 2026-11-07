@@ -190,7 +190,6 @@ The processing vignette explains each option.
 | Regional repertoires | `polygonReceptorSummary()`, `spatialCloneDominance()`, `plotSpatialPolygonPies()`, `polygonDiversity()`, `polygonAbundance()`, `plotSpatialCloneDensity3D()` |
 | Spatial statistics | `spatialMoran()`, `spatialLocalMoran()`, `spatialLee()`, `spatialRipleyCrossK()`, `spatialCloneJoinCount()`, `spatialCloneSpread()` |
 | Lineage trees | `formatSpatialClones()`, `getSpatialTrees()`, `plotSpatialCloneTreePairs()`, `spatialCloneTreePairsToPDF()`, `tipPatristicMatrix()` |
-| Heavy-light chain pairing | `pairHeavyLightSpaced()`, `buildSpacedCloneTable()`, `spacedSpatialAffinity()` |
 
 SIRUP does not wrap every AIRR tool. Use `updateReceptors()` to run functions
 from scoper, dowser, shazam, or your own code on the stored receptor table.
@@ -219,7 +218,6 @@ More guides are in [`docs/readthedocs`](docs/readthedocs):
 
 - [Preparing FASTA with rrad](docs/readthedocs/markdown/demultiplexing-with-rad.md)
 - [Custom read layouts and whitelists](docs/readthedocs/markdown/custom-read-layouts-with-rad.md)
-- [SPaCeD heavy-light chain pairing](docs/readthedocs/markdown/spaced-pairing.md)
 
 ## Citation
 

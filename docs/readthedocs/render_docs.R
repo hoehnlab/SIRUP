@@ -10,9 +10,8 @@
 # The vignettes need the suggested packages (airr, Seurat, scoper, shazam,
 # dowser, ggtree, spdep, spatstat, alakazam, sf, rgl). The tree sections also
 # need IMGT germline references: set SIRUP_IMGT_DIR to the human VDJ folder,
-# or those chunks show code only. The pages for rrad and SPaCeD are not
-# vignettes. Their sources stay in this folder, and this script renders them
-# too.
+# or those chunks show code only. The pages for rrad are not vignettes. Their
+# sources stay in this folder, and this script renders them too.
 
 devtools::load_all(".", quiet = TRUE)
 
