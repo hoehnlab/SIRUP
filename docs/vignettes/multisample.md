@@ -1,29 +1,41 @@
-Several sections, bulk AIRR-seq, and blood
+Analyze several sections with bulk AIRR-seq and blood
 ================
 
-Most studies have more than one tissue section. You may have several
-sections from one donor, bulk AIRR-seq of the same tissue, or blood from
-other time points. If you call clones on all of them together, one clone
-ID means the same lineage in every sample. You can then ask where a
-clone was seen.
+> **Time:** about 25 minutes. **Data:** two MG thymus sections, bulk
+> thymus BCR-seq, and bulk blood BCR-seq, bundled with SIRUP. **Needs:**
+> SIRUP, scoper, and dowser. The tree step also needs the IMGT reference
+> sequences.
+
+Most studies have more than one tissue section. You can also have bulk
+AIRR-seq of the same tissue, or blood from other time points. In this
+page, you put all of these samples in one SIRUP object. You call clones
+on all samples together. You then ask where each clone was seen, compare
+clonal dominance in each section, and build a lineage tree that has
+blood tips.
+
+A clone is a group of B or T cells that descend from one ancestor cell
+and share its receptor rearrangement. If you call clones on all samples
+together, one clone ID names the same lineage in every sample.
 
 One SIRUP object can hold all of this:
 
-- `spatial` can be a named list of Seurat objects, one per section.
+- `spatial` can be a named list of Seurat objects, one for each section.
 - The receptor table holds the rows from every section and every bulk
-  sample. A `sample` column tells SIRUP which section each row belongs
+  sample. A `sample` column tells SIRUP which sample each row belongs
   to.
 - Rows whose `sample` does not name a section stay in the table as
-  nonspatial rows. SIRUP does not put them on a tissue, but clone
-  calling, trees, and your own summaries can use them.
+  nonspatial rows. SIRUP does not put them on a tissue. Clone calling,
+  trees, and your own summaries can use them.
 
-This vignette follows Figure 5 of the SIRUP paper. The MG thymus data
-come from a patient who had a thymectomy. Besides the two Visium
-sections, there is bulk BCR-seq of the thymus, and of blood taken at the
-thymectomy and 12 months later. We ask which eGC clones also appear in
-the blood.
+This page follows Figure 5 of the SIRUP paper. The MG thymus data come
+from a patient who had a thymectomy. Besides the two Visium sections,
+there is bulk BCR-seq of the thymus. There is also bulk BCR-seq of
+blood, taken at the thymectomy and 12 months later. The question is
+which clones in ectopic germinal centers (eGCs) also appear in the
+blood. An eGC is a site in the thymus where B cells proliferate and
+mutate their receptors.
 
-## Set up
+## Load the samples
 
 ``` r
 library(SIRUP)
@@ -93,20 +105,22 @@ count(bcrs, compartment, sample)
 
 `read_bcrs()` reads one AIRR file and adds two columns: `sample` and
 `compartment`. After the barcodes come out of the section IDs, the code
-makes each `sequence_id` unique and tree-safe. It puts the sample name
-in front, because IDs repeat between files, and it replaces the comma
-with `_`, because dowser renames tree tips that contain a comma. The
-spatial rows get a `sample` that matches the names of the `spatial`
+makes each `sequence_id` unique and safe for trees. It puts the sample
+name in front, because IDs repeat between files. It replaces the comma
+with `_`, because dowser renames tree tips that contain a comma.
+
+The section rows get a `sample` that matches the names of the `spatial`
 list. The bulk and blood rows have their own sample names and no
 barcode.
 
-To keep the package small, the bulk files hold a subset of the bulk
-data: the blood sequences of clones seen in a section, and up to 10 bulk
-thymus sequences of each clone that reaches the blood.
+> **Note.** To keep the package small, the bulk files hold a subset of
+> the bulk data. They hold the blood sequences of clones seen in a
+> section. They also hold up to 10 bulk thymus sequences of each clone
+> that reaches the blood.
 
 ## Create a multi-sample object
 
-Give `createSIRUP()` the named list and the `sample` column:
+Give `createSIRUP()` the named list and the name of the `sample` column.
 
 ``` r
 sirup <- createSIRUP(
@@ -131,16 +145,17 @@ spatialSamples(sirup)
 #> [1] "mg_thymus_slice1" "mg_thymus_slice2"
 ```
 
-Visium barcodes repeat between sections: `AAACAAGTATCTCCCA-1` exists in
-both. SIRUP matches each receptor to a spot by the pair of sample and
-barcode, so the two sections never mix.
+Visium barcodes repeat between sections. For example,
+`AAACAAGTATCTCCCA-1` exists in both. SIRUP matches each receptor to a
+spot by the pair of sample and barcode, so the two sections never mix. A
+spot is one capture area of the Visium slide.
 
 If the sections need different image settings, give named values:
 `image_scale = c(mg_thymus_slice1 = "hires", mg_thymus_slice2 = "lowres")`.
 
 ## Get one sample
 
-The accessors take a `sample` argument:
+The accessors take a `sample` argument.
 
 ``` r
 getSpatial(sirup, "mg_thymus_slice1")
@@ -157,7 +172,7 @@ nrow(getReceptors(sirup))
 ```
 
 `filterSample()` returns a new SIRUP object with one section. It drops
-the nonspatial rows:
+the nonspatial rows.
 
 ``` r
 slice1 <- filterSample(sirup, "mg_thymus_slice1")
@@ -170,12 +185,13 @@ slice1
 #> Analyses:        0
 ```
 
-`subsetSIRUP()` gives finer control. It can keep a set of spots, a set
-of receptor rows, and, with `keep_nonspatial_receptors = TRUE`, the bulk
-rows.
+`subsetSIRUP()` gives finer control. It can keep a set of spots or a set
+of receptor rows. With `keep_nonspatial_receptors = TRUE`, it also keeps
+the bulk rows.
 
-To go the other way, `mergeSIRUP()` combines single-section objects into
-a multi-sample object. It adds a sample column with the names you give:
+`mergeSIRUP()` goes the other way. It combines single-section objects
+into a multi-sample object, and it adds a sample column with the names
+that you give.
 
 ``` r
 slice2 <- filterSample(sirup, "mg_thymus_slice2")
@@ -197,7 +213,9 @@ merged
 
 ## Add polygons for each section
 
-Give `addPolygons()` a named vector of polygon files, one per section:
+A polygon is a closed outline that selects the spots of one tissue
+region. Give `addPolygons()` a named vector of polygon files, one for
+each section.
 
 ``` r
 sirup <- addPolygons(sirup, polygons_path = c(
@@ -230,15 +248,15 @@ getPolygons(sirup)
 #> 19 mg_thymus_slice2::9  mg_thymus_slice2 <tibble [4 × 6]>
 ```
 
-Both files number their eGCs from 1, so SIRUP adds the sample to each
-polygon ID: `mg_thymus_slice1::1` and `mg_thymus_slice2::1` are
+Both files number their eGCs from 1. SIRUP adds the sample to each
+polygon ID. `mg_thymus_slice1::1` and `mg_thymus_slice2::1` are
 different regions.
 
 ## Plot several sections
 
-By default, a spatial plot of a multi-sample object returns a list with
-one plot per section. Set `combine_sample_plots = TRUE` to get one
-combined figure, or give `sample_id` to plot one section:
+A spatial plot of a multi-sample object returns a list with one plot for
+each section. Set `combine_sample_plots = TRUE` to get one combined
+figure. Give `sample_id` to plot one section.
 
 ``` r
 plotSpatialPolygons(sirup, zoom = TRUE, combine_sample_plots = TRUE)
@@ -261,8 +279,8 @@ spatialExpressionPlot(
 
 ## Call clones across all samples
 
-Call clones on the whole receptor table, so that one clone ID covers the
-sections, the bulk thymus, and the blood:
+Call clones on the whole receptor table. One clone ID then covers the
+sections, the bulk thymus, and the blood.
 
 ``` r
 sirup <- updateReceptors(
@@ -276,10 +294,11 @@ dplyr::n_distinct(getReceptors(sirup)$clone_id)
 #> [1] 1860
 ```
 
-## Where was each clone seen?
+## Find where each clone was seen
 
-Each row has a `compartment`. For each clone, count its sequences in
-each compartment, and record the eGCs that hold it:
+Each row has a `compartment`. For each clone, the code below counts the
+sequences in each compartment. It also records the eGCs that hold the
+clone.
 
 ``` r
 clones <- getReceptors(sirup) %>%
@@ -307,9 +326,10 @@ count(clones, in_egc, in_blood)
 #> 4 TRUE   TRUE        11
 ```
 
-Most clones stay in the thymus. A few eGC clones also appear in the
-blood. The paper calls these clones exported. Fisher’s exact test
-compares the eGC clones with the other clones of the sections:
+The table shows that most clones stay in the thymus. A few eGC clones
+also appear in the blood. The SIRUP paper calls these clones exported.
+Fisher’s exact test compares the eGC clones with the other clones of the
+sections.
 
 ``` r
 section_clones <- filter(clones, in_section)
@@ -327,8 +347,8 @@ fisher.test(table(section_clones$in_egc, section_clones$in_blood))
 #>   1.326868
 ```
 
-Count, for each eGC, the clones it holds and the clones that reach the
-blood:
+For each eGC, count the clones that it holds and the clones that reach
+the blood.
 
 ``` r
 getReceptors(sirup) %>%
@@ -360,14 +380,17 @@ getReceptors(sirup) %>%
 #> 17 mg_thymus_slice2::9         4          0
 ```
 
-The example data hold a subset of the bulk data, and the clones come
-from that subset. For the full analysis, see Figure 5 of the SIRUP
+The bundled bulk files hold a subset of the bulk data, and the clones
+come from that subset. For the full analysis, see Figure 5 of the SIRUP
 paper.
 
-## Clonal dominance in every section
+## Measure clonal dominance in each section
 
-Regional functions work on all sections at once. The dominance table has
-a `sample` column and the full `polygon_id`:
+Clonal dominance is the share of the receptors in a region that belong
+to its largest clones. The regional functions work on all sections at
+once. The dominance table has a `sample` column and the full
+`polygon_id`. For a longer treatment, see
+[Draw tissue regions and measure clonal dominance and diversity](regions.md).
 
 ``` r
 dominance <- spatialCloneDominance(object = sirup, locus_val = "IGH")
@@ -389,7 +412,8 @@ dominance$dominance %>%
 #> 6 mg_thymus_slice1 mg_thymus_slice1::5  1385               3      0.231
 ```
 
-Most plotting functions return a named list with one plot per section:
+Most plotting functions return a named list with one plot for each
+section.
 
 ``` r
 region_plots <- plotSpatialRegionReceptors(
@@ -407,7 +431,7 @@ region_plots$mg_thymus_slice1
 <img src="multisample_files/figure-gfm/region-receptors-1.jpeg" alt="" width="100%" />
 
 `plotSpatialPolygonPies()` also works on all sections at once. Give
-`sample_id` to draw the pies of one section next to its map:
+`sample_id` to draw the pies of one section next to its map.
 
 ``` r
 pies <- plotSpatialPolygonPies(
@@ -424,10 +448,12 @@ pies$page_1
 
 <img src="multisample_files/figure-gfm/pies-1.jpeg" alt="" width="100%" />
 
-## A tree with blood tips
+## Build a tree with blood tips
 
-A lineage tree can mix spatial and bulk sequences. Pick an exported eGC
-clone with blood sequences from both time points:
+A lineage tree shows how the sequences of one clone relate to each
+other. Each tip of the tree is one sequence. A tree can mix spatial and
+bulk sequences. The code below picks an exported eGC clone with blood
+sequences from both time points.
 
 ``` r
 exported <- clones %>%
@@ -451,11 +477,16 @@ tree_section
 #> [1] "mg_thymus_slice2"
 ```
 
-Make its germline with `dowser::createGermlines()`, then build its tree.
-As in [Clones and lineage trees on the tissue](clones-and-trees.md), the germline
-step needs the IMGT references in the folder that `SIRUP_IMGT_DIR`
-names, and the tree chunks run only when that folder exists. Keep
-`compartment` in `traits`, so we can set the tip shapes by compartment:
+Make the germline of the clone with `dowser::createGermlines()`. The
+germline is the sequence of the unmutated ancestor, and the tree starts
+there. Then build the tree. As in
+[Call clones and build lineage trees on the tissue](clones-and-trees.md), the germline step
+needs the IMGT reference sequences. Set the environment variable
+`SIRUP_IMGT_DIR` to the folder that holds them. The tree chunks run only
+when that folder exists.
+
+Keep `compartment` in `traits`. The tree plot uses it to set the tip
+shapes.
 
 ``` r
 tree_sirup <- updateReceptors(sirup, dplyr::filter, clone_id == tree_clone)
@@ -478,8 +509,9 @@ trees <- getAnalysis(tree_sirup, "trees")
 ```
 
 `plotSpatialCloneTreePairs()` puts the spatial tips on their sections.
-Bulk and blood tips appear in the tree only. Here `shape_by` sets one
-shape per compartment and `color_by` colors the tips by tree cluster:
+Bulk and blood tips appear in the tree only. The argument `shape_by`
+sets one shape for each compartment. The argument `color_by` colors the
+tips by tree cluster. `clusterTreesTips()` makes the clusters.
 
 ``` r
 trees <- clusterTreesTips(trees, k = "auto", id = "sequence_id", k_range = 1:6)
@@ -504,31 +536,31 @@ names(pair)
 #> [1] "1045"
 ```
 
-The list has one element per clone. When the tips of a clone fall in
-more than one section, it has one element per clone and section instead,
-named `<clone>::<sample>`, and each one pairs the full tree with the map
-of one section. Each element also holds a `legend` for the tip shapes
-and colors. Show the section that holds the eGC tips:
+The list has one element for each clone. If the tips of a clone fall in
+more than one section, the list has one element for each clone and
+section instead. These elements are named `<clone>::<sample>`. Each one
+pairs the full tree with the map of one section. The code below shows
+the section that holds the eGC tips.
 
 ``` r
 key <- paste0(tree_clone, "::", tree_section)
 if (!key %in% names(pair)) key <- tree_clone
 section_pair <- pair[[key]]
 
-cowplot::plot_grid(
-  cowplot::plot_grid(section_pair$tree, section_pair$spatial_clone, rel_widths = c(1.3, 1)),
-  section_pair$legend,
-  ncol = 1,
-  rel_heights = c(1, section_pair$legend_rel_height)
-)
+cowplot::plot_grid(section_pair$tree, section_pair$spatial_clone, rel_widths = c(1.3, 1))
 ```
 
 <img src="multisample_files/figure-gfm/tree-plot-show-1.jpeg" alt="" width="100%" />
 
-Circles are tips from a section, squares are bulk thymus, triangles are
-blood at the thymectomy, and diamonds are blood 12 months later.
+Shapes show the compartment of each tip. Circles are tips from a
+section. Squares are bulk thymus. Triangles are blood at the thymectomy.
+Diamonds are blood 12 months later. Colors show the tree clusters from
+`clusterTreesTips()`. On the map, a dot has the color of its tip.
 
 ## Save the object
+
+`saveSIRUP()` writes the whole object to one file. `readSIRUP()` reads
+it back and checks it.
 
 ``` r
 path <- file.path(tempdir(), "mg_thymus.sirup.rds")
@@ -545,3 +577,12 @@ readSIRUP(path)
 #> Analyses:        0
 #> Polygons:        19
 ```
+
+## Next steps
+
+- Call clones and build trees for one section:
+  [Call clones and build lineage trees on the tissue](clones-and-trees.md).
+- Draw tissue regions and measure clonal dominance and diversity:
+  [Draw tissue regions and measure clonal dominance and diversity](regions.md).
+- Learn how SIRUP stores samples, polygons, and analyses:
+  [How the SIRUP object works](sirup-object.md).

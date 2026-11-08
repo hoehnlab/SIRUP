@@ -33,15 +33,40 @@ markdown_extensions:
 nav:
 - About:
   - Introduction: index.md
-- Vignettes:
-  - Get started with SIRUP: vignettes/SIRUP.md
-  - Clones and lineage trees on the tissue: vignettes/clones-and-trees.md
-  - Several sections, bulk AIRR-seq, and blood: vignettes/multisample.md
+- Start here:
+  - Get started with SIRUP: vignettes/get-started.md
+- Tutorials:
   - Process reads into spatial AIRR tables: vignettes/processing.md
-  - Tissue regions, clonal dominance, and diversity: vignettes/regions.md
-  - Spatial statistics for genes, cells, and clones: vignettes/spatial-statistics.md
-- Help Topics:
-  - Processing:
+  - Draw tissue regions and measure clonal dominance and diversity: vignettes/regions.md
+  - Call clones and build lineage trees on the tissue: vignettes/clones-and-trees.md
+  - Test spatial patterns of genes, cells, and clones: vignettes/spatial-statistics.md
+  - Analyze several sections with bulk AIRR-seq and blood: vignettes/multisample.md
+- Guides:
+  - How the SIRUP object works: vignettes/sirup-object.md
+  - Choose a spatial statistic: vignettes/choose-spatial-statistic.md
+- Function reference:
+  - Lineage trees:
+    - assignTipColors: topics/assignTipColors.md
+    - chooseTreeTipK: topics/chooseTreeTipK.md
+    - clusterTreesTips: topics/clusterTreesTips.md
+    - clusterTreeTips: topics/clusterTreeTips.md
+    - formatSpatialClones: topics/formatSpatialClones.md
+    - getSpatialTrees: topics/getSpatialTrees.md
+    - tipPatristicMatrix: topics/tipPatristicMatrix.md
+  - Plots:
+    - plotLengthQc: topics/plotLengthQc.md
+    - plotReceptors: topics/plotReceptors.md
+    - plotReceptorsExpression: topics/plotReceptorsExpression.md
+    - plotSpatialCloneColorTips: topics/plotSpatialCloneColorTips.md
+    - plotSpatialCloneTreePairs: topics/plotSpatialCloneTreePairs.md
+    - plotSpatialColorTips: topics/plotSpatialColorTips.md
+    - sirupSampleFromImage: topics/sirupSampleFromImage.md
+    - spatialCloneTreePairsToPDF: topics/spatialCloneTreePairsToPDF.md
+    - spatialDiscretePlot: topics/spatialDiscretePlot.md
+    - spatialExpressionBlendPlot: topics/spatialExpressionBlendPlot.md
+    - spatialExpressionMultiPlot: topics/spatialExpressionMultiPlot.md
+    - spatialExpressionPlot: topics/spatialExpressionPlot.md
+  - Read processing:
     - addSequenceQualityMetrics: topics/addSequenceQualityMetrics.md
     - addTissuePositions: topics/addTissuePositions.md
     - collapseIdenticalNeighbors: topics/collapseIdenticalNeighbors.md
@@ -55,40 +80,7 @@ nav:
     - runIgblast: topics/runIgblast.md
     - spatialReceptorSummary: topics/spatialReceptorSummary.md
     - writeFastqas: topics/writeFastqas.md
-  - SIRUP io:
-    - sirup-io: topics/sirup-io.md
-  - SIRUP object:
-    - createSIRUP: topics/createSIRUP.md
-    - isSIRUP: topics/isSIRUP.md
-    - mergeSIRUP: topics/mergeSIRUP.md
-    - sirup-accessors: topics/sirup-accessors.md
-    - sirup-analyses: topics/sirup-analyses.md
-    - sirup-polygons: topics/sirup-polygons.md
-    - sirup-transform: topics/sirup-transform.md
-    - subsetSIRUP: topics/subsetSIRUP.md
-    - validateSIRUP: topics/validateSIRUP.md
-  - SIRUP trees:
-    - assignTipColors: topics/assignTipColors.md
-    - chooseTreeTipK: topics/chooseTreeTipK.md
-    - clusterTreesTips: topics/clusterTreesTips.md
-    - clusterTreeTips: topics/clusterTreeTips.md
-    - formatSpatialClones: topics/formatSpatialClones.md
-    - getSpatialTrees: topics/getSpatialTrees.md
-    - tipPatristicMatrix: topics/tipPatristicMatrix.md
-  - Spatial ggplot visualization:
-    - plotLengthQc: topics/plotLengthQc.md
-    - plotReceptors: topics/plotReceptors.md
-    - plotReceptorsExpression: topics/plotReceptorsExpression.md
-    - plotSpatialCloneColorTips: topics/plotSpatialCloneColorTips.md
-    - plotSpatialCloneTreePairs: topics/plotSpatialCloneTreePairs.md
-    - plotSpatialColorTips: topics/plotSpatialColorTips.md
-    - sirupSampleFromImage: topics/sirupSampleFromImage.md
-    - spatialCloneTreePairsToPDF: topics/spatialCloneTreePairsToPDF.md
-    - spatialDiscretePlot: topics/spatialDiscretePlot.md
-    - spatialExpressionBlendPlot: topics/spatialExpressionBlendPlot.md
-    - spatialExpressionMultiPlot: topics/spatialExpressionMultiPlot.md
-    - spatialExpressionPlot: topics/spatialExpressionPlot.md
-  - Spatial polygons:
+  - Regions and polygons:
     - assignReceptorPolygons: topics/assignReceptorPolygons.md
     - assignSpatialPolygons: topics/assignSpatialPolygons.md
     - expandPolygons: topics/expandPolygons.md
@@ -107,6 +99,8 @@ nav:
     - spatialCloneDominance: topics/spatialCloneDominance.md
     - summarizePolygonDiversity: topics/summarizePolygonDiversity.md
     - withPolygons: topics/withPolygons.md
+  - Save and read:
+    - sirup-io: topics/sirup-io.md
   - Spatial statistics:
     - plotRipleyCrossK: topics/plotRipleyCrossK.md
     - plotSpatialCloneJoinCount: topics/plotSpatialCloneJoinCount.md
@@ -119,4 +113,14 @@ nav:
     - spatialLocalMoran: topics/spatialLocalMoran.md
     - spatialMoran: topics/spatialMoran.md
     - spatialRipleyCrossK: topics/spatialRipleyCrossK.md
+  - The SIRUP object:
+    - createSIRUP: topics/createSIRUP.md
+    - isSIRUP: topics/isSIRUP.md
+    - mergeSIRUP: topics/mergeSIRUP.md
+    - sirup-accessors: topics/sirup-accessors.md
+    - sirup-analyses: topics/sirup-analyses.md
+    - sirup-polygons: topics/sirup-polygons.md
+    - sirup-transform: topics/sirup-transform.md
+    - subsetSIRUP: topics/subsetSIRUP.md
+    - validateSIRUP: topics/validateSIRUP.md
 # <<< END GENERATED NAV <<<

@@ -51,6 +51,9 @@ DEFAULTS = {
     "nav_groups_file": "docs/nav-groups.yml",
     "vignette_sources": ["vignettes"],
     "vignette_order": [],
+    "vignette_groups": [],         # [{title, vignettes: [stems]}]; empty = one flat "Vignettes" section
+    "help_topics_title": "Help Topics",
+    "group_titles": {},            # R source file stem -> group title, e.g. {sirup_io: "Input and output"}
     "extras": {"llms": True, "news": True, "index": True, "link_rewrite": True, "freshness_check": True},
     "freshness_exclude": [],       # extra paths the CI stale check ignores (e.g. a vignette that prints dates)
     "external_link_targets": {},
@@ -156,8 +159,11 @@ def load_topics(root: Path, cfg: dict) -> list[dict]:
 
 
 # --------------------------------------------------------------------------- grouping
-def pretty_source(src: str, package: str = "") -> str:
-    """R/spatial_statistics.R -> "Spatial statistics"; the package name keeps its case."""
+def pretty_source(src: str, package: str = "", titles: dict | None = None) -> str:
+    """R/spatial_statistics.R -> "Spatial statistics"; the package name keeps its case.
+    A title in the group_titles setting (keyed by file stem) wins."""
+    if titles and Path(src).stem in titles:
+        return titles[Path(src).stem]
     words = Path(src).stem.replace("_", " ").replace("-", " ").split()
     words = [package if package and w.lower() == package.lower() else w for w in words]
     stem = " ".join(words)
@@ -192,7 +198,7 @@ def group_topics(root: Path, cfg: dict, topics: list[dict]) -> list[tuple[str | 
         elif t["family"] and mode in ("auto", "family"):
             g = t["family"][:1].upper() + t["family"][1:]   # roxygen families are often lowercase
         elif t["source"] and mode in ("auto", "source"):
-            g = pretty_source(t["source"], cfg["package"])
+            g = pretty_source(t["source"], cfg["package"], cfg["group_titles"])
         else:
             g = "Other"
         buckets.setdefault(g, []).append(t)
@@ -246,7 +252,18 @@ def build_nav(root: Path, cfg: dict) -> tuple[list, int]:
 
     vigs = list_vignettes(root, cfg)
     if vigs:
-        nav.append({"Vignettes": [{v["title"]: f"vignettes/{v['stem']}.md"} for v in vigs]})
+        def entry(v: dict) -> dict:
+            return {v["title"]: f"vignettes/{v['stem']}.md"}
+        by_stem = {v["stem"]: v for v in vigs}
+        used: set[str] = set()
+        for grp in cfg["vignette_groups"]:
+            items = [entry(by_stem[st]) for st in grp.get("vignettes", []) if st in by_stem]
+            used.update(grp.get("vignettes", []))
+            if items:
+                nav.append({grp["title"]: items})
+        rest = [v for v in vigs if v["stem"] not in used]
+        if rest:
+            nav.append({"Vignettes": [entry(v) for v in rest]})
 
     depth = 2
     if len(groups) == 1 and groups[0][0] is None:
@@ -256,7 +273,7 @@ def build_nav(root: Path, cfg: dict) -> tuple[list, int]:
         help_items = [
             {g: [{t["name"]: f"topics/{t['stem']}.md"} for t in members]} for g, members in groups
         ]
-    nav.append({"Help Topics": help_items})
+    nav.append({cfg["help_topics_title"]: help_items})
     return nav, depth
 
 

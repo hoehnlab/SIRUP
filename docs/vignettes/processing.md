@@ -1,26 +1,34 @@
 Process reads into spatial AIRR tables
 ================
 
-This vignette takes you from demultiplexed long reads to an AIRR table
-in which each consensus receptor sequence has a spatial ID. The next
-step, `createSIRUP()`, is in [Get started with SIRUP](SIRUP.md).
+> **Time:** about 30 minutes (plus run time of the tools). **Data:** the
+> example read-level and consensus tables that come with SIRUP.
+> **Needs:** R 4.1 or later, and the external tools below for the steps
+> that show code only.
 
-The pipeline calls external programs (IgBLAST, pRESTO, vsearch, and
-MUSCLE). A vignette cannot run these programs on every computer, so the
-chunks that call them show code only. The other chunks run on small
-samples of the MG thymus data that come with SIRUP.
+In this page you turn long sequencing reads into an AIRR table. An AIRR
+table is a table of receptor sequences in the format of the AIRR
+Community. Each consensus receptor sequence in the table has one spatial
+ID. A consensus sequence is one sequence that SIRUP builds from several
+reads of the same molecule.
 
-## The pipeline
+Most steps here call external programs and need large inputs. Those
+chunks show code only. Chunks that run on the bundled example are marked
+in the text. Load the result into R in
+[Get started with SIRUP](get-started.md).
 
-Spatial AIRR-seq libraries are long-read sequencing libraries of
-receptor transcripts. Each read carries a spatial barcode, which
-identifies its spot. In most protocols it also carries a UMI, which
-identifies its original molecule. The processing has two parts:
+## Review the pipeline
+
+Spatial AIRR-seq libraries are long-read libraries of receptor
+transcripts. Each read carries a spatial barcode, a short DNA tag that
+identifies the spot where the molecule came from. Most protocols also
+add a UMI (unique molecular identifier), a tag that identifies the
+original molecule. Processing has two parts:
 
 1.  **Demultiplexing**, in the separate
-    [rrad](https://github.com/indianewok/rrad) package. rrad finds the
-    barcode and UMI in each read, corrects them against the whitelist,
-    and writes them into the read header.
+    [rrad](https://github.com/indianewok/rrad) package. To demultiplex
+    is to find the barcode and UMI in each read, correct them against
+    the barcode whitelist, and write them into the read header.
 2.  **Consensus building**, in SIRUP. `processSpatialSample()` runs
     these steps:
 
@@ -37,9 +45,9 @@ Long-read sequencing has a high error rate. A consensus of several reads
 removes most random errors. The spot barcode stays in the sequence
 header through every step, so each consensus sequence keeps its spot.
 
-## Install the external tools
+## Install the tools
 
-You need these programs on your computer or cluster:
+Install these programs on your computer or cluster:
 
 - **IgBLAST** (`igblastn`) from NCBI, with its `internal_data` and
   `optional_file` folders.
@@ -51,11 +59,15 @@ You need these programs on your computer or cluster:
 - **MUSCLE**, which `AlignSets.py` calls. The SIRUP paper used MUSCLE
   3.8.31.
 
-The [Immcantation Docker image](https://immcantation.readthedocs.io)
-contains most of them. If you use it, run R inside the container and
-install airrblast.
+> **Tip.** The [Immcantation Docker
+> image](https://immcantation.readthedocs.io) contains most of these
+> tools. Run R inside the container and install airrblast.
 
-Make sure R can find the programs:
+> **Note.** Paths such as `~/share/igblast` and
+> `~/bin/muscle3.8.31_i86linux64` in this page are examples. Replace
+> them with the paths on your system.
+
+Check that R can find the programs. This chunk shows code only:
 
 ``` r
 Sys.which(c(
@@ -67,12 +79,12 @@ file.exists(file.path("~/share/igblast", "bin", "igblastn"))
 
 An empty string means R cannot find that program. Add its folder to
 `PATH`, or give its full path to `processSpatialSample()`
-(`muscle_exec`). SIRUP runs IgBLAST through airrblast. It always uses
+(`muscle_exec`). SIRUP runs IgBLAST through airrblast. It uses
 `<igblast_base>/bin/igblastn`.
 
 ### Build the IgBLAST databases
 
-SIRUP installs the airrblast package. Use it one time to download the
+SIRUP imports the airrblast package. Run this code once to download the
 IMGT germlines and build the IgBLAST databases:
 
 ``` r
@@ -124,8 +136,8 @@ read identifier, which IgBLAST keeps:
 ```
 
 `parseRadSequenceIds()` reads these tags into columns.
-`processSpatialSample()` calls it for you, but you can use it to check a
-file:
+`processSpatialSample()` calls it for you. Use it yourself to check a
+header. This chunk runs:
 
 ``` r
 library(SIRUP)
@@ -147,11 +159,12 @@ HD layout.
 
 ## Look at the read-level data
 
-SIRUP includes 2,000 read-level IgBLAST rows from MG thymus section 2.
-The RAD run for these reads wrote the barcode and UMI as the columns
-`cell_barcode` and `umi`, not in the header. We enriched this sample for
-usable reads: 750 of the rows pass the IGH filter below. In the full
-section, only 62,738 of 15.6 million reads (0.4%) pass.
+SIRUP includes 2,000 read-level IgBLAST rows from one section of human
+thymus. The file stores the barcode and UMI in the columns
+`cell_barcode` and `umi`, not in the header. The sample is enriched for
+usable reads. In this sample, 750 rows pass the IGH filter below. In the
+full section, 0.4% of the reads pass. The chunks in this section and the
+next run on the example.
 
 ``` r
 library(dplyr)
@@ -199,17 +212,17 @@ spatialReceptorSummary(igh_reads, spatial_id = "barcode")
 #> 1         750           451      1          307
 ```
 
-Keep `productive_only = FALSE` at the read level. A single read can look
-unproductive because of a sequencing error that the consensus step
-corrects. Filter on productivity after the consensus step. (With
-`umi_support = TRUE`, SIRUP builds each molecule consensus from the
-productive reads of that molecule.)
+> **Note.** Keep `productive_only = FALSE` at the read level. A
+> sequencing error can make a single read look unproductive, and the
+> consensus step corrects that error. Filter on productivity after the
+> consensus step. With `umi_support = TRUE`, SIRUP builds each molecule
+> consensus from the productive reads of that molecule.
 
 `plotLengthQc()` shows the V, J, and junction lengths. Use it to choose
 the thresholds:
 
 ``` r
-plotLengthQc(igh_reads, bin_width = 10, title = "IGH reads, MG thymus section 2")
+plotLengthQc(igh_reads, bin_width = 10, title = "IGH reads, thymus section")
 ```
 
 <img src="processing_files/figure-gfm/length-qc-1.jpeg" alt="" width="100%" />
@@ -218,7 +231,8 @@ plotLengthQc(igh_reads, bin_width = 10, title = "IGH reads, MG thymus section 2"
 
 `processSpatialSample()` runs every step from the table above. It prints
 each command before it runs it. If a command fails, it stops and shows
-the command.
+the command. The chunks in this section show code only. They need the
+external tools and full-size inputs.
 
 You can start from three types of input:
 
@@ -265,21 +279,37 @@ SIRUP first groups the reads of each spot and UMI at a looser identity
 from the productive reads only. The spot-level step then combines the
 molecules and sums their reads.
 
-`umi_support` needs an AIRR table with `umi` and `productive` columns,
-so give it the output of the first IgBLAST pass. This is the call we
-used for the MG thymus BCRs in the SIRUP paper:
+`umi_support` needs an AIRR table with `umi` and `productive` columns.
+Make it with a first IgBLAST pass on the rrad FASTA file:
+
+``` r
+runIgblast(
+  input = "prepared/sample-igblast.fasta",
+  output_tsv = "processed/reads_igblast.tsv",
+  receptor = "ig",
+  igblast_base = "~/share/igblast",
+  igblast_refs = "~/share/igblast_refs"
+)
+igblast_reads <- airr::read_rearrangement("processed/reads_igblast.tsv")
+igblast_reads <- parseRadSequenceIds(igblast_reads)
+```
+
+The rrad FASTA header holds the barcode and UMI. `parseRadSequenceIds()`
+copies them into the `barcode` and `umi` columns. The SIRUP paper used
+this call for the thymus BCRs:
 
 ``` r
 result <- processSpatialSample(
   input = igblast_reads,           # read-level AIRR data frame
   input_type = "airr",
-  output_dir = "processed/kh02_bcr",
+  output_dir = "processed/bcr_umi",
   receptor = "ig",
   identity = 1.0,
   consensus_freq = 0.51,
   cluster_field = "barcode",
-  germline_glob = "~/share/germlines/imgt/human/vdj/imgt_human_IG*.fasta",
   igblast_base = "~/share/igblast",
+  igblast_refs = "~/share/igblast_refs",
+  imgt_dir = "~/share/imgt",
   muscle_exec = "~/bin/muscle3.8.31_i86linux64",
   nproc = 8,
   umi_support = TRUE,
@@ -335,8 +365,8 @@ processSpatialSamples(
 )
 ```
 
-On a cluster, submit one job per sample and chain instead. Each job then
-calls `processSpatialSample()` once.
+> **Tip.** On a cluster, submit one job per sample. Each job calls
+> `processSpatialSample()` once.
 
 ## Choose the parameters
 
@@ -365,8 +395,9 @@ reuse the clustering.
 
 The pipeline writes the consensus `sequence_id` as
 `<cluster>,<barcode>`. The example data include the consensus table of
-MG thymus section 2. It is the `db_pass_umi` table that
-`processSpatialSample()` wrote for the SIRUP paper:
+one thymus section. It is the `db_pass_umi` table that
+`processSpatialSample()` wrote for the SIRUP paper. The chunks in this
+section run on it:
 
 ``` r
 consensus <- airr::read_rearrangement(
@@ -415,11 +446,10 @@ summary(consensus[, c("non_N_nucleotide_prop", "max_gap_length", "consensus_coun
 #>  Max.   :1.0000        Max.   :220.00   Max.   :35.000
 ```
 
-Then filter. These settings match the definition of a quality sequence
-that we used to tune the pipeline in the SIRUP paper: a productive
-rearrangement, a V alignment of at least 250 nucleotides, a J of at
-least 30, a junction of at least 10, and no gap longer than 15
-nucleotides.
+Then filter. These settings follow the definition of a quality sequence
+in the SIRUP paper. A quality sequence is a productive rearrangement.
+Its V alignment has at least 250 nucleotides, its J at least 30, and its
+junction at least 10. It has no gap longer than 15 nucleotides.
 
 ``` r
 bcrs <- filterAirr(
@@ -462,6 +492,8 @@ maps each 2 µm barcode to its larger bins (`barcode_mappings.parquet`).
 `readSpatialIdMapping()` reads it. Parquet files need the arrow package.
 You can also save the file as CSV once and read that.
 
+This chunk shows code only. It needs Space Ranger output.
+
 ``` r
 # bcrs$barcode_2um holds the 2 µm barcode of each consensus sequence.
 mapping <- readSpatialIdMapping("outs/barcode_mappings.parquet")
@@ -500,16 +532,17 @@ The function also merges rows with the same sequence in the same spot
 and adds their counts. It keeps rows whose spot is not in the Seurat
 object, such as bulk rows, without changes.
 
-**Use it on Visium HD data only.** Standard Visium spots are 55 µm wide,
-100 µm apart, and hold several cells each. Two neighboring Visium spots
-with the same sequence are more likely two related cells than spatial
-bleed.
+> **Note.** Use it on Visium HD data only. Standard Visium spots are 55
+> µm wide, 100 µm apart, and hold several cells each. Two neighboring
+> Visium spots with the same sequence are more likely two related cells
+> than spatial bleed.
 
 The function estimates the neighbor distance from the spot coordinates.
-Set `num_neighbors_non_boundary` to the number of neighbors that a spot
-in the middle of the tissue has: 6 on the standard Visium hexagonal
-grid, 8 on the Visium HD square grid. The example below runs it on the
-Visium thymus data only to show the call and the output:
+Set `num_neighbors_non_boundary` to the number of neighbors of a spot in
+the middle of the tissue. Use 6 on the standard Visium hexagonal grid
+and 8 on the Visium HD square grid. The next chunk runs the function on
+the standard Visium example to show the call and its output. Do not use
+it on standard Visium data in practice:
 
 ``` r
 thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
@@ -527,12 +560,12 @@ collapsed <- collapseIdenticalNeighbors(
   num_neighbors_non_boundary = 6
 )
 #> ℹ Ensuring one row per spatial_id/sequence...
-#> ✔ Ensuring one row per spatial_id/sequence... [2.6s]
+#> ✔ Ensuring one row per spatial_id/sequence... [1.6s]
 #> 
 #> ℹ Estimating distance threshold from full tissue positions...
-#> ✔ Estimating distance threshold from full tissue positions... [2.7s]
+#> ✔ Estimating distance threshold from full tissue positions... [2.4s]
 #> 
-#> ℹ Distance threshold: 9.9652
+#> ℹ Distance threshold: 10.0274
 #> ℹ Filtering to spots with observed sequences...
 #> ✔ Filtering to spots with observed sequences... [6ms]
 #> 
@@ -541,7 +574,7 @@ collapsed <- collapseIdenticalNeighbors(
 #> ✔ Building adjacency matrix over spots with observed sequences... [9ms]
 #> 
 #> ℹ Collapsing components to representative spots...
-#> ✔ Collapsing components to representative spots... [201ms]
+#> ✔ Collapsing components to representative spots... [188ms]
 #> 
 #> ℹ Filtering data to representative spots...
 #> ✔ Filtering data to representative spots... [11ms]
@@ -555,3 +588,14 @@ c(before = nrow(getReceptors(sirup)), after = nrow(getReceptors(collapsed)))
 
 For Visium HD, give the 8 µm object and
 `num_neighbors_non_boundary = 8`.
+
+## Next steps
+
+- Build the object from the table in
+  [Get started with SIRUP](get-started.md).
+- Draw tissue regions and measure clonal dominance in
+  [Draw tissue regions and measure clonal dominance and diversity](regions.md).
+- Call clones and build lineage trees in
+  [Call clones and build lineage trees on the tissue](clones-and-trees.md).
+- See what the object stores in
+  [How the SIRUP object works](sirup-object.md).

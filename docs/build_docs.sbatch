@@ -3,6 +3,10 @@
 #
 #   sbatch docs/build_docs.sbatch
 #
+# To build only some vignettes (faster), set two variables:
+#   sbatch --export=ALL,DOCS_STEPS=vignettes,DOCS_VIGNETTES=regions:multisample docs/build_docs.sbatch
+# A partial build skips the nav, the extras and the final check.
+#
 # The job knits the 6 vignettes and converts man/*.Rd to docs/topics/*.md.
 # Then it makes the nav, index and llms files. When it ends, check the pages and
 # commit docs/, mkdocs.yml, llms.txt and llms-full.txt.
@@ -21,6 +25,10 @@
 
 set -euo pipefail
 
+# sbatch can copy a stale module state from the login shell. That makes `module load`
+# fail with "Loaded environment state is inconsistent". Clear the state first.
+unset LOADEDMODULES _LMFILES_
+
 # R 4.5.1 loads the personal library with Seurat. R 4.4.3 and 4.6.1 do not.
 module load R/4.5.1
 
@@ -37,5 +45,9 @@ export PATH=/dartfs-hpc/rc/home/j/f007p0j/.conda/envs/DiscoveryPythonEnv/bin:$HO
 cd "${SLURM_SUBMIT_DIR:-.}"
 test -f DESCRIPTION || { echo "Run this from the SIRUP package root." >&2; exit 1; }
 
-Rscript docs/build.R
-python3 docs/docs_tools.py check --no-build
+# DOCS_STEPS is a space-separated list of steps (topics vignettes nav extras). Empty means all.
+# shellcheck disable=SC2086
+Rscript docs/build.R ${DOCS_STEPS:-}
+if [ -z "${DOCS_STEPS:-}" ]; then
+  python3 docs/docs_tools.py check --no-build
+fi

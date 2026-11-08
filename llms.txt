@@ -13,18 +13,43 @@ so any agent that can fetch a URL can read them directly.
 
 ## Vignettes (tutorials)
 
-- [Get started with SIRUP](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/SIRUP.md)
-- [Clones and lineage trees on the tissue](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/clones-and-trees.md)
-- [Several sections, bulk AIRR-seq, and blood](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/multisample.md)
+- [Choose a spatial statistic](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/choose-spatial-statistic.md)
+- [Call clones and build lineage trees on the tissue](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/clones-and-trees.md)
+- [Get started with SIRUP](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/get-started.md)
+- [Analyze several sections with bulk AIRR-seq and blood](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/multisample.md)
 - [Process reads into spatial AIRR tables](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/processing.md)
-- [Tissue regions, clonal dominance, and diversity](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/regions.md)
-- [Spatial statistics for genes, cells, and clones](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/spatial-statistics.md)
+- [Draw tissue regions and measure clonal dominance and diversity](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/regions.md)
+- [How the SIRUP object works](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/sirup-object.md)
+- [Test spatial patterns of genes, cells, and clones](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/spatial-statistics.md)
 
 ## Function reference
 
 All URLs share the prefix https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/ (e.g. `fn` -> `.../topics/fn.md`).
 
-### Processing
+### Lineage trees
+- `assignTipColors`: Assign colors to the tips of clones
+- `chooseTreeTipK`: Choose the number of tip clusters for a tree
+- `clusterTreesTips`: Cluster the tips of all trees in a dowser result
+- `clusterTreeTips`: Cluster the tips of a tree
+- `formatSpatialClones`: Format the receptors of a SIRUP object as in dowser's formatClones()
+- `getSpatialTrees`: Build trees from the formatted clones of a SIRUP object
+- `tipPatristicMatrix`: Calculate patristic distances between tips in a tree
+
+### Plots
+- `plotLengthQc`: Plot length histograms of V, J, and junction regions
+- `plotReceptors`: Plot receptor groups on a tissue image
+- `plotReceptorsExpression`: Plot receptor groups over gene expression
+- `plotSpatialCloneColorTips`: Plot the tip colors of one clone on a tissue image
+- `plotSpatialCloneTreePairs`: Plot each clone tree next to its tissue map
+- `plotSpatialColorTips`: Plot tip colors on a tissue image
+- `sirupSampleFromImage`: Get the sample name from an image label
+- `spatialCloneTreePairsToPDF`: Save the tree and map pairs to a PDF file
+- `spatialDiscretePlot`: Plot a metadata column on a tissue image
+- `spatialExpressionBlendPlot`: Blend the expression of two features on a tissue image
+- `spatialExpressionMultiPlot`: Plot several features as ordered color layers
+- `spatialExpressionPlot`: Plot gene expression on a tissue image
+
+### Read processing
 - `addSequenceQualityMetrics`: Add quality measures to an AIRR table
 - `addTissuePositions`: Add tissue coordinates to an AIRR table
 - `collapseIdenticalNeighbors`: Collapse neighboring spots with identical receptor sequences
@@ -39,44 +64,7 @@ All URLs share the prefix https://raw.githubusercontent.com/hoehnlab/SIRUP/main/
 - `spatialReceptorSummary`: Count the sequences and spots of a receptor table
 - `writeFastqas`: Write sequences to a FASTQ or FASTA file
 
-### SIRUP io
-- `sirup-io`: Save and read SIRUP objects
-
-### SIRUP object
-- `createSIRUP`: Create a SIRUP object
-- `isSIRUP`: Test whether an object is a SIRUP object
-- `mergeSIRUP`: Merge SIRUP objects into one multi-sample object
-- `sirup-accessors`: Extract data from a SIRUP object
-- `sirup-analyses`: Store and retrieve analyses in a SIRUP object
-- `sirup-polygons`: Add or retrieve polygon geometry from a SIRUP object
-- `sirup-transform`: Update data stored in a SIRUP object
-- `subsetSIRUP`: Subset a SIRUP object
-- `validateSIRUP`: Validate a SIRUP object
-
-### SIRUP trees
-- `assignTipColors`: Assign colors to the tips of clones
-- `chooseTreeTipK`: Choose the number of tip clusters for a tree
-- `clusterTreesTips`: Cluster the tips of all trees in a dowser result
-- `clusterTreeTips`: Cluster the tips of a tree
-- `formatSpatialClones`: Format the receptors of a SIRUP object as in dowser's formatClones()
-- `getSpatialTrees`: Build trees from the formatted clones of a SIRUP object
-- `tipPatristicMatrix`: Calculate patristic distances between tips in a tree
-
-### Spatial ggplot visualization
-- `plotLengthQc`: Plot length histograms of V, J, and junction regions
-- `plotReceptors`: Plot receptor groups on a tissue image
-- `plotReceptorsExpression`: Plot receptor groups over gene expression
-- `plotSpatialCloneColorTips`: Plot the tip colors of one clone on a tissue image
-- `plotSpatialCloneTreePairs`: Plot each clone tree next to its tissue map
-- `plotSpatialColorTips`: Plot tip colors on a tissue image
-- `sirupSampleFromImage`: Get the sample name from an image label
-- `spatialCloneTreePairsToPDF`: Save the tree and map pairs to a PDF file
-- `spatialDiscretePlot`: Plot a metadata column on a tissue image
-- `spatialExpressionBlendPlot`: Blend the expression of two features on a tissue image
-- `spatialExpressionMultiPlot`: Plot several features as ordered color layers
-- `spatialExpressionPlot`: Plot gene expression on a tissue image
-
-### Spatial polygons
+### Regions and polygons
 - `assignReceptorPolygons`: Add polygon IDs to a receptor table
 - `assignSpatialPolygons`: Add polygon IDs to the spatial metadata
 - `expandPolygons`: Expand polygons outward from their centroids
@@ -96,6 +84,9 @@ All URLs share the prefix https://raw.githubusercontent.com/hoehnlab/SIRUP/main/
 - `summarizePolygonDiversity`: Summarize polygon diversity at one value of q
 - `withPolygons`: Apply a function to the receptors of each polygon
 
+### Save and read
+- `sirup-io`: Save and read SIRUP objects
+
 ### Spatial statistics
 - `plotRipleyCrossK`: Plot Ripley's cross K against distance
 - `plotSpatialCloneJoinCount`: Plot a clone join-count result
@@ -108,6 +99,17 @@ All URLs share the prefix https://raw.githubusercontent.com/hoehnlab/SIRUP/main/
 - `spatialLocalMoran`: Calculate local Moran's I (LISA)
 - `spatialMoran`: Calculate global Moran's I
 - `spatialRipleyCrossK`: Calculate Ripley's cross K
+
+### The SIRUP object
+- `createSIRUP`: Create a SIRUP object
+- `isSIRUP`: Test whether an object is a SIRUP object
+- `mergeSIRUP`: Merge SIRUP objects into one multi-sample object
+- `sirup-accessors`: Extract data from a SIRUP object
+- `sirup-analyses`: Store and retrieve analyses in a SIRUP object
+- `sirup-polygons`: Add or retrieve polygon geometry from a SIRUP object
+- `sirup-transform`: Update data stored in a SIRUP object
+- `subsetSIRUP`: Subset a SIRUP object
+- `validateSIRUP`: Validate a SIRUP object
 
 ## Optional
 

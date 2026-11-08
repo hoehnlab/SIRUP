@@ -8,7 +8,8 @@
 # vignettes/*.Rmd stays the single source. Chunks that call tools the machine lacks should
 # already carry eval = FALSE in the Rmd; this script never edits the Rmd.
 
-render_vignettes <- function(config) {
+# only: NULL renders every vignette. A character vector of file stems renders just those.
+render_vignettes <- function(config, only = NULL) {
   pkg <- config$package
   out_dir <- file.path("docs", "vignettes"); dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   if (requireNamespace("devtools", quietly = TRUE)) devtools::load_all(".", quiet = TRUE) else library(pkg, character.only = TRUE)
@@ -19,6 +20,8 @@ render_vignettes <- function(config) {
     if (is.null(t)) tools::file_path_sans_ext(basename(s)) else t
   }, "")
   names(titles) <- tools::file_path_sans_ext(basename(sources))
+  # Titles of all vignettes stay available, so links between vignettes resolve in a partial run.
+  if (!is.null(only)) sources <- sources[names(titles) %in% only]
 
   for (src in sources) {
     stem <- tools::file_path_sans_ext(basename(src))
@@ -35,7 +38,8 @@ render_vignettes <- function(config) {
     writeLines(md, md_path)
     copy_referenced_assets(md, dirname(src), out_dir)
   }
-  # remove pages whose source vignette is gone
+  # remove pages whose source vignette is gone (full runs only)
+  if (!is.null(only)) return(invisible(NULL))
   stale <- setdiff(list.files(out_dir, pattern = "[.]md$"), paste0(names(titles), ".md"))
   if (length(stale)) {
     message("removing stale vignette pages: ", paste(stale, collapse = ", "))

@@ -1,10 +1,10 @@
 ---
-title: "Spatial statistics for genes, cells, and clones"
+title: "Test spatial patterns of genes, cells, and clones"
 output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Spatial statistics for genes, cells, and clones}
+  %\VignetteIndexEntry{Test spatial patterns of genes, cells, and clones}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -25,9 +25,9 @@ has_spatstat <- requireNamespace("spatstat.explore", quietly = TRUE) &&
   requireNamespace("spatstat.random", quietly = TRUE)
 ```
 
-A map can suggest that a gene clusters, or that a clone stays in one place.
-A spatial statistic tells you whether the pattern is stronger than chance.
-SIRUP has five tests. Each one answers a different question:
+> **Time:** about 15 minutes. **Data:** MG thymus section 2, with BCRs, TCRs, gene expression, and cell-type estimates, bundled with SIRUP. **Needs:** SIRUP with spdep, scoper, and spatstat.explore, spatstat.geom, and spatstat.random.
+
+A map can suggest that a gene clusters or that a clone stays in one place. A spatial statistic tests whether the pattern is stronger than chance. In this page you run five such tests on one myasthenia gravis (MG) thymus section. A *spot* is one capture location of the spatial assay. A *clone* is a group of receptors that descend from one ancestor cell.
 
 | Question | Function | Statistic |
 |---|---|---|
@@ -37,14 +37,13 @@ SIRUP has five tests. Each one answers a different question:
 | Are spots of type A near spots of type B? | `spatialRipleyCrossK()` | Ripley's cross K |
 | Do the spots of one clone sit next to each other? | `spatialCloneJoinCount()` | Join count |
 
-`spatialCloneSpread()` also measures how far each clone spreads across a
-section.
+`spatialCloneSpread()` adds a sixth measure. It reports how far each clone spreads across a section. For help with the choice of test, see `vignette("choose-spatial-statistic", package = "SIRUP")`.
 
-The tests use the spdep and spatstat packages. Each one accepts a SIRUP object
-and reads the spot coordinates and image settings from it. The examples use MG
-thymus section 2.
+Each function accepts a SIRUP object. It reads the spot coordinates and the image settings from the object.
 
-## Set up
+## Set up the object
+
+Load the packages, then build one BCR object and one TCR object from the example data.
 
 ```{r libraries, message = FALSE, warning = FALSE}
 library(SIRUP)
@@ -115,48 +114,32 @@ tcr_sirup <- updateReceptors(
 )
 ```
 
-`read_receptors()` reads a consensus table, takes the spot barcode from
-`sequence_id`, and keeps the high-quality sequences of one locus with
-unambiguous junctions. BCR clones come from `scoper::hierarchicalClones()`.
-TCRs do not mutate, so TCR clones come from `scoper::identicalClones()`.
+`read_receptors()` reads a consensus table. It takes the spot barcode from `sequence_id`. It keeps the high-quality sequences of one locus that have an unambiguous junction. BCR clones come from `scoper::hierarchicalClones()`. TCRs do not mutate, so TCR clones come from `scoper::identicalClones()`. The cell-type table holds the estimated proportion of each cell type in each spot. The proportions come from the cell2location method and join the Seurat metadata. The BCR object also holds the polygons that mark the ectopic germinal centers (eGCs). `vignette("regions", package = "SIRUP")` explains polygons.
 
-## Neighbors
+## Choose the neighbors
 
-Most of these statistics compare each spot with its neighbors. You choose the
-neighbors in one of two ways:
+Most of these statistics compare each spot with its neighbors. You choose the neighbors in one of two ways:
 
-* `k`: the `k` nearest spots. Use `k = 6` for standard Visium, where each spot
-  has six neighbors on a hexagonal grid. Use `k = 8` for Visium HD, where each
-  bin has eight neighbors on a square grid. Larger values of `k` measure
-  patterns over larger distances.
-* `radius`: all spots within a distance. SIRUP measures distances in image
-  pixels at the stored `image_scale`, so the same radius in micrometers needs
-  a different number at `"lowres"` and at `"hires"`.
+* `k`: the `k` nearest spots. Use `k = 6` for standard Visium, where each spot has six neighbors on a hexagonal grid. Use `k = 8` for Visium HD, where each bin has eight neighbors on a square grid. A larger `k` measures patterns over larger distances.
+* `radius`: all spots within a distance. SIRUP measures distances in image pixels at the stored `image_scale`. The same distance in micrometers needs a different number at `"lowres"` and at `"hires"`.
 
-`k` does not depend on the image scale, so it is the safer default.
+> **Tip.** `k` does not depend on the image scale. Use it as the default.
 
-## Global Moran's I
+## Test one variable with global Moran's I
 
-Moran's I measures spatial autocorrelation: whether neighboring spots have
-similar values.
+*Moran's I* measures spatial autocorrelation. It asks whether neighboring spots have similar values.
 
 $$
 I = \frac{N}{W} \frac{\sum_i \sum_j w_{ij}(x_i - \bar{x})(x_j - \bar{x})}{\sum_i (x_i - \bar{x})^2}
 $$
 
-Here $x_i$ is the value at spot $i$, $w_{ij}$ is 1 if spot $j$ is a neighbor
-of spot $i$ and 0 if not, $N$ is the number of spots, and $W$ is the sum of
-all $w_{ij}$. $I$ near 0 means no spatial pattern. Positive $I$ means that
-similar values cluster. Negative $I$ means that they alternate, as on a
-chessboard.
+Here $x_i$ is the value at spot $i$. $w_{ij}$ is 1 if spot $j$ is a neighbor of spot $i$, and 0 if not. $N$ is the number of spots. $W$ is the sum of all $w_{ij}$. $I$ near 0 means no spatial pattern. Positive $I$ means that similar values cluster. Negative $I$ means that values alternate, as on a chessboard.
 
 `variable_type` tells SIRUP what `variable` is:
 
 * `"feature"`: a gene, from the assay and layer you give.
-* `"metadata"`: a numeric spot metadata column. For a text column, give
-  `value` to test the spots that have that value.
-* `"receptor"`: 1 for spots with any receptor and 0 for other spots.
-  `variable` is only a label here.
+* `"metadata"`: a numeric spot metadata column. For a text column, give `value` to test the spots that have that value.
+* `"receptor"`: 1 for spots with any receptor and 0 for other spots. `variable` is a label only.
 * `"clone"`: 1 for spots with the clone that `variable` names.
 
 ```{r moran}
@@ -171,12 +154,7 @@ aicda <- spatialMoran(
 aicda$test
 ```
 
-The result is a list. `test` is the `spdep::moran.test()` result: the
-statistic, its expected value under no spatial pattern, the variance, and the
-p value. For *AICDA*, $I$ is small (0.06) but the p value is below $10^{-9}$.
-Visium detects *AICDA* in few spots, and most spots have a count of zero, so
-the clustering is real but weak. Read $I$ for the size of the pattern and
-the p value for the evidence.
+The result is a list. `test` is the `spdep::moran.test()` result. It holds the statistic, its expected value under no spatial pattern, the variance, and the p value. For *AICDA* (a marker of germinal center B cells), $I$ is small, about 0.06. The p value is below $10^{-9}$. The assay detects *AICDA* in few spots, and most spots have a count of zero. The clustering is weak, but chance is a poor explanation for it. Read $I$ for the size of the pattern and the p value for the evidence.
 
 The same function tests cell-type proportions and receptor presence:
 
@@ -199,19 +177,13 @@ moran_table <- bind_rows(
 moran_table
 ```
 
-The GC B cell proportion clusters more strongly ($I$ = 0.62): the
-cell2location estimate is smooth and has no zeros from sampling. A p value of
-0 means a value below the smallest number that R can store.
+The GC B cell proportion has a stronger cluster, with $I$ near 0.62. The cell2location estimate is smooth and has no zeros from sampling. A p value of 0 means a value below the smallest number that R can store.
 
-Moran's I works for binary variables, such as receptor presence, but the
-join-count test below suits them better.
+Moran's I accepts binary variables, such as receptor presence. The join-count test below suits clones better.
 
-## Local Moran's I
+## Find clusters with local Moran's I
 
-Global Moran's I gives one number for the whole section. Local Moran's I
-(also called LISA) gives one value for each spot. A spot with a high positive
-value has a high (or low) value itself and neighbors with similar values. Its
-z-score shows how far it is from the value expected by chance.
+Global Moran's I gives one number for the whole section. *Local Moran's I* (also called LISA) gives one value for each spot. A spot has a high positive value when it and its neighbors have similar values. The z-score shows how far the value is from the value expected by chance.
 
 ```{r local-moran}
 gc_b_local <- spatialLocalMoran(
@@ -223,8 +195,7 @@ gc_b_local <- spatialLocalMoran(
 head(gc_b_local[, c("cell", "value", "local_i", "z_i", "p_value")])
 ```
 
-`plotSpatialLocalMoran()` draws the z-scores on the tissue. Red spots are in
-clusters of similar values. Blue spots differ from their neighbors:
+`plotSpatialLocalMoran()` draws the z-scores on the tissue. Red spots sit in clusters of similar values. Blue spots differ from their neighbors:
 
 ```{r local-moran-plot}
 plotSpatialLocalMoran(
@@ -236,21 +207,13 @@ plotSpatialLocalMoran(
   labs(color = "z")
 ```
 
-The clusters of high GC B cell proportion sit where we drew the eGC polygons.
-Each spot has its own p value, so correct for multiple testing (for example
-with `p.adjust(method = "BH")`) before you call a spot significant.
+The clusters of high GC B cell proportion sit at the eGC polygons. Each spot has its own p value. Correct for multiple testing before you call a spot significant. For example, use `p.adjust(method = "BH")`.
 
-## Lee's L: two variables
+## Compare two variables with Lee's L
 
-Lee's L combines Pearson correlation with spatial smoothing. It is high when
-two variables are high in the same neighborhoods, even if they do not peak in
-the same spots.
+*Lee's L* combines Pearson correlation with spatial smoothing. It is high when two variables are high in the same neighborhoods. The variables need not peak in the same spots.
 
-In MG, patients make antibodies against the acetylcholine receptor (AChR).
-*CHRNA1* codes for the AChR α subunit. Thymic myoid cells express it. Lee's L
-tests whether *CHRNA1* and the GC marker *AICDA* share a spatial pattern in
-this section. *MS4A1* (CD20) gives a positive control, because GC B cells
-express both *MS4A1* and *AICDA*:
+In MG, patients make antibodies against the acetylcholine receptor (AChR). *CHRNA1* codes for the AChR alpha subunit, and thymic myoid cells express it. This test asks whether *CHRNA1* and the germinal center marker *AICDA* share a spatial pattern. *MS4A1* (CD20) gives a positive control, because GC B cells express both *MS4A1* and *AICDA*:
 
 ```{r lee}
 lee_control <- spatialLee(
@@ -271,32 +234,21 @@ tibble(
 )
 ```
 
-The control pair shares a pattern. *AICDA* and *CHRNA1* do not: in this
-section, $L$ is near zero and the test is not significant.
+The control pair shares a pattern. *AICDA* and *CHRNA1* do not. In this section, $L$ for that pair is near zero and the test is not significant.
 
-The analytical test (`method = "analytical"`) builds a dense matrix with one
-entry for each pair of spots. That is fine for Visium. For Visium HD, use
-`method = "mc"`, which uses permutations and sparse weights.
+> **Note.** The analytical test (`method = "analytical"`) builds a dense matrix with one entry for each pair of spots. This works for Visium. For Visium HD, use `method = "mc"`. It uses permutations and sparse weights.
 
-## Ripley's cross K: are A spots near B spots?
+## Test two spot types with Ripley's cross K
 
-Ripley's cross K counts, for each distance $r$, how many type B points are
-within $r$ of an average type A point:
+*Ripley's cross K* counts, for each distance $r$, how many type B points lie within $r$ of an average type A point:
 
 $$
 K_{AB}(r) = \frac{|W|}{N_A N_B} \sum_{i \in A} \sum_{j \in B} \mathbf{1}(d_{ij} \le r)
 $$
 
-$|W|$ is the area of the tissue window and $d_{ij}$ is the distance between
-points $i$ and $j$. SIRUP compares the observed curve with curves from random
-relabeling of the points. If the observed curve is above the envelope of the
-random curves, A and B are closer than chance.
+$|W|$ is the area of the tissue window. $d_{ij}$ is the distance between points $i$ and $j$. SIRUP compares the observed curve with curves from random relabeling of the points. If the observed curve is above the envelope of the random curves, A and B sit closer than chance.
 
-T follicular helper (Tfh) cells give B cells the signals that keep a
-germinal center going. Here we ask whether spots with GC B cells sit near
-spots with Tfh cells. First, label each spot from its cell2location
-proportions. `updateSpatial()` runs a function on the Seurat object and stores
-the result:
+T follicular helper (Tfh) cells give B cells the signals that keep a germinal center going. This test asks whether spots with GC B cells sit near spots with Tfh cells. First, label each spot from its cell2location proportions. `updateSpatial()` runs a function on the Seurat object and stores the result:
 
 ```{r ripley-marks}
 bcr_sirup <- updateSpatial(bcr_sirup, function(spatial) {
@@ -313,9 +265,7 @@ bcr_sirup <- updateSpatial(bcr_sirup, function(spatial) {
 table(getSpatial(bcr_sirup)$gc_tfh_mark, useNA = "ifany")
 ```
 
-Spots with neither cell type, or with both, get `NA`, and the test leaves them
-out. Then run the test. `nsim` sets the number of random relabelings. Use 99 or
-more for a final analysis:
+Spots with neither cell type, or with both, get `NA`. The test leaves them out. Then run the test. `nsim` sets the number of random relabelings. Use 99 or more for a final analysis:
 
 ```{r ripley, eval = has_spatstat, results = "hide"}
 gc_tfh_k <- spatialRipleyCrossK(
@@ -330,9 +280,7 @@ gc_tfh_k <- spatialRipleyCrossK(
 plotRipleyCrossK(gc_tfh_k, title = "Cross K: GC B spots to Tfh spots")
 ```
 
-The distance $r$ is in image pixels at the stored `image_scale`. To convert it
-to micrometers, use the Visium spot size. A spot is 55 µm wide, and the image
-object stores its diameter in full-resolution pixels:
+The distance $r$ is in image pixels at the stored `image_scale`. To convert it to micrometers, use the Visium spot size. A spot is 55 µm wide. The image object stores the spot diameter in full-resolution pixels:
 
 ```{r microns, eval = has_spatstat}
 scale_factors <- getSpatial(bcr_sirup)@images[[1]]@scale.factors
@@ -341,27 +289,15 @@ um_per_pixel
 max(gc_tfh_k$plot_data$r) * um_per_pixel
 ```
 
-So `max_r = 40` lowres pixels is about 470 µm.
+The value `max_r = 40` lowres pixels is about 470 µm.
 
-In this section the observed curve is below the envelope at every distance.
-Random relabeling keeps the marked spots where they are and shuffles the
-labels. A curve below the envelope therefore means that GC B spots sit next
-to other GC B spots, and Tfh spots next to other Tfh spots, more often than
-next to each other. The two cell types form separate groups at the 10%
-threshold. The rule that drops spots with both cell types adds to the
-separation. Change the thresholds or the marks to ask a different question.
+In this section, the observed curve lies below the envelope at every distance. Random relabeling keeps the marked spots in place and shuffles the labels. A curve below the envelope means that GC B spots sit next to other GC B spots more often than next to Tfh spots. The same holds for Tfh spots. The two cell types form separate groups at the 10% threshold. The rule that drops spots with both cell types adds to the separation. Change the thresholds or the marks to ask a different question.
 
-## Join counts: does a clone stay together?
+## Test whether a clone stays together with join counts
 
-The join-count test is the natural test for a clone. Take every spot with a
-BCR. Mark the spots that have the clone. Count the neighbor pairs in which
-both spots have the clone (the "joins"). If the clone stays in one place,
-there are more joins than random labeling gives.
+The join-count test suits a clone. Take every spot with a BCR. Mark the spots that have the clone. Count the neighbor pairs in which both spots have the clone. Each pair is a "join". If the clone stays in one place, the section has more joins than random labeling gives.
 
-`spatialCloneJoinCount()` runs `spdep::joincount.test()` for each clone in at
-least `min_spatial_ids` spots. When the object has stored polygons, the
-function runs one test per polygon by default. Set
-`use_stored_polygons = FALSE` for one test over the whole section:
+`spatialCloneJoinCount()` runs `spdep::joincount.test()` for each clone that occurs in at least `min_spatial_ids` spots. If the object has stored polygons, the function runs one test for each polygon by default. Set `use_stored_polygons = FALSE` for one test over the whole section:
 
 ```{r join-count}
 big_clones <- getReceptors(bcr_sirup) %>%
@@ -382,9 +318,7 @@ join_count <- spatialCloneJoinCount(
 join_count$summary
 ```
 
-The summary has one row per clone. `statistic` is the standardized join count
-(a z-score) and `p_value` is the one-sided p value.
-`plotSpatialCloneJoinCount()` shows the clone and the joins:
+The summary has one row for each clone. `statistic` is the standardized join count (a z-score). `p_value` is the one-sided p value. `plotSpatialCloneJoinCount()` shows the clone and its joins. The plot needs `return_data = TRUE` in the test:
 
 ```{r join-count-plot}
 plotSpatialCloneJoinCount(
@@ -395,12 +329,9 @@ plotSpatialCloneJoinCount(
 )
 ```
 
-The plot needs `return_data = TRUE` in the test.
+## Measure how far a clone spreads
 
-## Clone spread
-
-`spatialCloneSpread()` describes how far each clone reaches across the section,
-from the pairwise distances between its sequences:
+`spatialCloneSpread()` describes how far each clone reaches across the section. It uses the pairwise distances between the sequences of the clone:
 
 ```{r spread}
 spread <- spatialCloneSpread(bcr_sirup, min_spatial_ids = 3)
@@ -409,14 +340,11 @@ spread %>%
   head()
 ```
 
-The distances are in image pixels. By default, sequences in the same spot
-count as separate points at distance 0. Set `collapse_within_spot = TRUE` to
-count each spot once.
+The table gives the mean and the maximum pairwise distance for each clone, in image pixels. By default, sequences in the same spot count as separate points at distance 0. Set `collapse_within_spot = TRUE` to count each spot once.
 
 ## Keep the results
 
-Store results that you want to keep in the object, so they travel with the
-data:
+Store the results in the object, so they travel with the data:
 
 ```{r store}
 bcr_sirup <- bcr_sirup %>%
@@ -427,3 +355,10 @@ bcr_sirup <- bcr_sirup %>%
   setAnalysis("clone_spread", spread)
 listAnalyses(bcr_sirup)
 ```
+
+## Next steps
+
+* Pick a test from your question: `vignette("choose-spatial-statistic", package = "SIRUP")`.
+* Draw regions and compare their repertoires: `vignette("regions", package = "SIRUP")`.
+* Build lineage trees for the clones that you found: `vignette("clones-and-trees", package = "SIRUP")`.
+* Run the tests on several sections: `vignette("multisample", package = "SIRUP")`.

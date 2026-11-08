@@ -3,6 +3,7 @@
 #   Rscript docs/build.R              # everything
 #   Rscript docs/build.R topics       # only man/*.Rd -> docs/topics/*.md
 #   Rscript docs/build.R vignettes    # only vignettes -> docs/vignettes/*.md
+#   DOCS_VIGNETTES=regions:multisample Rscript docs/build.R vignettes   # only these vignettes
 #
 # Needs: R, pandoc, the packages in Suggests that the vignettes use, and python3
 # with PyYAML. In CI all of that comes from the docs Docker image.
@@ -16,7 +17,10 @@ source("docs/build_topics.R")
 source("docs/render_vignettes.R")
 
 if ("topics" %in% steps)     build_topics(config)
-if ("vignettes" %in% steps)  render_vignettes(config)
+only <- Sys.getenv("DOCS_VIGNETTES")
+# Split on a comma or a colon. sbatch --export treats a comma as a separator, so use a colon there.
+only <- if (nzchar(only)) strsplit(only, "[,:]")[[1]] else NULL
+if ("vignettes" %in% steps)  render_vignettes(config, only = only)
 # The text-only steps live in Python so they also run where R is absent.
 if ("nav" %in% steps)    stopifnot(system2("python3", c("docs/docs_tools.py", "nav")) == 0)
 if ("extras" %in% steps) stopifnot(system2("python3", c("docs/docs_tools.py", "extras")) == 0)
