@@ -1,0 +1,122 @@
+site_name: SIRUP
+site_url: https://sirup.readthedocs.io
+repo_url: https://github.com/hoehnlab/SIRUP
+edit_uri: edit/main/docs/
+theme:
+  name: readthedocs
+  navigation_depth: 3          # docs_tools.py nav raises this to 3 when Help Topics are grouped
+  collapse_navigation: False
+  sticky_navigation: False
+  locale: en
+  titles_only: False
+docs_dir: docs
+# Keep the tooling files in docs/ and the old docs out of the built site.
+exclude_docs: |
+  *.R
+  *.py
+  *.sbatch
+  *.log
+  docs-config.yml
+  requirements.txt
+  nav-groups.yml
+  readthedocs/
+  rrad-equivalence.md
+  rrad-equivalence-results.md
+markdown_extensions:
+  - def_list
+  - sane_lists
+  - smarty
+  - pymdownx.arithmatex
+  - toc:
+      permalink: True
+# >>> BEGIN GENERATED NAV (python3 docs/docs_tools.py nav) - do not edit by hand >>>
+nav:
+- About:
+  - Introduction: index.md
+- Vignettes:
+  - Get started with SIRUP: vignettes/SIRUP.md
+  - Clones and lineage trees on the tissue: vignettes/clones-and-trees.md
+  - Several sections, bulk AIRR-seq, and blood: vignettes/multisample.md
+  - Process reads into spatial AIRR tables: vignettes/processing.md
+  - Tissue regions, clonal dominance, and diversity: vignettes/regions.md
+  - Spatial statistics for genes, cells, and clones: vignettes/spatial-statistics.md
+- Help Topics:
+  - Processing:
+    - addSequenceQualityMetrics: topics/addSequenceQualityMetrics.md
+    - addTissuePositions: topics/addTissuePositions.md
+    - collapseIdenticalNeighbors: topics/collapseIdenticalNeighbors.md
+    - collapseTopConsensusPerSpatialId: topics/collapseTopConsensusPerSpatialId.md
+    - extractSpatialIds: topics/extractSpatialIds.md
+    - filterAirr: topics/filterAirr.md
+    - parseRadSequenceIds: topics/parseRadSequenceIds.md
+    - processSpatialSample: topics/processSpatialSample.md
+    - processSpatialSamples: topics/processSpatialSamples.md
+    - readSpatialIdMapping: topics/readSpatialIdMapping.md
+    - runIgblast: topics/runIgblast.md
+    - spatialReceptorSummary: topics/spatialReceptorSummary.md
+    - writeFastqas: topics/writeFastqas.md
+  - SIRUP io:
+    - sirup-io: topics/sirup-io.md
+  - SIRUP object:
+    - createSIRUP: topics/createSIRUP.md
+    - isSIRUP: topics/isSIRUP.md
+    - mergeSIRUP: topics/mergeSIRUP.md
+    - sirup-accessors: topics/sirup-accessors.md
+    - sirup-analyses: topics/sirup-analyses.md
+    - sirup-polygons: topics/sirup-polygons.md
+    - sirup-transform: topics/sirup-transform.md
+    - subsetSIRUP: topics/subsetSIRUP.md
+    - validateSIRUP: topics/validateSIRUP.md
+  - SIRUP trees:
+    - assignTipColors: topics/assignTipColors.md
+    - chooseTreeTipK: topics/chooseTreeTipK.md
+    - clusterTreesTips: topics/clusterTreesTips.md
+    - clusterTreeTips: topics/clusterTreeTips.md
+    - formatSpatialClones: topics/formatSpatialClones.md
+    - getSpatialTrees: topics/getSpatialTrees.md
+    - tipPatristicMatrix: topics/tipPatristicMatrix.md
+  - Spatial ggplot visualization:
+    - plotLengthQc: topics/plotLengthQc.md
+    - plotReceptors: topics/plotReceptors.md
+    - plotReceptorsExpression: topics/plotReceptorsExpression.md
+    - plotSpatialCloneColorTips: topics/plotSpatialCloneColorTips.md
+    - plotSpatialCloneTreePairs: topics/plotSpatialCloneTreePairs.md
+    - plotSpatialColorTips: topics/plotSpatialColorTips.md
+    - sirupSampleFromImage: topics/sirupSampleFromImage.md
+    - spatialCloneTreePairsToPDF: topics/spatialCloneTreePairsToPDF.md
+    - spatialDiscretePlot: topics/spatialDiscretePlot.md
+    - spatialExpressionBlendPlot: topics/spatialExpressionBlendPlot.md
+    - spatialExpressionMultiPlot: topics/spatialExpressionMultiPlot.md
+    - spatialExpressionPlot: topics/spatialExpressionPlot.md
+  - Spatial polygons:
+    - assignReceptorPolygons: topics/assignReceptorPolygons.md
+    - assignSpatialPolygons: topics/assignSpatialPolygons.md
+    - expandPolygons: topics/expandPolygons.md
+    - formatSpatialPolygons: topics/formatSpatialPolygons.md
+    - plotSpatialCloneDensity3D: topics/plotSpatialCloneDensity3D.md
+    - plotSpatialPolygonPies: topics/plotSpatialPolygonPies.md
+    - plotSpatialPolygons: topics/plotSpatialPolygons.md
+    - plotSpatialRegionReceptors: topics/plotSpatialRegionReceptors.md
+    - polygonAbundance: topics/polygonAbundance.md
+    - polygonCentroids: topics/polygonCentroids.md
+    - polygonDiversity: topics/polygonDiversity.md
+    - polygonPairwiseDistance: topics/polygonPairwiseDistance.md
+    - polygonReceptorSummary: topics/polygonReceptorSummary.md
+    - selectSpatialPolygons: topics/selectSpatialPolygons.md
+    - seuratSubsetPolygon: topics/seuratSubsetPolygon.md
+    - spatialCloneDominance: topics/spatialCloneDominance.md
+    - summarizePolygonDiversity: topics/summarizePolygonDiversity.md
+    - withPolygons: topics/withPolygons.md
+  - Spatial statistics:
+    - plotRipleyCrossK: topics/plotRipleyCrossK.md
+    - plotSpatialCloneJoinCount: topics/plotSpatialCloneJoinCount.md
+    - plotSpatialLocalMoran: topics/plotSpatialLocalMoran.md
+    - spatialCloneJoinCount: topics/spatialCloneJoinCount.md
+    - spatialCloneSpread: topics/spatialCloneSpread.md
+    - spatialCoordinateExtents: topics/spatialCoordinateExtents.md
+    - spatialCoordinateTable: topics/spatialCoordinateTable.md
+    - spatialLee: topics/spatialLee.md
+    - spatialLocalMoran: topics/spatialLocalMoran.md
+    - spatialMoran: topics/spatialMoran.md
+    - spatialRipleyCrossK: topics/spatialRipleyCrossK.md
+# <<< END GENERATED NAV <<<

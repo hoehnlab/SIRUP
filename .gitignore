@@ -19,3 +19,7 @@ CLAUDE.md
 # Locally rendered vignettes
 vignettes/*.html
 vignettes/*_files/
+
+# MkDocs build output
+site/
+docs/build_docs_*.log

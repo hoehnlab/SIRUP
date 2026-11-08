@@ -1,0 +1,29 @@
+name: docs
+
+# Check the committed docs. This job needs no R and no Docker image.
+# You build the pages on Discovery with docs/build_docs.sbatch, then commit them.
+# This job then does three things:
+#   1. It checks that each Rd file has a page and a nav entry.
+#   2. It checks that no link in the pages is dead.
+#   3. It builds the site with `mkdocs build --strict`.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install docs tooling
+        run: python3 -m pip install -r docs/requirements.txt
+      - name: Check docs
+        run: python3 docs/docs_tools.py check

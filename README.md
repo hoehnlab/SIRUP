@@ -25,7 +25,7 @@ Melton, H.J., Vaidya, C.M., Panda, A., Fielding, J.J., Sergison, E., Kolling, F.
 
 ## Getting started
 
-Start with the [get-started guide](TODO). It shows how to build
+Start with the [get-started guide](vignettes/SIRUP.Rmd). It shows how to build
 the SIRUP object and a few plots and analyses.
 
 A full tutorial is available at [TODO].

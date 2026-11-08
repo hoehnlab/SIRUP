@@ -1,0 +1,50 @@
+# docs/docs-config.yml - the single place the docs pipeline reads its settings.
+# Read by docs/build.R (R) and docs/docs_tools.py (Python). Every key is explained
+# in the rtd-r-package-docs skill (references/explain.md).
+
+package: SIRUP            # R package name; must match DESCRIPTION
+site_name: SIRUP        # title shown in the site header
+repo: hoehnlab/SIRUP                  # GitHub owner/name; used for llms.txt raw links and edit links
+branch: main              # default branch; llms.txt links and the CI workflow use it
+rtd_slug: sirup          # the Read the Docs project slug (https://<slug>.readthedocs.io)
+
+# How Help Topics are grouped in the sidebar. Chain, first match wins per topic:
+#   1. docs/nav-groups.yml (optional manual override)
+#   2. roxygen @family (read from the Rd)           [auto, family]
+#   3. source file named in the Rd header comment   [auto, source]
+#   4. flat alphabetical list                       [flat]
+# auto = use the whole chain. family / source / flat = restrict to that step.
+grouping: auto
+nav_groups_file: docs/nav-groups.yml
+include_internal: false         # true to also document topics tagged \keyword{internal}
+
+# Where vignette sources live, and the order they appear in the nav.
+# Omitted order -> the vignette named like the package first, then alphabetical.
+vignette_sources: [vignettes]
+vignette_order: []
+
+# Individually toggleable extras.
+extras:
+  llms: true                    # llms.txt + llms-full.txt for LLM agents
+  news: true                    # docs/news.md from NEWS.md
+  index: true                   # docs/index.md from README.md + DESCRIPTION
+  link_rewrite: true            # rewrite \link[] and vignette() references (docs/build.R)
+  freshness_check: false        # off: CI has no R, so it cannot rebuild the pages to compare
+
+# Paths the CI stale check ignores. Use it for a generated page that changes on every run,
+# for example a vignette that prints the date. Prefer to remove the cause instead.
+freshness_exclude: []
+#  - docs/vignettes/benchmarks.md
+
+# Paths under docs/ that hold legacy or hand-kept pages the link check should skip, e.g.
+# [readthedocs]. If you list any, also add them to `exclude_docs:` in mkdocs.yml (MkDocs >= 1.5)
+# so the site build ignores them too.
+ignore_paths: [readthedocs, rrad-equivalence.md, rrad-equivalence-results.md]
+
+# Where \link[pkg:topic] links to OTHER packages should point. {topic} is replaced.
+# Anything not listed falls back to base-R manuals or rdrr.io.
+external_link_targets:
+  dowser: "https://dowser.readthedocs.io/en/latest/topics/{topic}/"
+  alakazam: "https://alakazam.readthedocs.io/en/stable/topics/{topic}/"
+  tibble: "https://tibble.tidyverse.org/reference/{topic}.html"
+  ggplot2: "https://ggplot2.tidyverse.org/reference/{topic}.html"

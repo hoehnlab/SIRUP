@@ -24,3 +24,9 @@
 ^\.gitignore$
 ^data-raw$
 ^vignettes/polygon_selection_screenshots$
+^mkdocs\.yml$
+^\.readthedocs\.yaml$
+^site$
+^llms\.txt$
+^llms-full\.txt$
+^\.github$
