@@ -502,9 +502,3 @@ c(before = nrow(getReceptors(sirup)), after = nrow(getReceptors(collapsed)))
 ```
 
 For Visium HD, give the 8 µm object and `num_neighbors_non_boundary = 8`.
-
-## Session information
-
-```{r session-info}
-sessionInfo()
-```

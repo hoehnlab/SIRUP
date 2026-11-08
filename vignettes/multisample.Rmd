@@ -412,9 +412,3 @@ path <- file.path(tempdir(), "mg_thymus.sirup.rds")
 saveSIRUP(sirup, path)
 readSIRUP(path)
 ```
-
-## Session information
-
-```{r session-info}
-sessionInfo()
-```

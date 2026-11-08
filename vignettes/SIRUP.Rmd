@@ -56,7 +56,6 @@ Install SIRUP from GitHub:
 ```{r install, eval = FALSE}
 if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
 if (!requireNamespace("SIRUP", quietly = TRUE)) remotes::install_github("hoehnlab/SIRUP")
-devtools::load_all("/Volumes/HoehnK/Hunter/spatial_bcr_tcr_package/SIRUP") 
 ```
 
 SIRUP uses Seurat objects for spatial expression. SIRUP installs the packages
@@ -526,9 +525,3 @@ sirup
   `vignette("clones-and-trees", package = "SIRUP")`.
 * To combine sections, bulk BCR-seq, and blood, read
   `vignette("multisample", package = "SIRUP")`.
-
-## Session information
-
-```{r session-info}
-sessionInfo()
-```

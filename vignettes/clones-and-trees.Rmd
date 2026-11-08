@@ -404,9 +404,3 @@ with a mixed model and a random effect for each clone.
 
 With `collapse = TRUE` (the default), `formatClones()` merges identical
 sequences into one tip, so not every sequence keeps its own tip.
-
-## Session information
-
-```{r session-info}
-sessionInfo()
-```

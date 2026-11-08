@@ -427,9 +427,3 @@ bcr_sirup <- bcr_sirup %>%
   setAnalysis("clone_spread", spread)
 listAnalyses(bcr_sirup)
 ```
-
-## Session information
-
-```{r session-info}
-sessionInfo()
-```

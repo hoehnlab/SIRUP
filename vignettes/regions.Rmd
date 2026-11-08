@@ -484,9 +484,3 @@ polygonPairwiseDistance(sirup) %>%
   arrange(distance) %>%
   head()
 ```
-
-## Session information
-
-```{r session-info}
-sessionInfo()
-```
