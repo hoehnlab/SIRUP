@@ -268,6 +268,7 @@ tree_sirup <- formatSpatialClones(
   traits = c("barcode_10x", "polygon_id")
 )
 
+set.seed(1)
 tree_sirup <- getSpatialTrees(
   tree_sirup,
   f_clones_analysis = "formatted_clones",
@@ -372,9 +373,14 @@ cluster_pairs <- plotSpatialCloneTreePairs(
 )
 
 cowplot::plot_grid(
-  cluster_pairs[[1]]$tree,
-  cluster_pairs[[1]]$spatial_clone,
-  rel_widths = c(1.2, 1)
+  cowplot::plot_grid(
+    cluster_pairs[[1]]$tree,
+    cluster_pairs[[1]]$spatial_clone,
+    rel_widths = c(1.2, 1)
+  ),
+  cluster_pairs[[1]]$legend,
+  ncol = 1,
+  rel_heights = c(1, cluster_pairs[[1]]$legend_rel_height)
 )
 ```
 
@@ -439,7 +445,7 @@ pairs_table %>%
 #>   pair           n_pairs median_distance
 #>   <chr>            <int>           <dbl>
 #> 1 different eGCs       5          0.0273
-#> 2 same eGC            10          0.0123
+#> 2 same eGC            10          0.0178
 ```
 
 Read the two medians in the table. One clone cannot support a

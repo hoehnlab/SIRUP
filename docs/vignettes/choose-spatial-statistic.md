@@ -6,10 +6,9 @@ Choose a spatial statistic
 
 This page helps you pick a spatial statistic. Start from the question
 you ask, not from the function name. Each section below names one
-question. It then gives the function, the input, the way to read the
-result, and one common mistake. A *spot* is one capture location of the
-spatial assay. A *clone* is a group of receptors that descend from one
-ancestor cell.
+question. It then gives the function, the input, and the way to read the
+result. A *spot* is one capture location of the spatial assay. A *clone*
+is a group of receptors that descend from one ancestor cell.
 
 All tests need a SIRUP object, or a Seurat object with spatial images.
 The tests read the spot coordinates from the object. Most tests compare
@@ -45,10 +44,6 @@ column, give `value` to test one level.
 Read $I$ as the size of the pattern. Read the p value as the evidence
 for it. A large section gives a tiny p value for a weak pattern.
 
-> **Note.** The common mistake is to read a small p value as a strong
-> pattern. Check $I$ first. A sparse gene can have $I$ near 0.06 and a p
-> value below $10^{-9}$.
-
 `spatialLocalMoran()` answers the next question: where are the clusters?
 It gives one value for each spot, with a z-score and a p value. Each
 spot has its own p value, so adjust for multiple testing.
@@ -75,15 +70,13 @@ variables do not need to peak in the same spots.
 
 The input is two continuous variables. Each can be a gene or a numeric
 metadata column. Give `x_type`, `y_type`, `assay`, and `layer` as
-needed. The result holds `L` and a test.
+needed. The result holds `L` and a test. The default test is analytical.
+It builds a dense matrix with one entry for each pair of spots. For
+large data, such as Visium HD, set `method = "mc"` to use permutations.
 
 Run a positive control. Pick two genes that you expect to share a
 pattern. If the control fails, the data or the neighbor setting may be
 wrong.
-
-> **Note.** The common mistake is to run the analytical test on a large
-> Visium HD section. It builds a dense matrix with one entry for each
-> pair of spots. Use `method = "mc"` for large data.
 
 ## Ask whether two spot types sit near each other
 
@@ -99,10 +92,6 @@ with `NA` in the column are left out.
 Read the curve against the envelope. A curve above the envelope means A
 and B sit closer than chance. A curve below the envelope means each type
 groups with itself. Use `plotRipleyCrossK()` to draw it.
-
-> **Note.** The common mistake is to set `nsim = 0` and read the curve
-> alone. With no simulations, the function returns the observed K only.
-> You have no reference for chance.
 
 The distance is in image pixels at the stored `image_scale`. Convert it
 before you quote a distance in micrometers.
@@ -125,10 +114,6 @@ The summary table has one row for each clone. A high `statistic` (a
 z-score) and a small `p_value` mean that the clone stays together. The
 default alternative is `"greater"`, so the test looks for more joins
 than chance.
-
-> **Note.** The common mistake is to compare the z-scores of clones with
-> different sizes. A clone in few spots has little power. Check the
-> number of spots next to the statistic.
 
 Moran’s I also accepts one clone with `variable_type = "clone"`. It
 treats the clone as a 0/1 value for each spot. The join-count test is
@@ -158,12 +143,6 @@ sequence is a point, so sequences in the same spot give distances of 0.
 Set `collapse_within_spot = TRUE` to count each spot once. Distances are
 in image pixels.
 
-> **Note.** The common mistake is to read a large maximum distance as
-> proof that a clone has a wide spread. Two distant spots give a large
-> maximum with a clone of two points. Read the mean distance and
-> `n_spatial_ids` with it. Use the join-count test to ask if the clone
-> clusters.
-
 ## Compare regions with polygon summaries
 
 The questions above treat the section as one field. To compare regions
@@ -172,12 +151,8 @@ counts receptors, spots, and clones in each polygon.
 `spatialCloneDominance()` gives the fraction of receptors in each clone
 of each polygon. `polygonDiversity()` gives Hill diversity curves,
 rarefied to one size. These functions describe each region. They do not
-test a spatial pattern.
-
-> **Note.** The common mistake is to compare the diversity of polygons
-> with different receptor counts. `polygonDiversity()` leaves out
-> polygons with fewer than `min_n` receptors. Set `min_n` before you
-> compare regions.
+test a spatial pattern. `polygonDiversity()` leaves out polygons with
+fewer than `min_n` receptors.
 
 For the full workflow, see [Draw tissue regions and measure clonal dominance and diversity](regions.md).
 

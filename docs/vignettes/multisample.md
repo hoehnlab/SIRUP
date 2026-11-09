@@ -504,6 +504,7 @@ tree_sirup <- formatSpatialClones(
   id = "sequence_id",
   traits = c("barcode_10x", "sample", "compartment", "polygon_id")
 )
+set.seed(1)
 tree_sirup <- getSpatialTrees(tree_sirup)
 trees <- getAnalysis(tree_sirup, "trees")
 ```
@@ -529,7 +530,8 @@ pair <- plotSpatialCloneTreePairs(
   zoom = TRUE,
   polygons = TRUE,
   polygon_alpha = 0,
-  polygon_color = "black"
+  polygon_color = "black",
+  show_spatial_legend = TRUE
 )
 
 names(pair)
@@ -539,23 +541,31 @@ names(pair)
 The list has one element for each clone. If the tips of a clone fall in
 more than one section, the list has one element for each clone and
 section instead. These elements are named `<clone>::<sample>`. Each one
-pairs the full tree with the map of one section. The code below shows
-the section that holds the eGC tips.
+pairs the full tree with the map of one section. Each element also holds
+a `legend` for the tip colors. The function builds it because the call
+sets `show_spatial_legend = TRUE`. The code below shows the section that
+holds the eGC tips.
 
 ``` r
 key <- paste0(tree_clone, "::", tree_section)
 if (!key %in% names(pair)) key <- tree_clone
 section_pair <- pair[[key]]
 
-cowplot::plot_grid(section_pair$tree, section_pair$spatial_clone, rel_widths = c(1.3, 1))
+cowplot::plot_grid(
+  cowplot::plot_grid(section_pair$tree, section_pair$spatial_clone, rel_widths = c(1.3, 1)),
+  section_pair$legend,
+  ncol = 1,
+  rel_heights = c(1, section_pair$legend_rel_height)
+)
 ```
 
 <img src="multisample_files/figure-gfm/tree-plot-show-1.jpeg" alt="" width="100%" />
 
 Shapes show the compartment of each tip. Circles are tips from a
 section. Squares are bulk thymus. Triangles are blood at the thymectomy.
-Diamonds are blood 12 months later. Colors show the tree clusters from
-`clusterTreesTips()`. On the map, a dot has the color of its tip.
+Diamonds are blood 12 months later. The legend shows the colors, which
+are the tree clusters from `clusterTreesTips()`. On the map, a dot has
+the color of its tip.
 
 ## Save the object
 

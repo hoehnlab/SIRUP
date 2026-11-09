@@ -255,7 +255,7 @@ plotSpatialLocalMoran(
   point_size = 1,
   title = "GC B cell proportion, local Moran's I (z-score)"
 ) +
-  labs(color = "z")
+  guides(color = guide_colorbar(title = "z"))
 ```
 
 <img src="spatial-statistics_files/figure-gfm/local-moran-plot-1.jpeg" alt="" width="100%" />

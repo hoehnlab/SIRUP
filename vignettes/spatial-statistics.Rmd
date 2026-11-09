@@ -204,7 +204,7 @@ plotSpatialLocalMoran(
   point_size = 1,
   title = "GC B cell proportion, local Moran's I (z-score)"
 ) +
-  labs(color = "z")
+  guides(color = guide_colorbar(title = "z"))
 ```
 
 The clusters of high GC B cell proportion sit at the eGC polygons. Each spot has its own p value. Correct for multiple testing before you call a spot significant. For example, use `p.adjust(method = "BH")`.

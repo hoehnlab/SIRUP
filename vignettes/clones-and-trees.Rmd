@@ -212,6 +212,7 @@ tree_sirup <- formatSpatialClones(
   traits = c("barcode_10x", "polygon_id")
 )
 
+set.seed(1)
 tree_sirup <- getSpatialTrees(
   tree_sirup,
   f_clones_analysis = "formatted_clones",
@@ -265,7 +266,7 @@ The result is a list with one element for each clone. Each element holds a `tree
 
 A clone with many tips is hard to read when each tip has its own color. `clusterTreesTips()` cuts each tree into `k` connected groups of related tips. The code below uses `k = 4` for every tree.
 
-```{r tree-clusters, eval = has_trees, fig.width = 9, fig.height = 5}
+```{r tree-clusters, eval = has_trees, fig.width = 12, fig.height = 5.5}
 clustered <- clusterTreesTips(
   trees,
   k = 4,
@@ -287,9 +288,14 @@ cluster_pairs <- plotSpatialCloneTreePairs(
 )
 
 cowplot::plot_grid(
-  cluster_pairs[[1]]$tree,
-  cluster_pairs[[1]]$spatial_clone,
-  rel_widths = c(1.2, 1)
+  cowplot::plot_grid(
+    cluster_pairs[[1]]$tree,
+    cluster_pairs[[1]]$spatial_clone,
+    rel_widths = c(1.2, 1)
+  ),
+  cluster_pairs[[1]]$legend,
+  ncol = 1,
+  rel_heights = c(1, cluster_pairs[[1]]$legend_rel_height)
 )
 ```
 
