@@ -1,24 +1,34 @@
 # SIRUP: Spatial Immune Receptor Utilities Package
 
-> **Under construction.** This site is not finished. Some pages can be
-> incomplete or wrong. SIRUP is in active development, and function names and
-> arguments can change before the first release.
+<div markdown="1" style="background: #ffedcc; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">Under construction</p>
+  This site is still under construction. Be aware that some information may be missing or incorrect.
+</div>
 
-SIRUP is an R package for spatial adaptive immune receptor repertoire
-sequencing (spAIRR-seq). It works with B cell receptor (BCR) and T cell receptor
-(TCR) sequences that carry a spatial barcode, together with spatial gene
-expression from the same tissue section.
+<img src="img/sirup-logo.png" alt="SIRUP logo" align="right" width="130" style="margin: 0 0 12px 24px;">
+SIRUP, the Spatial Immune Receptor Utilities Package, is an R package for working with
+spatial adaptive immune receptor repertoire sequencing (spAIRR-seq) data. 
+It works with B cell receptor (BCR) and T cell receptor
+(TCR) sequences that have a spatial barcode, together with spatial gene
+expression from the same tissue section. Isn't that sweet?
 
-SIRUP covers three stages:
+SIRUP helps you:
 
-1. **Process.** Turn demultiplexed long reads into consensus receptor
-   sequences. IgBLAST and pRESTO build an AIRR rearrangement table with one
-   spatial ID for each sequence.
-2. **Integrate.** Put the receptor table and the spatial Seurat object into one
-   validated SIRUP object. One object can hold several tissue sections, bulk
-   AIRR-seq, and blood.
-3. **Analyze and visualize.** Draw tissue regions, measure clonal dominance and
-   diversity, test spatial patterns, and show lineage trees on the tissue.
+1. **Process.** Convert demultiplexed long-read spatial immune receptor sequences 
+   into high-quality consensus receptor sequences for each spatial location.
+   Outputs an [AIRR rearrangement style table](https://docs.airr-community.org/en/latest/datarep/rearrangements.html).
+2. **Integrate.** Combine spatially-resolved immune receptors and a Seurat spatial
+   transcriptomics object into one unified SIRUP object. The SIRUP object can hold
+   multiple spatial tissue sections, as well as associated non-spatial AIRR-seq data
+   from bulk or single-cell experiments.
+3. **Analyze and visualize.** Select regions of interest through *in silico* micro-dissection,
+   measure clonal dominance and diversity within ROIs, test spatial patterns,
+   build lineage trees and visualize them over tissue, and more!
+
+<div markdown="1" style="background: #ffedcc; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">Did you know?</p>
+  Maple syrup has been spelled [maple sirup](https://maplesyruphistory.com/2022/09/04/the-origins-of-the-spelling-of-maple-sirup-with-an-i/) at different points of U.S. history.
+</div>
 
 ## Getting started
 
@@ -26,8 +36,7 @@ Start with [Get started with SIRUP](vignettes/get-started.md). It takes about 15
 minutes and uses example data that comes with the package. You build a SIRUP
 object, plot receptors on the tissue, and measure clonal dominance in a region.
 
-Install SIRUP from GitHub with BiocManager. BiocManager also installs the
-Bioconductor packages that SIRUP needs, such as ggtree:
+Install SIRUP from GitHub with BiocManager, which will also install dependencies:
 
 ```r
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
@@ -40,7 +49,7 @@ Use R 4.1 or later.
 
 **Tutorials**
 
-* [Process reads into spatial AIRR tables](vignettes/processing.md). Turn
+* [Process demultiplexed reads](vignettes/processing.md). Turn
   demultiplexed reads into a table of consensus BCR or TCR sequences.
 * [Draw tissue regions and measure clonal dominance and
   diversity](vignettes/regions.md). Compare the repertoires of regions such as
@@ -62,20 +71,36 @@ Use R 4.1 or later.
 * [Choose a spatial statistic](vignettes/choose-spatial-statistic.md). Match
   your question to a function.
 
-**Function reference**
+**For AI Assistants and/or LLMs**
 
-The Function reference section lists every function, with its arguments and
-examples.
+AI assistants and other automated agents can read two files in the SIRUP repository:
+
+* [llms.txt](https://github.com/hoehnlab/SIRUP/blob/main/llms.txt) is a short index of the SIRUP documentation. It links to each tutorial, guide, and function page.
+* [llms-full.txt](https://github.com/hoehnlab/SIRUP/blob/main/llms-full.txt) joins the whole documentation into one file. It holds every tutorial, guide, and function page.
 
 ## Contact
 
-If you need help or have a question, contact the Hoehn Lab. To report a bug or
-ask for a feature, open an issue on the
+If you need help or have a question, contact the [Hoehn Lab](https://sites.dartmouth.edu/hoehn/).
+To report a bug or ask for a feature, open an issue on the
 [issue tracker](https://github.com/hoehnlab/SIRUP/issues).
+
+## Dependencies
+
+**Depends:** R (>= 4.1.0)  
+**Imports:** airr, airrblast, alakazam, cli, cowplot, data.table, dowser, dplyr, ggplot2, ggtree, grDevices, grid, igraph, kedd, KernSmooth, magrittr, Matrix, methods, parallel, patchwork, pbapply, RANN, rlang, scales, scoper, Seurat, SeuratObject, sf, shiny, spdep, stats, stringr, tibble, tidyr, tools, utils  
+**Suggests:** ape, arrow, BiocNeighbors, knitr, nabor, pals, qpdf, rgl, rmarkdown, shazam, spatstat.explore, spatstat.geom, spatstat.random, testthat (>= 3.0.0), withr
 
 ## Authors
 
-Hunter J. Melton and Chinmay Vaidya.
+[Hunter J. Melton](mailto:Hunter.J.Melton@dartmouth.edu)<br>
+Chinmay M. Vaidya<br>
+Apekshya Panda<br>
+Jessie J. Fielding<br>
+Elizabeth Sergison<br>
+Fred W. Kolling<br>
+Kevin C. O'Connor<br>
+[Kenneth B. Hoehn](mailto:Kenneth.B.Hoehn@dartmouth.edu)<br>
+
 
 ## Citing SIRUP
 

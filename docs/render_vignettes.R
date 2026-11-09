@@ -15,6 +15,8 @@ render_vignettes <- function(config, only = NULL) {
   if (requireNamespace("devtools", quietly = TRUE)) devtools::load_all(".", quiet = TRUE) else library(pkg, character.only = TRUE)
 
   sources <- unlist(lapply(config$vignette_sources, function(d) list.files(d, pattern = "[.](Rmd|qmd)$", full.names = TRUE)))
+  # Leave out vignettes that must not become site pages (vignette_exclude in docs-config.yml).
+  sources <- sources[!(tools::file_path_sans_ext(basename(sources)) %in% unlist(config$vignette_exclude))]
   titles <- vapply(sources, function(s) {
     t <- rmarkdown::yaml_front_matter(s)$title
     if (is.null(t)) tools::file_path_sans_ext(basename(s)) else t

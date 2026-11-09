@@ -87,7 +87,7 @@ bcrs <- bind_rows(sections, bulk) %>%
     min_consensus_count = NULL
   ) %>%
   filter(!grepl("[^ACGT]", junction))
-#> filterAirr kept 5739 of 8857 rows (dropped 3118).
+#> filterAirr kept 5733 of 8849 rows (dropped 3116).
 
 count(bcrs, compartment, sample)
 #> # A tibble: 8 × 3

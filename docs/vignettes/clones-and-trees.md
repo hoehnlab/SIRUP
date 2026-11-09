@@ -54,7 +54,7 @@ bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz
     spatial_id = "barcode_10x"
   ) %>%
   filter(!grepl("[^ACGT]", junction))
-#> filterAirr kept 2195 of 3801 rows (dropped 1606).
+#> filterAirr kept 2189 of 3793 rows (dropped 1604).
 
 sirup <- createSIRUP(
   spatial = thymus,
@@ -445,7 +445,7 @@ pairs_table %>%
 #>   pair           n_pairs median_distance
 #>   <chr>            <int>           <dbl>
 #> 1 different eGCs       5          0.0273
-#> 2 same eGC            10          0.0178
+#> 2 same eGC            10          0.0150
 ```
 
 Read the two medians in the table. One clone cannot support a

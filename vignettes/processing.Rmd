@@ -1,10 +1,10 @@
 ---
-title: "Process reads into spatial AIRR tables"
+title: "Process demultiplexed reads"
 output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Process reads into spatial AIRR tables}
+  %\VignetteIndexEntry{Process demultiplexed reads}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -22,31 +22,79 @@ knitr::opts_chunk$set(
 )
 ```
 
-> **Time:** about 30 minutes (plus run time of the tools). **Data:** the example read-level and consensus tables that come with SIRUP. **Needs:** R 4.1 or later, and the external tools below for the steps that show code only.
+<div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <b>Time</b>: ~30 minutes. 
+  <b>Data</b>: example MG thymus read-level data in SIRUP.
+</div>
 
-In this page you turn long sequencing reads into an AIRR table. An AIRR table is a table of receptor sequences in the format of the AIRR Community. Each consensus receptor sequence in the table has one spatial ID. A consensus sequence is one sequence that SIRUP builds from several reads of the same molecule.
+Here, we will take demultiplexed long-read sequences and process them into an [AIRR rearrangement](https://docs.airr-community.org/en/latest/datarep/rearrangements.html).
 
-Most steps here call external programs and need large inputs. Those chunks show code only. Chunks that run on the bundled example are marked in the text. Load the result into R in `vignette("get-started", package = "SIRUP")`.
+## Demultiplexing long-read sequences
 
-## Review the pipeline
+SIRUP does not demultiplex long-read sequencing data on its own. At present, users should demultiplex their data with
 
-Spatial AIRR-seq libraries are long-read libraries of receptor transcripts. Each read carries a spatial barcode, a short DNA tag that identifies the spot where the molecule came from. Most protocols also add a UMI (unique molecular identifier), a tag that identifies the original molecule. Processing has two parts:
+1. RAD, the read-structure agnostic demultiplexer, which can be used [via the command line](https://github.com/indianewok/rad)
+or [natively in R](https://github.com/indianewok/rrad). SIRUP can then process the demultiplexed long-reads.
+2. [LongAIRR](https://github.com/AGImkeller/LongAIRR), which demultiplexes and processes long-read sequencing data.
 
-1. **Demultiplexing**, in the separate [rrad](https://github.com/indianewok/rrad) package. To demultiplex is to find the barcode and UMI in each read, correct them against the barcode whitelist, and write them into the read header.
-2. **Consensus building**, in SIRUP. `processSpatialSample()` runs these steps:
+If using LongAIRR, the output is an AIRR rearrangement that can be used directly, without further processing in SIRUP. In
+this case, the rest of this vignette is not needed.
 
-| Step | Tool | What it does |
+## SIRUP processing pipeline
+
+Spatial AIRR-seq libraries are sets of long-read sequences of B and T cell receptor transcripts. Each read carries a 
+spatial ID (or barcode), which is a short DNA tag that identifies the spot where the molecule came from. Many protocols
+also include a UMI (unique molecular identifier), a tag that identifies the original molecule. 
+
+Processing in SIRUP is done with the `processSpatialSample()` function. It consists of the following steps.
+
+| | Step | What it does |
 |---|---|---|
 | 1 | IgBLAST (`airrblast::assignGenes()`) | Annotates each read with V(D)J genes |
 | 2 | `filterAirr()` | Removes reads that are not receptors or are too short to use |
-| 3 | pRESTO `ClusterSets.py` | Groups the reads of each spot by sequence identity (vsearch) |
-| 4 | pRESTO `AlignSets.py` | Aligns the reads in each group (MUSCLE) |
-| 5 | pRESTO `BuildConsensus.py` | Builds one consensus sequence per group |
-| 6 | `airrblast::assignGenes()` and `addGaps()` | Annotates the consensus sequences, adds the IMGT gaps, and writes the AIRR table |
+| 3 | `ClusterSets.py` (pRESTO) | Groups the reads of each spot by sequence identity (using vsearch) |
+| 4 | `AlignSets.py` (pRESTO) | Aligns the reads in each group (using MUSCLE) |
+| 5 | `BuildConsensus.py` (pRESTO) | Builds one consensus sequence per group |
+| 6 | `airrblast::assignGenes()` and `airrblast::addGaps()` | Annotates the consensus sequences, adds the IMGT gaps, and writes the AIRR table |
 
 Long-read sequencing has a high error rate. A consensus of several reads removes most random errors. The spot barcode stays in the sequence header through every step, so each consensus sequence keeps its spot.
 
-## Install the tools
+## Install and set up dependencies
+
+### IgBLAST and IMGT germline references
+
+See more detailed instructions in the [airrblast documentation](https://github.com/hoehnlab/airrblast/tree/main).
+
+Briefly, download and decompress [IgBLAST](https://ftp.ncbi.nih.gov/blast/executables/igblast/release/LATEST/).
+
+<div markdown="1" style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;"> <b>WARNING</b> </p>
+  There is a patch to the latest stable release of IgBLAST. Download the patched .aux files
+  [here](https://ftp.ncbi.nih.gov/blast/executables/igblast/release/patch/) (in `optional_file`). Then swap them into your
+  `optional_file` directory in your IgBLAST installation.
+</div>
+
+Then download the IMGT germline references and set up the IgBLAST database with `airrblast`.
+
+```{r setup-igblast, eval = FALSE}
+library(airrblast)
+library(airr)
+
+# name/location of the uncompressed IgBLAST directory
+igblast_dir <- "ncbi-igblast-1.22.0"
+
+# Download IMGT GENE-DB into directory "imgt"
+# Do this only once
+downloadIMGT("imgt", organism="human", verbose=1)
+
+# Set up search databases for IgBlast using imgt database
+# Do this only once
+imgtToIgblast("imgt", "igblast", igblast_dir)
+```
+
+################
+# PICK UP HERE #
+################
 
 Install these programs on your computer or cluster:
 

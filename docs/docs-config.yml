@@ -14,7 +14,7 @@ rtd_slug: sirup          # the Read the Docs project slug (https://<slug>.readth
 #   3. source file named in the Rd header comment   [auto, source]
 #   4. flat alphabetical list                       [flat]
 # auto = use the whole chain. family / source / flat = restrict to that step.
-grouping: auto
+grouping: flat
 nav_groups_file: docs/nav-groups.yml
 include_internal: false         # true to also document topics tagged \keyword{internal}
 
@@ -23,28 +23,20 @@ include_internal: false         # true to also document topics tagged \keyword{i
 vignette_sources: [vignettes]
 vignette_order: []
 
+# Vignettes that must not become site pages. `sirup` ships with the R package and only points here.
+vignette_exclude: [sirup]
+
 # Nav sections for the vignettes. Each group has a title and a list of vignette file stems.
 # A vignette that is in no group goes to a "Vignettes" section at the end.
 vignette_groups:
-  - title: Start here
-    vignettes: [get-started]
   - title: Tutorials
-    vignettes: [processing, regions, clones-and-trees, spatial-statistics, multisample]
+    vignettes: [get-started, processing, regions, clones-and-trees, spatial-statistics, multisample]
   - title: Guides
     vignettes: [sirup-object, choose-spatial-statistic]
 
 # Title of the nav section that lists the function pages.
-help_topics_title: Function reference
+help_topics_title: Function Reference
 
-# Friendly group titles for the function pages. The key is the R source file name without .R.
-group_titles:
-  processing: Read processing
-  sirup_object: The SIRUP object
-  sirup_io: Save and read
-  sirup_trees: Lineage trees
-  spatial_polygons: Regions and polygons
-  spatial_ggplot_visualization: Plots
-  spatial_statistics: Spatial statistics
 
 # Individually toggleable extras.
 extras:

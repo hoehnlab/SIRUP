@@ -79,7 +79,7 @@ bcr_sirup <- createSIRUP(
   swap_coords = FALSE,
   polygons_path = file.path(extdata, "mg_thymus_slice2_gc_polygons.csv")
 )
-#> filterAirr kept 2195 of 3801 rows (dropped 1606).
+#> filterAirr kept 2189 of 3793 rows (dropped 1604).
 bcr_sirup <- updateReceptors(
   bcr_sirup,
   scoper::hierarchicalClones,

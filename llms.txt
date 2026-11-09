@@ -17,7 +17,7 @@ so any agent that can fetch a URL can read them directly.
 - [Call clones and build lineage trees on the tissue](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/clones-and-trees.md)
 - [Get started with SIRUP](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/get-started.md)
 - [Analyze several sections with bulk AIRR-seq and blood](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/multisample.md)
-- [Process reads into spatial AIRR tables](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/processing.md)
+- [Process demultiplexed reads](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/processing.md)
 - [Draw tissue regions and measure clonal dominance and diversity](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/regions.md)
 - [How the SIRUP object works](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/sirup-object.md)
 - [Test spatial patterns of genes, cells, and clones](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/spatial-statistics.md)
@@ -26,50 +26,36 @@ so any agent that can fetch a URL can read them directly.
 
 All URLs share the prefix https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/ (e.g. `fn` -> `.../topics/fn.md`).
 
-### Lineage trees
+- `addSequenceQualityMetrics`: Add quality measures to an AIRR table
+- `addTissuePositions`: Add tissue coordinates to an AIRR table
+- `assignReceptorPolygons`: Add polygon IDs to a receptor table
+- `assignSpatialPolygons`: Add polygon IDs to the spatial metadata
 - `assignTipColors`: Assign colors to the tips of clones
 - `chooseTreeTipK`: Choose the number of tip clusters for a tree
 - `clusterTreesTips`: Cluster the tips of all trees in a dowser result
 - `clusterTreeTips`: Cluster the tips of a tree
+- `collapseIdenticalNeighbors`: Collapse neighboring spots with identical receptor sequences
+- `collapseTopConsensusPerSpatialId`: Keep the most abundant consensus sequence of each spatial ID and locus
+- `createSIRUP`: Create a SIRUP object
+- `expandPolygons`: Expand polygons outward from their centroids
+- `extractSpatialIds`: Extract spatial IDs from sequence IDs
+- `filterAirr`: Filter AIRR sequences
 - `formatSpatialClones`: Format the receptors of a SIRUP object as in dowser's formatClones()
+- `formatSpatialPolygons`: Format point sets as polygon vertices
 - `getSpatialTrees`: Build trees from the formatted clones of a SIRUP object
-- `tipPatristicMatrix`: Calculate patristic distances between tips in a tree
-
-### Plots
+- `isSIRUP`: Test whether an object is a SIRUP object
+- `mergeSIRUP`: Merge SIRUP objects into one multi-sample object
+- `parseRadSequenceIds`: Split the rrad tags out of sequence IDs
 - `plotLengthQc`: Plot length histograms of V, J, and junction regions
 - `plotReceptors`: Plot receptor groups on a tissue image
 - `plotReceptorsExpression`: Plot receptor groups over gene expression
+- `plotRipleyCrossK`: Plot Ripley's cross K against distance
 - `plotSpatialCloneColorTips`: Plot the tip colors of one clone on a tissue image
+- `plotSpatialCloneDensity3D`: Plot 3D clone-density surfaces on a tissue image
+- `plotSpatialCloneJoinCount`: Plot a clone join-count result
 - `plotSpatialCloneTreePairs`: Plot each clone tree next to its tissue map
 - `plotSpatialColorTips`: Plot tip colors on a tissue image
-- `sirupSampleFromImage`: Get the sample name from an image label
-- `spatialCloneTreePairsToPDF`: Save the tree and map pairs to a PDF file
-- `spatialDiscretePlot`: Plot a metadata column on a tissue image
-- `spatialExpressionBlendPlot`: Blend the expression of two features on a tissue image
-- `spatialExpressionMultiPlot`: Plot several features as ordered color layers
-- `spatialExpressionPlot`: Plot gene expression on a tissue image
-
-### Read processing
-- `addSequenceQualityMetrics`: Add quality measures to an AIRR table
-- `addTissuePositions`: Add tissue coordinates to an AIRR table
-- `collapseIdenticalNeighbors`: Collapse neighboring spots with identical receptor sequences
-- `collapseTopConsensusPerSpatialId`: Keep the most abundant consensus sequence of each spatial ID and locus
-- `extractSpatialIds`: Extract spatial IDs from sequence IDs
-- `filterAirr`: Filter AIRR sequences
-- `parseRadSequenceIds`: Split the rrad tags out of sequence IDs
-- `processSpatialSample`: Process one spatial sample from reads to an AIRR table
-- `processSpatialSamples`: Process several spatial samples
-- `readSpatialIdMapping`: Read a spatial ID mapping file
-- `runIgblast`: Annotate raw reads with IgBLAST
-- `spatialReceptorSummary`: Count the sequences and spots of a receptor table
-- `writeFastqas`: Write sequences to a FASTQ or FASTA file
-
-### Regions and polygons
-- `assignReceptorPolygons`: Add polygon IDs to a receptor table
-- `assignSpatialPolygons`: Add polygon IDs to the spatial metadata
-- `expandPolygons`: Expand polygons outward from their centroids
-- `formatSpatialPolygons`: Format point sets as polygon vertices
-- `plotSpatialCloneDensity3D`: Plot 3D clone-density surfaces on a tissue image
+- `plotSpatialLocalMoran`: Plot local Moran's I on a tissue image
 - `plotSpatialPolygonPies`: Plot clonal dominance results within polygons as pies or bars
 - `plotSpatialPolygons`: Plot polygons on a tissue image
 - `plotSpatialRegionReceptors`: Plot receptors inside polygons using the results of \code{spatialCloneDominance()}
@@ -78,38 +64,39 @@ All URLs share the prefix https://raw.githubusercontent.com/hoehnlab/SIRUP/main/
 - `polygonDiversity`: Estimate clonal diversity inside polygons
 - `polygonPairwiseDistance`: Calculate distances between polygon centroids
 - `polygonReceptorSummary`: Summarize columns in receptors data inside polygons
+- `processSpatialSample`: Process one spatial sample from reads to an AIRR table
+- `processSpatialSamples`: Process several spatial samples
+- `readSpatialIdMapping`: Read a spatial ID mapping file
+- `runIgblast`: Annotate raw reads with IgBLAST
 - `selectSpatialPolygons`: Select polygon vertices in an interactive app
 - `seuratSubsetPolygon`: Subset a Seurat object to the spots inside polygons
-- `spatialCloneDominance`: Calculate clonal dominance inside polygons
-- `summarizePolygonDiversity`: Summarize polygon diversity at one value of q
-- `withPolygons`: Apply a function to the receptors of each polygon
-
-### Save and read
+- `sirup-accessors`: Extract data from a SIRUP object
+- `sirup-analyses`: Store and retrieve analyses in a SIRUP object
 - `sirup-io`: Save and read SIRUP objects
-
-### Spatial statistics
-- `plotRipleyCrossK`: Plot Ripley's cross K against distance
-- `plotSpatialCloneJoinCount`: Plot a clone join-count result
-- `plotSpatialLocalMoran`: Plot local Moran's I on a tissue image
+- `sirup-polygons`: Add or retrieve polygon geometry from a SIRUP object
+- `sirup-transform`: Update data stored in a SIRUP object
+- `sirupSampleFromImage`: Get the sample name from an image label
+- `spatialCloneDominance`: Calculate clonal dominance inside polygons
 - `spatialCloneJoinCount`: Test clone localization with join counts
 - `spatialCloneSpread`: Summarize the spatial spread of clones
+- `spatialCloneTreePairsToPDF`: Save the tree and map pairs to a PDF file
 - `spatialCoordinateExtents`: Summarize spatial coordinate ranges
 - `spatialCoordinateTable`: Get spatial plotting coordinates
+- `spatialDiscretePlot`: Plot a metadata column on a tissue image
+- `spatialExpressionBlendPlot`: Blend the expression of two features on a tissue image
+- `spatialExpressionMultiPlot`: Plot several features as ordered color layers
+- `spatialExpressionPlot`: Plot gene expression on a tissue image
 - `spatialLee`: Calculate global Lee's L
 - `spatialLocalMoran`: Calculate local Moran's I (LISA)
 - `spatialMoran`: Calculate global Moran's I
+- `spatialReceptorSummary`: Count the sequences and spots of a receptor table
 - `spatialRipleyCrossK`: Calculate Ripley's cross K
-
-### The SIRUP object
-- `createSIRUP`: Create a SIRUP object
-- `isSIRUP`: Test whether an object is a SIRUP object
-- `mergeSIRUP`: Merge SIRUP objects into one multi-sample object
-- `sirup-accessors`: Extract data from a SIRUP object
-- `sirup-analyses`: Store and retrieve analyses in a SIRUP object
-- `sirup-polygons`: Add or retrieve polygon geometry from a SIRUP object
-- `sirup-transform`: Update data stored in a SIRUP object
 - `subsetSIRUP`: Subset a SIRUP object
+- `summarizePolygonDiversity`: Summarize polygon diversity at one value of q
+- `tipPatristicMatrix`: Calculate patristic distances between tips in a tree
 - `validateSIRUP`: Validate a SIRUP object
+- `withPolygons`: Apply a function to the receptors of each polygon
+- `writeFastqas`: Write sequences to a FASTQ or FASTA file
 
 ## Optional
 

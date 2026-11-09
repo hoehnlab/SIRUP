@@ -1,0 +1,122 @@
+/* SIRUP site colors, taken from the logo.
+   Change a color once here. MkDocs loads this file after the theme (extra_css in mkdocs.yml). */
+
+:root {
+  --sirup-black:      #070909;  /* logo outline: replaces the bright blue bars          */
+  --sirup-syrup:      #8c3521;  /* the syrup: sidebar and text links                    */
+  --sirup-syrup-dark: #6b2616;  /* darker syrup: hover and pressed states               */
+  --sirup-cap:        #6b4d2f;  /* the bottle cap: visited links                        */
+  --sirup-tan:        #f8e7bd;  /* the label: replaces the light greys                  */
+  --sirup-tan-2:      #efd9a0;  /* one step darker, for second-level menu rows          */
+  --sirup-tan-3:      #e6cc8c;  /* two steps darker, for third-level menu rows          */
+  --sirup-cream:      #fff8e4;  /* current page row                                     */
+  --sirup-ink:        #4a2418;  /* dark text on tan                                     */
+}
+
+/* ---- Bright blue bars -> black ---------------------------------------------------- */
+.wy-side-nav-search,
+.wy-nav-top,
+.wy-side-nav-search img,
+.wy-nav-top img {
+  background-color: var(--sirup-black);
+}
+.wy-nav-top { background: var(--sirup-black); }
+.wy-side-nav-search input[type=text] { border-color: var(--sirup-syrup); }
+.wy-menu-vertical a:active {
+  background-color: var(--sirup-black);
+  color: #fff;
+}
+
+/* ---- Dark grey -> syrup ----------------------------------------------------------- */
+.wy-nav-side { background: var(--sirup-syrup); }
+.wy-menu-vertical a:hover { background-color: var(--sirup-syrup-dark); }
+.rst-versions { background: var(--sirup-syrup-dark); }
+.rst-versions .rst-current-version { background-color: var(--sirup-syrup-dark); }
+
+/* Section captions (ABOUT, TUTORIALS, ...): light blue -> label tan */
+.wy-menu-vertical header,
+.wy-menu-vertical p.caption { color: var(--sirup-tan); }
+
+/* ---- Light grey -> label tan ------------------------------------------------------ */
+body { background: var(--sirup-tan); }
+.wy-menu-vertical li.current { background: var(--sirup-tan); }
+.wy-menu-vertical li.current a { color: var(--sirup-ink); }
+.wy-menu-vertical li.current a:hover { background: var(--sirup-tan-2); }
+.wy-menu-vertical li.current > a,
+.wy-menu-vertical li.on a {
+  color: var(--sirup-ink);
+  background: var(--sirup-cream);
+}
+.wy-menu-vertical li.current > a:hover,
+.wy-menu-vertical li.on a:hover { background: var(--sirup-cream); }
+.wy-menu-vertical li.toctree-l2.current > a,
+.wy-menu-vertical li.toctree-l2.current li.toctree-l3 > a { background: var(--sirup-tan-2); }
+.wy-menu-vertical li.toctree-l3.current > a,
+.wy-menu-vertical li.toctree-l3.current li.toctree-l4 > a { background: var(--sirup-tan-3); }
+.wy-menu-vertical li.current > a button.toctree-expand,
+.wy-menu-vertical li.on a button.toctree-expand { color: var(--sirup-ink); }
+
+/* ---- Blue text -> syrup ----------------------------------------------------------- */
+a { color: var(--sirup-syrup); }
+a:hover { color: var(--sirup-syrup-dark); }
+a:visited { color: var(--sirup-syrup); }
+.rst-content a code,
+.rst-content a tt { color: var(--sirup-syrup); }
+
+/* ---- Callout boxes written as raw HTML in the pages --------------------------------
+   md_in_html wraps the text in a <p>, which adds an empty gap at the bottom of the box. */
+.rst-content div[style*="line-height: 24px"] > p:last-child { margin-bottom: 0; }
+
+/* The brown Note box: white text, and light links, so they stay readable. */
+.rst-content div[style*="background: #9e584a"] { color: #ffffff; }
+.rst-content div[style*="background: #9e584a"] a,
+.rst-content div[style*="background: #9e584a"] a:visited { color: var(--sirup-tan); text-decoration: underline; }
+.rst-content div[style*="background: #9e584a"] a:hover { color: #ffffff; }
+
+/* ---- Links in the page text: underline them, so they stand out ------------------- */
+.rst-content a:not(.headerlink) { text-decoration: underline; }
+
+/* ---- Sidebar: white link names and + icons, also after a click --------------------
+   The theme draws visited links and the + icons in grey, which is hard to read on the syrup.
+   The selectors must not start with .wy-nav: that class does not exist in this theme. */
+.wy-menu-vertical a,
+.wy-menu-vertical a:visited,
+.wy-menu-vertical li ul li a,
+.wy-menu-vertical li ul li a:visited {
+  color: #ffffff;
+}
+.wy-menu-vertical a:hover,
+.wy-menu-vertical li ul li a:hover {
+  color: #ffffff;
+  background-color: var(--sirup-syrup-dark);
+}
+.wy-menu-vertical li button.toctree-expand,
+.wy-menu-vertical li.toctree-l2 button.toctree-expand,
+.wy-menu-vertical li.toctree-l3 button.toctree-expand,
+.wy-menu-vertical a:hover button.toctree-expand {
+  color: #ffffff;
+}
+
+/* Inside the tan current-section block, the text and icons stay dark. */
+.wy-menu-vertical li.current > a,
+.wy-menu-vertical li.current > a:visited,
+.wy-menu-vertical li.current ul li a,
+.wy-menu-vertical li.current ul li a:visited,
+.wy-menu-vertical li.on a,
+.wy-menu-vertical li.on a:visited {
+  color: var(--sirup-ink);
+}
+.wy-menu-vertical li.current ul li a:hover {
+  color: var(--sirup-ink);
+  background: var(--sirup-tan-2);
+}
+.wy-menu-vertical li.current > a:hover {
+  color: var(--sirup-ink);
+  background: var(--sirup-cream);
+}
+.wy-menu-vertical li.current button.toctree-expand,
+.wy-menu-vertical li.current > a button.toctree-expand,
+.wy-menu-vertical li.on a button.toctree-expand,
+.wy-menu-vertical li.current > a:hover button.toctree-expand {
+  color: var(--sirup-ink);
+}

@@ -1,4 +1,4 @@
-Process reads into spatial AIRR tables
+Process demultiplexed reads
 ================
 
 > **Time:** about 30 minutes (plus run time of the tools). **Data:** the
@@ -441,7 +441,7 @@ summary(consensus[, c("non_N_nucleotide_prop", "max_gap_length", "consensus_coun
 #>  Min.   :0.9510        Min.   :  6.00   Min.   : 1.000  
 #>  1st Qu.:1.0000        1st Qu.: 12.00   1st Qu.: 1.000  
 #>  Median :1.0000        Median : 12.00   Median : 1.000  
-#>  Mean   :0.9982        Mean   : 63.68   Mean   : 1.441  
+#>  Mean   :0.9982        Mean   : 63.71   Mean   : 1.442  
 #>  3rd Qu.:1.0000        3rd Qu.:131.00   3rd Qu.: 1.000  
 #>  Max.   :1.0000        Max.   :220.00   Max.   :35.000
 ```
@@ -463,12 +463,12 @@ bcrs <- filterAirr(
   max_gap_length = 15,
   spatial_id = "barcode_10x"
 )
-#> filterAirr kept 2078 of 3801 rows (dropped 1723).
+#> filterAirr kept 2073 of 3793 rows (dropped 1720).
 
 nrow(consensus)
-#> [1] 3801
+#> [1] 3793
 nrow(bcrs)
-#> [1] 2078
+#> [1] 2073
 ```
 
 This table is `db_pass_umi`, so every row already has at least two
@@ -560,30 +560,30 @@ collapsed <- collapseIdenticalNeighbors(
   num_neighbors_non_boundary = 6
 )
 #> ℹ Ensuring one row per spatial_id/sequence...
-#> ✔ Ensuring one row per spatial_id/sequence... [2.4s]
+#> ✔ Ensuring one row per spatial_id/sequence... [2.3s]
 #> 
 #> ℹ Estimating distance threshold from full tissue positions...
-#> ✔ Estimating distance threshold from full tissue positions... [2s]
+#> ✔ Estimating distance threshold from full tissue positions... [4.7s]
 #> 
 #> ℹ Distance threshold: 10.0214
 #> ℹ Filtering to spots with observed sequences...
-#> ✔ Filtering to spots with observed sequences... [6ms]
+#> ✔ Filtering to spots with observed sequences... [10ms]
 #> 
-#> ℹ Sequence-positive spots: 802 (of 3,203 total)
+#> ℹ Sequence-positive spots: 800 (of 3,203 total)
 #> ℹ Building adjacency matrix over spots with observed sequences...
-#> ✔ Building adjacency matrix over spots with observed sequences... [9ms]
+#> ✔ Building adjacency matrix over spots with observed sequences... [14ms]
 #> 
 #> ℹ Collapsing components to representative spots...
-#> ✔ Collapsing components to representative spots... [192ms]
+#> ✔ Collapsing components to representative spots... [273ms]
 #> 
 #> ℹ Filtering data to representative spots...
-#> ✔ Filtering data to representative spots... [11ms]
+#> ✔ Filtering data to representative spots... [21ms]
 #> 
-#> ✔ Done! Retained 1,951 rows from 2,076 (125 bleedover sequences removed)
+#> ✔ Done! Retained 1,946 rows from 2,071 (125 bleedover sequences removed)
 
 c(before = nrow(getReceptors(sirup)), after = nrow(getReceptors(collapsed)))
 #> before  after 
-#>   2078   1951
+#>   2073   1946
 ```
 
 For Visium HD, give the 8 µm object and

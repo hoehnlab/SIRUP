@@ -51,6 +51,7 @@ DEFAULTS = {
     "nav_groups_file": "docs/nav-groups.yml",
     "vignette_sources": ["vignettes"],
     "vignette_order": [],
+    "vignette_exclude": [],        # vignette file stems that must not become site pages
     "vignette_groups": [],         # [{title, vignettes: [stems]}]; empty = one flat "Vignettes" section
     "help_topics_title": "Help Topics",
     "group_titles": {},            # R source file stem -> group title, e.g. {sirup_io: "Input and output"}
@@ -218,6 +219,8 @@ def list_vignettes(root: Path, cfg: dict) -> list[dict]:
     found = []
     for d in cfg["vignette_sources"]:
         for p in sorted((root / d).glob("*.Rmd")) + sorted((root / d).glob("*.qmd")):
+            if p.stem in cfg["vignette_exclude"]:
+                continue
             m = re.match(r"^---\n(.*?)\n---", p.read_text(encoding="utf-8"), re.S)
             fm = yaml.safe_load(m.group(1)) if m else {}
             title = (fm or {}).get("title") or p.stem
@@ -542,7 +545,8 @@ def cmd_check(root: Path, cfg: dict, args) -> int:
             if path_part and not (md.parent / path_part).resolve().exists():
                 errors.append(f"dead link in {md.relative_to(root)}: {target}")
         for m in re.finditer(r'<img\s[^>]*src="([^"]+)"', text):
-            if not re.match(r"^(https?:|data:|/)", m.group(1)):
+            # The home page (docs/index.md) is served at the site root, so its relative paths are right.
+            if md != docs / "index.md" and not re.match(r"^(https?:|data:|/)", m.group(1)):
                 errors.append(
                     f"raw HTML image with a relative path in {md.relative_to(root)}: {m.group(1)} "
                     "(MkDocs does not rewrite it, so it breaks on the site; use Markdown image syntax)")
