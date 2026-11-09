@@ -16,7 +16,7 @@ Description: Spatial Immune Receptor Utilities Package. A consolidated
     Visium HD barcode mapping, clonal summaries, tree plotting, polygon
     annotation, and spatial statistics.
 License: MIT + file LICENSE
-URL: https://github.com/hoehnlab/SIRUP
+URL: https://github.com/hoehnlab/SIRUP, https://sirup.readthedocs.io
 BugReports: https://github.com/hoehnlab/SIRUP/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -26,7 +26,6 @@ SystemRequirements: NCBI IgBLAST (igblastn), pRESTO Python tools
 Depends:
     R (>= 4.1.0)
 Imports:
-    airr,
     airrblast,
     alakazam,
     cli,
@@ -50,8 +49,6 @@ Imports:
     RANN,
     rlang,
     scales,
-    scoper,
-    Seurat,
     SeuratObject,
     sf,
     shiny,
@@ -63,6 +60,7 @@ Imports:
     tools,
     utils
 Suggests:
+    airr,
     ape,
     arrow,
     BiocNeighbors,
@@ -72,6 +70,8 @@ Suggests:
     qpdf,
     rgl,
     rmarkdown,
+    scoper,
+    Seurat,
     shazam,
     spatstat.explore,
     spatstat.geom,

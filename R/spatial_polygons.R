@@ -509,8 +509,6 @@ spatialCloneDominance <- function(receptors = NULL,
 #'   (default `"Spatial"`).
 #' @param layer Expression layer to use for `feature` (default `"counts"`).
 #' @param images Names of the Seurat images to use.
-#' @param sample Names of the spatial samples to show. Use it for multi-sample
-#'   SIRUP objects.
 #' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
 #'   If `NULL`, the function uses the value stored in the SIRUP object.
 #' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the

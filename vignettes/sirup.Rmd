@@ -1,0 +1,18 @@
+---
+title: "Introduction to SIRUP"
+output:
+  rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to SIRUP}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+SIRUP, the Spatial Immune Receptor Utilities Package, is an R package for
+working with spatial adaptive immune receptor repertoire sequencing
+(spAIRR-seq) data. It works with B cell receptor (BCR) and T cell receptor
+(TCR) sequences that have a spatial barcode, together with spatial gene
+expression from the same tissue section. Isn't that sweet?
+
+Full guides, tutorials, and function documentation are at
+<https://sirup.readthedocs.io>.

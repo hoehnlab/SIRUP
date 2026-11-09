@@ -79,8 +79,6 @@ an interactive HPC session through an SSH tunnel.}
 
 \item{quiet}{Hide warnings while the app runs (default \code{TRUE})?}
 
-\item{sample}{Names of the spatial samples to show. Use it for multi-sample
-SIRUP objects.}
 }
 \value{
 A data frame with the columns \code{spatial_id}, \code{x}, \code{y}, \code{num},
