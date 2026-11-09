@@ -160,9 +160,16 @@ for (s in samples) {
   fwrite(poly, file.path(out_dir, paste0(s, "_gc_polygons.csv")))
 }
 
-# ---- 5. Spatial BCR and TCR consensus tables, copied unchanged ----------
+# ---- 5. Spatial BCR and TCR consensus tables (copied unchanged, except the 8 rows below) ----
 copy_lines(umi_file("kh01", "bcr"), "mg_thymus_slice1_bcr.tsv.gz")
-copy_lines(umi_file("kh02", "bcr"), "mg_thymus_slice2_bcr.tsv.gz")
+# Section 2 BCRs: leave out the rows whose junction has a character other than
+# A, C, G, T, N, or ?. These are 8 sequences with a gap ("-"). scoper cannot read them
+# and stops with an error, so the vignettes could not call clones on this table.
+bcr2_file <- umi_file("kh02", "bcr")
+bcr2_fields <- strsplit(readLines(bcr2_file), "\t", fixed = TRUE)
+bcr2_junction_col <- match("junction", bcr2_fields[[1]])
+bcr2_junction <- vapply(bcr2_fields[-1], function(x) x[[bcr2_junction_col]], "")
+copy_lines(bcr2_file, "mg_thymus_slice2_bcr.tsv.gz", keep = !grepl("[^ACGTN?]", bcr2_junction))
 copy_lines(umi_file("kh02", "tcr"), "mg_thymus_slice2_tcr.tsv.gz")
 
 # ---- 6. Bulk BCR lines of clones shared with the sections ----------------
