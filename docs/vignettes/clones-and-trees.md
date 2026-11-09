@@ -193,7 +193,7 @@ plotReceptors(
 )
 ```
 
-<img src="clones-and-trees_files/figure-gfm/shm-map-1.jpeg" alt="" width="100%" />
+![](clones-and-trees_files/figure-gfm/shm-map-1.jpeg)
 
 ## Choose clones
 
@@ -243,7 +243,7 @@ plotReceptors(
 )
 ```
 
-<img src="clones-and-trees_files/figure-gfm/clone-map-1.jpeg" alt="" width="100%" />
+![](clones-and-trees_files/figure-gfm/clone-map-1.jpeg)
 
 ## Build trees
 
@@ -337,7 +337,7 @@ cowplot::plot_grid(
 )
 ```
 
-<img src="clones-and-trees_files/figure-gfm/tree-pairs-1.jpeg" alt="" width="100%" />
+![](clones-and-trees_files/figure-gfm/tree-pairs-1.jpeg)
 
 The result is a list with one element for each clone. Each element holds
 a `tree` plot and a `spatial_clone` plot. Tips with a spot in this
@@ -384,7 +384,7 @@ cowplot::plot_grid(
 )
 ```
 
-<img src="clones-and-trees_files/figure-gfm/tree-clusters-1.jpeg" alt="" width="100%" />
+![](clones-and-trees_files/figure-gfm/tree-clusters-1.jpeg)
 
 With `k = "auto"`, the function chooses `k` for each tree from
 `k_range`. It stops when one more cut reduces the mean within-group

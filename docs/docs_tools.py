@@ -541,6 +541,11 @@ def cmd_check(root: Path, cfg: dict, args) -> int:
             path_part = target.split("#", 1)[0]
             if path_part and not (md.parent / path_part).resolve().exists():
                 errors.append(f"dead link in {md.relative_to(root)}: {target}")
+        for m in re.finditer(r'<img\s[^>]*src="([^"]+)"', text):
+            if not re.match(r"^(https?:|data:|/)", m.group(1)):
+                errors.append(
+                    f"raw HTML image with a relative path in {md.relative_to(root)}: {m.group(1)} "
+                    "(MkDocs does not rewrite it, so it breaks on the site; use Markdown image syntax)")
         if md.parent.name in ("topics", "vignettes"):
             for rx, why in LEFTOVER_RES:
                 if rx.search(text):

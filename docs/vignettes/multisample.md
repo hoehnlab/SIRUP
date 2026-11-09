@@ -262,7 +262,7 @@ figure. Give `sample_id` to plot one section.
 plotSpatialPolygons(sirup, zoom = TRUE, combine_sample_plots = TRUE)
 ```
 
-<img src="multisample_files/figure-gfm/plots-1.jpeg" alt="" width="100%" />
+![](multisample_files/figure-gfm/plots-1.jpeg)
 
 ``` r
 spatialExpressionPlot(
@@ -275,7 +275,7 @@ spatialExpressionPlot(
 )
 ```
 
-<img src="multisample_files/figure-gfm/plot-one-1.jpeg" alt="" width="100%" />
+![](multisample_files/figure-gfm/plot-one-1.jpeg)
 
 ## Call clones across all samples
 
@@ -428,7 +428,7 @@ names(region_plots)
 region_plots$mg_thymus_slice1
 ```
 
-<img src="multisample_files/figure-gfm/region-receptors-1.jpeg" alt="" width="100%" />
+![](multisample_files/figure-gfm/region-receptors-1.jpeg)
 
 `plotSpatialPolygonPies()` also works on all sections at once. Give
 `sample_id` to draw the pies of one section next to its map.
@@ -446,7 +446,7 @@ pies$page_1
 #> (`geom_text()`).
 ```
 
-<img src="multisample_files/figure-gfm/pies-1.jpeg" alt="" width="100%" />
+![](multisample_files/figure-gfm/pies-1.jpeg)
 
 ## Build a tree with blood tips
 
@@ -559,7 +559,7 @@ cowplot::plot_grid(
 )
 ```
 
-<img src="multisample_files/figure-gfm/tree-plot-show-1.jpeg" alt="" width="100%" />
+![](multisample_files/figure-gfm/tree-plot-show-1.jpeg)
 
 Shapes show the compartment of each tip. Circles are tips from a
 section. Squares are bulk thymus. Triangles are blood at the thymectomy.

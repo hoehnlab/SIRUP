@@ -167,7 +167,7 @@ as `polygon_5`. The next section explains why both exist.
 plotSpatialPolygons(sirup, polygon_alpha = 0.3)
 ```
 
-<img src="regions_files/figure-gfm/plot-polygons-1.jpeg" alt="" width="100%" />
+![](regions_files/figure-gfm/plot-polygons-1.jpeg)
 
 Set `zoom = TRUE` to crop the image to the polygons:
 
@@ -175,7 +175,7 @@ Set `zoom = TRUE` to crop the image to the polygons:
 plotSpatialPolygons(sirup, zoom = TRUE)
 ```
 
-<img src="regions_files/figure-gfm/plot-polygons-zoom-1.jpeg" alt="" width="100%" />
+![](regions_files/figure-gfm/plot-polygons-zoom-1.jpeg)
 
 Small polygons can crowd their labels. Set `label_outside = TRUE` to
 move the labels outside, each joined to its polygon by a line. Leave
@@ -199,7 +199,7 @@ plotReceptors(
 )
 ```
 
-<img src="regions_files/figure-gfm/receptors-polygons-1.jpeg" alt="" width="100%" />
+![](regions_files/figure-gfm/receptors-polygons-1.jpeg)
 
 ## Handle overlapping regions
 
@@ -237,7 +237,7 @@ getReceptors(nested) %>%
 plotSpatialPolygons(nested, polygon_val = c("5", "5_zone"), zoom = TRUE, label = FALSE)
 ```
 
-<img src="regions_files/figure-gfm/nested-1.jpeg" alt="" width="100%" />
+![](regions_files/figure-gfm/nested-1.jpeg)
 
 The inner polygon is eGC 5. The outer polygon is the zone. Receptors in
 eGC 5 keep `polygon_id = "5"`, because eGC 5 is the smaller polygon.
@@ -378,7 +378,7 @@ plotSpatialRegionReceptors(
 )
 ```
 
-<img src="regions_files/figure-gfm/region-receptors-1.jpeg" alt="" width="100%" />
+![](regions_files/figure-gfm/region-receptors-1.jpeg)
 
 `plotSpatialPolygonPies()` shows each polygon as a pie chart. It has
 four modes:
@@ -402,7 +402,7 @@ pies$page_1
 #> (`geom_text()`).
 ```
 
-<img src="regions_files/figure-gfm/pies-1.jpeg" alt="" width="100%" />
+![](regions_files/figure-gfm/pies-1.jpeg)
 
 The fill column can be any column, not only the clone.
 `v_gene_superfamily` shows which IGHV families each region uses. The
@@ -418,7 +418,7 @@ plotSpatialPolygonPies(
 )
 ```
 
-<img src="regions_files/figure-gfm/bars-1.jpeg" alt="" width="100%" />
+![](regions_files/figure-gfm/bars-1.jpeg)
 
 The `spatial_clipped` mode draws each pie inside its polygon:
 
@@ -435,7 +435,7 @@ plotSpatialPolygonPies(
 #> Linking to GEOS 3.7.2, GDAL 3.0.4, PROJ 6.3.2; sf_use_s2() is TRUE
 ```
 
-<img src="regions_files/figure-gfm/clipped-1.jpeg" alt="" width="100%" />
+![](regions_files/figure-gfm/clipped-1.jpeg)
 
 ### Plot clone density in 3D
 
@@ -498,7 +498,7 @@ ggplot(curves, aes(q, d, color = polygon, fill = polygon)) +
   theme_bw()
 ```
 
-<img src="regions_files/figure-gfm/diversity-plot-1.jpeg" alt="" width="100%" />
+![](regions_files/figure-gfm/diversity-plot-1.jpeg)
 
 `summarizePolygonDiversity()` picks one `q`. It stores a table with one
 row for each polygon. `plotSpatialPolygons()` can then fill each polygon
@@ -518,7 +518,7 @@ plotSpatialPolygons(
   labs(fill = "Hill number\n(q = 1)")
 ```
 
-<img src="regions_files/figure-gfm/diversity-map-1.jpeg" alt="" width="100%" />
+![](regions_files/figure-gfm/diversity-map-1.jpeg)
 
 `analysis_fill` sets the colors for the lowest and the highest value.
 Polygons with too few receptors for the estimate are grey.

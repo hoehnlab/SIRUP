@@ -317,7 +317,7 @@ spatialExpressionPlot(
 )
 ```
 
-<img src="get-started_files/figure-gfm/expression-1.jpeg" alt="" width="100%" />
+![](get-started_files/figure-gfm/expression-1.jpeg)
 
 `plotReceptors()` draws the spots that have a receptor. The `group`
 argument names the receptor column that sets the color. In this table
@@ -333,7 +333,7 @@ plotReceptors(
 )
 ```
 
-<img src="get-started_files/figure-gfm/receptors-1.jpeg" alt="" width="100%" />
+![](get-started_files/figure-gfm/receptors-1.jpeg)
 
 Use `group_val` to show some values of the group column. This plot shows
 the three largest clones of the section:
@@ -355,7 +355,7 @@ plotReceptors(
 )
 ```
 
-<img src="get-started_files/figure-gfm/clones-1.jpeg" alt="" width="100%" />
+![](get-started_files/figure-gfm/clones-1.jpeg)
 
 A Visium spot can hold BCRs from more than one clone. If two selected
 clones share a spot, `plotReceptors()` gives the spot a combined label.
@@ -380,7 +380,7 @@ plotReceptorsExpression(
 )
 ```
 
-<img src="get-started_files/figure-gfm/receptors-expression-1.jpeg" alt="" width="100%" />
+![](get-started_files/figure-gfm/receptors-expression-1.jpeg)
 
 ## Draw a tissue region
 
@@ -403,12 +403,12 @@ gc_vertices <- selectSpatialPolygons(
 )
 ```
 
-<img src="figures/polygon-app.jpg" alt="" width="100%" />
+![](figures/polygon-app.jpg)
 
 Click around the edge of a region. Each click snaps to the nearest spot.
 **Close polygon** joins the last vertex to the first:
 
-<img src="figures/polygon-click-1.png" alt="" width="30%" /><img src="figures/polygon-click-2.png" alt="" width="30%" /><img src="figures/polygon-closed.png" alt="" width="30%" />
+![](figures/polygon-click-1.png)![](figures/polygon-click-2.png)![](figures/polygon-closed.png)
 
 After you click **Done**, the app returns the vertices of every polygon.
 It also writes them to the CSV file.
@@ -449,7 +449,7 @@ plotSpatialPolygons(
 )
 ```
 
-<img src="get-started_files/figure-gfm/polygons-1.jpeg" alt="" width="100%" />
+![](get-started_files/figure-gfm/polygons-1.jpeg)
 
 The receptor table now has a `polygon_id` column. Receptors outside
 every polygon get `NA`:
@@ -529,7 +529,7 @@ pies$page_1
 #> (`geom_text()`).
 ```
 
-<img src="get-started_files/figure-gfm/dominance-1.jpeg" alt="" width="100%" />
+![](get-started_files/figure-gfm/dominance-1.jpeg)
 
 The function returns one plot for each page, with six pies on a page.
 The `top_n` argument sets how many clones get their own color in each

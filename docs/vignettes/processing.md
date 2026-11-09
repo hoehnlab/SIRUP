@@ -225,7 +225,7 @@ the thresholds:
 plotLengthQc(igh_reads, bin_width = 10, title = "IGH reads, thymus section")
 ```
 
-<img src="processing_files/figure-gfm/length-qc-1.jpeg" alt="" width="100%" />
+![](processing_files/figure-gfm/length-qc-1.jpeg)
 
 ## Run the consensus pipeline
 
@@ -560,12 +560,12 @@ collapsed <- collapseIdenticalNeighbors(
   num_neighbors_non_boundary = 6
 )
 #> ℹ Ensuring one row per spatial_id/sequence...
-#> ✔ Ensuring one row per spatial_id/sequence... [1.6s]
+#> ✔ Ensuring one row per spatial_id/sequence... [2.4s]
 #> 
 #> ℹ Estimating distance threshold from full tissue positions...
-#> ✔ Estimating distance threshold from full tissue positions... [2.4s]
+#> ✔ Estimating distance threshold from full tissue positions... [2s]
 #> 
-#> ℹ Distance threshold: 10.0274
+#> ℹ Distance threshold: 10.0214
 #> ℹ Filtering to spots with observed sequences...
 #> ✔ Filtering to spots with observed sequences... [6ms]
 #> 
@@ -574,7 +574,7 @@ collapsed <- collapseIdenticalNeighbors(
 #> ✔ Building adjacency matrix over spots with observed sequences... [9ms]
 #> 
 #> ℹ Collapsing components to representative spots...
-#> ✔ Collapsing components to representative spots... [188ms]
+#> ✔ Collapsing components to representative spots... [192ms]
 #> 
 #> ℹ Filtering data to representative spots...
 #> ✔ Filtering data to representative spots... [11ms]

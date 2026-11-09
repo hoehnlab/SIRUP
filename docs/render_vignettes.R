@@ -34,6 +34,7 @@ render_vignettes <- function(config, only = NULL) {
     # rmarkdown writes figure links as absolute paths when output_dir is set. Make them
     # relative to the page, or the links break on the built site.
     md <- gsub(paste0(normalizePath(out_dir), "/"), "", md, fixed = TRUE)
+    md <- rewrite_html_images(md)
     if (!isFALSE(config$extras$link_rewrite)) md <- rewrite_vignette_refs(md, pkg, titles)
     writeLines(md, md_path)
     copy_referenced_assets(md, dirname(src), out_dir)
@@ -47,6 +48,21 @@ render_vignettes <- function(config, only = NULL) {
     unlink(file.path(out_dir, paste0(sub("[.]md$", "", stale), "_files")), recursive = TRUE)
   }
   invisible(NULL)
+}
+
+# knitr writes a raw HTML <img> tag when a chunk sets out.width. MkDocs does not rewrite the
+# path in raw HTML, so the image breaks on the built site (a page at /vignettes/x/ looks for
+# the file in the wrong folder). Change each relative <img> to Markdown image syntax, which
+# MkDocs does rewrite. The width attribute is dropped. The theme limits images to the page width.
+rewrite_html_images <- function(md) {
+  replace_all <- get("replace_all", mode = "function")   # defined in build_topics.R
+  replace_all(md, "(<img\\s[^>]*>)", function(c) {
+    tag <- c[1]
+    src <- sub('^.*\\ssrc="([^"]*)".*$', "\\1", tag)
+    if (identical(src, tag) || grepl("^(https?:|data:|/)", src)) return(tag)
+    alt <- if (grepl('\\salt="', tag)) sub('^.*\\salt="([^"]*)".*$', "\\1", tag) else ""
+    sprintf("![%s](%s)", alt, src)
+  })
 }
 
 # `vignette("x", package = "pkg")` -> [Title](x.md). Unknown names are left alone and reported.

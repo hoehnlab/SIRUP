@@ -258,7 +258,7 @@ plotSpatialLocalMoran(
   guides(color = guide_colorbar(title = "z"))
 ```
 
-<img src="spatial-statistics_files/figure-gfm/local-moran-plot-1.jpeg" alt="" width="100%" />
+![](spatial-statistics_files/figure-gfm/local-moran-plot-1.jpeg)
 
 The clusters of high GC B cell proportion sit at the eGC polygons. Each
 spot has its own p value. Correct for multiple testing before you call a
@@ -361,7 +361,7 @@ gc_tfh_k <- spatialRipleyCrossK(
 plotRipleyCrossK(gc_tfh_k, title = "Cross K: GC B spots to Tfh spots")
 ```
 
-<img src="spatial-statistics_files/figure-gfm/ripley-1.jpeg" alt="" width="100%" />
+![](spatial-statistics_files/figure-gfm/ripley-1.jpeg)
 
 The distance $r$ is in image pixels at the stored `image_scale`. To
 convert it to micrometers, use the Visium spot size. A spot is 55 µm
@@ -450,7 +450,7 @@ plotSpatialCloneJoinCount(
 )
 ```
 
-<img src="spatial-statistics_files/figure-gfm/join-count-plot-1.jpeg" alt="" width="100%" />
+![](spatial-statistics_files/figure-gfm/join-count-plot-1.jpeg)
 
 ## Measure how far a clone spreads
 
