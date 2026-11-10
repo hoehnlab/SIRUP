@@ -80,7 +80,7 @@ Use R 4.1 or later.
 
 ## For AI agents and LLMs
 
-SIRUP provides the following resources for AI agents.
+SIRUP provides the following resources for AI agents. See the [guide](vignettes/llm-agents.md) for more details.
 
 * [llms.txt](https://github.com/hoehnlab/SIRUP/blob/main/llms.txt) is a short Markdown index of the SIRUP documentation, with links.
 * [llms-full.txt](https://github.com/hoehnlab/SIRUP/blob/main/llms-full.txt) holds the whole documentation in one text file.
@@ -99,9 +99,9 @@ library(SIRUP)
 installSIRUPSkill("claude")   # or "codex" or "antigravity"
 ```
 
-To install the skill for one project only, give the skills folder of the project, for example `installSIRUPSkill("claude", install_dir = ".claude/skills")`. Start a new session and ask the agent which skills it has. Look for `sirup`.
-
-[Use SIRUP with your LLM agent](vignettes/llm-agents.md) has the folder for each agent, and the steps to check and update the skill.
+By default, this installs the skill for the agent for all projects. To install the skill for one project only, give 
+the skills folder of the project, for example `installSIRUPSkill("claude", install_dir = ".claude/skills")`.
+Then start a new session and ensure that the SIRUP skill is available.
 
 ## Contact
 
