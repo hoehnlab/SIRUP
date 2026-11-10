@@ -78,7 +78,6 @@ an interactive HPC session through an SSH tunnel.}
 an interactive HPC session through an SSH tunnel.}
 
 \item{quiet}{Hide warnings while the app runs (default \code{TRUE})?}
-
 }
 \value{
 A data frame with the columns \code{spatial_id}, \code{x}, \code{y}, \code{num},

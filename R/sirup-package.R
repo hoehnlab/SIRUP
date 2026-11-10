@@ -23,12 +23,10 @@
 #'     Do the same with the spatial gene expression data with [updateSpatial()]. 
 #'     Then work with both together.
 #' }
-#' The vignettes show each step: `vignette("SIRUP", package = "SIRUP")`,
-#' `vignette("processing", package = "SIRUP")`,
-#' `vignette("clones-and-trees", package = "SIRUP")`,
-#' `vignette("regions", package = "SIRUP")`,
-#' `vignette("spatial-statistics", package = "SIRUP")`, and
-#' `vignette("multisample", package = "SIRUP")`.
+#' The package vignette gives a short introduction: `vignette("sirup", package = "SIRUP")`.
+#' The documentation site has a tutorial for each step, guides, and the function
+#' reference: <https://sirup.readthedocs.io>. To use SIRUP with an LLM agent, run
+#' [installSIRUPSkill()].
 #'
 #' @keywords internal
 #' @import pbapply
