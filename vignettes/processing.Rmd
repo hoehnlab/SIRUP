@@ -29,6 +29,23 @@ knitr::opts_chunk$set(
 
 Here, we will take demultiplexed long-read sequences and process them into an [AIRR rearrangement](https://docs.airr-community.org/en/latest/datarep/rearrangements.html).
 
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package. This code
+downloads them. Change `dest` to a folder you want to keep. The default folder
+is temporary. The function skips files that are already there.
+
+```{r download-data}
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_slice2_reads.tsv.gz",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_spatial.rds"
+  )
+)
+```
+
 ## Demultiplexing long-read sequences
 
 SIRUP does not demultiplex long-read sequencing data on its own. At present, users should demultiplex their data with
@@ -209,7 +226,6 @@ reads pass. The chunks in this section and the next run on the example.
 ```{r read-raw, message = FALSE, warning = FALSE}
 library(dplyr)
 
-extdata <- system.file("extdata", package = "SIRUP")
 reads <- airr::read_rearrangement(
   file.path(extdata, "mg_thymus_slice2_reads.tsv.gz")
 )

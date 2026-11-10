@@ -27,11 +27,28 @@ show_rgl <- has_rgl && knitr::is_html_output(
 )
 ```
 
-> **Time:** about 15 minutes. **Data:** consensus BCRs and spatial gene expression from one myasthenia gravis (MG) thymus section, bundled with SIRUP. **Needs:** SIRUP with its Suggests packages scoper, alakazam, and sf, plus rgl for the 3D plot.
+> **Time:** about 15 minutes. **Data:** consensus BCRs and spatial gene expression from one myasthenia gravis (MG) thymus section, downloaded with `downloadSIRUPExample()`. **Needs:** SIRUP with its Suggests packages scoper, alakazam, and sf, plus rgl for the 3D plot.
 
 In this page you mark regions on a tissue section, attach them to a SIRUP object, and measure the B cell receptor (BCR) repertoire in each region. A *spot* is one capture location of the spatial assay. A *polygon* is a closed outline on the H&E image that you draw around spots. A *clone* is a group of receptors that descend from one ancestor cell. In the SIRUP paper, polygons mark the ectopic germinal centers (eGCs) of the MG thymus. You compare their repertoires with the germinal centers of the tonsil.
 
 You finish with a table of receptors per region, clonal dominance plots, diversity curves, and pseudobulk expression profiles. This page assumes you know the SIRUP object. See `vignette("sirup-object", package = "SIRUP")` for an introduction.
+
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package. This code
+downloads them. Change `dest` to a folder you want to keep. The default folder
+is temporary. The function skips files that are already there.
+
+```{r download-data}
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_gc_polygons.csv"
+  )
+)
+```
 
 ## Set up the object
 
@@ -44,8 +61,6 @@ library(ggplot2)
 ```
 
 ```{r setup}
-extdata <- system.file("extdata", package = "SIRUP")
-
 thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
 bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz")) %>%
   extractSpatialIds(

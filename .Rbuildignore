@@ -34,3 +34,4 @@
 ^\.github$
 ^llms\.json$
 ^llms-full\.json$
+^inst/extdata/mg_thymus_

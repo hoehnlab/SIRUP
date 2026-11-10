@@ -24,7 +24,7 @@ imgt_dir <- path.expand(Sys.getenv("SIRUP_IMGT_DIR"))
 has_trees <- nzchar(imgt_dir) && dir.exists(imgt_dir)
 ```
 
-> **Time:** about 25 minutes. **Data:** two MG thymus sections, bulk thymus BCR-seq, and bulk blood BCR-seq, bundled with SIRUP. **Needs:** SIRUP, scoper, and dowser. The tree step also needs the IMGT reference sequences.
+> **Time:** about 25 minutes. **Data:** two MG thymus sections, bulk thymus BCR-seq, and bulk blood BCR-seq, downloaded with `downloadSIRUPExample()`. **Needs:** SIRUP, scoper, and dowser. The tree step also needs the IMGT reference sequences.
 
 Most studies have more than one tissue section. You can also have bulk AIRR-seq of the same tissue, or blood from other time points. In this page, you put all of these samples in one SIRUP object. You call clones on all samples together. You then ask where each clone was seen, compare clonal dominance in each section, and build a lineage tree that has blood tips.
 
@@ -38,6 +38,32 @@ One SIRUP object can hold all of this:
 
 This page follows Figure 5 of the SIRUP paper. The MG thymus data come from a patient who had a thymectomy. Besides the two Visium sections, there is bulk BCR-seq of the thymus. There is also bulk BCR-seq of blood, taken at the thymectomy and 12 months later. The question is which clones in ectopic germinal centers (eGCs) also appear in the blood. An eGC is a site in the thymus where B cells proliferate and mutate their receptors.
 
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package. This code
+downloads them. Change `dest` to a folder you want to keep. The default folder
+is temporary. The function skips files that are already there.
+
+```{r download-data}
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_slice1_spatial.rds",
+  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice1_bcr.tsv.gz",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice1_gc_polygons.csv",
+  "mg_thymus_slice2_gc_polygons.csv",
+  "mg_thymus_bulk_thymus_1.tsv.gz",
+  "mg_thymus_bulk_thymus_2.tsv.gz",
+  "mg_thymus_bulk_blood_month0_1.tsv.gz",
+  "mg_thymus_bulk_blood_month0_2.tsv.gz",
+  "mg_thymus_bulk_blood_month12_1.tsv.gz",
+  "mg_thymus_bulk_blood_month12_2.tsv.gz"
+  )
+)
+```
+
 ## Load the samples
 
 ```{r libraries, message = FALSE, warning = FALSE}
@@ -47,8 +73,6 @@ library(ggplot2)
 ```
 
 ```{r load}
-extdata <- system.file("extdata", package = "SIRUP")
-
 spatial <- list(
   mg_thymus_slice1 = readRDS(file.path(extdata, "mg_thymus_slice1_spatial.rds")),
   mg_thymus_slice2 = readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
@@ -244,7 +268,7 @@ getReceptors(sirup) %>%
   arrange(desc(n_exported))
 ```
 
-The bundled bulk files hold a subset of the bulk data, and the clones come from that subset. For the full analysis, see Figure 5 of the SIRUP paper.
+The bulk files hold a subset of the bulk data, and the clones come from that subset. For the full analysis, see Figure 5 of the SIRUP paper.
 
 ## Measure clonal dominance in each section
 

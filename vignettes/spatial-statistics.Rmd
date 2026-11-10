@@ -25,7 +25,7 @@ has_spatstat <- requireNamespace("spatstat.explore", quietly = TRUE) &&
   requireNamespace("spatstat.random", quietly = TRUE)
 ```
 
-> **Time:** about 15 minutes. **Data:** MG thymus section 2, with BCRs, TCRs, gene expression, and cell-type estimates, bundled with SIRUP. **Needs:** SIRUP with spdep, scoper, and spatstat.explore, spatstat.geom, and spatstat.random.
+> **Time:** about 15 minutes. **Data:** MG thymus section 2, with BCRs, TCRs, gene expression, and cell-type estimates, downloaded with `downloadSIRUPExample()`. **Needs:** SIRUP with spdep, scoper, and spatstat.explore, spatstat.geom, and spatstat.random.
 
 A map can suggest that a gene clusters or that a clone stays in one place. A spatial statistic tests whether the pattern is stronger than chance. In this page you run five such tests on one myasthenia gravis (MG) thymus section. A *spot* is one capture location of the spatial assay. A *clone* is a group of receptors that descend from one ancestor cell.
 
@@ -41,6 +41,25 @@ A map can suggest that a gene clusters or that a clone stays in one place. A spa
 
 Each function accepts a SIRUP object. It reads the spot coordinates and the image settings from the object.
 
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package. This code
+downloads them. Change `dest` to a folder you want to keep. The default folder
+is temporary. The function skips files that are already there.
+
+```{r download-data}
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_cell_types.csv.gz",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_gc_polygons.csv",
+  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice2_tcr.tsv.gz"
+  )
+)
+```
+
 ## Set up the object
 
 Load the packages, then build one BCR object and one TCR object from the example data.
@@ -52,7 +71,6 @@ library(ggplot2)
 ```
 
 ```{r setup}
-extdata <- system.file("extdata", package = "SIRUP")
 read_receptors <- function(file, locus) {
   airr::read_rearrangement(file.path(extdata, file)) %>%
     extractSpatialIds(

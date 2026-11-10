@@ -34,6 +34,24 @@ Here, we will build a SIRUP object from example data and run a few simple analys
   This page starts after read processing. If you have raw or demultiplexed reads, see `vignette("processing", package = "SIRUP")` first.
 </div>
 
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package. This code
+downloads them. Change `dest` to a folder you want to keep. The default folder
+is temporary. The function skips files that are already there.
+
+```{r download-data}
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_gc_polygons.csv",
+  "mg_thymus_cell_types.csv.gz"
+  )
+)
+```
+
 ## Install SIRUP
 
 Install SIRUP and its dependencies from GitHub with BiocManager:
@@ -69,11 +87,7 @@ This vignette uses these files:
 | `mg_thymus_slice2_gc_polygons.csv` | Annotated polygons of the eGCs |
 | `mg_thymus_cell_types.csv.gz` | Cell-type proportions for each spot |
 
-The files are in the `extdata` folder of the package. This code finds the folder:
-
-```{r extdata}
-extdata <- system.file("extdata", package = "SIRUP")
-```
+The code above downloaded these files with `downloadSIRUPExample()`.
 
 The SIRUP paper describes how the authors made these files. To reduce file sizes,
 each Seurat object holds a few hundred genes and a reduced image.

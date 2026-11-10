@@ -26,15 +26,32 @@ has_imgt <- nzchar(imgt_dir) && dir.exists(imgt_dir) && has_shazam
 has_trees <- has_imgt
 ```
 
-> **Time:** about 20 minutes. **Data:** MG thymus section 2, bundled with SIRUP. **Needs:** SIRUP, scoper, dowser, shazam, and the IMGT reference sequences for the germline and tree steps.
+> **Time:** about 20 minutes. **Data:** MG thymus section 2, downloaded with `downloadSIRUPExample()`. **Needs:** SIRUP, scoper, dowser, shazam, and the IMGT reference sequences for the germline and tree steps.
 
 A clone is a group of B or T cells that descend from one ancestor cell and share its receptor rearrangement. In this page, you call clones in a SIRUP object and build a lineage tree for some of them. A lineage tree shows how the sequences of one clone relate to each other. Each tip of the tree is one sequence. You then pair each tree with the tissue, so you can see where each tip sits. At the end, you compare distances in the tree with distances on the tissue.
 
 SIRUP does not reimplement clone calling or tree building. It runs the Immcantation tools (scoper, dowser, shazam) on the receptor table inside the SIRUP object. It then adds the spatial part: clone maps, trees paired with tissue plots, and distances between tips in and between regions.
 
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package. This code
+downloads them. Change `dest` to a folder you want to keep. The default folder
+is temporary. The function skips files that are already there.
+
+```{r download-data}
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_gc_polygons.csv"
+  )
+)
+```
+
 ## Load the data
 
-This page uses MG thymus section 2 and its polygons. Each polygon outlines one ectopic germinal center (eGC). An eGC is a site in the thymus where B cells proliferate and mutate their receptors. The data are bundled with SIRUP.
+This page uses MG thymus section 2 and its polygons. Each polygon outlines one ectopic germinal center (eGC). An eGC is a site in the thymus where B cells proliferate and mutate their receptors. The code in the first section downloads the data.
 
 ```{r libraries, message = FALSE, warning = FALSE}
 library(SIRUP)
@@ -43,8 +60,6 @@ library(ggplot2)
 ```
 
 ```{r setup}
-extdata <- system.file("extdata", package = "SIRUP")
-
 thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
 bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz")) %>%
   extractSpatialIds(
