@@ -94,7 +94,8 @@ NULL
 #' @param overwrite Download a file again even if it is already in `dest`
 #'   (default `FALSE`)?
 #' @param base_url Web address of the folder that holds the files. Change it only
-#'   to use a mirror.
+#'   to use a mirror. A `file://` address of a local folder also works. The
+#'   default is the option `SIRUP.example_url` if you set it.
 #' @param quiet Hide the download progress messages (default `FALSE`)?
 #'
 #' @return The path of `dest`, invisibly. Use `file.path()` with the path and a
@@ -110,7 +111,7 @@ NULL
 downloadSIRUPExample <- function(dest = file.path(tempdir(), "SIRUP_example"),
                                  files = NULL,
                                  overwrite = FALSE,
-                                 base_url = .sirup_example_url,
+                                 base_url = getOption("SIRUP.example_url", .sirup_example_url),
                                  quiet = FALSE) {
   if (is.null(files)) {
     files <- names(.sirup_example_files)

@@ -8,7 +8,7 @@ downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = NULL,
   overwrite = FALSE,
-  base_url = .sirup_example_url,
+  base_url = getOption("SIRUP.example_url", .sirup_example_url),
   quiet = FALSE
 )
 }
@@ -24,7 +24,8 @@ function downloads all files. Use this to download only what a guide needs.}
 (default \code{FALSE})?}
 
 \item{base_url}{Web address of the folder that holds the files. Change it only
-to use a mirror.}
+to use a mirror. A \verb{file://} address of a local folder also works. The
+default is the option \code{SIRUP.example_url} if you set it.}
 
 \item{quiet}{Hide the download progress messages (default \code{FALSE})?}
 }
