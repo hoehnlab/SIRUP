@@ -78,12 +78,30 @@ Use R 4.1 or later.
 * [Choose a spatial statistic](vignettes/choose-spatial-statistic.md). Match
   your question to a function.
 
-**For AI Assistants and/or LLMs**
+## For AI agents and LLMs
 
-AI assistants and other automated agents can read two files in the SIRUP repository:
+SIRUP provides the following resources for AI agents.
 
-* [llms.txt](https://github.com/hoehnlab/SIRUP/blob/main/llms.txt) is a short index of the SIRUP documentation. It links to each tutorial, guide, and function page.
-* [llms-full.txt](https://github.com/hoehnlab/SIRUP/blob/main/llms-full.txt) joins the whole documentation into one file. It holds every tutorial, guide, and function page.
+* [llms.txt](https://github.com/hoehnlab/SIRUP/blob/main/llms.txt) is a short Markdown index of the SIRUP documentation, with links.
+* [llms-full.txt](https://github.com/hoehnlab/SIRUP/blob/main/llms-full.txt) holds the whole documentation in one text file.
+* [llms.json](https://github.com/hoehnlab/SIRUP/blob/main/llms.json) is the same index as JSON. It lists each tutorial, guide, and function, with a summary and links.
+* [llms-full.json](https://github.com/hoehnlab/SIRUP/blob/main/llms-full.json) holds the whole documentation as JSON, with the full text of each page.
+* The **SIRUP skill** teaches an agent how to use SIRUP: how to build an object, which function answers which question, and which checks to run. Find the skill in `inst/skills/sirup`, and install it as shown below.
+
+**Set up the skill**
+
+Install SIRUP. Then use the `installSIRUPSkill()` function to install the skill for your agent. Currently,  
+`installSIRUPSkill` is set up to work for Claude Code, Codex, or Antigravity. Other types of agents can be set up by 
+manually installing the skill.
+
+```r
+library(SIRUP)
+installSIRUPSkill("claude")   # or "codex" or "antigravity"
+```
+
+To install the skill for one project only, give the skills folder of the project, for example `installSIRUPSkill("claude", install_dir = ".claude/skills")`. Start a new session and ask the agent which skills it has. Look for `sirup`.
+
+[Use SIRUP with your LLM agent](vignettes/llm-agents.md) has the folder for each agent, and the steps to check and update the skill.
 
 ## Contact
 
@@ -364,6 +382,7 @@ sirup <- createSIRUP(
   swap_coords = FALSE,
   polygons_path = file.path(extdata, "mg_thymus_slice2_gc_polygons.csv")
 )
+#> Loading required namespace: Seurat
 ```
 
 The code replaces the comma in each `sequence_id` with `_`. dowser
@@ -745,7 +764,7 @@ pairs_table %>%
 #>   pair           n_pairs median_distance
 #>   <chr>            <int>           <dbl>
 #> 1 different eGCs       5          0.0273
-#> 2 same eGC            10          0.0150
+#> 2 same eGC            10          0.0123
 ```
 
 Read the two medians in the table. One clone cannot support a
@@ -1314,127 +1333,21 @@ sirup <- setAnalysis(sirup, "gc_dominance", dominance)
 listAnalyses(sirup)
 #> [1] "polygon_receptor_summary" "gc_dominance"
 
-getAnalysis(sirup, "gc_dominance") %>% str()
+getAnalysis(sirup, "gc_dominance") %>% str(max.level = 1)
 #> List of 6
 #>  $ dominance         :'data.frame':  87 obs. of  11 variables:
-#>   ..$ clone_id             : chr [1:87] "928" "720" "859" "17" ...
-#>   ..$ v_gene               : chr [1:87] "IGHV4-61*01" "IGHV3-7*04" "IGHV4-34*01" "IGHV5-51*01" ...
-#>   ..$ v_gene_family        : chr [1:87] "IGHV4-61" "IGHV3-7" "IGHV4-34" "IGHV5-51" ...
-#>   ..$ v_gene_superfamily   : chr [1:87] "IGHV4" "IGHV3" "IGHV4" "IGHV5" ...
-#>   ..$ n_receptors          : num [1:87] 4 3 3 2 2 2 2 2 1 1 ...
-#>   ..$ proportion           : num [1:87] 0.1429 0.1071 0.1071 0.0714 0.0714 ...
-#>   ..$ region_receptor_total: num [1:87] 28 28 28 28 28 28 28 28 28 28 ...
-#>   ..$ n_region_spatial_ids : int [1:87] 7 7 7 7 7 7 7 7 7 7 ...
-#>   ..$ polygon              : chr [1:87] "1" "1" "1" "1" ...
-#>   ..$ polygon_id           : chr [1:87] "1" "1" "1" "1" ...
-#>   ..$ polygon_label        : chr [1:87] "1" "1" "1" "1" ...
 #>  $ region_spatial_ids:'data.frame':  55 obs. of  3 variables:
-#>   ..$ spatial_id: chr [1:55] "ACATCGATCGTTTACC-1" "AGTTCCTATTTATGTT-1" "ATCGACCCAATACAGA-1" "CAGTCTGTATACTGGG-1" ...
-#>   ..$ polygon   : chr [1:55] "1" "1" "1" "1" ...
-#>   ..$ polygon_id: chr [1:55] "1" "1" "1" "1" ...
 #>  $ region_coordinates:'data.frame':  55 obs. of  9 variables:
-#>   ..$ cell             : chr [1:55] "ACATCGATCGTTTACC-1" "AGTTCCTATTTATGTT-1" "ATCGACCCAATACAGA-1" "CAGTCTGTATACTGGG-1" ...
-#>   ..$ x                : num [1:55] 296 307 300 310 303 ...
-#>   ..$ y                : num [1:55] 320 327 327 320 320 ...
-#>   ..$ .sirup_y         : num [1:55] -320 -327 -327 -320 -320 ...
-#>   ..$ image            : chr [1:55] "thymus_slice2" "thymus_slice2" "thymus_slice2" "thymus_slice2" ...
-#>   ..$ .sirup_spatial_id: chr [1:55] "ACATCGATCGTTTACC-1" "AGTTCCTATTTATGTT-1" "ATCGACCCAATACAGA-1" "CAGTCTGTATACTGGG-1" ...
-#>   ..$ polygon          : chr [1:55] "1" "1" "1" "1" ...
-#>   ..$ polygon_id       : chr [1:55] "1" "1" "1" "1" ...
-#>   ..$ polygon_label    : chr [1:55] "1" "1" "1" "1" ...
 #>  $ region_receptors  :'data.frame':  156 obs. of  78 variables:
-#>   ..$ .sirup_spatial_id : chr [1:156] "ATCGACCCAATACAGA-1" "ATCGACCCAATACAGA-1" "ATCGACCCAATACAGA-1" "ATCGACCCAATACAGA-1" ...
-#>   ..$ sequence_id       : chr [1:156] "2,ATCGACCCAATACAGA" "8,ATCGACCCAATACAGA" "1,ATCGACCCAATACAGA" "10,ATCGACCCAATACAGA" ...
-#>   ..$ sequence          : chr [1:156] "GAAGTGCAGCTGGTGCAGTCCGGAGCAGAGGTGAAAAAGCCCGGGGAGTCTCTGAGGATCTCCTGTAAGGGTTCTGGATACAGCTTTACCAGCTACTGGATNAGCNGGGTG"| __truncated__ "GAGGTGCAGCTGGTGCAGTCTGGAGCAGAGGTGAAAAAGCCCGGGGAGTCTCTGAAGATCTCCTGTAAGGGTTCTGGATACAGCTTTACCAGCTACTGGATCGGCTGGGTG"| __truncated__ "GAGGTGCAGCTGGTGGAGTCTGGGGGAGGCTTGGTGAAGCCTGGGGGGTCCCTTACACTCTCCTGTGCAGCCGCTGGTTTCACTTTCAATAAGGCCTGGATGAACTGGGTC"| __truncated__ "GAGGTGCAGCTGGTGGAGTCTGGGGGAGGCTTGGTACAGCCTGGGGGGTCCCTTAGACTCTCCTGTGCAGCCTCTGGATTCACTTTCAATTACGCCTGGATGAGCTGGGTC"| __truncated__ ...
-#>   ..$ rev_comp          : logi [1:156] FALSE FALSE FALSE FALSE FALSE FALSE ...
-#>   ..$ productive        : logi [1:156] TRUE TRUE TRUE TRUE TRUE TRUE ...
-#>   ..$ v_call            : chr [1:156] "IGHV5-10-1*03" "IGHV5-51*01" "IGHV3-15*07" "IGHV3-15*01" ...
-#>   ..$ d_call            : chr [1:156] "IGHD4-17*01" "IGHD3-3*01,IGHD3-3*02" "IGHD3-22*01" "IGHD1-26*01" ...
-#>   ..$ j_call            : chr [1:156] "IGHJ6*02" "IGHJ4*02" "IGHJ3*02" "IGHJ4*02" ...
-#>   ..$ sequence_alignment: chr [1:156] "GAAGTGCAGCTGGTGCAGTCCGGAGCA...GAGGTGAAAAAGCCCGGGGAGTCTCTGAGGATCTCCTGTAAGGGTTCTGGATACAGCTTT............ACCAGCTAC"| __truncated__ "GAGGTGCAGCTGGTGCAGTCTGGAGCA...GAGGTGAAAAAGCCCGGGGAGTCTCTGAAGATCTCCTGTAAGGGTTCTGGATACAGCTTT............ACCAGCTAC"| __truncated__ "GAGGTGCAGCTGGTGGAGTCTGGGGGA...GGCTTGGTGAAGCCTGGGGGGTCCCTTACACTCTCCTGTGCAGCCGCTGGTTTCACTTTC............AATAAGGCC"| __truncated__ "GAGGTGCAGCTGGTGGAGTCTGGGGGA...GGCTTGGTACAGCCTGGGGGGTCCCTTAGACTCTCCTGTGCAGCCTCTGGATTCACTTTC............AATTACGCC"| __truncated__ ...
-#>   ..$ germline_alignment: chr [1:156] "GAAGTGCAGCTGGTGCAGTCCGGAGCA...GAGGTGAAAAAGCCCGGGGAGTCTCTGAGGATCTCCTGTAAGGGTTCTGGATACAGCTTT............ACCAGCTAC"| __truncated__ "GAGGTGCAGCTGGTGCAGTCTGGAGCA...GAGGTGAAAAAGCCCGGGGAGTCTCTGAAGATCTCCTGTAAGGGTTCTGGATACAGCTTT............ACCAGCTAC"| __truncated__ "GAGGTGCAGCTGGTGGAGTCTGGGGGA...GGCTTGGTAAAGCCTGGGGGGTCCCTTAGACTCTCCTGTGCAGCCTCTGGTTTCACTTTC............AGTAACGCC"| __truncated__ "GAGGTGCAGCTGGTGGAGTCTGGGGGA...GGCTTGGTAAAGCCTGGGGGGTCCCTTAGACTCTCCTGTGCAGCCTCTGGATTCACTTTC............AGTAACGCC"| __truncated__ ...
-#>   ..$ junction          : chr [1:156] "TGTGCGCGCAGCTACGGTGACTACGAGGAGGACTACTACTACTACGGTATGGACGTCTGG" "TGTGCGAGGTTTTGGAGTGGTTACCACGGAACACCTTACTACTTTGACTACTGG" "TGTACCACTCCGCGGCGGACTTATGATAGTGGTGCTTATTATGAACCGGATGCTTTTGATATCTGG" "TGTGCCACGATGGGAGGCAGTGGGAGCTACAAGGTCTACTGG" ...
-#>   ..$ junction_aa       : chr [1:156] "CARSYGDYEEDYYYYGMDVW" "CARFWSGYHGTPYYFDYW" "CTTPRRTYDSGAYYEPDAFDIW" "CATMGGSGSYKVYW" ...
-#>   ..$ v_cigar           : chr [1:156] "101=1X3=1X185=" "293=" "35=1X19=1X16=1X15=1X3=1X38=1X16=1X5=1X5=1X38=1X44=1X54=" "36=1X51=1X1=1X68=1X70=1X1=1X39=1X21=1X4=" ...
-#>   ..$ d_cigar           : chr [1:156] "296S3N13=" "294S10N14=" "312S7N9=1X3=1X6=" "309S5N12=" ...
-#>   ..$ j_cigar           : chr [1:156] "316S3N60=" "322S45=" "339S1N49=" "326S10N38=" ...
-#>   ..$ stop_codon        : logi [1:156] FALSE FALSE FALSE FALSE FALSE FALSE ...
-#>   ..$ vj_in_frame       : logi [1:156] TRUE TRUE TRUE TRUE TRUE TRUE ...
-#>   ..$ locus             : chr [1:156] "IGH" "IGH" "IGH" "IGH" ...
-#>   ..$ c_call            : chr [1:156] "IGHD" "IGHM" "IGHA1" "IGHM" ...
-#>   ..$ junction_length   : int [1:156] 60 54 66 42 42 42 48 36 51 36 ...
-#>   ..$ np1_length        : int [1:156] 5 1 13 10 4 4 10 4 22 4 ...
-#>   ..$ np2_length        : int [1:156] 7 14 7 5 2 2 9 0 4 0 ...
-#>   ..$ v_sequence_start  : int [1:156] 1 1 1 1 1 1 1 1 1 1 ...
-#>   ..$ v_sequence_end    : int [1:156] 291 293 299 299 296 296 288 296 296 293 ...
-#>   ..$ v_germline_start  : int [1:156] 1 1 1 1 1 1 1 1 1 1 ...
-#>   ..$ v_germline_end    : int [1:156] 315 317 317 317 320 320 315 320 317 320 ...
-#>   ..$ d_sequence_start  : int [1:156] 297 295 313 310 301 301 299 301 319 298 ...
-#>   ..$ d_sequence_end    : int [1:156] 309 308 332 321 313 313 305 312 324 309 ...
-#>   ..$ d_germline_start  : int [1:156] 4 11 8 6 7 7 4 7 15 7 ...
-#>   ..$ d_germline_end    : int [1:156] 16 24 27 17 19 19 10 18 20 18 ...
-#>   ..$ j_sequence_start  : int [1:156] 317 323 340 327 316 316 315 313 329 310 ...
-#>   ..$ j_sequence_end    : int [1:156] 376 367 388 364 354 357 361 352 370 349 ...
-#>   ..$ j_germline_start  : int [1:156] 4 1 2 11 6 6 2 9 7 9 ...
-#>   ..$ j_germline_end    : int [1:156] 63 45 50 48 45 48 48 48 48 48 ...
-#>   ..$ v_score           : num [1:156] 449 458 433 442 453 453 430 453 400 445 ...
-#>   ..$ v_identity        : num [1:156] 0.993 1 0.963 0.973 0.99 ...
-#>   ..$ v_support         : num [1:156] 4.46e-128 6.66e-131 2.25e-123 3.24e-126 1.64e-129 ...
-#>   ..$ d_score           : num [1:156] 25.7 27.6 27.6 23.8 25.7 25.7 14.1 23.8 12.2 23.8 ...
-#>   ..$ d_identity        : num [1:156] 1 1 0.9 1 1 1 1 1 1 1 ...
-#>   ..$ d_support         : num [1:156] 0.005 0.001 0.001 0.017 0.004 0.004 13 0.017 52 0.016 ...
-#>   ..$ j_score           : num [1:156] 116 87.2 94.9 73.7 62.2 68 91.1 77.6 69.9 77.6 ...
-#>   ..$ j_identity        : num [1:156] 1 1 1 1 0.975 ...
-#>   ..$ j_support         : num [1:156] 4.96e-30 2.33e-21 1.19e-23 2.60e-17 7.49e-14 ...
-#>   ..$ fwr1              : chr [1:156] "GAAGTGCAGCTGGTGCAGTCCGGAGCA...GAGGTGAAAAAGCCCGGGGAGTCTCTGAGGATCTCCTGTAAGGGTTCT" "GAGGTGCAGCTGGTGCAGTCTGGAGCA...GAGGTGAAAAAGCCCGGGGAGTCTCTGAAGATCTCCTGTAAGGGTTCT" "GAGGTGCAGCTGGTGGAGTCTGGGGGA...GGCTTGGTGAAGCCTGGGGGGTCCCTTACACTCTCCTGTGCAGCCGCT" "GAGGTGCAGCTGGTGGAGTCTGGGGGA...GGCTTGGTACAGCCTGGGGGGTCCCTTAGACTCTCCTGTGCAGCCTCT" ...
-#>   ..$ fwr2              : chr [1:156] "ATNAGCNGGGTGCGCCAGATGCCCGGGAAAGGCCTGGAGTGGATGGGGAGG" "ATCGGCTGGGTGCGCCAGATGCCCGGGAAAGGCCTGGAGTGGATGGGGATC" "ATGAACTGGGTCCGCCAGGCTCCAGGGAAGGGACTGGAGTGGGTCGGCCAT" "ATGAGCTGGGTCCGCCAGGCTCCAGGGAAGGGGCTGGAGTGGGTTGGCCGT" ...
-#>   ..$ fwr3              : chr [1:156] "AACTACAGCCCGTCCTTCCAA...GGCCACGTCACCATCTCAGCTGACAAGTCCATCAGCACTGCCTACCTGCAGTGGAGCAGCCTGAAGGCCTCGGACACCGCCATGTATTACTGT" "AGATACAGCCCGTCCTTCCAA...GGCCAGGTCACCATCTCAGCCGACAAGTCCATCAGCACCGCCTACCTGCAGTGGAGCAGCCTGAAGGCCTCGGACACCGCCATGTATTACTGT" "GACTACGCTGCACCCGTGACA...GGCAGATTCACCATCTCAAGAGATGATTCAAAAAACACGCTGTTTCTGCAAATGAACAGCCTGAAAACCGAGGACACAGCCGTGTATTACTGT" "GACTACGCTGCACCCGTGAAA...GGCAGATTCACCATCTCAAGAGATGATTCGAGAAACACGCTGTATCTGCAAATGAACAGCCTGAAAACCGACGACACAGCCGTGTATTACTGT" ...
-#>   ..$ fwr4              : chr [1:156] "TGGGGCCAAGGGACCACGGTCACCGTCTCCTCAG" "TGGGGCCAGGGAACCCTGGTCACCGTCTCCT" "TGGGGCCAAGGGACAATGGTCACCGTCTCTTCAG" "TGGGGCCAGGGAACCCTGGTCACCGTCTCCTCAG" ...
-#>   ..$ cdr1              : chr [1:156] "GGATACAGCTTT............ACCAGCTACTGG" "GGATACAGCTTT............ACCAGCTACTGG" "GGTTTCACTTTC............AATAAGGCCTGG" "GGATTCACTTTC............AATTACGCCTGG" ...
-#>   ..$ cdr2              : chr [1:156] "ATTGATCCTAGT......GACTCTTATACC" "ATCTATCCTGGT......GACTCTGATACC" "ATTAGAAGCAGAACTGATGGTGGGACAACA" "ATTAAAAGCGAAACTGATGGTGGGACAACA" ...
-#>   ..$ cdr3              : chr [1:156] "GCGCGCAGCTACGGTGACTACGAGGAGGACTACTACTACTACGGTATGGACGTC" "GCGAGGTTTTGGAGTGGTTACCACGGAACACCTTACTACTTTGACTAC" "ACCACTCCGCGGCGGACTTATGATAGTGGTGCTTATTATGAACCGGATGCTTTTGATATC" "GCCACGATGGGAGGCAGTGGGAGCTACAAGGTCTAC" ...
-#>   ..$ consensus_count   : int [1:156] 1 1 1 1 1 2 1 1 1 1 ...
-#>   ..$ cc_bc_umi         : chr [1:156] "6" "10" "3" "8" ...
-#>   ..$ n_productive_reads: chr [1:156] "2" "4" "1" "4" ...
-#>   ..$ c_call_freq       : chr [1:156] "1" "1" "1" "1" ...
-#>   ..$ barcode_10x       : chr [1:156] "ATCGACCCAATACAGA-1" "ATCGACCCAATACAGA-1" "ATCGACCCAATACAGA-1" "ATCGACCCAATACAGA-1" ...
-#>   ..$ v_sequence_length : int [1:156] 291 293 299 299 296 296 288 296 296 293 ...
-#>   ..$ j_sequence_length : int [1:156] 60 45 49 38 39 42 47 40 42 40 ...
-#>   ..$ clone_id          : chr [1:156] "1" "17" "313" "322" ...
-#>   ..$ polygon_id        : chr [1:156] "1" "1" "1" "1" ...
-#>   ..$ polygon_1         : logi [1:156] TRUE TRUE TRUE TRUE TRUE TRUE ...
-#>   ..$ polygon_2         : logi [1:156] FALSE FALSE FALSE FALSE FALSE FALSE ...
-#>   ..$ polygon_3         : logi [1:156] FALSE FALSE FALSE FALSE FALSE FALSE ...
-#>   ..$ polygon_4         : logi [1:156] FALSE FALSE FALSE FALSE FALSE FALSE ...
-#>   ..$ polygon_5         : logi [1:156] FALSE FALSE FALSE FALSE FALSE FALSE ...
-#>   ..$ polygon_6         : logi [1:156] FALSE FALSE FALSE FALSE FALSE FALSE ...
-#>   ..$ polygon_7         : logi [1:156] FALSE FALSE FALSE FALSE FALSE FALSE ...
-#>   ..$ polygon_8         : logi [1:156] FALSE FALSE FALSE FALSE FALSE FALSE ...
-#>   ..$ polygon_9         : logi [1:156] FALSE FALSE FALSE FALSE FALSE FALSE ...
-#>   ..$ cell              : chr [1:156] "ATCGACCCAATACAGA-1" "ATCGACCCAATACAGA-1" "ATCGACCCAATACAGA-1" "ATCGACCCAATACAGA-1" ...
-#>   ..$ x                 : num [1:156] 300 300 300 300 300 ...
-#>   ..$ y                 : num [1:156] 327 327 327 327 327 ...
-#>   ..$ image             : chr [1:156] "thymus_slice2" "thymus_slice2" "thymus_slice2" "thymus_slice2" ...
-#>   ..$ .sirup_y          : num [1:156] -327 -327 -327 -327 -327 ...
-#>   ..$ polygon           : chr [1:156] "1" "1" "1" "1" ...
-#>   ..$ polygon_label     : chr [1:156] "1" "1" "1" "1" ...
-#>   ..$ v_gene            : chr [1:156] "IGHV5-10-1*03" "IGHV5-51*01" "IGHV3-15*07" "IGHV3-15*01" ...
-#>   ..$ v_gene_family     : chr [1:156] "IGHV5-10-1" "IGHV5-51" "IGHV3-15" "IGHV3-15" ...
-#>   ..$ v_gene_superfamily: chr [1:156] "IGHV5" "IGHV5" "IGHV3" "IGHV3" ...
 #>  $ polygons          :'data.frame':  47 obs. of  4 variables:
-#>   ..$ x       : num [1:47] 300 307 310 307 300 ...
-#>   ..$ y       : num [1:47] 327 327 320 314 314 ...
-#>   ..$ polygon : chr [1:47] "1" "1" "1" "1" ...
-#>   ..$ .sirup_y: num [1:47] -327 -327 -320 -314 -314 ...
 #>  $ metadata          :List of 1
-#>   ..$ receptor_fields:List of 5
-#>   .. ..$ spatial_id: chr "barcode_10x"
-#>   .. ..$ clone     : chr "clone_id"
-#>   .. ..$ locus     : chr "locus"
-#>   .. ..$ count     : NULL
-#>   .. ..$ v_call    : chr "v_call"
 #>  - attr(*, "class")= chr [1:2] "sirup_spatial_clone_dominance" "list"
 ```
+
+The stored result is a list. Its `dominance` item is the table of clone
+fractions. The other items hold the spots, coordinates, receptors, and
+polygon vertices of each region, and the field names that the function
+used.
 
 ## Save and read a SIRUP object
 
@@ -1468,6 +1381,195 @@ sirup
   [Test spatial patterns of genes, cells, and clones](spatial-statistics.md).
 - To process your own reads, read
   [Process demultiplexed reads](processing.md).
+
+
+---
+
+<!-- source: docs/vignettes/llm-agents.md -->
+
+Use SIRUP with your LLM agent
+================
+
+> **Time:** about 10 minutes. **Needs:** SIRUP, and an LLM agent that
+> can run R code, such as Claude Code, Codex, or Antigravity.
+
+An LLM agent can write and run SIRUP code for you. It writes better code
+when it knows how SIRUP works. SIRUP gives agents three kinds of help: a
+skill, the llms files, and this documentation. This page shows how to
+set them up and how to work with an agent on spatial receptor data.
+
+## What an agent can do, and what you do
+
+An agent can build a SIRUP object from your files, call clones, make
+plots, run spatial statistics, write scripts for a cluster, and explain
+error messages.
+
+Some steps stay with you:
+
+- You draw regions with the polygon app. An agent cannot click.
+- You supply the IMGT reference folder for germline and tree steps.
+- You approve the installation of outside tools, such as IgBLAST and
+  pRESTO.
+- You choose parameters that depend on your experiment.
+- You check the results.
+
+The SIRUP skill tells an agent about these limits.
+
+## Choose how to give your agent SIRUP knowledge
+
+| Method | What it is | Use it when |
+|----|----|----|
+| The SIRUP skill | A folder of instructions that your agent reads when your request matches | Your agent supports Agent Skills. Claude Code, Codex, and Antigravity do. |
+| The llms files | Text and JSON copies of the documentation | Your agent does not support skills, or you work in a chat window |
+| This documentation | The pages of this site | You read the pages yourself, or your agent can browse the web |
+
+## Install the skill
+
+Agent Skills is an open format. Anthropic created it, and
+[agentskills.io](https://agentskills.io) describes it. A skill is a
+folder with a file named `SKILL.md`. The file starts with a name and a
+description. At the start of a session, your agent reads the name and
+the description of each installed skill. It reads the rest of the folder
+only when your request matches a description.
+
+SIRUP ships its skill inside the R package, in `inst/skills/sirup`. When
+R installs a package, it copies the contents of `inst/` into the package
+folder. The skill lands in your R library, and your agent does not look
+there. The function `installSIRUPSkill()` copies the skill to the place
+where your agent looks.
+
+``` r
+library(SIRUP)
+
+installSIRUPSkill("claude")        # Claude Code
+installSIRUPSkill("codex")         # Codex
+installSIRUPSkill("antigravity")   # Antigravity
+```
+
+Run the line for your agent. By default, the function installs the skill
+in the folder that the agent reads for all your projects:
+
+| `agent` | Folder for all your projects (the default) | Folder for one project |
+|----|----|----|
+| `"claude"` (Claude Code) | `~/.claude/skills/` | `.claude/skills/` in the project |
+| `"codex"` (Codex) | `~/.agents/skills/` | `.agents/skills/` in the repository |
+| `"antigravity"` (Antigravity) | `~/.gemini/config/skills/` | `.agents/skills/` in the workspace |
+
+The documentation of each agent is the source for these folders, and the
+folders can change. If the skill does not appear, check the pages for
+[Codex](https://learn.chatgpt.com/docs/build-skills) and
+[Antigravity](https://antigravity.google/docs/skills).
+
+To install the skill for one project only, give the skills folder of the
+project to `install_dir`. A relative path starts in your working
+directory:
+
+``` r
+installSIRUPSkill("claude", install_dir = ".claude/skills")
+installSIRUPSkill("codex", install_dir = ".agents/skills")
+```
+
+The function has four arguments:
+
+- `agent` is `"claude"`, `"codex"`, or `"antigravity"`.
+- `install_dir` is the skills folder that receives the skill. The
+  default `NULL` means the folder for all your projects. The function
+  makes the folder if it does not exist.
+- `overwrite` replaces a skill that is already there. The default is
+  `TRUE`. With `FALSE`, the function stops when the skill exists.
+- `quiet` hides the message that says where the skill went. The default
+  is `FALSE`.
+
+The function copies the skill to a folder named `sirup` inside
+`install_dir`, and it returns the path of that folder. If an old `sirup`
+folder holds a `SKILL.md` file, the function removes it first, so that
+no old files stay. If the folder exists but holds no `SKILL.md` file,
+the function stops, because it must not remove a folder that is not a
+skill. On Windows, the default folders start in your user folder
+(`USERPROFILE`).
+
+You can also copy the skill by hand.
+`system.file("skills", "sirup", package = "SIRUP")` returns the path of
+the skill folder. Copy that folder into the skills folder of your agent.
+
+### Check that your agent sees the skill
+
+Start a new session. Ask the agent which skills it has, and look for
+`sirup`. Codex and the Antigravity command-line tool also list skills
+with `/skills`. In the Antigravity editor, open the Customizations menu
+in the agent panel. If you add a skill while an agent runs, restart the
+agent first. In the Antigravity command-line tool, run `/skills reload`
+instead.
+
+### Update the skill
+
+New SIRUP versions improve the skill, because the function lists in it
+come from the documentation of each version. After you update SIRUP, run
+`installSIRUPSkill()` again. It replaces the old copy.
+
+## Use the llms files instead
+
+The SIRUP repository holds four files:
+
+| File | Content |
+|----|----|
+| `llms.txt` | A short Markdown index of the documentation, with links |
+| `llms-full.txt` | The whole documentation in one text file |
+| `llms.json` | The same index as JSON: the sections, and the title, summary, and links of each page and function |
+| `llms-full.json` | The whole documentation as JSON, with the full text of each page |
+
+Give an agent that has no skill support the address of `llms.json` or
+`llms.txt`. Tell it to read the index and then to fetch the page that it
+needs. The full files are large, about 400 KB each. Many chat windows
+cannot hold them. Start with the short index.
+
+## Example requests
+
+Use these requests with the skill installed. Replace the file names with
+your own.
+
+``` text
+I have a Seurat object in spatial.rds and an AIRR table in bcr.tsv.gz.
+Build a SIRUP object and call clones. Tell me how many sequences you removed and why.
+
+Which spatial statistic should I use to test whether one clone stays in one place?
+
+Load the polygons in polygons.csv. Show which clones dominate each region.
+
+Build lineage trees for the three largest clones in region 5. Tell me what the run needs
+before you start.
+
+Write a Slurm script that runs processSpatialSample() on my demultiplexed reads.
+Do not run it.
+
+This error came from createSIRUP(): <paste the error>. Explain it and fix the call.
+```
+
+## Work with an agent with care
+
+- **Read the code before you run it.** Ask the agent to explain each
+  step.
+- **Protect private data.** A hosted agent sends your requests, and the
+  files that it reads, to its provider. Check your data agreement before
+  you share patient data. The example data that comes with SIRUP is for
+  tutorials.
+- **Ask for checks.** Ask the agent to print the receptor count before
+  and after each change, and to run `validateSIRUP()`.
+- **Ask what the agent did not run.** An agent can describe a result
+  that it did not produce.
+- **Record your setup.** Keep the SIRUP version from
+  `packageVersion("SIRUP")`, and keep the seeds in your scripts.
+
+An agent does not replace an expert review of your results.
+
+## Next steps
+
+- To learn the object that the skill describes, read
+  [How the SIRUP object works](sirup-object.md).
+- To pick a statistic yourself, read
+  [Choose a spatial statistic](choose-spatial-statistic.md).
+- To run a full first analysis, read
+  [Get started with SIRUP](get-started.md).
 
 
 ---
@@ -2081,51 +2183,108 @@ readSIRUP(path)
 Process demultiplexed reads
 ================
 
-> **Time:** about 30 minutes (plus run time of the tools). **Data:** the
-> example read-level and consensus tables that come with SIRUP.
-> **Needs:** R 4.1 or later, and the external tools below for the steps
-> that show code only.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
 
-In this page you turn long sequencing reads into an AIRR table. An AIRR
-table is a table of receptor sequences in the format of the AIRR
-Community. Each consensus receptor sequence in the table has one spatial
-ID. A consensus sequence is one sequence that SIRUP builds from several
-reads of the same molecule.
+<b>Time</b>: ~30 minutes. <b>Data</b>: example MG thymus read-level data
+in SIRUP.
 
-Most steps here call external programs and need large inputs. Those
-chunks show code only. Chunks that run on the bundled example are marked
-in the text. Load the result into R in
-[Get started with SIRUP](get-started.md).
+</div>
 
-## Review the pipeline
+Here, we will take demultiplexed long-read sequences and process them
+into an [AIRR
+rearrangement](https://docs.airr-community.org/en/latest/datarep/rearrangements.html).
 
-Spatial AIRR-seq libraries are long-read libraries of receptor
-transcripts. Each read carries a spatial barcode, a short DNA tag that
-identifies the spot where the molecule came from. Most protocols also
-add a UMI (unique molecular identifier), a tag that identifies the
-original molecule. Processing has two parts:
+## Demultiplexing long-read sequences
 
-1.  **Demultiplexing**, in the separate
-    [rrad](https://github.com/indianewok/rrad) package. To demultiplex
-    is to find the barcode and UMI in each read, correct them against
-    the barcode whitelist, and write them into the read header.
-2.  **Consensus building**, in SIRUP. `processSpatialSample()` runs
-    these steps:
+SIRUP does not demultiplex long-read sequencing data on its own. At
+present, users should demultiplex their data with
 
-| Step | Tool | What it does |
+1.  RAD, the read-structure agnostic demultiplexer, which can be used
+    [via the command line](https://github.com/indianewok/rad) or
+    [natively in R](https://github.com/indianewok/rrad). SIRUP can then
+    process the demultiplexed long-reads.
+2.  [LongAIRR](https://github.com/AGImkeller/LongAIRR), which
+    demultiplexes and processes long-read sequencing data.
+
+If using LongAIRR, the output is an AIRR rearrangement that can be used
+directly, without further processing in SIRUP. In this case, the rest of
+this vignette is not needed.
+
+## SIRUP processing pipeline
+
+Spatial AIRR-seq libraries are sets of long-read sequences of B and T
+cell receptor transcripts. Each read carries a spatial ID (or barcode),
+which is a short DNA tag that identifies the spot where the molecule
+came from. Many protocols also include a UMI (unique molecular
+identifier), a tag that identifies the original molecule.
+
+Processing in SIRUP is done with the `processSpatialSample()` function.
+It consists of the following steps.
+
+|  | Step | What it does |
 |----|----|----|
 | 1 | IgBLAST (`airrblast::assignGenes()`) | Annotates each read with V(D)J genes |
 | 2 | `filterAirr()` | Removes reads that are not receptors or are too short to use |
-| 3 | pRESTO `ClusterSets.py` | Groups the reads of each spot by sequence identity (vsearch) |
-| 4 | pRESTO `AlignSets.py` | Aligns the reads in each group (MUSCLE) |
-| 5 | pRESTO `BuildConsensus.py` | Builds one consensus sequence per group |
-| 6 | `airrblast::assignGenes()` and `addGaps()` | Annotates the consensus sequences, adds the IMGT gaps, and writes the AIRR table |
+| 3 | `ClusterSets.py` (pRESTO) | Groups the reads of each spot by sequence identity (using vsearch) |
+| 4 | `AlignSets.py` (pRESTO) | Aligns the reads in each group (using MUSCLE) |
+| 5 | `BuildConsensus.py` (pRESTO) | Builds one consensus sequence per group |
+| 6 | `airrblast::assignGenes()` and `airrblast::addGaps()` | Annotates the consensus sequences, adds the IMGT gaps, and writes the AIRR table |
 
 Long-read sequencing has a high error rate. A consensus of several reads
 removes most random errors. The spot barcode stays in the sequence
 header through every step, so each consensus sequence keeps its spot.
 
-## Install the tools
+## Install and set up dependencies
+
+### IgBLAST and IMGT germline references
+
+See more detailed instructions in the [airrblast
+documentation](https://github.com/hoehnlab/airrblast/tree/main).
+
+Briefly, download and decompress
+[IgBLAST](https://ftp.ncbi.nih.gov/blast/executables/igblast/release/LATEST/).
+
+<div markdown="1"
+style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;">
+
+<b>WARNING</b>
+</p>
+
+There is a patch to the latest stable release of IgBLAST. Download the
+patched .aux files
+[here](https://ftp.ncbi.nih.gov/blast/executables/igblast/release/patch/)
+(in `optional_file`). Then swap them into your `optional_file` directory
+in your IgBLAST installation.
+
+</div>
+
+Then download the IMGT germline references and set up the IgBLAST
+database with `airrblast`.
+
+``` r
+library(airrblast)
+library(airr)
+
+# name/location of the uncompressed IgBLAST directory
+igblast_dir <- "ncbi-igblast-1.22.0"
+
+# Download IMGT GENE-DB into directory "imgt"
+# Do this only once
+downloadIMGT("imgt", organism="human", verbose=1)
+
+# Set up search databases for IgBlast using imgt database
+# Do this only once
+imgtToIgblast("imgt", "igblast", igblast_dir)
+```
+
+################ 
+
+# PICK UP HERE
+
+################ 
 
 Install these programs on your computer or cluster:
 
@@ -2640,24 +2799,24 @@ collapsed <- collapseIdenticalNeighbors(
   num_neighbors_non_boundary = 6
 )
 #> ℹ Ensuring one row per spatial_id/sequence...
-#> ✔ Ensuring one row per spatial_id/sequence... [2.3s]
+#> ✔ Ensuring one row per spatial_id/sequence... [2s]
 #> 
 #> ℹ Estimating distance threshold from full tissue positions...
-#> ✔ Estimating distance threshold from full tissue positions... [4.7s]
+#> ✔ Estimating distance threshold from full tissue positions... [3.4s]
 #> 
 #> ℹ Distance threshold: 10.0214
 #> ℹ Filtering to spots with observed sequences...
-#> ✔ Filtering to spots with observed sequences... [10ms]
+#> ✔ Filtering to spots with observed sequences... [7ms]
 #> 
 #> ℹ Sequence-positive spots: 800 (of 3,203 total)
 #> ℹ Building adjacency matrix over spots with observed sequences...
-#> ✔ Building adjacency matrix over spots with observed sequences... [14ms]
+#> ✔ Building adjacency matrix over spots with observed sequences... [10ms]
 #> 
 #> ℹ Collapsing components to representative spots...
-#> ✔ Collapsing components to representative spots... [273ms]
+#> ✔ Collapsing components to representative spots... [220ms]
 #> 
 #> ℹ Filtering data to representative spots...
-#> ✔ Filtering data to representative spots... [21ms]
+#> ✔ Filtering data to representative spots... [11ms]
 #> 
 #> ✔ Done! Retained 1,946 rows from 2,071 (125 bleedover sequences removed)
 
@@ -5962,6 +6121,102 @@ x <- formatSpatialClones(
 )
 x <- getSpatialTrees(x)
 getAnalysis(x, "trees")
+```
+
+
+---
+
+<!-- source: docs/topics/installSIRUPSkill.md -->
+
+# installSIRUPSkill
+
+## Install the SIRUP skill for an LLM agent
+
+## Description
+
+`installSIRUPSkill` copies the SIRUP skill into the skills folder of an LLM agent. The skill teaches the agent how to use SIRUP: how to build a SIRUP object, which function answers which question, and which checks to run.
+
+## Usage
+
+``` R
+installSIRUPSkill(
+  agent = c("claude", "codex", "antigravity"),
+  install_dir = NULL,
+  overwrite = TRUE,
+  quiet = FALSE
+)
+```
+
+## Arguments
+
+`agent`
+
+:   The agent. Use `"claude"` (Claude Code), `"codex"` (Codex), or `"antigravity"` (Antigravity).
+
+`install_dir`
+
+:   The skills folder that receives the skill (default `NULL`). If `NULL`, the function uses the folder of the agent for all your projects. Give a path to install the skill for one project, or to use another folder. The function makes the folder if it does not exist.
+
+`overwrite`
+
+:   Replace a skill that is already in `install_dir` (default `TRUE`)? If `FALSE`, the function stops when the skill exists.
+
+`quiet`
+
+:   Hide the message that says where the skill went (default `FALSE`)?
+
+## Details
+
+A skill is a folder with a file named `SKILL.md`. The file starts with a name and a description. At the start of a session, the agent reads the name and the description of each installed skill. It reads the rest of the folder when your request matches a description.
+
+SIRUP ships its skill in `inst/skills/sirup`. R copies that folder into the SIRUP folder of your R library when it installs the package. An agent does not read your R library. This function copies the skill to the place where the agent looks.
+
+With `install_dir = NULL`, the function uses the skills folder that the agent reads for all your projects:
+
+`agent`
+:   Folder for all your projects
+
+`"claude"`
+:   `⁠~/.claude/skills⁠`
+
+`"codex"`
+:   `⁠~/.agents/skills⁠`
+
+`"antigravity"`
+:   `⁠~/.gemini/config/skills⁠`
+
+On Windows, `~` is your user folder (`USERPROFILE`). These folders come from the documentation of each agent. They can change, so check the documentation of your agent if the skill does not appear.
+
+To install the skill for one project only, give the skills folder of the project to `install_dir`. For Claude Code this is `.claude/skills` in the project. For Codex and Antigravity it is `.agents/skills`. A relative path starts in the current working directory.
+
+The function copies the skill to a folder named `sirup` inside `install_dir`. If that folder exists and holds a `SKILL.md` file, the function removes it first, so that no old files stay. If the folder exists but holds no `SKILL.md` file, the function stops. It does not remove a folder that is not a skill.
+
+After the installation, start a new session of the agent and ask which skills it has. Look for `sirup`.
+
+## Value
+
+The path of the installed skill folder, invisibly.
+
+## Examples
+
+``` R
+# Install into a temporary folder, so that this example changes nothing on
+# your computer. To install for real, leave out `install_dir`.
+skills <- file.path(tempdir(), "agent-skills")
+installSIRUPSkill("claude", install_dir = skills, quiet = TRUE)
+list.files(file.path(skills, "sirup"))
+
+## Not run: 
+# Install for all your projects, in the default folder of the agent.
+installSIRUPSkill("claude")
+installSIRUPSkill("codex")
+installSIRUPSkill("antigravity")
+
+# Install for one project only.
+installSIRUPSkill("claude", install_dir = ".claude/skills")
+installSIRUPSkill("codex", install_dir = ".agents/skills")
+
+## End(Not run)
 ```
 
 
@@ -9371,10 +9626,6 @@ selectSpatialPolygons(
 `quiet`
 
 :   Hide warnings while the app runs (default `TRUE`)?
-
-`sample`
-
-:   Names of the spatial samples to show. Use it for multi-sample SIRUP objects.
 
 ## Details
 

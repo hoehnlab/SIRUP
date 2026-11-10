@@ -64,6 +64,7 @@ sirup <- createSIRUP(
   swap_coords = FALSE,
   polygons_path = file.path(extdata, "mg_thymus_slice2_gc_polygons.csv")
 )
+#> Loading required namespace: Seurat
 ```
 
 The code replaces the comma in each `sequence_id` with `_`. dowser
@@ -445,7 +446,7 @@ pairs_table %>%
 #>   pair           n_pairs median_distance
 #>   <chr>            <int>           <dbl>
 #> 1 different eGCs       5          0.0273
-#> 2 same eGC            10          0.0150
+#> 2 same eGC            10          0.0123
 ```
 
 Read the two medians in the table. One clone cannot support a

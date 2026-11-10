@@ -71,12 +71,30 @@ Use R 4.1 or later.
 * [Choose a spatial statistic](vignettes/choose-spatial-statistic.md). Match
   your question to a function.
 
-**For AI Assistants and/or LLMs**
+## For AI agents and LLMs
 
-AI assistants and other automated agents can read two files in the SIRUP repository:
+SIRUP provides the following resources for AI agents. See the [guide](vignettes/llm-agents.md) for more details.
 
-* [llms.txt](https://github.com/hoehnlab/SIRUP/blob/main/llms.txt) is a short index of the SIRUP documentation. It links to each tutorial, guide, and function page.
-* [llms-full.txt](https://github.com/hoehnlab/SIRUP/blob/main/llms-full.txt) joins the whole documentation into one file. It holds every tutorial, guide, and function page.
+* [llms.txt](https://github.com/hoehnlab/SIRUP/blob/main/llms.txt) is a short Markdown index of the SIRUP documentation, with links.
+* [llms-full.txt](https://github.com/hoehnlab/SIRUP/blob/main/llms-full.txt) holds the whole documentation in one text file.
+* [llms.json](https://github.com/hoehnlab/SIRUP/blob/main/llms.json) is the same index as JSON. It lists each tutorial, guide, and function, with a summary and links.
+* [llms-full.json](https://github.com/hoehnlab/SIRUP/blob/main/llms-full.json) holds the whole documentation as JSON, with the full text of each page.
+* The **SIRUP skill** teaches an agent how to use SIRUP: how to build an object, which function answers which question, and which checks to run. Find the skill in `inst/skills/sirup`, and install it as shown below.
+
+**Set up the skill**
+
+Install SIRUP. Then use the `installSIRUPSkill()` function to install the skill for your agent. Currently,  
+`installSIRUPSkill` is set up to work for Claude Code, Codex, or Antigravity. Other types of agents can be set up by 
+manually installing the skill.
+
+```r
+library(SIRUP)
+installSIRUPSkill("claude")   # or "codex" or "antigravity"
+```
+
+By default, this installs the skill for the agent for all projects. To install the skill for one project only, give 
+the skills folder of the project, for example `installSIRUPSkill("claude", install_dir = ".claude/skills")`.
+Then start a new session and ensure that the SIRUP skill is available.
 
 ## Contact
 

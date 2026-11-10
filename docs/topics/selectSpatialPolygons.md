@@ -105,10 +105,6 @@ selectSpatialPolygons(
 
 :   Hide warnings while the app runs (default `TRUE`)?
 
-`sample`
-
-:   Names of the spatial samples to show. Use it for multi-sample SIRUP objects.
-
 ## Details
 
 Each click snaps to the nearest spatial ID. Click \"Close polygon\" or \"New polygon\" before you finish. This repeats the first vertex at the end of each polygon.

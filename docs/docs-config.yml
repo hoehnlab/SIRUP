@@ -26,13 +26,25 @@ vignette_order: []
 # Vignettes that must not become site pages. `sirup` ships with the R package and only points here.
 vignette_exclude: [sirup]
 
+# One-line summary of each vignette, for llms.json and the agent skill.
+vignette_summaries:
+  get-started: "Build a SIRUP object from example data, plot receptors on the tissue, draw a region, and measure clonal dominance in it."
+  processing: "Turn demultiplexed long-read data into an AIRR table of consensus receptor sequences with one spatial ID for each sequence."
+  regions: "Draw tissue regions, attach them to a SIRUP object, and measure clonal dominance, clonal diversity, and gene expression in each region."
+  clones-and-trees: "Call clones, reconstruct germlines, build lineage trees with Dowser, and show each tree next to its spots on the tissue."
+  spatial-statistics: "Test whether a gene, a cell type, or a clone forms a spatial pattern, with Moran's I, Lee's L, Ripley's cross K, and join counts."
+  multisample: "Put several tissue sections, bulk AIRR-seq, and blood samples in one SIRUP object, and follow clones between them."
+  sirup-object: "Learn the five parts of a SIRUP object, the rules that SIRUP checks, and the functions that change the object."
+  choose-spatial-statistic: "Pick a spatial statistic by the question you ask: clustering, co-variation, nearness of two spot types, or the spread of a clone."
+  llm-agents: "Give an LLM agent such as Claude Code, Codex, or Antigravity the SIRUP skill or the llms files, and work with it on spatial receptor data."
+
 # Nav sections for the vignettes. Each group has a title and a list of vignette file stems.
 # A vignette that is in no group goes to a "Vignettes" section at the end.
 vignette_groups:
   - title: Tutorials
     vignettes: [get-started, processing, regions, clones-and-trees, spatial-statistics, multisample]
   - title: Guides
-    vignettes: [sirup-object, choose-spatial-statistic]
+    vignettes: [sirup-object, choose-spatial-statistic, llm-agents]
 
 # Title of the nav section that lists the function pages.
 help_topics_title: Function Reference
@@ -40,7 +52,9 @@ help_topics_title: Function Reference
 
 # Individually toggleable extras.
 extras:
-  llms: true                    # llms.txt + llms-full.txt for LLM agents
+  llms: true                    # llms files for LLM agents
+  llms_formats: [txt, json]     # txt = llms.txt + llms-full.txt; json = llms.json + llms-full.json
+  skill: true                   # regenerate the reference files of the agent skill
   news: true                    # docs/news.md from NEWS.md
   index: false                  # off: docs/index.md is hand-written
   link_rewrite: true            # rewrite \link[] and vignette() references (docs/build.R)
@@ -63,3 +77,7 @@ external_link_targets:
   alakazam: "https://alakazam.readthedocs.io/en/stable/topics/{topic}/"
   tibble: "https://tibble.tidyverse.org/reference/{topic}.html"
   ggplot2: "https://ggplot2.tidyverse.org/reference/{topic}.html"
+
+# Folder of the SIRUP agent skill. SKILL.md and the guides are hand-written.
+# The build regenerates only the reference files with a generated-file comment.
+skill_dir: inst/skills/sirup

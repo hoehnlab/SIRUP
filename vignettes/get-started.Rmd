@@ -415,8 +415,12 @@ be accessed with `getAnalysis()`.
 sirup <- setAnalysis(sirup, "gc_dominance", dominance)
 listAnalyses(sirup)
 
-getAnalysis(sirup, "gc_dominance") %>% str()
+getAnalysis(sirup, "gc_dominance") %>% str(max.level = 1)
 ```
+
+The stored result is a list. Its `dominance` item is the table of clone fractions.
+The other items hold the spots, coordinates, receptors, and polygon vertices of each
+region, and the field names that the function used.
 
 ## Save and read a SIRUP object
 

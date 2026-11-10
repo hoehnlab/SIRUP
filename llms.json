@@ -1,0 +1,813 @@
+{
+  "name": "SIRUP",
+  "title": "Spatial Immune Receptor Utilities Package",
+  "description": "A consolidated toolkit for long-read spatial immune receptor sequencing. SIRUP takes demultiplexed reads from the companion 'RRAD' package and runs an end-to-end IgBLAST and pRESTO pipeline to produce AIRR-style rearrangement tables with spatial IDs and coordinates. It also provides Visium HD barcode mapping, clonal summaries, tree plotting, polygon annotation, and spatial statistics.",
+  "version": "0.0.0.9001",
+  "license": "MIT + file LICENSE",
+  "repository": "https://github.com/hoehnlab/SIRUP",
+  "documentation": "https://sirup.readthedocs.io/en/latest/",
+  "requirements": {
+    "depends": "R (>= 4.1.0)",
+    "imports": "airrblast, alakazam, cli, cowplot, data.table, dowser, dplyr, ggplot2, ggtree, grDevices, grid, igraph, kedd, KernSmooth, magrittr, Matrix, methods, parallel, patchwork, pbapply, RANN, rlang, scales, SeuratObject, sf, shiny, spdep, stats, stringr, tibble, tidyr, tools, utils",
+    "suggests": "airr, ape, arrow, BiocNeighbors, knitr, nabor, pals, qpdf, rgl, rmarkdown, scoper, Seurat, shazam, spatstat.explore, spatstat.geom, spatstat.random, testthat (>= 3.0.0), withr"
+  },
+  "full_content": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/llms-full.json",
+  "sections": [
+    {
+      "title": "Tutorials",
+      "pages": [
+        "get-started",
+        "processing",
+        "regions",
+        "clones-and-trees",
+        "spatial-statistics",
+        "multisample"
+      ]
+    },
+    {
+      "title": "Guides",
+      "pages": [
+        "sirup-object",
+        "choose-spatial-statistic",
+        "llm-agents"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "type": "overview",
+      "id": "index",
+      "title": "SIRUP",
+      "source": "docs/index.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/index.md",
+      "url": "https://sirup.readthedocs.io/en/latest/"
+    },
+    {
+      "type": "vignette",
+      "id": "get-started",
+      "title": "Get started with SIRUP",
+      "source": "docs/vignettes/get-started.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/get-started.md",
+      "url": "https://sirup.readthedocs.io/en/latest/vignettes/get-started/",
+      "section": "Tutorials",
+      "summary": "Build a SIRUP object from example data, plot receptors on the tissue, draw a region, and measure clonal dominance in it."
+    },
+    {
+      "type": "vignette",
+      "id": "processing",
+      "title": "Process demultiplexed reads",
+      "source": "docs/vignettes/processing.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/processing.md",
+      "url": "https://sirup.readthedocs.io/en/latest/vignettes/processing/",
+      "section": "Tutorials",
+      "summary": "Turn demultiplexed long-read data into an AIRR table of consensus receptor sequences with one spatial ID for each sequence."
+    },
+    {
+      "type": "vignette",
+      "id": "regions",
+      "title": "Draw tissue regions and measure clonal dominance and diversity",
+      "source": "docs/vignettes/regions.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/regions.md",
+      "url": "https://sirup.readthedocs.io/en/latest/vignettes/regions/",
+      "section": "Tutorials",
+      "summary": "Draw tissue regions, attach them to a SIRUP object, and measure clonal dominance, clonal diversity, and gene expression in each region."
+    },
+    {
+      "type": "vignette",
+      "id": "clones-and-trees",
+      "title": "Call clones and build lineage trees on the tissue",
+      "source": "docs/vignettes/clones-and-trees.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/clones-and-trees.md",
+      "url": "https://sirup.readthedocs.io/en/latest/vignettes/clones-and-trees/",
+      "section": "Tutorials",
+      "summary": "Call clones, reconstruct germlines, build lineage trees with Dowser, and show each tree next to its spots on the tissue."
+    },
+    {
+      "type": "vignette",
+      "id": "spatial-statistics",
+      "title": "Test spatial patterns of genes, cells, and clones",
+      "source": "docs/vignettes/spatial-statistics.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/spatial-statistics.md",
+      "url": "https://sirup.readthedocs.io/en/latest/vignettes/spatial-statistics/",
+      "section": "Tutorials",
+      "summary": "Test whether a gene, a cell type, or a clone forms a spatial pattern, with Moran's I, Lee's L, Ripley's cross K, and join counts."
+    },
+    {
+      "type": "vignette",
+      "id": "multisample",
+      "title": "Analyze several sections with bulk AIRR-seq and blood",
+      "source": "docs/vignettes/multisample.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/multisample.md",
+      "url": "https://sirup.readthedocs.io/en/latest/vignettes/multisample/",
+      "section": "Tutorials",
+      "summary": "Put several tissue sections, bulk AIRR-seq, and blood samples in one SIRUP object, and follow clones between them."
+    },
+    {
+      "type": "vignette",
+      "id": "sirup-object",
+      "title": "How the SIRUP object works",
+      "source": "docs/vignettes/sirup-object.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/sirup-object.md",
+      "url": "https://sirup.readthedocs.io/en/latest/vignettes/sirup-object/",
+      "section": "Guides",
+      "summary": "Learn the five parts of a SIRUP object, the rules that SIRUP checks, and the functions that change the object."
+    },
+    {
+      "type": "vignette",
+      "id": "choose-spatial-statistic",
+      "title": "Choose a spatial statistic",
+      "source": "docs/vignettes/choose-spatial-statistic.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/choose-spatial-statistic.md",
+      "url": "https://sirup.readthedocs.io/en/latest/vignettes/choose-spatial-statistic/",
+      "section": "Guides",
+      "summary": "Pick a spatial statistic by the question you ask: clustering, co-variation, nearness of two spot types, or the spread of a clone."
+    },
+    {
+      "type": "vignette",
+      "id": "llm-agents",
+      "title": "Use SIRUP with your LLM agent",
+      "source": "docs/vignettes/llm-agents.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/llm-agents.md",
+      "url": "https://sirup.readthedocs.io/en/latest/vignettes/llm-agents/",
+      "section": "Guides",
+      "summary": "Give an LLM agent such as Claude Code, Codex, or Antigravity the SIRUP skill or the llms files, and work with it on spatial receptor data."
+    }
+  ],
+  "functions": [
+    {
+      "type": "function",
+      "id": "addSequenceQualityMetrics",
+      "title": "Add quality measures to an AIRR table",
+      "source": "docs/topics/addSequenceQualityMetrics.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/addSequenceQualityMetrics.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/addSequenceQualityMetrics/",
+      "summary": "`addSequenceQualityMetrics` adds columns that can help indicate the quality of each consensus sequence."
+    },
+    {
+      "type": "function",
+      "id": "addTissuePositions",
+      "title": "Add tissue coordinates to an AIRR table",
+      "source": "docs/topics/addTissuePositions.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/addTissuePositions.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/addTissuePositions/",
+      "summary": "`addTissuePositions` joins the tissue positions of the spots to an AIRR table."
+    },
+    {
+      "type": "function",
+      "id": "assignReceptorPolygons",
+      "title": "Add polygon IDs to a receptor table",
+      "source": "docs/topics/assignReceptorPolygons.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/assignReceptorPolygons.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/assignReceptorPolygons/",
+      "summary": "`assignReceptorPolygons` adds polygon columns to a receptor table."
+    },
+    {
+      "type": "function",
+      "id": "assignSpatialPolygons",
+      "title": "Add polygon IDs to the spatial metadata",
+      "source": "docs/topics/assignSpatialPolygons.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/assignSpatialPolygons.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/assignSpatialPolygons/",
+      "summary": "`assignSpatialPolygons` adds polygon columns to the Seurat metadata."
+    },
+    {
+      "type": "function",
+      "id": "assignTipColors",
+      "title": "Assign colors to the tips of clones",
+      "source": "docs/topics/assignTipColors.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/assignTipColors.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/assignTipColors/",
+      "summary": "`assignTipColors` gives each tip of each clone a color ID and a color."
+    },
+    {
+      "type": "function",
+      "id": "chooseTreeTipK",
+      "title": "Choose the number of tip clusters for a tree",
+      "source": "docs/topics/chooseTreeTipK.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/chooseTreeTipK.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/chooseTreeTipK/",
+      "summary": "`chooseTreeTipK` picks a number of tip clusters for one tree."
+    },
+    {
+      "type": "function",
+      "id": "clusterTreesTips",
+      "title": "Cluster the tips of all trees in a dowser result",
+      "source": "docs/topics/clusterTreesTips.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/clusterTreesTips.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/clusterTreesTips/",
+      "summary": "`clusterTreesTips` runs [`clusterTreeTips()`](clusterTreeTips.md) on each tree of a dowser result."
+    },
+    {
+      "type": "function",
+      "id": "clusterTreeTips",
+      "title": "Cluster the tips of a tree",
+      "source": "docs/topics/clusterTreeTips.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/clusterTreeTips.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/clusterTreeTips/",
+      "summary": "`clusterTreeTips` groups the tips of a phylogenetic tree into `k` connected clusters."
+    },
+    {
+      "type": "function",
+      "id": "collapseIdenticalNeighbors",
+      "title": "Collapse neighboring spots with identical receptor sequences",
+      "source": "docs/topics/collapseIdenticalNeighbors.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/collapseIdenticalNeighbors.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/collapseIdenticalNeighbors/",
+      "summary": "`collapseIdenticalNeighbors` finds groups of neighboring spots that share a receptor sequence."
+    },
+    {
+      "type": "function",
+      "id": "collapseTopConsensusPerSpatialId",
+      "title": "Keep the most abundant consensus sequence of each spatial ID and locus",
+      "source": "docs/topics/collapseTopConsensusPerSpatialId.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/collapseTopConsensusPerSpatialId.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/collapseTopConsensusPerSpatialId/",
+      "summary": "`collapseTopConsensusPerSpatialId` keeps the row with the highest consensus count for each spatial ID and locus."
+    },
+    {
+      "type": "function",
+      "id": "createSIRUP",
+      "title": "Create a SIRUP object",
+      "source": "docs/topics/createSIRUP.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/createSIRUP.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/createSIRUP/",
+      "summary": "`createSIRUP` joins a Seurat spatial object and an AIRR receptor table into one SIRUP object."
+    },
+    {
+      "type": "function",
+      "id": "expandPolygons",
+      "title": "Expand polygons outward from their centroids",
+      "source": "docs/topics/expandPolygons.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/expandPolygons.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/expandPolygons/",
+      "summary": "`expandPolygons` makes each polygon larger by moving its vertices away from the polygon centroid."
+    },
+    {
+      "type": "function",
+      "id": "extractSpatialIds",
+      "title": "Extract spatial IDs from sequence IDs",
+      "source": "docs/topics/extractSpatialIds.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/extractSpatialIds.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/extractSpatialIds/",
+      "summary": "`extractSpatialIds` copies the spatial ID out of the sequence ID with a regular expression."
+    },
+    {
+      "type": "function",
+      "id": "filterAirr",
+      "title": "Filter AIRR sequences",
+      "source": "docs/topics/filterAirr.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/filterAirr.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/filterAirr/",
+      "summary": "`filterAirr` filters sequences from an AIRR table."
+    },
+    {
+      "type": "function",
+      "id": "formatSpatialClones",
+      "title": "Format the receptors of a SIRUP object as in dowser's formatClones()",
+      "source": "docs/topics/formatSpatialClones.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/formatSpatialClones.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/formatSpatialClones/",
+      "summary": "`formatSpatialClones` runs [`dowser::formatClones()`](https://dowser.readthedocs.io/en/latest/topics/formatClones/) on the receptor table of a SIRUP object."
+    },
+    {
+      "type": "function",
+      "id": "formatSpatialPolygons",
+      "title": "Format point sets as polygon vertices",
+      "source": "docs/topics/formatSpatialPolygons.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/formatSpatialPolygons.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/formatSpatialPolygons/",
+      "summary": "`formatSpatialPolygons` converts a table of points into the vertex table that [`selectSpatialPolygons()`](selectSpatialPolygons.md) returns."
+    },
+    {
+      "type": "function",
+      "id": "getSpatialTrees",
+      "title": "Build trees from the formatted clones of a SIRUP object",
+      "source": "docs/topics/getSpatialTrees.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/getSpatialTrees.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/getSpatialTrees/",
+      "summary": "`getSpatialTrees` runs [`dowser::getTrees()`](https://dowser.readthedocs.io/en/latest/topics/getTrees/) on the stored formatted clones."
+    },
+    {
+      "type": "function",
+      "id": "installSIRUPSkill",
+      "title": "Install the SIRUP skill for an LLM agent",
+      "source": "docs/topics/installSIRUPSkill.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/installSIRUPSkill.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/installSIRUPSkill/",
+      "summary": "`installSIRUPSkill` copies the SIRUP skill into the skills folder of an LLM agent."
+    },
+    {
+      "type": "function",
+      "id": "isSIRUP",
+      "title": "Test whether an object is a SIRUP object",
+      "source": "docs/topics/isSIRUP.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/isSIRUP.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/isSIRUP/",
+      "summary": "`isSIRUP` checks if an object has class `sirup`."
+    },
+    {
+      "type": "function",
+      "id": "mergeSIRUP",
+      "title": "Merge SIRUP objects into one multi-sample object",
+      "source": "docs/topics/mergeSIRUP.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/mergeSIRUP.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/mergeSIRUP/",
+      "summary": "`mergeSIRUP` combines several SIRUP objects into one multi-sample SIRUP object."
+    },
+    {
+      "type": "function",
+      "id": "parseRadSequenceIds",
+      "title": "Split the rrad tags out of sequence IDs",
+      "source": "docs/topics/parseRadSequenceIds.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/parseRadSequenceIds.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/parseRadSequenceIds/",
+      "summary": "`parseRadSequenceIds` reads the barcode and the UMI from the sequence IDs of an AIRR table."
+    },
+    {
+      "type": "function",
+      "id": "plotLengthQc",
+      "title": "Plot length histograms of V, J, and junction regions",
+      "source": "docs/topics/plotLengthQc.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/plotLengthQc.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/plotLengthQc/",
+      "summary": "`plotLengthQc` plots one histogram each for the V length, the J length, and the junction length of the receptors."
+    },
+    {
+      "type": "function",
+      "id": "plotReceptors",
+      "title": "Plot receptor groups on a tissue image",
+      "source": "docs/topics/plotReceptors.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/plotReceptors.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/plotReceptors/",
+      "summary": "`plotReceptors` plots the spots that hold receptors."
+    },
+    {
+      "type": "function",
+      "id": "plotReceptorsExpression",
+      "title": "Plot receptor groups over gene expression",
+      "source": "docs/topics/plotReceptorsExpression.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/plotReceptorsExpression.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/plotReceptorsExpression/",
+      "summary": "`plotReceptorsExpression` plots one feature together with one or more groups of receptors on a tissue image."
+    },
+    {
+      "type": "function",
+      "id": "plotRipleyCrossK",
+      "title": "Plot Ripley's cross K against distance",
+      "source": "docs/topics/plotRipleyCrossK.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/plotRipleyCrossK.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/plotRipleyCrossK/",
+      "summary": "`plotRipleyCrossK` plots the observed cross K, with the simulation envelope if there is one."
+    },
+    {
+      "type": "function",
+      "id": "plotSpatialCloneColorTips",
+      "title": "Plot the tip colors of one clone on a tissue image",
+      "source": "docs/topics/plotSpatialCloneColorTips.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/plotSpatialCloneColorTips.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/plotSpatialCloneColorTips/",
+      "summary": "`plotSpatialCloneColorTips` plots the spots of one clone."
+    },
+    {
+      "type": "function",
+      "id": "plotSpatialCloneDensity3D",
+      "title": "Plot 3D clone-density surfaces on a tissue image",
+      "source": "docs/topics/plotSpatialCloneDensity3D.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/plotSpatialCloneDensity3D.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/plotSpatialCloneDensity3D/",
+      "summary": "`plotSpatialCloneDensity3D` draws a smoothed density surface for each clone above the tissue image in an interactive rgl scene."
+    },
+    {
+      "type": "function",
+      "id": "plotSpatialCloneJoinCount",
+      "title": "Plot a clone join-count result",
+      "source": "docs/topics/plotSpatialCloneJoinCount.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/plotSpatialCloneJoinCount.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/plotSpatialCloneJoinCount/",
+      "summary": "`plotSpatialCloneJoinCount` plots the tissue map of one tested clone."
+    },
+    {
+      "type": "function",
+      "id": "plotSpatialCloneTreePairs",
+      "title": "Plot each clone tree next to its tissue map",
+      "source": "docs/topics/plotSpatialCloneTreePairs.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/plotSpatialCloneTreePairs.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/plotSpatialCloneTreePairs/",
+      "summary": "`plotSpatialCloneTreePairs` makes two plots for each clone: the lineage tree, and a tissue map of the tips."
+    },
+    {
+      "type": "function",
+      "id": "plotSpatialColorTips",
+      "title": "Plot tip colors on a tissue image",
+      "source": "docs/topics/plotSpatialColorTips.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/plotSpatialColorTips.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/plotSpatialColorTips/",
+      "summary": "`plotSpatialColorTips` plots the spots of tree tips."
+    },
+    {
+      "type": "function",
+      "id": "plotSpatialLocalMoran",
+      "title": "Plot local Moran's I on a tissue image",
+      "source": "docs/topics/plotSpatialLocalMoran.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/plotSpatialLocalMoran.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/plotSpatialLocalMoran/",
+      "summary": "`plotSpatialLocalMoran` colors each spot by its local Moran\\'s I result."
+    },
+    {
+      "type": "function",
+      "id": "plotSpatialPolygonPies",
+      "title": "Plot clonal dominance results within polygons as pies or bars",
+      "source": "docs/topics/plotSpatialPolygonPies.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/plotSpatialPolygonPies.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/plotSpatialPolygonPies/",
+      "summary": "`plotSpatialPolygonPies` summarizes one receptor column for each polygon."
+    },
+    {
+      "type": "function",
+      "id": "plotSpatialPolygons",
+      "title": "Plot polygons on a tissue image",
+      "source": "docs/topics/plotSpatialPolygons.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/plotSpatialPolygons.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/plotSpatialPolygons/",
+      "summary": "Plot polygons on a tissue image"
+    },
+    {
+      "type": "function",
+      "id": "plotSpatialRegionReceptors",
+      "title": "Plot receptors inside polygons using the results of \\code{spatialCloneDominance()}",
+      "source": "docs/topics/plotSpatialRegionReceptors.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/plotSpatialRegionReceptors.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/plotSpatialRegionReceptors/",
+      "summary": "Plot receptors inside polygons using the results of [`spatialCloneDominance()`](spatialCloneDominance.md)"
+    },
+    {
+      "type": "function",
+      "id": "polygonAbundance",
+      "title": "Estimate clonal abundance inside polygons",
+      "source": "docs/topics/polygonAbundance.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/polygonAbundance.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/polygonAbundance/",
+      "summary": "`polygonAbundance` runs [`alakazam::estimateAbundance()`](https://alakazam.readthedocs.io/en/stable/topics/estimateAbundance/) on the receptors of each polygon."
+    },
+    {
+      "type": "function",
+      "id": "polygonCentroids",
+      "title": "Calculate polygon centroids",
+      "source": "docs/topics/polygonCentroids.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/polygonCentroids.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/polygonCentroids/",
+      "summary": "`polygonCentroids` returns the centroid of each polygon."
+    },
+    {
+      "type": "function",
+      "id": "polygonDiversity",
+      "title": "Estimate clonal diversity inside polygons",
+      "source": "docs/topics/polygonDiversity.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/polygonDiversity.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/polygonDiversity/",
+      "summary": "`polygonDiversity` runs [`alakazam::alphaDiversity()`](https://alakazam.readthedocs.io/en/stable/topics/alphaDiversity/) on the receptors of each polygon."
+    },
+    {
+      "type": "function",
+      "id": "polygonPairwiseDistance",
+      "title": "Calculate distances between polygon centroids",
+      "source": "docs/topics/polygonPairwiseDistance.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/polygonPairwiseDistance.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/polygonPairwiseDistance/",
+      "summary": "`polygonPairwiseDistance` calculates the distance between the centroids of each pair of polygons in a sample."
+    },
+    {
+      "type": "function",
+      "id": "polygonReceptorSummary",
+      "title": "Summarize columns in receptors data inside polygons",
+      "source": "docs/topics/polygonReceptorSummary.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/polygonReceptorSummary.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/polygonReceptorSummary/",
+      "summary": "`polygonReceptorSummary` makes one summary row for each polygon."
+    },
+    {
+      "type": "function",
+      "id": "processSpatialSample",
+      "title": "Process one spatial sample from reads to an AIRR table",
+      "source": "docs/topics/processSpatialSample.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/processSpatialSample.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/processSpatialSample/",
+      "summary": "`processSpatialSample`processes demultiplexed reads for one sample and one receptor group (`ig` or `tr`)."
+    },
+    {
+      "type": "function",
+      "id": "processSpatialSamples",
+      "title": "Process several spatial samples",
+      "source": "docs/topics/processSpatialSamples.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/processSpatialSamples.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/processSpatialSamples/",
+      "summary": "`processSpatialSamples` runs [`processSpatialSample()`](processSpatialSample.md) on each input in turn."
+    },
+    {
+      "type": "function",
+      "id": "readSpatialIdMapping",
+      "title": "Read a spatial ID mapping file",
+      "source": "docs/topics/readSpatialIdMapping.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/readSpatialIdMapping.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/readSpatialIdMapping/",
+      "summary": "`readSpatialIdMapping` reads a table that maps spatial IDs to other values, such as tissue positions."
+    },
+    {
+      "type": "function",
+      "id": "runIgblast",
+      "title": "Annotate raw reads with IgBLAST",
+      "source": "docs/topics/runIgblast.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/runIgblast.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/runIgblast/",
+      "summary": "`runIgblast` runs `airrblast::assignGenes()` on raw reads."
+    },
+    {
+      "type": "function",
+      "id": "selectSpatialPolygons",
+      "title": "Select polygon vertices in an interactive app",
+      "source": "docs/topics/selectSpatialPolygons.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/selectSpatialPolygons.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/selectSpatialPolygons/",
+      "summary": "`selectSpatialPolygons` opens a Shiny app."
+    },
+    {
+      "type": "function",
+      "id": "seuratSubsetPolygon",
+      "title": "Subset a Seurat object to the spots inside polygons",
+      "source": "docs/topics/seuratSubsetPolygon.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/seuratSubsetPolygon.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/seuratSubsetPolygon/",
+      "summary": "`seuratSubsetPolygon` keeps only the spatial IDs inside the polygons."
+    },
+    {
+      "type": "function",
+      "id": "sirup-accessors",
+      "title": "Extract data from a SIRUP object",
+      "source": "docs/topics/sirup-accessors.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/sirup-accessors.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/sirup-accessors/",
+      "summary": "`getSpatial` returns the Seurat object(s).",
+      "also_documents": [
+        "getSpatial",
+        "spatialSamples",
+        "getReceptors"
+      ]
+    },
+    {
+      "type": "function",
+      "id": "sirup-analyses",
+      "title": "Store and retrieve analyses in a SIRUP object",
+      "source": "docs/topics/sirup-analyses.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/sirup-analyses.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/sirup-analyses/",
+      "summary": "`getAnalysis` returns one stored result.",
+      "also_documents": [
+        "getAnalysis",
+        "setAnalysis",
+        "listAnalyses",
+        "removeAnalysis"
+      ]
+    },
+    {
+      "type": "function",
+      "id": "sirup-io",
+      "title": "Save and read SIRUP objects",
+      "source": "docs/topics/sirup-io.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/sirup-io.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/sirup-io/",
+      "summary": "`saveSIRUP` writes a SIRUP object to one RDS file.",
+      "also_documents": [
+        "saveSIRUP",
+        "readSIRUP"
+      ]
+    },
+    {
+      "type": "function",
+      "id": "sirup-polygons",
+      "title": "Add or retrieve polygon geometry from a SIRUP object",
+      "source": "docs/topics/sirup-polygons.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/sirup-polygons.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/sirup-polygons/",
+      "summary": "`addPolygons` stores a polygon table in a SIRUP object.",
+      "also_documents": [
+        "getPolygons",
+        "addPolygons"
+      ]
+    },
+    {
+      "type": "function",
+      "id": "sirup-transform",
+      "title": "Update data stored in a SIRUP object",
+      "source": "docs/topics/sirup-transform.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/sirup-transform.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/sirup-transform/",
+      "summary": "`updateReceptors`, `updateSpatial`, and `updateAnalysis` apply a function to one part of a SIRUP object.",
+      "also_documents": [
+        "updateReceptors",
+        "updateSpatial",
+        "updateAnalysis"
+      ]
+    },
+    {
+      "type": "function",
+      "id": "sirupSampleFromImage",
+      "title": "Get the sample name from an image label",
+      "source": "docs/topics/sirupSampleFromImage.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/sirupSampleFromImage.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/sirupSampleFromImage/",
+      "summary": "`sirupSampleFromImage` returns the sample name in an image label."
+    },
+    {
+      "type": "function",
+      "id": "spatialCloneDominance",
+      "title": "Calculate clonal dominance inside polygons",
+      "source": "docs/topics/spatialCloneDominance.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/spatialCloneDominance.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/spatialCloneDominance/",
+      "summary": "`spatialCloneDominance` calculates the share of each clone among the receptors inside spatial polygons."
+    },
+    {
+      "type": "function",
+      "id": "spatialCloneJoinCount",
+      "title": "Test clone localization with join counts",
+      "source": "docs/topics/spatialCloneJoinCount.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/spatialCloneJoinCount.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/spatialCloneJoinCount/",
+      "summary": "`spatialCloneJoinCount` tests if each clone clusters in space."
+    },
+    {
+      "type": "function",
+      "id": "spatialCloneSpread",
+      "title": "Summarize the spatial spread of clones",
+      "source": "docs/topics/spatialCloneSpread.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/spatialCloneSpread.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/spatialCloneSpread/",
+      "summary": "`spatialCloneSpread` gives the distances between the spots of each clone in each sample."
+    },
+    {
+      "type": "function",
+      "id": "spatialCloneTreePairsToPDF",
+      "title": "Save the tree and map pairs to a PDF file",
+      "source": "docs/topics/spatialCloneTreePairsToPDF.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/spatialCloneTreePairsToPDF.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/spatialCloneTreePairsToPDF/",
+      "summary": "`spatialCloneTreePairsToPDF` writes one page for each clone to a PDF file."
+    },
+    {
+      "type": "function",
+      "id": "spatialCoordinateExtents",
+      "title": "Summarize spatial coordinate ranges",
+      "source": "docs/topics/spatialCoordinateExtents.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/spatialCoordinateExtents.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/spatialCoordinateExtents/",
+      "summary": "`spatialCoordinateExtents` gives the x and y range of each sample or image."
+    },
+    {
+      "type": "function",
+      "id": "spatialCoordinateTable",
+      "title": "Get spatial plotting coordinates",
+      "source": "docs/topics/spatialCoordinateTable.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/spatialCoordinateTable.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/spatialCoordinateTable/",
+      "summary": "`spatialCoordinateTable` returns the coordinate table that SIRUP uses for spatial statistics and plots."
+    },
+    {
+      "type": "function",
+      "id": "spatialDiscretePlot",
+      "title": "Plot a metadata column on a tissue image",
+      "source": "docs/topics/spatialDiscretePlot.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/spatialDiscretePlot.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/spatialDiscretePlot/",
+      "summary": "`spatialDiscretePlot` colors each spot by the value of a metadata column."
+    },
+    {
+      "type": "function",
+      "id": "spatialExpressionBlendPlot",
+      "title": "Blend the expression of two features on a tissue image",
+      "source": "docs/topics/spatialExpressionBlendPlot.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/spatialExpressionBlendPlot.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/spatialExpressionBlendPlot/",
+      "summary": "`spatialExpressionBlendPlot` colors each spot by the expression of two features at once."
+    },
+    {
+      "type": "function",
+      "id": "spatialExpressionMultiPlot",
+      "title": "Plot several features as ordered color layers",
+      "source": "docs/topics/spatialExpressionMultiPlot.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/spatialExpressionMultiPlot.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/spatialExpressionMultiPlot/",
+      "summary": "`spatialExpressionMultiPlot` draws each feature in its own color on one tissue image."
+    },
+    {
+      "type": "function",
+      "id": "spatialExpressionPlot",
+      "title": "Plot gene expression on a tissue image",
+      "source": "docs/topics/spatialExpressionPlot.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/spatialExpressionPlot.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/spatialExpressionPlot/",
+      "summary": "`spatialExpressionPlot` plots the expression of one or more features."
+    },
+    {
+      "type": "function",
+      "id": "spatialLee",
+      "title": "Calculate global Lee's L",
+      "source": "docs/topics/spatialLee.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/spatialLee.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/spatialLee/",
+      "summary": "`spatialLee` tests the spatial association between two continuous variables."
+    },
+    {
+      "type": "function",
+      "id": "spatialLocalMoran",
+      "title": "Calculate local Moran's I (LISA)",
+      "source": "docs/topics/spatialLocalMoran.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/spatialLocalMoran.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/spatialLocalMoran/",
+      "summary": "`spatialLocalMoran` calculates local Moran\\'s I for each spot."
+    },
+    {
+      "type": "function",
+      "id": "spatialMoran",
+      "title": "Calculate global Moran's I",
+      "source": "docs/topics/spatialMoran.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/spatialMoran.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/spatialMoran/",
+      "summary": "`spatialMoran` tests one variable for spatial autocorrelation across spots using Moran\\'s I."
+    },
+    {
+      "type": "function",
+      "id": "spatialReceptorSummary",
+      "title": "Count the sequences and spots of a receptor table",
+      "source": "docs/topics/spatialReceptorSummary.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/spatialReceptorSummary.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/spatialReceptorSummary/",
+      "summary": "`spatialReceptorSummary` returns the basic counts of a receptor table."
+    },
+    {
+      "type": "function",
+      "id": "spatialRipleyCrossK",
+      "title": "Calculate Ripley's cross K",
+      "source": "docs/topics/spatialRipleyCrossK.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/spatialRipleyCrossK.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/spatialRipleyCrossK/",
+      "summary": "`spatialRipleyCrossK` measures how spots of mark `i` cluster around spots of mark `j` at different distances."
+    },
+    {
+      "type": "function",
+      "id": "subsetSIRUP",
+      "title": "Subset a SIRUP object",
+      "source": "docs/topics/subsetSIRUP.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/subsetSIRUP.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/subsetSIRUP/",
+      "summary": "`subsetSIRUP` keeps selected samples, spatial IDs, and receptor rows of a SIRUP object.",
+      "also_documents": [
+        "filterSample"
+      ]
+    },
+    {
+      "type": "function",
+      "id": "summarizePolygonDiversity",
+      "title": "Summarize polygon diversity at one value of q",
+      "source": "docs/topics/summarizePolygonDiversity.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/summarizePolygonDiversity.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/summarizePolygonDiversity/",
+      "summary": "`summarizePolygonDiversity` takes the diversity estimate for one diversity order q from a stored analysis."
+    },
+    {
+      "type": "function",
+      "id": "tipPatristicMatrix",
+      "title": "Calculate patristic distances between tips in a tree",
+      "source": "docs/topics/tipPatristicMatrix.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/tipPatristicMatrix.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/tipPatristicMatrix/",
+      "summary": "`tipPatristicMatrix` returns the matrix of patristic distances between the selected tips of a tree."
+    },
+    {
+      "type": "function",
+      "id": "validateSIRUP",
+      "title": "Validate a SIRUP object",
+      "source": "docs/topics/validateSIRUP.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/validateSIRUP.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/validateSIRUP/",
+      "summary": "`validateSIRUP` checks that the parts of a SIRUP object agree with each other."
+    },
+    {
+      "type": "function",
+      "id": "withPolygons",
+      "title": "Apply a function to the receptors of each polygon",
+      "source": "docs/topics/withPolygons.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/withPolygons.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/withPolygons/",
+      "summary": "`withPolygons` splits the receptor table by polygon and applies a function to the rows of each polygon."
+    },
+    {
+      "type": "function",
+      "id": "writeFastqas",
+      "title": "Write sequences to a FASTQ or FASTA file",
+      "source": "docs/topics/writeFastqas.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/writeFastqas.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/writeFastqas/",
+      "summary": "`writeFastqas` writes a table of sequences to a FASTQ or FASTA file."
+    }
+  ]
+}

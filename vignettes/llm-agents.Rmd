@@ -1,0 +1,144 @@
+---
+title: "Use SIRUP with your LLM agent"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Use SIRUP with your LLM agent}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+> **Time:** about 10 minutes. **Needs:** SIRUP, and an LLM agent that can run R code, such as Claude Code, Codex, or Antigravity.
+
+An LLM agent can write and run SIRUP code for you. It writes better code when it knows how SIRUP works. SIRUP gives agents three kinds of help: a skill, the llms files, and this documentation. This page shows how to set them up and how to work with an agent on spatial receptor data.
+
+## What an agent can do, and what you do
+
+An agent can build a SIRUP object from your files, call clones, make plots, run spatial statistics, write scripts for a cluster, and explain error messages.
+
+Some steps stay with you:
+
+- You draw regions with the polygon app. An agent cannot click.
+- You supply the IMGT reference folder for germline and tree steps.
+- You approve the installation of outside tools, such as IgBLAST and pRESTO.
+- You choose parameters that depend on your experiment.
+- You check the results.
+
+The SIRUP skill tells an agent about these limits.
+
+## Choose how to give your agent SIRUP knowledge
+
+| Method | What it is | Use it when |
+|---|---|---|
+| The SIRUP skill | A folder of instructions that your agent reads when your request matches | Your agent supports Agent Skills. Claude Code, Codex, and Antigravity do. |
+| The llms files | Text and JSON copies of the documentation | Your agent does not support skills, or you work in a chat window |
+| This documentation | The pages of this site | You read the pages yourself, or your agent can browse the web |
+
+## Install the skill
+
+Agent Skills is an open format. Anthropic created it, and [agentskills.io](https://agentskills.io) describes it. A skill is a folder with a file named `SKILL.md`. The file starts with a name and a description. At the start of a session, your agent reads the name and the description of each installed skill. It reads the rest of the folder only when your request matches a description.
+
+SIRUP ships its skill inside the R package, in `inst/skills/sirup`. When R installs a package, it copies the contents of `inst/` into the package folder. The skill lands in your R library, and your agent does not look there. The function `installSIRUPSkill()` copies the skill to the place where your agent looks.
+
+```{r install-skill}
+library(SIRUP)
+
+installSIRUPSkill("claude")        # Claude Code
+installSIRUPSkill("codex")         # Codex
+installSIRUPSkill("antigravity")   # Antigravity
+```
+
+Run the line for your agent. By default, the function installs the skill in the folder that the agent reads for all your projects:
+
+| `agent` | Folder for all your projects (the default) | Folder for one project |
+|---|---|---|
+| `"claude"` (Claude Code) | `~/.claude/skills/` | `.claude/skills/` in the project |
+| `"codex"` (Codex) | `~/.agents/skills/` | `.agents/skills/` in the repository |
+| `"antigravity"` (Antigravity) | `~/.gemini/config/skills/` | `.agents/skills/` in the workspace |
+
+The documentation of each agent is the source for these folders, and the folders can change. If the skill does not appear, check the pages for [Codex](https://learn.chatgpt.com/docs/build-skills) and [Antigravity](https://antigravity.google/docs/skills).
+
+To install the skill for one project only, give the skills folder of the project to `install_dir`. A relative path starts in your working directory:
+
+```{r install-project}
+installSIRUPSkill("claude", install_dir = ".claude/skills")
+installSIRUPSkill("codex", install_dir = ".agents/skills")
+```
+
+The function has four arguments:
+
+- `agent` is `"claude"`, `"codex"`, or `"antigravity"`.
+- `install_dir` is the skills folder that receives the skill. The default `NULL` means the folder for all your projects. The function makes the folder if it does not exist.
+- `overwrite` replaces a skill that is already there. The default is `TRUE`. With `FALSE`, the function stops when the skill exists.
+- `quiet` hides the message that says where the skill went. The default is `FALSE`.
+
+The function copies the skill to a folder named `sirup` inside `install_dir`, and it returns the path of that folder. If an old `sirup` folder holds a `SKILL.md` file, the function removes it first, so that no old files stay. If the folder exists but holds no `SKILL.md` file, the function stops, because it must not remove a folder that is not a skill. On Windows, the default folders start in your user folder (`USERPROFILE`).
+
+You can also copy the skill by hand. `system.file("skills", "sirup", package = "SIRUP")` returns the path of the skill folder. Copy that folder into the skills folder of your agent.
+
+### Check that your agent sees the skill
+
+Start a new session. Ask the agent which skills it has, and look for `sirup`. Codex and the Antigravity command-line tool also list skills with `/skills`. In the Antigravity editor, open the Customizations menu in the agent panel. If you add a skill while an agent runs, restart the agent first. In the Antigravity command-line tool, run `/skills reload` instead.
+
+### Update the skill
+
+New SIRUP versions improve the skill, because the function lists in it come from the documentation of each version. After you update SIRUP, run `installSIRUPSkill()` again. It replaces the old copy.
+
+## Use the llms files instead
+
+The SIRUP repository holds four files:
+
+| File | Content |
+|---|---|
+| `llms.txt` | A short Markdown index of the documentation, with links |
+| `llms-full.txt` | The whole documentation in one text file |
+| `llms.json` | The same index as JSON: the sections, and the title, summary, and links of each page and function |
+| `llms-full.json` | The whole documentation as JSON, with the full text of each page |
+
+Give an agent that has no skill support the address of `llms.json` or `llms.txt`. Tell it to read the index and then to fetch the page that it needs. The full files are large, about 400 KB each. Many chat windows cannot hold them. Start with the short index.
+
+## Example requests
+
+Use these requests with the skill installed. Replace the file names with your own.
+
+```text
+I have a Seurat object in spatial.rds and an AIRR table in bcr.tsv.gz.
+Build a SIRUP object and call clones. Tell me how many sequences you removed and why.
+
+Which spatial statistic should I use to test whether one clone stays in one place?
+
+Load the polygons in polygons.csv. Show which clones dominate each region.
+
+Build lineage trees for the three largest clones in region 5. Tell me what the run needs
+before you start.
+
+Write a Slurm script that runs processSpatialSample() on my demultiplexed reads.
+Do not run it.
+
+This error came from createSIRUP(): <paste the error>. Explain it and fix the call.
+```
+
+## Work with an agent with care
+
+- **Read the code before you run it.** Ask the agent to explain each step.
+- **Protect private data.** A hosted agent sends your requests, and the files that it reads, to its provider. Check your data agreement before you share patient data. The example data that comes with SIRUP is for tutorials.
+- **Ask for checks.** Ask the agent to print the receptor count before and after each change, and to run `validateSIRUP()`.
+- **Ask what the agent did not run.** An agent can describe a result that it did not produce.
+- **Record your setup.** Keep the SIRUP version from `packageVersion("SIRUP")`, and keep the seeds in your scripts.
+
+An agent does not replace an expert review of your results.
+
+## Next steps
+
+* To learn the object that the skill describes, read `vignette("sirup-object", package = "SIRUP")`.
+* To pick a statistic yourself, read `vignette("choose-spatial-statistic", package = "SIRUP")`.
+* To run a full first analysis, read `vignette("get-started", package = "SIRUP")`.

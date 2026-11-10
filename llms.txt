@@ -16,6 +16,7 @@ so any agent that can fetch a URL can read them directly.
 - [Choose a spatial statistic](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/choose-spatial-statistic.md)
 - [Call clones and build lineage trees on the tissue](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/clones-and-trees.md)
 - [Get started with SIRUP](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/get-started.md)
+- [Use SIRUP with your LLM agent](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/llm-agents.md)
 - [Analyze several sections with bulk AIRR-seq and blood](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/multisample.md)
 - [Process demultiplexed reads](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/processing.md)
 - [Draw tissue regions and measure clonal dominance and diversity](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/regions.md)
@@ -43,6 +44,7 @@ All URLs share the prefix https://raw.githubusercontent.com/hoehnlab/SIRUP/main/
 - `formatSpatialClones`: Format the receptors of a SIRUP object as in dowser's formatClones()
 - `formatSpatialPolygons`: Format point sets as polygon vertices
 - `getSpatialTrees`: Build trees from the formatted clones of a SIRUP object
+- `installSIRUPSkill`: Install the SIRUP skill for an LLM agent
 - `isSIRUP`: Test whether an object is a SIRUP object
 - `mergeSIRUP`: Merge SIRUP objects into one multi-sample object
 - `parseRadSequenceIds`: Split the rrad tags out of sequence IDs
