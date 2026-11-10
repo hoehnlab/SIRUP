@@ -6,6 +6,7 @@ name: docs
 #   1. It checks that each Rd file has a page and a nav entry.
 #   2. It checks that no link in the pages is dead.
 #   3. It builds the site with `mkdocs build --strict`.
+#   4. It checks that llms.json, llms-full.json, and the skill references are current.
 on:
   push:
     branches: [main]
@@ -27,3 +28,15 @@ jobs:
         run: python3 -m pip install -r docs/requirements.txt
       - name: Check docs
         run: python3 docs/docs_tools.py check
+      - name: Check that the llms files and the skill references are current
+        run: |
+          # The build writes these files from docs/topics, docs/vignettes, man/, and DESCRIPTION.
+          # They need no R, so this job can write them again and compare.
+          python3 docs/docs_tools.py extras
+          git add -A -- llms.txt llms-full.txt llms.json llms-full.json inst/skills/sirup/references
+          if ! git diff --cached --quiet; then
+            echo "llms.json, llms-full.json, or the skill references are out of date." >&2
+            echo "Run 'python3 docs/docs_tools.py extras' (or the full docs build) and commit the result." >&2
+            git diff --cached --stat >&2
+            exit 1
+          fi

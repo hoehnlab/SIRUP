@@ -46,6 +46,7 @@ nav:
 - Guides:
   - How the SIRUP object works: vignettes/sirup-object.md
   - Choose a spatial statistic: vignettes/choose-spatial-statistic.md
+  - Use SIRUP with your LLM agent: vignettes/llm-agents.md
 - Function Reference:
   - addSequenceQualityMetrics: topics/addSequenceQualityMetrics.md
   - addTissuePositions: topics/addTissuePositions.md
@@ -64,6 +65,7 @@ nav:
   - formatSpatialClones: topics/formatSpatialClones.md
   - formatSpatialPolygons: topics/formatSpatialPolygons.md
   - getSpatialTrees: topics/getSpatialTrees.md
+  - installSIRUPSkill: topics/installSIRUPSkill.md
   - isSIRUP: topics/isSIRUP.md
   - mergeSIRUP: topics/mergeSIRUP.md
   - parseRadSequenceIds: topics/parseRadSequenceIds.md

@@ -120,3 +120,10 @@ a:visited { color: var(--sirup-syrup); }
 .wy-menu-vertical li.current > a:hover button.toctree-expand {
   color: var(--sirup-ink);
 }
+
+/* ---- Tables: let the text in a cell wrap -------------------------------------------
+   The theme keeps each cell on one line, so a table with long text runs past the page. */
+.rst-content table td,
+.rst-content table th {
+  white-space: normal;
+}
