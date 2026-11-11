@@ -38,6 +38,7 @@ All URLs share the prefix https://raw.githubusercontent.com/hoehnlab/SIRUP/main/
 - `collapseIdenticalNeighbors`: Collapse neighboring spots with identical receptor sequences
 - `collapseTopConsensusPerSpatialId`: Keep the most abundant consensus sequence of each spatial ID and locus
 - `createSIRUP`: Create a SIRUP object
+- `downloadSIRUPExample`: Download the SIRUP example data
 - `expandPolygons`: Expand polygons outward from their centroids
 - `extractSpatialIds`: Extract spatial IDs from sequence IDs
 - `filterAirr`: Filter AIRR sequences

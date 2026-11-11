@@ -27,7 +27,12 @@ show_rgl <- has_rgl && knitr::is_html_output(
 )
 ```
 
-> **Time:** about 15 minutes. **Data:** consensus BCRs and spatial gene expression from one myasthenia gravis (MG) thymus section, downloaded with `downloadSIRUPExample()`. **Needs:** SIRUP with its Suggests packages scoper, alakazam, and sf, plus rgl for the 3D plot.
+<div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
+  **Time:** ~15 minutes.<br>
+  **Data:** consensus BCRs and spatial gene expression from one myasthenia gravis (MG) thymus section, downloaded with `downloadSIRUPExample()`.<br>
+  **Needs:** SIRUP with its Suggests packages scoper, alakazam, and sf, plus rgl for the 3D plot.
+</div>
 
 In this page you mark regions on a tissue section, attach them to a SIRUP object, and measure the B cell receptor (BCR) repertoire in each region. A *spot* is one capture location of the spatial assay. A *polygon* is a closed outline on the H&E image that you draw around spots. A *clone* is a group of receptors that descend from one ancestor cell. In the SIRUP paper, polygons mark the ectopic germinal centers (eGCs) of the MG thymus. You compare their repertoires with the germinal centers of the tonsil.
 
@@ -122,7 +127,10 @@ These arguments help on large sections:
 * `downsample_n` draws fewer spots, so the app responds faster. Clicks still snap to the full set of spots.
 * On a remote server, set `launch_browser = FALSE`, `host = "0.0.0.0"`, and a `port`. Then open the port through an SSH tunnel.
 
-> **Tip.** Give a `save_path`. The CSV file is the record of your annotation. Other people can repeat the analysis without a second round of drawing.
+<div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Tip</b> </p>
+  Give a `save_path`. The CSV file is the record of your annotation. Other people can repeat the analysis without a second round of drawing.
+</div>
 
 The example data include the polygon file for this section. Read it:
 
@@ -407,7 +415,10 @@ pseudobulk <- Seurat::AggregateExpression(
 pseudobulk[c("AICDA", "MS4A1", "CXCL13", "CD3E"), ]
 ```
 
-> **Note.** Seurat adds a `g` to group names that start with a number. The column for eGC 1 is `g1`.
+<div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
+  Seurat adds a `g` to group names that start with a number. The column for eGC 1 is `g1`.
+</div>
 
 You can give these profiles to a differential expression tool, such as limma or DESeq2.
 

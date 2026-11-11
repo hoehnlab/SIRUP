@@ -1,10 +1,20 @@
 Test spatial patterns of genes, cells, and clones
 ================
 
-> **Time:** about 15 minutes. **Data:** MG thymus section 2, with BCRs,
-> TCRs, gene expression, and cell-type estimates, bundled with SIRUP.
-> **Needs:** SIRUP with spdep, scoper, and spatstat.explore,
-> spatstat.geom, and spatstat.random.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+**Time:** ~15 minutes.<br> **Data:** MG thymus section 2, with BCRs,
+TCRs, gene expression, and cell-type estimates, downloaded with
+`downloadSIRUPExample()`.<br> **Needs:** SIRUP with spdep, scoper, and
+spatstat.explore, spatstat.geom, and spatstat.random.
+
+</div>
 
 A map can suggest that a gene clusters or that a clone stays in one
 place. A spatial statistic tests whether the pattern is stronger than
@@ -28,6 +38,31 @@ clone spreads across a section. For help with the choice of test, see
 Each function accepts a SIRUP object. It reads the spot coordinates and
 the image settings from the object.
 
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package.
+This code downloads them. Change `dest` to a folder you want to keep.
+The default folder is temporary. The function skips files that are
+already there.
+
+``` r
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_cell_types.csv.gz",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_gc_polygons.csv",
+  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice2_tcr.tsv.gz"
+  )
+)
+#> ℹ 'mg_thymus_cell_types.csv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice2_tcr.tsv.gz'
+```
+
 ## Set up the object
 
 Load the packages, then build one BCR object and one TCR object from the
@@ -40,7 +75,6 @@ library(ggplot2)
 ```
 
 ``` r
-extdata <- system.file("extdata", package = "SIRUP")
 read_receptors <- function(file, locus) {
   airr::read_rearrangement(file.path(extdata, file)) %>%
     extractSpatialIds(
@@ -129,15 +163,26 @@ choose the neighbors in one of two ways:
   image pixels at the stored `image_scale`. The same distance in
   micrometers needs a different number at `"lowres"` and at `"hires"`.
 
-> **Tip.** `k` does not depend on the image scale. Use it as the
-> default.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Tip</b>
+</p>
+
+`k` does not depend on the image scale. Use it as the default.
+
+</div>
 
 ## Test one variable with global Moran’s I
 
 *Moran’s I* measures spatial autocorrelation. It asks whether
 neighboring spots have similar values.
 
-$$I = \frac{N}{W} \frac{\sum_i \sum_j w_{ij}(x_i - \bar{x})(x_j - \bar{x})}{\sum_i (x_i - \bar{x})^2}$$
+$$
+I = \frac{N}{W} \frac{\sum_i \sum_j w_{ij}(x_i - \bar{x})(x_j - \bar{x})}{\sum_i (x_i - \bar{x})^2}
+$$
 
 Here $x_i$ is the value at spot $i$. $w_{ij}$ is 1 if spot $j$ is a
 neighbor of spot $i$, and 0 if not. $N$ is the number of spots. $W$ is
@@ -303,17 +348,28 @@ tibble(
 The control pair shares a pattern. *AICDA* and *CHRNA1* do not. In this
 section, $L$ for that pair is near zero and the test is not significant.
 
-> **Note.** The analytical test (`method = "analytical"`) builds a dense
-> matrix with one entry for each pair of spots. This works for Visium.
-> For Visium HD, use `method = "mc"`. It uses permutations and sparse
-> weights.
+<div markdown="1"
+style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;">
+
+<b>Warning</b>
+</p>
+
+The analytical test (`method = "analytical"`) builds a dense matrix with
+one entry for each pair of spots. This works for Visium. For Visium HD,
+use `method = "mc"`. It uses permutations and sparse weights.
+
+</div>
 
 ## Test two spot types with Ripley’s cross K
 
 *Ripley’s cross K* counts, for each distance $r$, how many type B points
 lie within $r$ of an average type A point:
 
-$$K_{AB}(r) = \frac{|W|}{N_A N_B} \sum_{i \in A} \sum_{j \in B} \mathbf{1}(d_{ij} \le r)$$
+$$
+K_{AB}(r) = \frac{|W|}{N_A N_B} \sum_{i \in A} \sum_{j \in B} \mathbf{1}(d_{ij} \le r)
+$$
 
 $|W|$ is the area of the tissue window. $d_{ij}$ is the distance between
 points $i$ and $j$. SIRUP compares the observed curve with curves from

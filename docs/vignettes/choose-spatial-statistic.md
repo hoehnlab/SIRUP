@@ -1,129 +1,150 @@
 Choose a spatial statistic
 ================
 
-> **Time:** about 8 minutes. **Data:** a small synthetic SIRUP object
-> bundled with SIRUP. **Needs:** SIRUP with spdep.
+This guide helps you choose an appropriate spatial statistic to answer
+the question you want to ask. Each section below names one question. It
+then gives the function, the input, and how to understand the results.
 
-This page helps you pick a spatial statistic. Start from the question
-you ask, not from the function name. Each section below names one
-question. It then gives the function, the input, and the way to read the
-result. A *spot* is one capture location of the spatial assay. A *clone*
-is a group of receptors that descend from one ancestor cell.
+A few definitions: A *spot* is spatially-resolved location where we
+capture gene expression or a BCR/TCR sequence. A *clone* is a group of
+cells that are inferred to descend from a common ancestor. *Spatial
+autocorrelation* is the tendency of nearby spots to have similar values,
+i.e., high values by high values and low values by low values.
 
 All tests need a SIRUP object, or a Seurat object with spatial images.
 The tests read the spot coordinates from the object. Most tests compare
-each spot with its neighbors. You set the neighbors with `k` (the number
-of nearest spots) or `radius`.
-[Test spatial patterns of genes, cells, and clones](spatial-statistics.md) runs every test on
-real data.
+each spot with its “neighbors”. Generally, you can set the number of
+neighbors with `k` (i.e., the `k` nearest spots will be neighbors) or
+`radius` (which draws a circle with radius `radius` around the point in
+question and all points inside that circle are neighbors of the point).
 
 ## Match the question to the function
 
 | Question | Function | Input |
 |----|----|----|
-| Is this gene or cell type clustered? | `spatialMoran()` | One gene or numeric metadata column |
-| Where are the clusters? | `spatialLocalMoran()` | The same input |
-| Do two genes or cell types co-vary? | `spatialLee()` | Two continuous variables |
-| Do spots of type A sit near spots of type B? | `spatialRipleyCrossK()` | One metadata column with two labels |
-| Does one clone stay together? | `spatialCloneJoinCount()` | Receptor table with clone IDs |
-| How far does a clone spread? | `spatialCloneSpread()` | Receptor table with clone IDs |
-| How does the repertoire differ between regions? | Polygon summaries | Stored polygons |
+| Is a continuous variable spatially autocorrelated? | `spatialMoran()` | One gene or numeric metadata column |
+| Where is a continuous variable spatially autocorrelated? | `spatialLocalMoran()` | One gene or numeric metadata column |
+| Do two continuous variables co-vary in space? | `spatialLee()` | Two continuous variables |
+| How far does a clone spread? | `spatialCloneSpread()` | Receptor table with clone IDs, pass the ID of the clone you’re interested in |
+| Is a discrete variable (in this case a particular clone) spatially autocorrelated? | `spatialCloneJoinCount()` | Receptor table with clone IDs, pass the ID of the clone you’re interested in |
+| Do two discrete variables co-vary in space? | `spatialRipleyCrossK()` | One metadata column with two labels |
 
-## Ask whether a variable clusters
+## Is a continuous variable spatially autocorrelated?
 
-Use `spatialMoran()` to ask if neighboring spots have similar values.
-The function computes Moran’s I. This statistic is near 0 when the
-values show no spatial pattern. It is positive when similar values sit
-together. It is negative when values alternate.
+Use `spatialMoran()` to determine if a continuous variable is spatially
+autocorrelated, i.e., if neighboring spots have similar values. This
+function computes [Moran’s
+I](https://en.wikipedia.org/wiki/Moran%27s_I#Global_Moran's_I). Moran’s
+I is near 0 when the values show no spatial pattern, it is positive when
+similar values are nearby, and it is negative when dissimilar values are
+nearby.
 
-The input is one variable. `variable_type` says what it is: a gene
-(`"feature"`), a numeric metadata column (`"metadata"`), receptor
-presence (`"receptor"`), or one clone (`"clone"`). For a text metadata
-column, give `value` to test one level.
+The input is a SIRUP or Seurat object. `variable_type` tells the
+function what type of variable it is: a gene (`"feature"`) or a numeric
+metadata column (`"metadata"`). `k` is the number of neighbors.
 
-Read $I$ as the size of the pattern. Read the p value as the evidence
-for it. A large section gives a tiny p value for a weak pattern.
+The estimate $I$ and the associated p value are reported. Note that a
+larger section can inflate significance, so you may see a tiny p value
+for a weak pattern in larger datasets.
 
-`spatialLocalMoran()` answers the next question: where are the clusters?
-It gives one value for each spot, with a z-score and a p value. Each
-spot has its own p value, so adjust for multiple testing.
-`plotSpatialLocalMoran()` draws the result on the tissue.
-
-This chunk tests one gene on the synthetic object:
+See the code below for an example on a synthetic object.
 
 ``` r
 library(SIRUP)
 x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
-moran <- spatialMoran(x, variable = "gene1", k = 4)
+moran <- spatialMoran(x, variable = "gene1", variable_type = "feature", k = 4)
 moran$test$estimate[[1]]
-#> [1] 0.2176226
+#> [1] 0.2153425
 moran$test$p.value
-#> [1] 0.01873459
+#> [1] 0.01887866
 ```
 
-## Ask whether two variables co-vary
+## **Where** is a continuous variable spatially autocorrelated?
 
-Use `spatialLee()` to ask if two continuous variables share a spatial
-pattern. Lee’s L combines Pearson correlation with spatial smoothing. L
-is high when both variables are high in the same neighborhoods. The
-variables do not need to peak in the same spots.
+Use `spatialLocalMoran()` to find where a continuous variable is
+spatially autocorrelated, i.e., which spots sit in a cluster of similar
+values. This function computes [local Moran’s
+I](https://en.wikipedia.org/wiki/Moran%27s_I#Local_Moran's_I) (also
+called LISA) for each spot. Local Moran’s I is positive when a spot has
+neighbors with similar values and negative when a spot differs from its
+neighbors.
 
-The input is two continuous variables. Each can be a gene or a numeric
-metadata column. Give `x_type`, `y_type`, `assay`, and `layer` as
-needed. The result holds `L` and a test. The default test is analytical.
-It builds a dense matrix with one entry for each pair of spots. For
-large data, such as Visium HD, set `method = "mc"` to use permutations.
+The input is a SIRUP or Seurat object. `variable_type` tells the
+function what type of variable it is: a gene (`"feature"`) or a numeric
+metadata column (`"metadata"`). `k` is the number of neighbors.
 
-Run a positive control. Pick two genes that you expect to share a
-pattern. If the control fails, the data or the neighbor setting may be
-wrong.
+The result has one row for each spot, with the local I (`local_i`), a
+z-score (`z_i`), and a p value (`p_value`). Each spot has its own p
+value, so we should adjust for multiple testing.
+`plotSpatialLocalMoran()` draws the z-scores on the tissue.
 
-## Ask whether two spot types sit near each other
+See the code below for an example on a synthetic object.
 
-Use `spatialRipleyCrossK()` to ask if spots of type A lie near spots of
-type B. The function counts the type B spots within each distance of an
-average type A spot. It compares the curve with curves from random
-relabeling.
+``` r
+local_moran <- spatialLocalMoran(x, variable = "gene1", variable_type = "feature", k = 4)
+head(local_moran[, c("cell", "local_i", "z_i", "p_value")])
+#>     cell     local_i         z_i    p_value
+#> 1 spot01 -0.59718281 -1.17839799 0.23863798
+#> 2 spot02 -0.04742602  0.06538419 0.94786811
+#> 3 spot03  0.05897852  2.18157983 0.02914056
+#> 4 spot04  0.35412444  1.84519997 0.06500846
+#> 5 spot05  0.34779084  0.65384195 0.51321364
+#> 6 spot06  0.02857722  1.05962449 0.28931547
+plotSpatialLocalMoran(x, local_moran)
+```
 
-The input is one metadata column that holds the labels. Give the two
-levels as `i` and `j`. Set `nsim` above 0 to get the envelope. Spots
-with `NA` in the column are left out.
+![](choose-spatial-statistic_files/figure-gfm/local-moran-1.jpeg)
 
-Read the curve against the envelope. A curve above the envelope means A
-and B sit closer than chance. A curve below the envelope means each type
-groups with itself. Use `plotRipleyCrossK()` to draw it.
+## Do two continuous variables co-vary in space?
 
-The distance is in image pixels at the stored `image_scale`. Convert it
-before you quote a distance in micrometers.
+Use `spatialLee()` to determine if two continuous variables share a
+spatial pattern, i.e., if a high value of one variable tends to sit near
+high values of the other. This function computes [Lee’s
+L](https://en.wikipedia.org/wiki/Lee%27s_L). Lee’s L is near 0 when the
+variables show no shared pattern, it is positive when both variables are
+high (or both low) in the same neighborhoods, and it is negative when
+one variable is high where the other is low.
 
-## Ask whether a clone stays together
+The input is a SIRUP object or a Seurat object. `x` and `y` are the
+names of the two variables, and `x_type` and `y_type` tell the function
+what type each variable is: a gene (`"feature"`) or a numeric metadata
+column (`"metadata"`). `k` is the number of neighbors.
 
-Use `spatialCloneJoinCount()` to ask if the spots of one clone sit next
-to each other. The function marks the spots that hold the clone. It
-counts neighbor pairs in which both spots hold the clone. It then calls
-`spdep::joincount.test()`.
+The estimate $L$ and the associated p value are reported. The default
+test (`method = "analytical"`) builds a dense matrix with one entry for
+each pair of spots, so it needs a lot of memory for large datasets. For
+large data, such as Visium HD, set `method = "mc"` to use a permutation
+test.
 
-The input is a receptor table with clone IDs and spatial IDs. A SIRUP
-object holds both. By default, the function tests every clone that
-occurs in at least `min_spatial_ids` spots. Give `clone_val` to test
-chosen clones. If the object has stored polygons, the function runs one
-test for each polygon. Set `use_stored_polygons = FALSE` for one test
-over the section.
+See the code below for an example on a synthetic object.
 
-The summary table has one row for each clone. A high `statistic` (a
-z-score) and a small `p_value` mean that the clone stays together. The
-default alternative is `"greater"`, so the test looks for more joins
-than chance.
+``` r
+lee <- spatialLee(x, x = "gene1", x_type = "feature", y = "gene2", y_type = "feature", k = 4)
+lee$L
+#> [1] -0.3786411
+lee$test$p.value
+#> [1] 0.9998853
+```
 
-Moran’s I also accepts one clone with `variable_type = "clone"`. It
-treats the clone as a 0/1 value for each spot. The join-count test is
-the first choice for clones.
+## How far does a clone spread?
 
-## Ask how far a clone spreads
+Use `spatialCloneSpread()` to determine how far clones spread across the
+tissue, i.e., how far apart their or sequences are. This function is
+just descriptive. For each clone, it computes the distance between every
+pair of points and reports the mean and the maximum of those distances.
 
-Use `spatialCloneSpread()` to measure the reach of a clone. It is a
-description, not a test. The function reports the mean and the maximum
-distance between the points of each clone, for each sample.
+The input is a SIRUP object or receptor table with clone IDs and spatial
+IDs. A clone needs at least `min_spatial_ids` points (default 2). By
+default, each sequence is a point, so sequences in the same spot give
+distances of 0. Set `collapse_within_spot = TRUE` to count each spot
+once.
+
+The result has one row for each sample and clone, with the number of
+spots (`n_spatial_ids`), the mean distance (`mean_pairwise_distance`),
+and the maximum distance (`max_pairwise_distance`). Distances are in
+image pixels.
+
+See the code below for an example on a synthetic object.
 
 ``` r
 spatialCloneSpread(x)
@@ -137,28 +158,84 @@ spatialCloneSpread(x)
 #> 5 spatial 5                    7                   2.44                  4.47
 ```
 
-The input is a receptor table with clone IDs and spatial IDs. A clone
-needs at least `min_spatial_ids` points (default 2). By default, each
-sequence is a point, so sequences in the same spot give distances of 0.
-Set `collapse_within_spot = TRUE` to count each spot once. Distances are
-in image pixels.
+## Is a discrete variable (i.e., a particular clone) spatially autocorrelated?
 
-## Compare regions with polygon summaries
+Use `spatialCloneJoinCount()` to determine if a discrete variable is
+spatially autocorrelated. This function computes the [join count
+statistic](https://en.wikipedia.org/wiki/Join_count_statistic). Here,
+the variable is whether a spot holds a particular clone, i.e., if the
+spots of a clone sit next to each other. This function marks the spots
+that hold the clone, counts the neighbor pairs in which both spots hold
+the clone (the joins), and compares that count with the count expected
+by chance. The observed count is higher than expected when the sequences
+in the clone stay nearby each other.
 
-The questions above treat the section as one field. To compare regions
-that you drew, use the polygon functions. `polygonReceptorSummary()`
-counts receptors, spots, and clones in each polygon.
-`spatialCloneDominance()` gives the fraction of receptors in each clone
-of each polygon. `polygonDiversity()` gives Hill diversity curves,
-rarefied to one size. These functions describe each region. They do not
-test a spatial pattern. `polygonDiversity()` leaves out polygons with
-fewer than `min_n` receptors.
+The input is a SIRUP object receptor table with clone IDs and spatial
+IDs. By default, the function tests every clone that occurs in at least
+`min_spatial_ids` spots. Give `clone_val` to test chosen clones. If the
+object has stored polygons, the function runs one test for each polygon.
+Set `use_stored_polygons = FALSE` to run one test over the entire
+section in this case.
 
-For the full workflow, see [Draw tissue regions and measure clonal dominance and diversity](regions.md).
+The `summary` table has one row for each clone, with the observed and
+expected join counts, a z-score (`statistic`), and a p value
+(`p_value`). The default alternative is `"greater"`, so the test looks
+for more joins than chance. The function tests many clones at once, so
+be sure to adjust for multiple testing.
+
+See the code below for an example on a synthetic object.
+
+``` r
+join_count <- spatialCloneJoinCount(x, use_stored_polygons = FALSE, k = 4)
+join_count$summary[, c("clone_id", "observed_join_count", "expected_join_count", "p_value")]
+#>   clone_id observed_join_count expected_join_count   p_value
+#> 1        1                 3.5            2.222222 0.1111628
+#> 2        5                 4.5            3.333333 0.1665886
+#> 3        3                 3.5            3.333333 0.4450223
+#> 4        4                 8.0            8.000000 0.5000000
+#> 5        2                 2.5            3.333333 0.7552922
+```
+
+## Do two discrete variables co-vary in space?
+
+Use `spatialRipleyCrossK()` to determine if two discrete variables
+co-vary in space, i.e., if spots of type A lie near spots of type B.
+This function computes [Ripley’s cross
+K](https://academicweb.nd.edu/~mhaenggi/ee87021/Dixon-K-Function.pdf?utm_campaign=redirect&utm_medium=web&utm_source=www3.nd.edu).
+It counts the spots of type B within each distance of an average spot of
+type A. It then compares that curve with curves from random relabeling
+of the spots, which gives an envelope. Ripley’s cross K is similar to
+Lee’s L, but it works with discrete data rather than continuous.
+
+The input is a SIRUP object or a Seurat object with a column that holds
+the labels (`mark_col`). Give the two levels to compare as `i` and `j`.
+Set `nsim` above 0 to generate the randomly relabeled envelope for
+comparison. Spots with `NA` in the column are left out.
+
+The result holds the observed K at each distance (`plot_data`). A curve
+above the envelope means that A and B sit closer than chance, i.e., they
+**colocalize**. A curve below the envelope means that A and B are.
+`plotRipleyCrossK()` draws the curve and the envelope. The distance is
+in image pixels at the stored `image_scale`.
+
+See the code below for an example on a synthetic object.
+
+``` r
+set.seed(1)
+kcross <- spatialRipleyCrossK(x, mark_col = "cell_type", i = "A", j = "B", nsim = 19)
+#> Generating 19 simulations by evaluating expression  ...
+#> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 
+#> 19.
+#> 
+#> Done.
+plotRipleyCrossK(kcross)
+```
+
+![](choose-spatial-statistic_files/figure-gfm/ripley-1.jpeg)
 
 ## Next steps
 
-- Run every test on real data:
+- Run tests on real data:
   [Test spatial patterns of genes, cells, and clones](spatial-statistics.md).
 - Draw regions and measure their repertoires:
   [Draw tissue regions and measure clonal dominance and diversity](regions.md).

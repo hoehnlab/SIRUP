@@ -1,9 +1,6 @@
 Use SIRUP with your LLM agent
 ================
 
-> **Time:** about 10 minutes. **Needs:** SIRUP, and an LLM agent that
-> can run R code, such as Claude Code, Codex, or Antigravity.
-
 An LLM agent can write and run SIRUP code for you. It writes better code
 when it knows how SIRUP works. SIRUP gives agents three kinds of help: a
 skill, the llms files, and this documentation. This page shows how to
@@ -139,7 +136,7 @@ cannot hold them. Start with the short index.
 Use these requests with the skill installed. Replace the file names with
 your own.
 
-``` text
+```
 I have a Seurat object in spatial.rds and an AIRR table in bcr.tsv.gz.
 Build a SIRUP object and call clones. Tell me how many sequences you removed and why.
 

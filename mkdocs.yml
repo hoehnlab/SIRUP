@@ -59,6 +59,7 @@ nav:
   - collapseIdenticalNeighbors: topics/collapseIdenticalNeighbors.md
   - collapseTopConsensusPerSpatialId: topics/collapseTopConsensusPerSpatialId.md
   - createSIRUP: topics/createSIRUP.md
+  - downloadSIRUPExample: topics/downloadSIRUPExample.md
   - expandPolygons: topics/expandPolygons.md
   - extractSpatialIds: topics/extractSpatialIds.md
   - filterAirr: topics/filterAirr.md

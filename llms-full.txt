@@ -147,129 +147,150 @@ MIT. See the
 Choose a spatial statistic
 ================
 
-> **Time:** about 8 minutes. **Data:** a small synthetic SIRUP object
-> bundled with SIRUP. **Needs:** SIRUP with spdep.
+This guide helps you choose an appropriate spatial statistic to answer
+the question you want to ask. Each section below names one question. It
+then gives the function, the input, and how to understand the results.
 
-This page helps you pick a spatial statistic. Start from the question
-you ask, not from the function name. Each section below names one
-question. It then gives the function, the input, and the way to read the
-result. A *spot* is one capture location of the spatial assay. A *clone*
-is a group of receptors that descend from one ancestor cell.
+A few definitions: A *spot* is spatially-resolved location where we
+capture gene expression or a BCR/TCR sequence. A *clone* is a group of
+cells that are inferred to descend from a common ancestor. *Spatial
+autocorrelation* is the tendency of nearby spots to have similar values,
+i.e., high values by high values and low values by low values.
 
 All tests need a SIRUP object, or a Seurat object with spatial images.
 The tests read the spot coordinates from the object. Most tests compare
-each spot with its neighbors. You set the neighbors with `k` (the number
-of nearest spots) or `radius`.
-[Test spatial patterns of genes, cells, and clones](spatial-statistics.md) runs every test on
-real data.
+each spot with its “neighbors”. Generally, you can set the number of
+neighbors with `k` (i.e., the `k` nearest spots will be neighbors) or
+`radius` (which draws a circle with radius `radius` around the point in
+question and all points inside that circle are neighbors of the point).
 
 ## Match the question to the function
 
 | Question | Function | Input |
 |----|----|----|
-| Is this gene or cell type clustered? | `spatialMoran()` | One gene or numeric metadata column |
-| Where are the clusters? | `spatialLocalMoran()` | The same input |
-| Do two genes or cell types co-vary? | `spatialLee()` | Two continuous variables |
-| Do spots of type A sit near spots of type B? | `spatialRipleyCrossK()` | One metadata column with two labels |
-| Does one clone stay together? | `spatialCloneJoinCount()` | Receptor table with clone IDs |
-| How far does a clone spread? | `spatialCloneSpread()` | Receptor table with clone IDs |
-| How does the repertoire differ between regions? | Polygon summaries | Stored polygons |
+| Is a continuous variable spatially autocorrelated? | `spatialMoran()` | One gene or numeric metadata column |
+| Where is a continuous variable spatially autocorrelated? | `spatialLocalMoran()` | One gene or numeric metadata column |
+| Do two continuous variables co-vary in space? | `spatialLee()` | Two continuous variables |
+| How far does a clone spread? | `spatialCloneSpread()` | Receptor table with clone IDs, pass the ID of the clone you’re interested in |
+| Is a discrete variable (in this case a particular clone) spatially autocorrelated? | `spatialCloneJoinCount()` | Receptor table with clone IDs, pass the ID of the clone you’re interested in |
+| Do two discrete variables co-vary in space? | `spatialRipleyCrossK()` | One metadata column with two labels |
 
-## Ask whether a variable clusters
+## Is a continuous variable spatially autocorrelated?
 
-Use `spatialMoran()` to ask if neighboring spots have similar values.
-The function computes Moran’s I. This statistic is near 0 when the
-values show no spatial pattern. It is positive when similar values sit
-together. It is negative when values alternate.
+Use `spatialMoran()` to determine if a continuous variable is spatially
+autocorrelated, i.e., if neighboring spots have similar values. This
+function computes [Moran’s
+I](https://en.wikipedia.org/wiki/Moran%27s_I#Global_Moran's_I). Moran’s
+I is near 0 when the values show no spatial pattern, it is positive when
+similar values are nearby, and it is negative when dissimilar values are
+nearby.
 
-The input is one variable. `variable_type` says what it is: a gene
-(`"feature"`), a numeric metadata column (`"metadata"`), receptor
-presence (`"receptor"`), or one clone (`"clone"`). For a text metadata
-column, give `value` to test one level.
+The input is a SIRUP or Seurat object. `variable_type` tells the
+function what type of variable it is: a gene (`"feature"`) or a numeric
+metadata column (`"metadata"`). `k` is the number of neighbors.
 
-Read $I$ as the size of the pattern. Read the p value as the evidence
-for it. A large section gives a tiny p value for a weak pattern.
+The estimate $I$ and the associated p value are reported. Note that a
+larger section can inflate significance, so you may see a tiny p value
+for a weak pattern in larger datasets.
 
-`spatialLocalMoran()` answers the next question: where are the clusters?
-It gives one value for each spot, with a z-score and a p value. Each
-spot has its own p value, so adjust for multiple testing.
-`plotSpatialLocalMoran()` draws the result on the tissue.
-
-This chunk tests one gene on the synthetic object:
+See the code below for an example on a synthetic object.
 
 ``` r
 library(SIRUP)
 x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
-moran <- spatialMoran(x, variable = "gene1", k = 4)
+moran <- spatialMoran(x, variable = "gene1", variable_type = "feature", k = 4)
 moran$test$estimate[[1]]
-#> [1] 0.2176226
+#> [1] 0.2153425
 moran$test$p.value
-#> [1] 0.01873459
+#> [1] 0.01887866
 ```
 
-## Ask whether two variables co-vary
+## **Where** is a continuous variable spatially autocorrelated?
 
-Use `spatialLee()` to ask if two continuous variables share a spatial
-pattern. Lee’s L combines Pearson correlation with spatial smoothing. L
-is high when both variables are high in the same neighborhoods. The
-variables do not need to peak in the same spots.
+Use `spatialLocalMoran()` to find where a continuous variable is
+spatially autocorrelated, i.e., which spots sit in a cluster of similar
+values. This function computes [local Moran’s
+I](https://en.wikipedia.org/wiki/Moran%27s_I#Local_Moran's_I) (also
+called LISA) for each spot. Local Moran’s I is positive when a spot has
+neighbors with similar values and negative when a spot differs from its
+neighbors.
 
-The input is two continuous variables. Each can be a gene or a numeric
-metadata column. Give `x_type`, `y_type`, `assay`, and `layer` as
-needed. The result holds `L` and a test. The default test is analytical.
-It builds a dense matrix with one entry for each pair of spots. For
-large data, such as Visium HD, set `method = "mc"` to use permutations.
+The input is a SIRUP or Seurat object. `variable_type` tells the
+function what type of variable it is: a gene (`"feature"`) or a numeric
+metadata column (`"metadata"`). `k` is the number of neighbors.
 
-Run a positive control. Pick two genes that you expect to share a
-pattern. If the control fails, the data or the neighbor setting may be
-wrong.
+The result has one row for each spot, with the local I (`local_i`), a
+z-score (`z_i`), and a p value (`p_value`). Each spot has its own p
+value, so we should adjust for multiple testing.
+`plotSpatialLocalMoran()` draws the z-scores on the tissue.
 
-## Ask whether two spot types sit near each other
+See the code below for an example on a synthetic object.
 
-Use `spatialRipleyCrossK()` to ask if spots of type A lie near spots of
-type B. The function counts the type B spots within each distance of an
-average type A spot. It compares the curve with curves from random
-relabeling.
+``` r
+local_moran <- spatialLocalMoran(x, variable = "gene1", variable_type = "feature", k = 4)
+head(local_moran[, c("cell", "local_i", "z_i", "p_value")])
+#>     cell     local_i         z_i    p_value
+#> 1 spot01 -0.59718281 -1.17839799 0.23863798
+#> 2 spot02 -0.04742602  0.06538419 0.94786811
+#> 3 spot03  0.05897852  2.18157983 0.02914056
+#> 4 spot04  0.35412444  1.84519997 0.06500846
+#> 5 spot05  0.34779084  0.65384195 0.51321364
+#> 6 spot06  0.02857722  1.05962449 0.28931547
+plotSpatialLocalMoran(x, local_moran)
+```
 
-The input is one metadata column that holds the labels. Give the two
-levels as `i` and `j`. Set `nsim` above 0 to get the envelope. Spots
-with `NA` in the column are left out.
+![](choose-spatial-statistic_files/figure-gfm/local-moran-1.jpeg)
 
-Read the curve against the envelope. A curve above the envelope means A
-and B sit closer than chance. A curve below the envelope means each type
-groups with itself. Use `plotRipleyCrossK()` to draw it.
+## Do two continuous variables co-vary in space?
 
-The distance is in image pixels at the stored `image_scale`. Convert it
-before you quote a distance in micrometers.
+Use `spatialLee()` to determine if two continuous variables share a
+spatial pattern, i.e., if a high value of one variable tends to sit near
+high values of the other. This function computes [Lee’s
+L](https://en.wikipedia.org/wiki/Lee%27s_L). Lee’s L is near 0 when the
+variables show no shared pattern, it is positive when both variables are
+high (or both low) in the same neighborhoods, and it is negative when
+one variable is high where the other is low.
 
-## Ask whether a clone stays together
+The input is a SIRUP object or a Seurat object. `x` and `y` are the
+names of the two variables, and `x_type` and `y_type` tell the function
+what type each variable is: a gene (`"feature"`) or a numeric metadata
+column (`"metadata"`). `k` is the number of neighbors.
 
-Use `spatialCloneJoinCount()` to ask if the spots of one clone sit next
-to each other. The function marks the spots that hold the clone. It
-counts neighbor pairs in which both spots hold the clone. It then calls
-`spdep::joincount.test()`.
+The estimate $L$ and the associated p value are reported. The default
+test (`method = "analytical"`) builds a dense matrix with one entry for
+each pair of spots, so it needs a lot of memory for large datasets. For
+large data, such as Visium HD, set `method = "mc"` to use a permutation
+test.
 
-The input is a receptor table with clone IDs and spatial IDs. A SIRUP
-object holds both. By default, the function tests every clone that
-occurs in at least `min_spatial_ids` spots. Give `clone_val` to test
-chosen clones. If the object has stored polygons, the function runs one
-test for each polygon. Set `use_stored_polygons = FALSE` for one test
-over the section.
+See the code below for an example on a synthetic object.
 
-The summary table has one row for each clone. A high `statistic` (a
-z-score) and a small `p_value` mean that the clone stays together. The
-default alternative is `"greater"`, so the test looks for more joins
-than chance.
+``` r
+lee <- spatialLee(x, x = "gene1", x_type = "feature", y = "gene2", y_type = "feature", k = 4)
+lee$L
+#> [1] -0.3786411
+lee$test$p.value
+#> [1] 0.9998853
+```
 
-Moran’s I also accepts one clone with `variable_type = "clone"`. It
-treats the clone as a 0/1 value for each spot. The join-count test is
-the first choice for clones.
+## How far does a clone spread?
 
-## Ask how far a clone spreads
+Use `spatialCloneSpread()` to determine how far clones spread across the
+tissue, i.e., how far apart their or sequences are. This function is
+just descriptive. For each clone, it computes the distance between every
+pair of points and reports the mean and the maximum of those distances.
 
-Use `spatialCloneSpread()` to measure the reach of a clone. It is a
-description, not a test. The function reports the mean and the maximum
-distance between the points of each clone, for each sample.
+The input is a SIRUP object or receptor table with clone IDs and spatial
+IDs. A clone needs at least `min_spatial_ids` points (default 2). By
+default, each sequence is a point, so sequences in the same spot give
+distances of 0. Set `collapse_within_spot = TRUE` to count each spot
+once.
+
+The result has one row for each sample and clone, with the number of
+spots (`n_spatial_ids`), the mean distance (`mean_pairwise_distance`),
+and the maximum distance (`max_pairwise_distance`). Distances are in
+image pixels.
+
+See the code below for an example on a synthetic object.
 
 ``` r
 spatialCloneSpread(x)
@@ -283,28 +304,84 @@ spatialCloneSpread(x)
 #> 5 spatial 5                    7                   2.44                  4.47
 ```
 
-The input is a receptor table with clone IDs and spatial IDs. A clone
-needs at least `min_spatial_ids` points (default 2). By default, each
-sequence is a point, so sequences in the same spot give distances of 0.
-Set `collapse_within_spot = TRUE` to count each spot once. Distances are
-in image pixels.
+## Is a discrete variable (i.e., a particular clone) spatially autocorrelated?
 
-## Compare regions with polygon summaries
+Use `spatialCloneJoinCount()` to determine if a discrete variable is
+spatially autocorrelated. This function computes the [join count
+statistic](https://en.wikipedia.org/wiki/Join_count_statistic). Here,
+the variable is whether a spot holds a particular clone, i.e., if the
+spots of a clone sit next to each other. This function marks the spots
+that hold the clone, counts the neighbor pairs in which both spots hold
+the clone (the joins), and compares that count with the count expected
+by chance. The observed count is higher than expected when the sequences
+in the clone stay nearby each other.
 
-The questions above treat the section as one field. To compare regions
-that you drew, use the polygon functions. `polygonReceptorSummary()`
-counts receptors, spots, and clones in each polygon.
-`spatialCloneDominance()` gives the fraction of receptors in each clone
-of each polygon. `polygonDiversity()` gives Hill diversity curves,
-rarefied to one size. These functions describe each region. They do not
-test a spatial pattern. `polygonDiversity()` leaves out polygons with
-fewer than `min_n` receptors.
+The input is a SIRUP object receptor table with clone IDs and spatial
+IDs. By default, the function tests every clone that occurs in at least
+`min_spatial_ids` spots. Give `clone_val` to test chosen clones. If the
+object has stored polygons, the function runs one test for each polygon.
+Set `use_stored_polygons = FALSE` to run one test over the entire
+section in this case.
 
-For the full workflow, see [Draw tissue regions and measure clonal dominance and diversity](regions.md).
+The `summary` table has one row for each clone, with the observed and
+expected join counts, a z-score (`statistic`), and a p value
+(`p_value`). The default alternative is `"greater"`, so the test looks
+for more joins than chance. The function tests many clones at once, so
+be sure to adjust for multiple testing.
+
+See the code below for an example on a synthetic object.
+
+``` r
+join_count <- spatialCloneJoinCount(x, use_stored_polygons = FALSE, k = 4)
+join_count$summary[, c("clone_id", "observed_join_count", "expected_join_count", "p_value")]
+#>   clone_id observed_join_count expected_join_count   p_value
+#> 1        1                 3.5            2.222222 0.1111628
+#> 2        5                 4.5            3.333333 0.1665886
+#> 3        3                 3.5            3.333333 0.4450223
+#> 4        4                 8.0            8.000000 0.5000000
+#> 5        2                 2.5            3.333333 0.7552922
+```
+
+## Do two discrete variables co-vary in space?
+
+Use `spatialRipleyCrossK()` to determine if two discrete variables
+co-vary in space, i.e., if spots of type A lie near spots of type B.
+This function computes [Ripley’s cross
+K](https://academicweb.nd.edu/~mhaenggi/ee87021/Dixon-K-Function.pdf?utm_campaign=redirect&utm_medium=web&utm_source=www3.nd.edu).
+It counts the spots of type B within each distance of an average spot of
+type A. It then compares that curve with curves from random relabeling
+of the spots, which gives an envelope. Ripley’s cross K is similar to
+Lee’s L, but it works with discrete data rather than continuous.
+
+The input is a SIRUP object or a Seurat object with a column that holds
+the labels (`mark_col`). Give the two levels to compare as `i` and `j`.
+Set `nsim` above 0 to generate the randomly relabeled envelope for
+comparison. Spots with `NA` in the column are left out.
+
+The result holds the observed K at each distance (`plot_data`). A curve
+above the envelope means that A and B sit closer than chance, i.e., they
+**colocalize**. A curve below the envelope means that A and B are.
+`plotRipleyCrossK()` draws the curve and the envelope. The distance is
+in image pixels at the stored `image_scale`.
+
+See the code below for an example on a synthetic object.
+
+``` r
+set.seed(1)
+kcross <- spatialRipleyCrossK(x, mark_col = "cell_type", i = "A", j = "B", nsim = 19)
+#> Generating 19 simulations by evaluating expression  ...
+#> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 
+#> 19.
+#> 
+#> Done.
+plotRipleyCrossK(kcross)
+```
+
+![](choose-spatial-statistic_files/figure-gfm/ripley-1.jpeg)
 
 ## Next steps
 
-- Run every test on real data:
+- Run tests on real data:
   [Test spatial patterns of genes, cells, and clones](spatial-statistics.md).
 - Draw regions and measure their repertoires:
   [Draw tissue regions and measure clonal dominance and diversity](regions.md).
@@ -319,9 +396,20 @@ For the full workflow, see [Draw tissue regions and measure clonal dominance and
 Call clones and build lineage trees on the tissue
 ================
 
-> **Time:** about 20 minutes. **Data:** MG thymus section 2, bundled
-> with SIRUP. **Needs:** SIRUP, scoper, dowser, shazam, and the IMGT
-> reference sequences for the germline and tree steps.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+**Time:** ~20 minutes.<br> **Data:** MG thymus section 2, downloaded
+with `downloadSIRUPExample()`.<br> **Needs:** SIRUP, scoper, dowser,
+shazam, and the IMGT reference sequences for the germline and tree
+steps.
+
+</div>
 
 A clone is a group of B or T cells that descend from one ancestor cell
 and share its receptor rearrangement. In this page, you call clones in a
@@ -337,12 +425,33 @@ the SIRUP object. It then adds the spatial part: clone maps, trees
 paired with tissue plots, and distances between tips in and between
 regions.
 
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package.
+This code downloads them. Change `dest` to a folder you want to keep.
+The default folder is temporary. The function skips files that are
+already there.
+
+``` r
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_gc_polygons.csv"
+  )
+)
+#> ℹ Downloading 'mg_thymus_slice2_spatial.rds'
+#> ℹ Downloading 'mg_thymus_slice2_bcr.tsv.gz'
+#> ℹ Downloading 'mg_thymus_slice2_gc_polygons.csv'
+```
+
 ## Load the data
 
 This page uses MG thymus section 2 and its polygons. Each polygon
 outlines one ectopic germinal center (eGC). An eGC is a site in the
-thymus where B cells proliferate and mutate their receptors. The data
-are bundled with SIRUP.
+thymus where B cells proliferate and mutate their receptors. The code in
+the first section downloads the data.
 
 ``` r
 library(SIRUP)
@@ -351,8 +460,6 @@ library(ggplot2)
 ```
 
 ``` r
-extdata <- system.file("extdata", package = "SIRUP")
-
 thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
 bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz")) %>%
   extractSpatialIds(
@@ -407,7 +514,6 @@ sirup <- updateReceptors(
   summarize_clones = FALSE,
   nproc = 1
 )
-#> Warning: package 'scoper' was built under R version 4.5.3
 
 sirup
 #> <SIRUP object>
@@ -448,7 +554,6 @@ and tree chunks on this page run only when that folder exists.
 
 ``` r
 references <- dowser::readIMGT(imgt_dir)
-#> [1] "Read in 1198 from 17 fasta files"
 
 sirup <- updateReceptors(
   sirup,
@@ -491,7 +596,7 @@ sirup <- updateReceptors(
 )
 summary(getReceptors(sirup)$mu_freq)
 #>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#> 0.00000 0.01462 0.03750 0.04184 0.06377 0.13467
+#> 0.00000 0.01484 0.03857 0.04331 0.06609 0.15160
 ```
 
 `plotReceptors()` can color spots by a numeric receptor column. Give the
@@ -536,8 +641,8 @@ head(clone_sizes)
 #> # A tibble: 6 × 5
 #>   clone_id n_sequences n_in_gc n_gcs gcs  
 #>   <chr>          <int>   <int> <int> <chr>
-#> 1 739               15       6     2 6, 7 
-#> 2 810               13       6     1 5    
+#> 1 739               16       6     2 6, 7 
+#> 2 810               14       6     1 5    
 #> 3 196               40       5     2 3, 5 
 #> 4 604               12       3     2 5, 6 
 #> 5 428               11       2     1 5    
@@ -597,12 +702,6 @@ tree_sirup <- getSpatialTrees(
 
 trees <- getAnalysis(tree_sirup, "trees")
 trees
-#> # A tibble: 3 × 5
-#>   clone_id data       locus  seqs trees  
-#>   <chr>    <list>     <chr> <int> <list> 
-#> 1 196      <airrClon> IGH      38 <phylo>
-#> 2 739      <airrClon> IGH      15 <phylo>
-#> 3 810      <airrClon> IGH      13 <phylo>
 ```
 
 `traits` keeps the columns that the tree plots need. Keep the spatial
@@ -613,8 +712,18 @@ want to color by.
 SIRUP paper used maximum likelihood (`build = "pml"`). For B cell
 models, use IgPhyML (`build = "igphyml"` with the `igphyml` path).
 
-> **Note.** By default, `formatClones()` merges identical sequences into
-> one tip. A tip can then stand for several sequences.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+By default, `formatClones()` merges identical sequences into one tip. A
+tip can then stand for several sequences.
+
+</div>
 
 Store the trees in the main object.
 
@@ -639,15 +748,7 @@ pairs <- plotSpatialCloneTreePairs(
   polygon_alpha = 0,
   polygon_color = "black"
 )
-#> Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
-#> ℹ Please use `linewidth` instead.
-#> ℹ The deprecated feature was likely used in the ggtree package.
-#>   Please report the issue at <https://github.com/YuLab-SMU/ggtree/issues>.
-#> This warning is displayed once per session.
-#> Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-#> generated.
 names(pairs)
-#> [1] "196" "739" "810"
 
 cowplot::plot_grid(
   pairs[[1]]$tree,
@@ -655,8 +756,6 @@ cowplot::plot_grid(
   rel_widths = c(1.2, 1)
 )
 ```
-
-![](clones-and-trees_files/figure-gfm/tree-pairs-1.jpeg)
 
 The result is a list with one element for each clone. Each element holds
 a `tree` plot and a `spatial_clone` plot. Tips with a spot in this
@@ -703,8 +802,6 @@ cowplot::plot_grid(
 )
 ```
 
-![](clones-and-trees_files/figure-gfm/tree-clusters-1.jpeg)
-
 With `k = "auto"`, the function chooses `k` for each tree from
 `k_range`. It stops when one more cut reduces the mean within-group
 patristic distance by less than `improvement_threshold`. The default is
@@ -715,9 +812,18 @@ tips one color.
 `color_by = "polygon_id"` colors each tip by its eGC, because the code
 kept `polygon_id` in `traits`.
 
-> **Tip.**
-> `spatialCloneTreePairsToPDF(cluster_pairs, "tree_pairs.pdf", width = 12, height = 6)`
-> writes one page for each clone.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Tip</b>
+</p>
+
+`spatialCloneTreePairsToPDF(cluster_pairs, "tree_pairs.pdf", width = 12, height = 6)`
+writes one page for each clone.
+
+</div>
 
 ## Compare tree distance with physical distance
 
@@ -736,7 +842,6 @@ multi_gc_clone <- clone_sizes %>%
   slice_max(n_gcs, n = 1, with_ties = FALSE) %>%
   pull(clone_id)
 multi_gc_clone
-#> [1] "739"
 
 index <- which(trees$clone_id == multi_gc_clone)
 clone_data <- trees$data[[index]]@data
@@ -760,11 +865,6 @@ pairs_table <- as.data.frame(as.table(distances)) %>%
 pairs_table %>%
   group_by(pair) %>%
   summarise(n_pairs = n(), median_distance = median(distance))
-#> # A tibble: 2 × 3
-#>   pair           n_pairs median_distance
-#>   <chr>            <int>           <dbl>
-#> 1 different eGCs       5          0.0273
-#> 2 same eGC            10          0.0123
 ```
 
 Read the two medians in the table. One clone cannot support a
@@ -794,7 +894,12 @@ Get started with SIRUP
 <div markdown="1"
 style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
 
-<b>Time</b>: ~15 minutes. <b>Data</b>: example MG thymus data in SIRUP.
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+**Time:** ~15 minutes.<br> **Data:** example MG thymus data in SIRUP.
 
 </div>
 
@@ -802,9 +907,9 @@ Here, we will build a SIRUP object from example data and run a few
 simple analyses.
 
 <div markdown="1"
-style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
 
-<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;">
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
 
 <b>Note</b>
 </p>
@@ -813,6 +918,29 @@ This page starts after read processing. If you have raw or demultiplexed
 reads, see [Process demultiplexed reads](processing.md) first.
 
 </div>
+
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package.
+This code downloads them. Change `dest` to a folder you want to keep.
+The default folder is temporary. The function skips files that are
+already there.
+
+``` r
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_gc_polygons.csv",
+  "mg_thymus_cell_types.csv.gz"
+  )
+)
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_cell_types.csv.gz'
+```
 
 ## Install SIRUP
 
@@ -850,12 +978,7 @@ This vignette uses these files:
 | `mg_thymus_slice2_gc_polygons.csv` | Annotated polygons of the eGCs |
 | `mg_thymus_cell_types.csv.gz` | Cell-type proportions for each spot |
 
-The files are in the `extdata` folder of the package. This code finds
-the folder:
-
-``` r
-extdata <- system.file("extdata", package = "SIRUP")
-```
+The code above downloaded these files with `downloadSIRUPExample()`.
 
 The SIRUP paper describes how the authors made these files. To reduce
 file sizes, each Seurat object holds a few hundred genes and a reduced
@@ -1018,9 +1141,9 @@ use them. If they are not specified when constructing the SIRUP object,
 both settings should be passed to any plotting functions.
 
 <div markdown="1"
-style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
 
-<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;">
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
 
 <b>Note</b>
 </p>
@@ -1048,7 +1171,7 @@ sirup <- updateReceptors(
   nproc = 1
 )
 #> Warning in prepare_db(db = db, junction = junction, v_call = v_call, j_call =
-#> j_call, : Removed 84 sequences with non ATCG characters.
+#> j_call, : Removed 84 sequences with non-ATCG characters in the junction.
 #> Running defineClonesScoper in bulk mode and only keep heavy chains
 sirup
 #> <SIRUP object>
@@ -1390,9 +1513,6 @@ sirup
 Use SIRUP with your LLM agent
 ================
 
-> **Time:** about 10 minutes. **Needs:** SIRUP, and an LLM agent that
-> can run R code, such as Claude Code, Codex, or Antigravity.
-
 An LLM agent can write and run SIRUP code for you. It writes better code
 when it knows how SIRUP works. SIRUP gives agents three kinds of help: a
 skill, the llms files, and this documentation. This page shows how to
@@ -1528,7 +1648,7 @@ cannot hold them. Start with the short index.
 Use these requests with the skill installed. Replace the file names with
 your own.
 
-``` text
+```
 I have a Seurat object in spatial.rds and an AIRR table in bcr.tsv.gz.
 Build a SIRUP object and call clones. Tell me how many sequences you removed and why.
 
@@ -1579,10 +1699,20 @@ An agent does not replace an expert review of your results.
 Analyze several sections with bulk AIRR-seq and blood
 ================
 
-> **Time:** about 25 minutes. **Data:** two MG thymus sections, bulk
-> thymus BCR-seq, and bulk blood BCR-seq, bundled with SIRUP. **Needs:**
-> SIRUP, scoper, and dowser. The tree step also needs the IMGT reference
-> sequences.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+**Time:** ~25 minutes.<br> **Data:** two MG thymus sections, bulk thymus
+BCR-seq, and bulk blood BCR-seq, downloaded with
+`downloadSIRUPExample()`.<br> **Needs:** SIRUP, scoper, and dowser. The
+tree step also needs the IMGT reference sequences.
+
+</div>
 
 Most studies have more than one tissue section. You can also have bulk
 AIRR-seq of the same tissue, or blood from other time points. In this
@@ -1613,6 +1743,45 @@ which clones in ectopic germinal centers (eGCs) also appear in the
 blood. An eGC is a site in the thymus where B cells proliferate and
 mutate their receptors.
 
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package.
+This code downloads them. Change `dest` to a folder you want to keep.
+The default folder is temporary. The function skips files that are
+already there.
+
+``` r
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_slice1_spatial.rds",
+  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice1_bcr.tsv.gz",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice1_gc_polygons.csv",
+  "mg_thymus_slice2_gc_polygons.csv",
+  "mg_thymus_bulk_thymus_1.tsv.gz",
+  "mg_thymus_bulk_thymus_2.tsv.gz",
+  "mg_thymus_bulk_blood_month0_1.tsv.gz",
+  "mg_thymus_bulk_blood_month0_2.tsv.gz",
+  "mg_thymus_bulk_blood_month12_1.tsv.gz",
+  "mg_thymus_bulk_blood_month12_2.tsv.gz"
+  )
+)
+#> ℹ Downloading 'mg_thymus_slice1_spatial.rds'
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice1_bcr.tsv.gz'
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice1_gc_polygons.csv'
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_bulk_thymus_1.tsv.gz'
+#> ℹ Downloading 'mg_thymus_bulk_thymus_2.tsv.gz'
+#> ℹ Downloading 'mg_thymus_bulk_blood_month0_1.tsv.gz'
+#> ℹ Downloading 'mg_thymus_bulk_blood_month0_2.tsv.gz'
+#> ℹ Downloading 'mg_thymus_bulk_blood_month12_1.tsv.gz'
+#> ℹ Downloading 'mg_thymus_bulk_blood_month12_2.tsv.gz'
+```
+
 ## Load the samples
 
 ``` r
@@ -1622,8 +1791,6 @@ library(ggplot2)
 ```
 
 ``` r
-extdata <- system.file("extdata", package = "SIRUP")
-
 spatial <- list(
   mg_thymus_slice1 = readRDS(file.path(extdata, "mg_thymus_slice1_spatial.rds")),
   mg_thymus_slice2 = readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
@@ -1691,10 +1858,20 @@ The section rows get a `sample` that matches the names of the `spatial`
 list. The bulk and blood rows have their own sample names and no
 barcode.
 
-> **Note.** To keep the package small, the bulk files hold a subset of
-> the bulk data. They hold the blood sequences of clones seen in a
-> section. They also hold up to 10 bulk thymus sequences of each clone
-> that reaches the blood.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+To keep the package small, the bulk files hold a subset of the bulk
+data. They hold the blood sequences of clones seen in a section. They
+also hold up to 10 bulk thymus sequences of each clone that reaches the
+blood.
+
+</div>
 
 ## Create a multi-sample object
 
@@ -1958,9 +2135,8 @@ getReceptors(sirup) %>%
 #> 17 mg_thymus_slice2::9         4          0
 ```
 
-The bundled bulk files hold a subset of the bulk data, and the clones
-come from that subset. For the full analysis, see Figure 5 of the SIRUP
-paper.
+The bulk files hold a subset of the bulk data, and the clones come from
+that subset. For the full analysis, see Figure 5 of the SIRUP paper.
 
 ## Measure clonal dominance in each section
 
@@ -2074,9 +2250,6 @@ tree_sirup <- updateReceptors(
   references = dowser::readIMGT(imgt_dir),
   id = "sequence_id"
 )
-#> Warning in fun(sirup_data, ...): 107 sequence lengths longer than predicted
-#> germlines, consider setting trim_lengths=TRUE if germlines fail
-#> [1] "Read in 1198 from 17 fasta files"
 tree_sirup <- formatSpatialClones(
   tree_sirup,
   id = "sequence_id",
@@ -2113,7 +2286,6 @@ pair <- plotSpatialCloneTreePairs(
 )
 
 names(pair)
-#> [1] "1045"
 ```
 
 The list has one element for each clone. If the tips of a clone fall in
@@ -2136,8 +2308,6 @@ cowplot::plot_grid(
   rel_heights = c(1, section_pair$legend_rel_height)
 )
 ```
-
-![](multisample_files/figure-gfm/tree-plot-show-1.jpeg)
 
 Shapes show the compartment of each tip. Circles are tips from a
 section. Squares are bulk thymus. Triangles are blood at the thymectomy.
@@ -2186,7 +2356,12 @@ Process demultiplexed reads
 <div markdown="1"
 style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
 
-<b>Time</b>: ~30 minutes. <b>Data</b>: example MG thymus read-level data
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+**Time:** ~30 minutes.<br> **Data:** example MG thymus read-level data
 in SIRUP.
 
 </div>
@@ -2194,6 +2369,27 @@ in SIRUP.
 Here, we will take demultiplexed long-read sequences and process them
 into an [AIRR
 rearrangement](https://docs.airr-community.org/en/latest/datarep/rearrangements.html).
+
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package.
+This code downloads them. Change `dest` to a folder you want to keep.
+The default folder is temporary. The function skips files that are
+already there.
+
+``` r
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_slice2_reads.tsv.gz",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_spatial.rds"
+  )
+)
+#> ℹ Downloading 'mg_thymus_slice2_reads.tsv.gz'
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+```
 
 ## Demultiplexing long-read sequences
 
@@ -2262,7 +2458,8 @@ in your IgBLAST installation.
 </div>
 
 Then download the IMGT germline references and set up the IgBLAST
-database with `airrblast`.
+database with `airrblast`. airrblast supports human, mouse, and rhesus
+macaque.
 
 ``` r
 library(airrblast)
@@ -2280,31 +2477,24 @@ downloadIMGT("imgt", organism="human", verbose=1)
 imgtToIgblast("imgt", "igblast", igblast_dir)
 ```
 
-################ 
+### Other dependencies
 
-# PICK UP HERE
+- [**pRESTO**](https://presto.readthedocs.io/en/stable/install.html#installation).
+- [**vsearch**](https://github.com/torognes/vsearch).
+- [**MUSCLE**](https://www.drive5.com/muscle/downloads_v3.htm) v3.8.31.
 
-################ 
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
 
-Install these programs on your computer or cluster:
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
 
-- **IgBLAST** (`igblastn`) from NCBI, with its `internal_data` and
-  `optional_file` folders.
-- **IMGT germline references**, both as IgBLAST databases and as gapped
-  FASTA files. The [airrblast](https://github.com/hoehnlab/airrblast)
-  package downloads and converts them (see below).
-- **pRESTO** (`pip install presto`).
-- **vsearch**, which `ClusterSets.py` calls.
-- **MUSCLE**, which `AlignSets.py` calls. The SIRUP paper used MUSCLE
-  3.8.31.
+<b>Note</b>
+</p>
 
-> **Tip.** The [Immcantation Docker
-> image](https://immcantation.readthedocs.io) contains most of these
-> tools. Run R inside the container and install airrblast.
+Paths such as `~/share/igblast` and `~/bin/muscle3.8.31_i86linux64` in
+this page are examples. Replace them with the paths on your system.
 
-> **Note.** Paths such as `~/share/igblast` and
-> `~/bin/muscle3.8.31_i86linux64` in this page are examples. Replace
-> them with the paths on your system.
+</div>
 
 Check that R can find the programs. This chunk shows code only:
 
@@ -2321,94 +2511,65 @@ An empty string means R cannot find that program. Add its folder to
 (`muscle_exec`). SIRUP runs IgBLAST through airrblast. It uses
 `<igblast_base>/bin/igblastn`.
 
-### Build the IgBLAST databases
+## Process the demultiplexed reads
 
-SIRUP imports the airrblast package. Run this code once to download the
-IMGT germlines and build the IgBLAST databases:
+To go from demultiplexed reads to an AIRR table, give the FASTA file to
+`processSpatialSample()`. It runs IgBLAST on each read, reads the
+barcode and UMI from the header, filters the reads, builds the consensus
+sequences, and writes the AIRR table. The rest of *this* section is
+optional. Skip ahead to [Run the consensus
+pipeline](#run-the-consensus-pipeline) if you do not want to run the
+first IgBLAST pass by hand and examine the reads before building
+consensus sequences.
+
+### Run the first IgBLAST pass by hand
+
+RAD/rRAD produces a FASTA file with a header that includes each read
+holds the spatial ID and the UMI, in the form `id|BARCODE=YYY|UMI=XXX`.
+`airrblast::assignGenes()` annotates every read with V(D)J genes and
+writes an AIRR table. It works with plain FASTA files only, so make sure
+to decompress a gzipped file before running. `parseRadSequenceIds()`
+copies the barcode and the UMI from the read ID into `barcode` and `umi`
+columns automatically.
+
+This chunk shows code only. It needs IgBLAST and a full-size input:
 
 ``` r
 library(airrblast)
-downloadIMGT("~/share/imgt", organism = "human")
-imgtToIgblast("~/share/imgt", "~/share/igblast_refs", igblast = "~/share/igblast")
-```
 
-`imgtToIgblast()` writes the `database/` and `fasta/` folders into
-`~/share/igblast_refs`. Give that folder to `processSpatialSample()` as
-`igblast_refs`. If you leave `igblast_refs` out, SIRUP looks for those
-folders in `igblast_base`. Give the IMGT folder as `imgt_dir`. airrblast
-supports human, mouse, and rhesus monkey.
-
-## Demultiplex with rrad
-
-rrad is a separate package. Install it from GitHub:
-
-``` r
-if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
-if (!requireNamespace("rrad", quietly = TRUE)) remotes::install_github("indianewok/rrad")
-```
-
-`rrad::rad_demux()` finds and corrects the barcodes and UMIs.
-`rrad::rad_reformat()` then writes a FASTA file that IgBLAST can read.
-Choose the `layout` that matches your library:
-
-``` r
-demux <- rrad::rad_demux(
-  layout = "five_prime",
-  fastq = "reads.fq.gz",
-  out_dir = "prepared",
-  output = "sample"
+assignGenes(
+  file = "prepared/sample-igblast.fasta",
+  igblast = "~/share/igblast",
+  refs = "~/share/igblast_refs",
+  organism = "human",
+  locus = "Ig",
+  outfile = "processed/reads_igblast.tsv",
+  nproc = 8,
+  return = FALSE
 )
 
-rrad::rad_reformat(
-  demux,
-  output_fastq = "prepared/sample-igblast.fasta",
-  to_fasta = TRUE,
-  header_format = "presto"
-)
+reads <- airr::read_rearrangement("processed/reads_igblast.tsv")
+reads <- parseRadSequenceIds(reads)
 ```
 
-Use `header_format = "presto"`. It puts the barcode and UMI into the
-read identifier, which IgBLAST keeps:
+Use `locus = "TR"` for TCRs. BCRs and TCRs need to run as separate
+calls. The metadata must be in the ID, before any white space. If the
+header has a different format, use `extractSpatialIds()`.
 
-``` text
->read1|BARCODE=AAACAAGTATCTCCCA|UMI=TCACATTCTGTA
-```
+`reads` is now a read-level AIRR table. The next section examines and
+filters such a table. You can also give it to `processSpatialSample()`
+with `input_type = "airr"`, as shown in [Run the consensus
+pipeline](#run-the-consensus-pipeline).
 
-`parseRadSequenceIds()` reads these tags into columns.
-`processSpatialSample()` calls it for you. Use it yourself to check a
-header. This chunk runs:
+### Examine and filter demultiplexed reads by hand
 
-``` r
-library(SIRUP)
-
-headers <- data.frame(sequence_id = c(
-  "read1|BARCODE=AAACAAGTATCTCCCA|UMI=TCACATTCTGTA",
-  "read2|BARCODE=AAACACCAATAACTGC|UMI=AAAAAGGCTGGT"
-))
-parseRadSequenceIds(headers)
-#>   sequence_id          barcode          umi
-#> 1       read1 AAACAAGTATCTCCCA TCACATTCTGTA
-#> 2       read2 AAACACCAATAACTGC AAAAAGGCTGGT
-```
-
-For Visium HD, rrad writes a coordinate barcode such as
-`s_002um_00001_00002-1` in place of the 16-base barcode. The [rrad
-documentation](https://github.com/indianewok/rrad) explains the Visium
-HD layout.
-
-## Look at the read-level data
-
-SIRUP includes 2,000 read-level IgBLAST rows from one section of human
-thymus. The file stores the barcode and UMI in the columns
-`cell_barcode` and `umi`, not in the header. The sample is enriched for
-usable reads. In this sample, 750 rows pass the IGH filter below. In the
-full section, 0.4% of the reads pass. The chunks in this section and the
-next run on the example.
+As an example, SIRUP includes 2,000 read-level IgBLAST rows from one
+section of human thymus. They have the form of the table that the first
+IgBLAST pass makes.
 
 ``` r
 library(dplyr)
 
-extdata <- system.file("extdata", package = "SIRUP")
 reads <- airr::read_rearrangement(
   file.path(extdata, "mg_thymus_slice2_reads.tsv.gz")
 )
@@ -2425,9 +2586,10 @@ count(reads, locus, sort = TRUE)
 #> 4 <NA>     56
 ```
 
-Most reads are fragments, light chains, or other transcripts.
-`filterAirr()` keeps the reads worth building consensus sequences from.
-These settings match the SIRUP paper for IGH reads:
+Many reads are fragments, light chains, or other transcripts.
+`filterAirr()` is a function that conveniently filters out low quality
+reads and keeps those potentially worth using to build a consensus. We
+recommend using the thresholds given below.
 
 ``` r
 reads$barcode <- reads$cell_barcode
@@ -2451,37 +2613,36 @@ spatialReceptorSummary(igh_reads, spatial_id = "barcode")
 #> 1         750           451      1          307
 ```
 
-> **Note.** Keep `productive_only = FALSE` at the read level. A
-> sequencing error can make a single read look unproductive, and the
-> consensus step corrects that error. Filter on productivity after the
-> consensus step. With `umi_support = TRUE`, SIRUP builds each molecule
-> consensus from the productive reads of that molecule.
-
-`plotLengthQc()` shows the V, J, and junction lengths. Use it to choose
-the thresholds:
+`plotLengthQc()` shows the V, J, and junction lengths. It can be used to
+choose the thresholds rather than using the above.
 
 ``` r
-plotLengthQc(igh_reads, bin_width = 10, title = "IGH reads, thymus section")
+plotLengthQc(igh_reads, bin_width = 10, title = "IGH reads")
 ```
 
 ![](processing_files/figure-gfm/length-qc-1.jpeg)
 
 ## Run the consensus pipeline
 
-`processSpatialSample()` runs every step from the table above. It prints
-each command before it runs it. If a command fails, it stops and shows
-the command. The chunks in this section show code only. They need the
-external tools and full-size inputs.
+`processSpatialSample()` runs every step from the previously shown
+table. It will print each command before it runs, so that if a command
+fails debugging is straightforward. This section shows code only.
 
-You can start from three types of input:
+You can start from three types of input. Demultiplexed reads (the first
+row) are the usual start:
 
 | `input` | `input_type` | First step that runs |
 |----|----|----|
-| FASTA or FASTQ from rrad | `"auto"` or `"raw_reads"` | IgBLAST on each read |
+| FASTA or FASTQ from RAD/rRAD | `"auto"` or `"raw_reads"` | IgBLAST on each read |
 | AIRR table (path or data frame) from a first IgBLAST pass | `"auto"` or `"airr"` | `filterAirr()` |
-| FASTA that is already filtered, with the spot in the header | `"spatial_fasta"` | pRESTO clustering |
+| FASTA that is already filtered, with the spot in the header | `"spatial_fasta"` | sequence clustering |
 
-### From rrad FASTA
+### From demultiplexed reads
+
+This call takes the FASTA from RAD/rRAD all the way to a properly
+formatted AIRR rearrangement. It will run the first IgBLAST pass and
+filtering. Note that you should replace the paths below with your own
+paths.
 
 ``` r
 result <- processSpatialSample(
@@ -2502,45 +2663,60 @@ result <- processSpatialSample(
 result$db_pass
 ```
 
-Use `receptor = "tr"` for TCRs. Run BCRs and TCRs as separate calls.
+The key arguments here are:
 
-`runIgblast()` calls `airrblast::assignGenes()`, which does not search a
-constant-region database. A table made from raw reads has no `c_call`
-column.
+| `argument` | `options` | What it does |
+|----|----|----|
+| `receptor` | `"ig"` or `"tr"` | Assign IG (for BCRs) or TR (for TCRs) genes with IgBLAST |
+| `identity` | 0-1 | How closely do sequences have to match within a spatial spot to be clustered together? |
+| `consensus_freq` | 0-1 | What proportion of sequences in a cluster must have the same nucleotide at each position for the consensus sequence to not report an N? |
+| `consensus_min_count` | `2` | Require at least 2 reads to support a consensus sequence |
+| `nproc` | `8` | Use 8 processes for parallel execution |
 
-### With UMI support
+### Choosing processing settings
 
-Reads of one molecule can differ by sequencing errors. At
-`identity = 1.0`, those reads fall into different clusters, and each
-cluster can then fail the two-read minimum. With `umi_support = TRUE`,
-SIRUP first groups the reads of each spot and UMI at a looser identity
+These settings are recommended to change depending on the method used to
+perform spatial sequencing. Here, this is 10X Visium data, where spatial
+spots are 55$\mu$m in diameter and it is reasonable to expect ~10 cells
+per spot. As such, we do not know if slight differences in BCR sequences
+seen in the same spot are sequencing errors or mutated BCR sequences
+from different cells, so we recommend using `identity = 1.0` to be safe.
+
+Since TCRs do not mutate, we recommend a looser identity threshold,
+`identity = 0.975` for 10X Visium data.
+
+For other formats of data that have single-cell or near single-cell
+resolution, such as Visium HD or Curio Trekker, we recommend using
+`identity = 0.95`, as it is not expected that multiple cells would be
+present within the same spot.
+
+We recommend `consensus_freq = 0.51` and `consensus_min_count = 2`
+regardless of data.
+
+### Using UMI support
+
+If your spatial sequencing data includes UMIs, which the 10X Visium data
+here does, you can use UMI support to group reads from the same
+molecule. We expect that differences in sequences with identical UMIs
+are likely sequencing errors. By setting `umi_support = TRUE`, SIRUP
+first groups the reads of each spot and UMI at a looser identity
 (`umi_identity`, default 0.95). It builds one consensus per molecule
-from the productive reads only. The spot-level step then combines the
-molecules and sums their reads.
+from productive reads only. Then, the same spot-level clustering step as
+discussed above combines the molecules and sums their reads counts.
 
-`umi_support` needs an AIRR table with `umi` and `productive` columns.
-Make it with a first IgBLAST pass on the rrad FASTA file:
+The point of using UMI support is to let multiple reads within the same
+UMI be counted as support for consensus sequence building, rather than
+as separate reads.
 
-``` r
-runIgblast(
-  input = "prepared/sample-igblast.fasta",
-  output_tsv = "processed/reads_igblast.tsv",
-  receptor = "ig",
-  igblast_base = "~/share/igblast",
-  igblast_refs = "~/share/igblast_refs"
-)
-igblast_reads <- airr::read_rearrangement("processed/reads_igblast.tsv")
-igblast_reads <- parseRadSequenceIds(igblast_reads)
-```
-
-The rrad FASTA header holds the barcode and UMI. `parseRadSequenceIds()`
-copies them into the `barcode` and `umi` columns. The SIRUP paper used
-this call for the thymus BCRs:
+This call of `processSpatialSample` is what was used in the SIRUP paper
+to process the demultiplexed data with UMI support. `filter_args` are
+passed to a call of `filterAirr()` that gets run after the first IgBLAST
+step to reduce downstream computational time. If you do not pass a set
+of `filter_args`, the filtering step is skipped.
 
 ``` r
 result <- processSpatialSample(
-  input = igblast_reads,           # read-level AIRR data frame
-  input_type = "airr",
+  input = "prepared/sample-igblast.fasta",
   output_dir = "processed/bcr_umi",
   receptor = "ig",
   identity = 1.0,
@@ -2555,8 +2731,6 @@ result <- processSpatialSample(
   umi_field = "umi",
   umi_identity = 0.95,
   min_umi_support = 2,
-  consensus_copy_fields = "C_CALL",
-  consensus_copy_action = "majority",
   filter_args = list(
     locus_val = "IGH",
     min_v_length = 100,
@@ -2574,23 +2748,12 @@ result$db_pass_umi
 
 With `umi_support = TRUE`, the result has two AIRR tables. `db_pass`
 holds every consensus sequence. `db_pass_umi` holds the sequences with
-at least `min_umi_support` reads. You can change the threshold later
-without running the pipeline again.
+at least `min_umi_support` reads.
 
-### Keep the constant region
-
-The consensus covers the V(D)J region only, so the second IgBLAST pass
-cannot call the constant region. To keep the isotype, put the read-level
-`c_call` into the FASTA header. Then give
-`consensus_copy_fields = "C_CALL"` and
-`consensus_copy_action = "majority"`. Each consensus sequence gets the
-constant region of most of its reads, in `c_call`, and the fraction of
-reads that agree, in `c_call_freq`.
-
-### Many samples
+### Running multiple samples
 
 `processSpatialSamples()` runs `processSpatialSample()` on each input,
-with the same settings:
+with the same settings.
 
 ``` r
 processSpatialSamples(
@@ -2604,39 +2767,25 @@ processSpatialSamples(
 )
 ```
 
-> **Tip.** On a cluster, submit one job per sample. Each job calls
-> `processSpatialSample()` once.
+<div markdown="1"
+style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
 
-## Choose the parameters
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;">
 
-Two parameters have the largest effect on the result:
+<b>Tip</b>
+</p>
 
-- `identity` is the similarity that two reads need to go into the same
-  cluster in a spot.
-- `consensus_freq` is the fraction of reads that must agree at a
-  position. If fewer reads agree, the consensus gets an `N` at that
-  position.
+On a cluster, submit one job per sample. Each job calls
+`processSpatialSample()` once.
 
-A standard Visium spot is 55 µm wide and holds many cells. Two BCRs in
-the same spot that differ by one base can come from two related B cells
-after somatic hypermutation. For BCRs, use `identity = 1.0`, so that
-SIRUP does not merge them. TCRs do not mutate, so a one-base difference
-in a spot is more likely a sequencing error. For TCRs, use
-`identity = 0.99`. In the SIRUP paper, `consensus_freq = 0.51` gave the
-most high-quality sequences for both chains.
+</div>
 
-To compare settings, run `processSpatialSample()` with each value.
-Clustering and alignment depend on `identity` only, so with
-`skip_existing = TRUE` you can try several `consensus_freq` values and
-reuse the clustering.
-
-## Filter the consensus table
+## After `processSpatialSample()`
 
 The pipeline writes the consensus `sequence_id` as
-`<cluster>,<barcode>`. The example data include the consensus table of
-one thymus section. It is the `db_pass_umi` table that
-`processSpatialSample()` wrote for the SIRUP paper. The chunks in this
-section run on it:
+`<cluster>,<barcode>`. The example data include the AIRR rearrangement
+of consensus sequences from a thymus section. Read in and examine the
+data below.
 
 ``` r
 consensus <- airr::read_rearrangement(
@@ -2649,25 +2798,29 @@ head(consensus$sequence_id)
 
 `extractSpatialIds()` copies the part of an ID that a regular expression
 matches into a new column. The `suffix` argument adds `-1`, so the
-barcode matches the spot names that Space Ranger writes:
+barcode matches the spot names that Space Ranger writes to the spatial
+gene expression data.
 
 ``` r
 consensus <- extractSpatialIds(
   consensus,
-  id = "sequence_id",
-  spatial_id = "barcode_10x",
-  regex = ",([ACGT]{16})$",
-  suffix = "-1"
+  id = "sequence_id", # look in column
+  spatial_id = "barcode_10x", # write to column
+  regex = ",([ACGT]{16})$", # what to extract
+  suffix = "-1" # suffix to add
 )
 head(consensus$barcode_10x)
 #> [1] "TGATTCCCGGTTACCT-1" "TGATTCCCGGTTACCT-1" "TGATTCCCGGTTACCT-1"
 #> [4] "TGATTCCCGGTTACCT-1" "CCTACATTCACAGACG-1" "CCTACATTCACAGACG-1"
 ```
 
-`addSequenceQualityMetrics()` adds three columns that help you set
-thresholds: `non_N_nucleotide_prop` (the fraction of called bases),
-`max_gap_length` (the longest gap in the alignment), and
-`opening_gap_length`:
+To examine the consensus sequences that pass through
+`processSpatialSample()`, we add a few quality
+metrics.`addSequenceQualityMetrics()` adds three columns that help you
+set thresholds for further filtering. `non_N_nucleotide_prop` (fraction
+of nucleotides that are not N), `max_gap_length` ( longest gap in the
+alignment), and `opening_gap_length` (length of a gap at the beginning
+of the sequence).
 
 ``` r
 consensus <- addSequenceQualityMetrics(
@@ -2685,10 +2838,15 @@ summary(consensus[, c("non_N_nucleotide_prop", "max_gap_length", "consensus_coun
 #>  Max.   :1.0000        Max.   :220.00   Max.   :35.000
 ```
 
-Then filter. These settings follow the definition of a quality sequence
-in the SIRUP paper. A quality sequence is a productive rearrangement.
-Its V alignment has at least 250 nucleotides, its J at least 30, and its
-junction at least 10. It has no gap longer than 15 nucleotides.
+We then recommend filtering the processed data further to ensure
+analyses are done on high quality sequences. We recommend keeping
+productive sequences with V gene length at least 250 nucleotides, J gene
+length at least 30 nucleotides, and junction length at least 10.
+Futhermore, we filter such that sequences are not allowed to have a gap
+longer than 15 nucleotides for BCRs and 24 nucleotides for TCRs.
+
+We do not pass a minimum consensus count because the table only includes
+sequences with at least two reads supporting the consensus.
 
 ``` r
 bcrs <- filterAirr(
@@ -2710,123 +2868,7 @@ nrow(bcrs)
 #> [1] 2073
 ```
 
-This table is `db_pass_umi`, so every row already has at least two
-reads. In UMI mode, `consensus_count` counts molecules, not reads, so
-set `min_consensus_count = NULL` and use `min_umi_support` for the read
-floor. Without UMI support, `consensus_count` counts reads. Then use
-`min_consensus_count = 2`.
-
-`max_gap_length` depends on the locus. IMGT numbering pads TRBV
-alignments with longer gaps than IGHV alignments, so a limit of 15
-removes valid TRB sequences. The SIRUP paper used 15 for IGH and 24 for
-TRB.
-
 The table is now ready for `createSIRUP()`.
-
-## Visium HD
-
-Visium HD reads carry a 2 µm barcode, such as `s_002um_00001_00002-1`.
-Most analyses use 8 µm or 16 µm bins. Space Ranger writes a file that
-maps each 2 µm barcode to its larger bins (`barcode_mappings.parquet`).
-`readSpatialIdMapping()` reads it. Parquet files need the arrow package.
-You can also save the file as CSV once and read that.
-
-This chunk shows code only. It needs Space Ranger output.
-
-``` r
-# bcrs$barcode_2um holds the 2 µm barcode of each consensus sequence.
-mapping <- readSpatialIdMapping("outs/barcode_mappings.parquet")
-mean(bcrs$barcode_2um %in% mapping$square_002um)
-
-bcrs <- bcrs %>%
-  left_join(
-    select(mapping, square_002um, square_008um, square_016um),
-    by = c("barcode_2um" = "square_002um")
-  ) %>%
-  rename(barcode_8um = square_008um, barcode_16um = square_016um)
-```
-
-Check the match rate before the join. If few 2 µm barcodes match,
-compare a few values from each table. The two tables must write the row
-and column of the bin in the same order (`s_002um_<row>_<col>-1`).
-
-Load the 8 µm bins with `Seurat::Load10X_Spatial(bin.size = 8)`, and
-give `spatial_id = "barcode_8um"` to `createSIRUP()`.
-
-`collapseTopConsensusPerSpatialId()` keeps the consensus sequence with
-the most reads in each spatial ID and locus. Use it when you expect one
-cell for each spatial ID, for example at single-cell resolution.
-
-### Identical sequences in neighboring spots
-
-Transcripts can diffuse a short distance before capture. The same
-molecule can then appear in neighboring spots. On Visium HD, where 2 µm
-bins sit next to each other, this spatial bleed is common.
-`collapseIdenticalNeighbors()` finds groups of neighboring spots that
-hold the same exact sequence. It keeps one spot per group: the spot with
-the highest consensus count, or the spot nearest the group center if
-there is a tie.
-
-The function also merges rows with the same sequence in the same spot
-and adds their counts. It keeps rows whose spot is not in the Seurat
-object, such as bulk rows, without changes.
-
-> **Note.** Use it on Visium HD data only. Standard Visium spots are 55
-> µm wide, 100 µm apart, and hold several cells each. Two neighboring
-> Visium spots with the same sequence are more likely two related cells
-> than spatial bleed.
-
-The function estimates the neighbor distance from the spot coordinates.
-Set `num_neighbors_non_boundary` to the number of neighbors of a spot in
-the middle of the tissue. Use 6 on the standard Visium hexagonal grid
-and 8 on the Visium HD square grid. The next chunk runs the function on
-the standard Visium example to show the call and its output. Do not use
-it on standard Visium data in practice:
-
-``` r
-thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
-sirup <- createSIRUP(
-  spatial = thymus,
-  receptors = bcrs,
-  spatial_id = "barcode_10x",
-  image_scale = "lowres",
-  swap_coords = FALSE
-)
-
-collapsed <- collapseIdenticalNeighbors(
-  sirup,
-  sequence = "sequence_alignment",
-  num_neighbors_non_boundary = 6
-)
-#> ℹ Ensuring one row per spatial_id/sequence...
-#> ✔ Ensuring one row per spatial_id/sequence... [2s]
-#> 
-#> ℹ Estimating distance threshold from full tissue positions...
-#> ✔ Estimating distance threshold from full tissue positions... [3.4s]
-#> 
-#> ℹ Distance threshold: 10.0214
-#> ℹ Filtering to spots with observed sequences...
-#> ✔ Filtering to spots with observed sequences... [7ms]
-#> 
-#> ℹ Sequence-positive spots: 800 (of 3,203 total)
-#> ℹ Building adjacency matrix over spots with observed sequences...
-#> ✔ Building adjacency matrix over spots with observed sequences... [10ms]
-#> 
-#> ℹ Collapsing components to representative spots...
-#> ✔ Collapsing components to representative spots... [220ms]
-#> 
-#> ℹ Filtering data to representative spots...
-#> ✔ Filtering data to representative spots... [11ms]
-#> 
-#> ✔ Done! Retained 1,946 rows from 2,071 (125 bleedover sequences removed)
-
-c(before = nrow(getReceptors(sirup)), after = nrow(getReceptors(collapsed)))
-#> before  after 
-#>   2073   1946
-```
-
-For Visium HD, give the 8 µm object and
-`num_neighbors_non_boundary = 8`.
 
 ## Next steps
 
@@ -2847,10 +2889,20 @@ For Visium HD, give the 8 µm object and
 Draw tissue regions and measure clonal dominance and diversity
 ================
 
-> **Time:** about 15 minutes. **Data:** consensus BCRs and spatial gene
-> expression from one myasthenia gravis (MG) thymus section, bundled
-> with SIRUP. **Needs:** SIRUP with its Suggests packages scoper,
-> alakazam, and sf, plus rgl for the 3D plot.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+**Time:** ~15 minutes.<br> **Data:** consensus BCRs and spatial gene
+expression from one myasthenia gravis (MG) thymus section, downloaded
+with `downloadSIRUPExample()`.<br> **Needs:** SIRUP with its Suggests
+packages scoper, alakazam, and sf, plus rgl for the 3D plot.
+
+</div>
 
 In this page you mark regions on a tissue section, attach them to a
 SIRUP object, and measure the B cell receptor (BCR) repertoire in each
@@ -2866,6 +2918,27 @@ diversity curves, and pseudobulk expression profiles. This page assumes
 you know the SIRUP object. See
 [How the SIRUP object works](sirup-object.md) for an introduction.
 
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package.
+This code downloads them. Change `dest` to a folder you want to keep.
+The default folder is temporary. The function skips files that are
+already there.
+
+``` r
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_gc_polygons.csv"
+  )
+)
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+```
+
 ## Set up the object
 
 Load the packages.
@@ -2877,8 +2950,6 @@ library(ggplot2)
 ```
 
 ``` r
-extdata <- system.file("extdata", package = "SIRUP")
-
 thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
 bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz")) %>%
   extractSpatialIds(
@@ -2955,9 +3026,18 @@ These arguments help on large sections:
 - On a remote server, set `launch_browser = FALSE`, `host = "0.0.0.0"`,
   and a `port`. Then open the port through an SSH tunnel.
 
-> **Tip.** Give a `save_path`. The CSV file is the record of your
-> annotation. Other people can repeat the analysis without a second
-> round of drawing.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Tip</b>
+</p>
+
+Give a `save_path`. The CSV file is the record of your annotation. Other
+people can repeat the analysis without a second round of drawing.
+
+</div>
 
 The example data include the polygon file for this section. Read it:
 
@@ -3277,8 +3357,6 @@ plotSpatialPolygonPies(
   top_n = 5,
   zoom = TRUE
 )
-#> Warning: package 'sf' was built under R version 4.5.3
-#> Linking to GEOS 3.7.2, GDAL 3.0.4, PROJ 6.3.2; sf_use_s2() is TRUE
 ```
 
 ![](regions_files/figure-gfm/clipped-1.jpeg)
@@ -3406,8 +3484,18 @@ pseudobulk[c("AICDA", "MS4A1", "CXCL13", "CD3E"), ]
 #> CD3E    11  3  2  2  17 16  12  7  3
 ```
 
-> **Note.** Seurat adds a `g` to group names that start with a number.
-> The column for eGC 1 is `g1`.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+Seurat adds a `g` to group names that start with a number. The column
+for eGC 1 is `g1`.
+
+</div>
 
 You can give these profiles to a differential expression tool, such as
 limma or DESeq2.
@@ -3467,9 +3555,6 @@ polygonPairwiseDistance(sirup) %>%
 
 How the SIRUP object works
 ================
-
-> **Time:** about 10 minutes. **Data:** the small synthetic object in
-> SIRUP. **Needs:** SIRUP.
 
 A spatial receptor experiment gives you three kinds of data: gene
 expression for each spot, receptor sequences, and the regions that you
@@ -3650,9 +3735,19 @@ tryCatch(
 #> [1] "No receptor IDs match the spatial Seurat object."
 ```
 
-> **Note.** SIRUP keeps receptor rows that match no spot. Bulk and blood
-> sequences are examples. The rules need only one match, so these rows
-> stay in the table.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+SIRUP keeps receptor rows that match no spot. Bulk and blood sequences
+are examples. The rules need only one match, so these rows stay in the
+table.
+
+</div>
 
 ## Image settings
 
@@ -3792,10 +3887,20 @@ x_again
 Test spatial patterns of genes, cells, and clones
 ================
 
-> **Time:** about 15 minutes. **Data:** MG thymus section 2, with BCRs,
-> TCRs, gene expression, and cell-type estimates, bundled with SIRUP.
-> **Needs:** SIRUP with spdep, scoper, and spatstat.explore,
-> spatstat.geom, and spatstat.random.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+**Time:** ~15 minutes.<br> **Data:** MG thymus section 2, with BCRs,
+TCRs, gene expression, and cell-type estimates, downloaded with
+`downloadSIRUPExample()`.<br> **Needs:** SIRUP with spdep, scoper, and
+spatstat.explore, spatstat.geom, and spatstat.random.
+
+</div>
 
 A map can suggest that a gene clusters or that a clone stays in one
 place. A spatial statistic tests whether the pattern is stronger than
@@ -3819,6 +3924,31 @@ clone spreads across a section. For help with the choice of test, see
 Each function accepts a SIRUP object. It reads the spot coordinates and
 the image settings from the object.
 
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package.
+This code downloads them. Change `dest` to a folder you want to keep.
+The default folder is temporary. The function skips files that are
+already there.
+
+``` r
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_cell_types.csv.gz",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_gc_polygons.csv",
+  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice2_tcr.tsv.gz"
+  )
+)
+#> ℹ 'mg_thymus_cell_types.csv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice2_tcr.tsv.gz'
+```
+
 ## Set up the object
 
 Load the packages, then build one BCR object and one TCR object from the
@@ -3831,7 +3961,6 @@ library(ggplot2)
 ```
 
 ``` r
-extdata <- system.file("extdata", package = "SIRUP")
 read_receptors <- function(file, locus) {
   airr::read_rearrangement(file.path(extdata, file)) %>%
     extractSpatialIds(
@@ -3920,15 +4049,26 @@ choose the neighbors in one of two ways:
   image pixels at the stored `image_scale`. The same distance in
   micrometers needs a different number at `"lowres"` and at `"hires"`.
 
-> **Tip.** `k` does not depend on the image scale. Use it as the
-> default.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Tip</b>
+</p>
+
+`k` does not depend on the image scale. Use it as the default.
+
+</div>
 
 ## Test one variable with global Moran’s I
 
 *Moran’s I* measures spatial autocorrelation. It asks whether
 neighboring spots have similar values.
 
-$$I = \frac{N}{W} \frac{\sum_i \sum_j w_{ij}(x_i - \bar{x})(x_j - \bar{x})}{\sum_i (x_i - \bar{x})^2}$$
+$$
+I = \frac{N}{W} \frac{\sum_i \sum_j w_{ij}(x_i - \bar{x})(x_j - \bar{x})}{\sum_i (x_i - \bar{x})^2}
+$$
 
 Here $x_i$ is the value at spot $i$. $w_{ij}$ is 1 if spot $j$ is a
 neighbor of spot $i$, and 0 if not. $N$ is the number of spots. $W$ is
@@ -4094,17 +4234,28 @@ tibble(
 The control pair shares a pattern. *AICDA* and *CHRNA1* do not. In this
 section, $L$ for that pair is near zero and the test is not significant.
 
-> **Note.** The analytical test (`method = "analytical"`) builds a dense
-> matrix with one entry for each pair of spots. This works for Visium.
-> For Visium HD, use `method = "mc"`. It uses permutations and sparse
-> weights.
+<div markdown="1"
+style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;">
+
+<b>Warning</b>
+</p>
+
+The analytical test (`method = "analytical"`) builds a dense matrix with
+one entry for each pair of spots. This works for Visium. For Visium HD,
+use `method = "mc"`. It uses permutations and sparse weights.
+
+</div>
 
 ## Test two spot types with Ripley’s cross K
 
 *Ripley’s cross K* counts, for each distance $r$, how many type B points
 lie within $r$ of an average type A point:
 
-$$K_{AB}(r) = \frac{|W|}{N_A N_B} \sum_{i \in A} \sum_{j \in B} \mathbf{1}(d_{ij} \le r)$$
+$$
+K_{AB}(r) = \frac{|W|}{N_A N_B} \sum_{i \in A} \sum_{j \in B} \mathbf{1}(d_{ij} \le r)
+$$
 
 $|W|$ is the area of the tissue window. $d_{ij}$ is the distance between
 points $i$ and $j$. SIRUP compares the observed curve with curves from
@@ -5332,6 +5483,87 @@ sirup <- createSIRUP(
   swap_coords = FALSE
 )
 sirup
+```
+
+
+---
+
+<!-- source: docs/topics/downloadSIRUPExample.md -->
+
+# downloadSIRUPExample
+
+## Download the SIRUP example data
+
+## Description
+
+Download the myasthenia gravis (MG) thymus example files that the guides on the SIRUP website use. The files are not part of the package, to keep the package small. The function skips files that are already in `dest` and checks every download against a stored MD5 sum.
+
+## Usage
+
+``` R
+downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = NULL,
+  overwrite = FALSE,
+  base_url = getOption("SIRUP.example_url", .sirup_example_url),
+  quiet = FALSE
+)
+```
+
+## Arguments
+
+`dest`
+
+: Folder to save the files in. The function creates it if needed. The default is a folder in the R session\'s temporary directory, so the files are lost when you close R. Give a permanent folder to keep them.
+
+`files`
+
+: Names of the files to download. If `NULL` (default), the function downloads all files. Use this to download only what a guide needs.
+
+`overwrite`
+
+: Download a file again even if it is already in `dest` (default `FALSE`)?
+
+`base_url`
+
+: Web address of the folder that holds the files. Change it only to use a mirror. A `⁠file://⁠` address of a local folder also works. The default is the option `SIRUP.example_url` if you set it.
+
+`quiet`
+
+: Hide the download progress messages (default `FALSE`)?
+
+## Details
+
+The files are:
+
+- `mg_thymus_slice1_spatial.rds`, `mg_thymus_slice2_spatial.rds`: spatial Seurat objects for the two tissue sections.
+
+- `mg_thymus_slice1_bcr.tsv.gz`, `mg_thymus_slice2_bcr.tsv.gz`: AIRR rearrangement tables of IGH sequences with spatial IDs.
+
+- `mg_thymus_slice2_tcr.tsv.gz`, `mg_thymus_slice2_reads.tsv.gz`: TCR sequences and the demultiplexed reads of section 2.
+
+- `mg_thymus_slice1_gc_polygons.csv`, `mg_thymus_slice2_gc_polygons.csv`: annotated polygons of the ectopic germinal centers.
+
+- `mg_thymus_cell_types.csv.gz`: cell-type proportions for each spot.
+
+- `mg_thymus_bulk_*.tsv.gz`: bulk repertoire tables from thymus and blood.
+
+## Value
+
+The path of `dest`, invisibly. Use `file.path()` with the path and a file name to read a file.
+
+## See Also
+
+[`readSIRUP()`](sirup-io.md)
+
+## Examples
+
+``` R
+
+extdata <- downloadSIRUPExample(
+  files = c("mg_thymus_slice2_spatial.rds", "mg_thymus_slice2_bcr.tsv.gz")
+)
+thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
 ```
 
 

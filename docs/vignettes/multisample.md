@@ -1,10 +1,20 @@
 Analyze several sections with bulk AIRR-seq and blood
 ================
 
-> **Time:** about 25 minutes. **Data:** two MG thymus sections, bulk
-> thymus BCR-seq, and bulk blood BCR-seq, bundled with SIRUP. **Needs:**
-> SIRUP, scoper, and dowser. The tree step also needs the IMGT reference
-> sequences.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+**Time:** ~25 minutes.<br> **Data:** two MG thymus sections, bulk thymus
+BCR-seq, and bulk blood BCR-seq, downloaded with
+`downloadSIRUPExample()`.<br> **Needs:** SIRUP, scoper, and dowser. The
+tree step also needs the IMGT reference sequences.
+
+</div>
 
 Most studies have more than one tissue section. You can also have bulk
 AIRR-seq of the same tissue, or blood from other time points. In this
@@ -35,6 +45,45 @@ which clones in ectopic germinal centers (eGCs) also appear in the
 blood. An eGC is a site in the thymus where B cells proliferate and
 mutate their receptors.
 
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package.
+This code downloads them. Change `dest` to a folder you want to keep.
+The default folder is temporary. The function skips files that are
+already there.
+
+``` r
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_slice1_spatial.rds",
+  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice1_bcr.tsv.gz",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice1_gc_polygons.csv",
+  "mg_thymus_slice2_gc_polygons.csv",
+  "mg_thymus_bulk_thymus_1.tsv.gz",
+  "mg_thymus_bulk_thymus_2.tsv.gz",
+  "mg_thymus_bulk_blood_month0_1.tsv.gz",
+  "mg_thymus_bulk_blood_month0_2.tsv.gz",
+  "mg_thymus_bulk_blood_month12_1.tsv.gz",
+  "mg_thymus_bulk_blood_month12_2.tsv.gz"
+  )
+)
+#> ℹ Downloading 'mg_thymus_slice1_spatial.rds'
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice1_bcr.tsv.gz'
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice1_gc_polygons.csv'
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_bulk_thymus_1.tsv.gz'
+#> ℹ Downloading 'mg_thymus_bulk_thymus_2.tsv.gz'
+#> ℹ Downloading 'mg_thymus_bulk_blood_month0_1.tsv.gz'
+#> ℹ Downloading 'mg_thymus_bulk_blood_month0_2.tsv.gz'
+#> ℹ Downloading 'mg_thymus_bulk_blood_month12_1.tsv.gz'
+#> ℹ Downloading 'mg_thymus_bulk_blood_month12_2.tsv.gz'
+```
+
 ## Load the samples
 
 ``` r
@@ -44,8 +93,6 @@ library(ggplot2)
 ```
 
 ``` r
-extdata <- system.file("extdata", package = "SIRUP")
-
 spatial <- list(
   mg_thymus_slice1 = readRDS(file.path(extdata, "mg_thymus_slice1_spatial.rds")),
   mg_thymus_slice2 = readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
@@ -113,10 +160,20 @@ The section rows get a `sample` that matches the names of the `spatial`
 list. The bulk and blood rows have their own sample names and no
 barcode.
 
-> **Note.** To keep the package small, the bulk files hold a subset of
-> the bulk data. They hold the blood sequences of clones seen in a
-> section. They also hold up to 10 bulk thymus sequences of each clone
-> that reaches the blood.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+To keep the package small, the bulk files hold a subset of the bulk
+data. They hold the blood sequences of clones seen in a section. They
+also hold up to 10 bulk thymus sequences of each clone that reaches the
+blood.
+
+</div>
 
 ## Create a multi-sample object
 
@@ -380,9 +437,8 @@ getReceptors(sirup) %>%
 #> 17 mg_thymus_slice2::9         4          0
 ```
 
-The bundled bulk files hold a subset of the bulk data, and the clones
-come from that subset. For the full analysis, see Figure 5 of the SIRUP
-paper.
+The bulk files hold a subset of the bulk data, and the clones come from
+that subset. For the full analysis, see Figure 5 of the SIRUP paper.
 
 ## Measure clonal dominance in each section
 
@@ -496,9 +552,6 @@ tree_sirup <- updateReceptors(
   references = dowser::readIMGT(imgt_dir),
   id = "sequence_id"
 )
-#> Warning in fun(sirup_data, ...): 107 sequence lengths longer than predicted
-#> germlines, consider setting trim_lengths=TRUE if germlines fail
-#> [1] "Read in 1198 from 17 fasta files"
 tree_sirup <- formatSpatialClones(
   tree_sirup,
   id = "sequence_id",
@@ -535,7 +588,6 @@ pair <- plotSpatialCloneTreePairs(
 )
 
 names(pair)
-#> [1] "1045"
 ```
 
 The list has one element for each clone. If the tips of a clone fall in
@@ -558,8 +610,6 @@ cowplot::plot_grid(
   rel_heights = c(1, section_pair$legend_rel_height)
 )
 ```
-
-![](multisample_files/figure-gfm/tree-plot-show-1.jpeg)
 
 Shapes show the compartment of each tip. Circles are tips from a
 section. Squares are bulk thymus. Triangles are blood at the thymectomy.

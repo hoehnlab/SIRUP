@@ -1,10 +1,20 @@
 Draw tissue regions and measure clonal dominance and diversity
 ================
 
-> **Time:** about 15 minutes. **Data:** consensus BCRs and spatial gene
-> expression from one myasthenia gravis (MG) thymus section, bundled
-> with SIRUP. **Needs:** SIRUP with its Suggests packages scoper,
-> alakazam, and sf, plus rgl for the 3D plot.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+**Time:** ~15 minutes.<br> **Data:** consensus BCRs and spatial gene
+expression from one myasthenia gravis (MG) thymus section, downloaded
+with `downloadSIRUPExample()`.<br> **Needs:** SIRUP with its Suggests
+packages scoper, alakazam, and sf, plus rgl for the 3D plot.
+
+</div>
 
 In this page you mark regions on a tissue section, attach them to a
 SIRUP object, and measure the B cell receptor (BCR) repertoire in each
@@ -20,6 +30,27 @@ diversity curves, and pseudobulk expression profiles. This page assumes
 you know the SIRUP object. See
 [How the SIRUP object works](sirup-object.md) for an introduction.
 
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package.
+This code downloads them. Change `dest` to a folder you want to keep.
+The default folder is temporary. The function skips files that are
+already there.
+
+``` r
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_gc_polygons.csv"
+  )
+)
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+```
+
 ## Set up the object
 
 Load the packages.
@@ -31,8 +62,6 @@ library(ggplot2)
 ```
 
 ``` r
-extdata <- system.file("extdata", package = "SIRUP")
-
 thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
 bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz")) %>%
   extractSpatialIds(
@@ -109,9 +138,18 @@ These arguments help on large sections:
 - On a remote server, set `launch_browser = FALSE`, `host = "0.0.0.0"`,
   and a `port`. Then open the port through an SSH tunnel.
 
-> **Tip.** Give a `save_path`. The CSV file is the record of your
-> annotation. Other people can repeat the analysis without a second
-> round of drawing.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Tip</b>
+</p>
+
+Give a `save_path`. The CSV file is the record of your annotation. Other
+people can repeat the analysis without a second round of drawing.
+
+</div>
 
 The example data include the polygon file for this section. Read it:
 
@@ -431,8 +469,6 @@ plotSpatialPolygonPies(
   top_n = 5,
   zoom = TRUE
 )
-#> Warning: package 'sf' was built under R version 4.5.3
-#> Linking to GEOS 3.7.2, GDAL 3.0.4, PROJ 6.3.2; sf_use_s2() is TRUE
 ```
 
 ![](regions_files/figure-gfm/clipped-1.jpeg)
@@ -560,8 +596,18 @@ pseudobulk[c("AICDA", "MS4A1", "CXCL13", "CD3E"), ]
 #> CD3E    11  3  2  2  17 16  12  7  3
 ```
 
-> **Note.** Seurat adds a `g` to group names that start with a number.
-> The column for eGC 1 is `g1`.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+Seurat adds a `g` to group names that start with a number. The column
+for eGC 1 is `g1`.
+
+</div>
 
 You can give these profiles to a differential expression tool, such as
 limma or DESeq2.

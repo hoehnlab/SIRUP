@@ -115,3 +115,9 @@ Details: `references/functions-spatial-statistics.md`
 - `spatialLocalMoran`: Calculate local Moran's I (LISA)
 - `spatialMoran`: Calculate global Moran's I
 - `spatialRipleyCrossK`: Calculate Ripley's cross K
+
+## Utils
+
+Details: `references/functions-utils.md`
+
+- `downloadSIRUPExample`: Download the SIRUP example data

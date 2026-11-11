@@ -1,9 +1,20 @@
 Call clones and build lineage trees on the tissue
 ================
 
-> **Time:** about 20 minutes. **Data:** MG thymus section 2, bundled
-> with SIRUP. **Needs:** SIRUP, scoper, dowser, shazam, and the IMGT
-> reference sequences for the germline and tree steps.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+**Time:** ~20 minutes.<br> **Data:** MG thymus section 2, downloaded
+with `downloadSIRUPExample()`.<br> **Needs:** SIRUP, scoper, dowser,
+shazam, and the IMGT reference sequences for the germline and tree
+steps.
+
+</div>
 
 A clone is a group of B or T cells that descend from one ancestor cell
 and share its receptor rearrangement. In this page, you call clones in a
@@ -19,12 +30,33 @@ the SIRUP object. It then adds the spatial part: clone maps, trees
 paired with tissue plots, and distances between tips in and between
 regions.
 
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package.
+This code downloads them. Change `dest` to a folder you want to keep.
+The default folder is temporary. The function skips files that are
+already there.
+
+``` r
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_gc_polygons.csv"
+  )
+)
+#> ℹ Downloading 'mg_thymus_slice2_spatial.rds'
+#> ℹ Downloading 'mg_thymus_slice2_bcr.tsv.gz'
+#> ℹ Downloading 'mg_thymus_slice2_gc_polygons.csv'
+```
+
 ## Load the data
 
 This page uses MG thymus section 2 and its polygons. Each polygon
 outlines one ectopic germinal center (eGC). An eGC is a site in the
-thymus where B cells proliferate and mutate their receptors. The data
-are bundled with SIRUP.
+thymus where B cells proliferate and mutate their receptors. The code in
+the first section downloads the data.
 
 ``` r
 library(SIRUP)
@@ -33,8 +65,6 @@ library(ggplot2)
 ```
 
 ``` r
-extdata <- system.file("extdata", package = "SIRUP")
-
 thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
 bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz")) %>%
   extractSpatialIds(
@@ -89,7 +119,6 @@ sirup <- updateReceptors(
   summarize_clones = FALSE,
   nproc = 1
 )
-#> Warning: package 'scoper' was built under R version 4.5.3
 
 sirup
 #> <SIRUP object>
@@ -130,7 +159,6 @@ and tree chunks on this page run only when that folder exists.
 
 ``` r
 references <- dowser::readIMGT(imgt_dir)
-#> [1] "Read in 1198 from 17 fasta files"
 
 sirup <- updateReceptors(
   sirup,
@@ -173,7 +201,7 @@ sirup <- updateReceptors(
 )
 summary(getReceptors(sirup)$mu_freq)
 #>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#> 0.00000 0.01462 0.03750 0.04184 0.06377 0.13467
+#> 0.00000 0.01484 0.03857 0.04331 0.06609 0.15160
 ```
 
 `plotReceptors()` can color spots by a numeric receptor column. Give the
@@ -218,8 +246,8 @@ head(clone_sizes)
 #> # A tibble: 6 × 5
 #>   clone_id n_sequences n_in_gc n_gcs gcs  
 #>   <chr>          <int>   <int> <int> <chr>
-#> 1 739               15       6     2 6, 7 
-#> 2 810               13       6     1 5    
+#> 1 739               16       6     2 6, 7 
+#> 2 810               14       6     1 5    
 #> 3 196               40       5     2 3, 5 
 #> 4 604               12       3     2 5, 6 
 #> 5 428               11       2     1 5    
@@ -279,12 +307,6 @@ tree_sirup <- getSpatialTrees(
 
 trees <- getAnalysis(tree_sirup, "trees")
 trees
-#> # A tibble: 3 × 5
-#>   clone_id data       locus  seqs trees  
-#>   <chr>    <list>     <chr> <int> <list> 
-#> 1 196      <airrClon> IGH      38 <phylo>
-#> 2 739      <airrClon> IGH      15 <phylo>
-#> 3 810      <airrClon> IGH      13 <phylo>
 ```
 
 `traits` keeps the columns that the tree plots need. Keep the spatial
@@ -295,8 +317,18 @@ want to color by.
 SIRUP paper used maximum likelihood (`build = "pml"`). For B cell
 models, use IgPhyML (`build = "igphyml"` with the `igphyml` path).
 
-> **Note.** By default, `formatClones()` merges identical sequences into
-> one tip. A tip can then stand for several sequences.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+By default, `formatClones()` merges identical sequences into one tip. A
+tip can then stand for several sequences.
+
+</div>
 
 Store the trees in the main object.
 
@@ -321,15 +353,7 @@ pairs <- plotSpatialCloneTreePairs(
   polygon_alpha = 0,
   polygon_color = "black"
 )
-#> Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
-#> ℹ Please use `linewidth` instead.
-#> ℹ The deprecated feature was likely used in the ggtree package.
-#>   Please report the issue at <https://github.com/YuLab-SMU/ggtree/issues>.
-#> This warning is displayed once per session.
-#> Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-#> generated.
 names(pairs)
-#> [1] "196" "739" "810"
 
 cowplot::plot_grid(
   pairs[[1]]$tree,
@@ -337,8 +361,6 @@ cowplot::plot_grid(
   rel_widths = c(1.2, 1)
 )
 ```
-
-![](clones-and-trees_files/figure-gfm/tree-pairs-1.jpeg)
 
 The result is a list with one element for each clone. Each element holds
 a `tree` plot and a `spatial_clone` plot. Tips with a spot in this
@@ -385,8 +407,6 @@ cowplot::plot_grid(
 )
 ```
 
-![](clones-and-trees_files/figure-gfm/tree-clusters-1.jpeg)
-
 With `k = "auto"`, the function chooses `k` for each tree from
 `k_range`. It stops when one more cut reduces the mean within-group
 patristic distance by less than `improvement_threshold`. The default is
@@ -397,9 +417,18 @@ tips one color.
 `color_by = "polygon_id"` colors each tip by its eGC, because the code
 kept `polygon_id` in `traits`.
 
-> **Tip.**
-> `spatialCloneTreePairsToPDF(cluster_pairs, "tree_pairs.pdf", width = 12, height = 6)`
-> writes one page for each clone.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Tip</b>
+</p>
+
+`spatialCloneTreePairsToPDF(cluster_pairs, "tree_pairs.pdf", width = 12, height = 6)`
+writes one page for each clone.
+
+</div>
 
 ## Compare tree distance with physical distance
 
@@ -418,7 +447,6 @@ multi_gc_clone <- clone_sizes %>%
   slice_max(n_gcs, n = 1, with_ties = FALSE) %>%
   pull(clone_id)
 multi_gc_clone
-#> [1] "739"
 
 index <- which(trees$clone_id == multi_gc_clone)
 clone_data <- trees$data[[index]]@data
@@ -442,11 +470,6 @@ pairs_table <- as.data.frame(as.table(distances)) %>%
 pairs_table %>%
   group_by(pair) %>%
   summarise(n_pairs = n(), median_distance = median(distance))
-#> # A tibble: 2 × 3
-#>   pair           n_pairs median_distance
-#>   <chr>            <int>           <dbl>
-#> 1 different eGCs       5          0.0273
-#> 2 same eGC            10          0.0123
 ```
 
 Read the two medians in the table. One clone cannot support a

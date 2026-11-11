@@ -1,9 +1,6 @@
 How the SIRUP object works
 ================
 
-> **Time:** about 10 minutes. **Data:** the small synthetic object in
-> SIRUP. **Needs:** SIRUP.
-
 A spatial receptor experiment gives you three kinds of data: gene
 expression for each spot, receptor sequences, and the regions that you
 draw on the tissue. These data must agree with each other. A receptor
@@ -183,9 +180,19 @@ tryCatch(
 #> [1] "No receptor IDs match the spatial Seurat object."
 ```
 
-> **Note.** SIRUP keeps receptor rows that match no spot. Bulk and blood
-> sequences are examples. The rules need only one match, so these rows
-> stay in the table.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+SIRUP keeps receptor rows that match no spot. Bulk and blood sequences
+are examples. The rules need only one match, so these rows stay in the
+table.
+
+</div>
 
 ## Image settings
 

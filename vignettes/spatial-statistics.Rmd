@@ -25,7 +25,12 @@ has_spatstat <- requireNamespace("spatstat.explore", quietly = TRUE) &&
   requireNamespace("spatstat.random", quietly = TRUE)
 ```
 
-> **Time:** about 15 minutes. **Data:** MG thymus section 2, with BCRs, TCRs, gene expression, and cell-type estimates, downloaded with `downloadSIRUPExample()`. **Needs:** SIRUP with spdep, scoper, and spatstat.explore, spatstat.geom, and spatstat.random.
+<div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
+  **Time:** ~15 minutes.<br>
+  **Data:** MG thymus section 2, with BCRs, TCRs, gene expression, and cell-type estimates, downloaded with `downloadSIRUPExample()`.<br>
+  **Needs:** SIRUP with spdep, scoper, and spatstat.explore, spatstat.geom, and spatstat.random.
+</div>
 
 A map can suggest that a gene clusters or that a clone stays in one place. A spatial statistic tests whether the pattern is stronger than chance. In this page you run five such tests on one myasthenia gravis (MG) thymus section. A *spot* is one capture location of the spatial assay. A *clone* is a group of receptors that descend from one ancestor cell.
 
@@ -141,7 +146,10 @@ Most of these statistics compare each spot with its neighbors. You choose the ne
 * `k`: the `k` nearest spots. Use `k = 6` for standard Visium, where each spot has six neighbors on a hexagonal grid. Use `k = 8` for Visium HD, where each bin has eight neighbors on a square grid. A larger `k` measures patterns over larger distances.
 * `radius`: all spots within a distance. SIRUP measures distances in image pixels at the stored `image_scale`. The same distance in micrometers needs a different number at `"lowres"` and at `"hires"`.
 
-> **Tip.** `k` does not depend on the image scale. Use it as the default.
+<div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Tip</b> </p>
+  `k` does not depend on the image scale. Use it as the default.
+</div>
 
 ## Test one variable with global Moran's I
 
@@ -254,7 +262,10 @@ tibble(
 
 The control pair shares a pattern. *AICDA* and *CHRNA1* do not. In this section, $L$ for that pair is near zero and the test is not significant.
 
-> **Note.** The analytical test (`method = "analytical"`) builds a dense matrix with one entry for each pair of spots. This works for Visium. For Visium HD, use `method = "mc"`. It uses permutations and sparse weights.
+<div markdown="1" style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;"> <b>Warning</b> </p>
+  The analytical test (`method = "analytical"`) builds a dense matrix with one entry for each pair of spots. This works for Visium. For Visium HD, use `method = "mc"`. It uses permutations and sparse weights.
+</div>
 
 ## Test two spot types with Ripley's cross K
 

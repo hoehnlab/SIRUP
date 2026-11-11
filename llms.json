@@ -235,6 +235,15 @@
     },
     {
       "type": "function",
+      "id": "downloadSIRUPExample",
+      "title": "Download the SIRUP example data",
+      "source": "docs/topics/downloadSIRUPExample.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/downloadSIRUPExample.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/downloadSIRUPExample/",
+      "summary": "Download the myasthenia gravis (MG) thymus example files that the guides on the SIRUP website use."
+    },
+    {
+      "type": "function",
       "id": "expandPolygons",
       "title": "Expand polygons outward from their centroids",
       "source": "docs/topics/expandPolygons.md",

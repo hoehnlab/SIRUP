@@ -17,8 +17,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-> **Time:** about 10 minutes. **Needs:** SIRUP, and an LLM agent that can run R code, such as Claude Code, Codex, or Antigravity.
-
 An LLM agent can write and run SIRUP code for you. It writes better code when it knows how SIRUP works. SIRUP gives agents three kinds of help: a skill, the llms files, and this documentation. This page shows how to set them up and how to work with an agent on spatial receptor data.
 
 ## What an agent can do, and what you do

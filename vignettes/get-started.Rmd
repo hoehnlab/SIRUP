@@ -23,14 +23,15 @@ knitr::opts_chunk$set(
 ```
 
 <div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
-  <b>Time</b>: ~15 minutes. 
-  <b>Data</b>: example MG thymus data in SIRUP.
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
+  **Time:** ~15 minutes.<br>
+  **Data:** example MG thymus data in SIRUP.
 </div>
 
 Here, we will build a SIRUP object from example data and run a few simple analyses.
 
-<div markdown="1" style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
-  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
+<div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
   This page starts after read processing. If you have raw or demultiplexed reads, see `vignette("processing", package = "SIRUP")` first.
 </div>
 
@@ -200,8 +201,8 @@ If both arguments are included when constructing the SIRUP object, they will be 
 and plotting functions will automatically use them. If they are not specified when constructing the 
 SIRUP object, both settings should be passed to any plotting functions.
 
-<div markdown="1" style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
-  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
+<div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
   `vignette("sirup-object", package = "SIRUP")` discusses the SIRUP object in more detail.
 </div>
 

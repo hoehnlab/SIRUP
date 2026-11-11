@@ -24,7 +24,12 @@ imgt_dir <- path.expand(Sys.getenv("SIRUP_IMGT_DIR"))
 has_trees <- nzchar(imgt_dir) && dir.exists(imgt_dir)
 ```
 
-> **Time:** about 25 minutes. **Data:** two MG thymus sections, bulk thymus BCR-seq, and bulk blood BCR-seq, downloaded with `downloadSIRUPExample()`. **Needs:** SIRUP, scoper, and dowser. The tree step also needs the IMGT reference sequences.
+<div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
+  **Time:** ~25 minutes.<br>
+  **Data:** two MG thymus sections, bulk thymus BCR-seq, and bulk blood BCR-seq, downloaded with `downloadSIRUPExample()`.<br>
+  **Needs:** SIRUP, scoper, and dowser. The tree step also needs the IMGT reference sequences.
+</div>
 
 Most studies have more than one tissue section. You can also have bulk AIRR-seq of the same tissue, or blood from other time points. In this page, you put all of these samples in one SIRUP object. You call clones on all samples together. You then ask where each clone was seen, compare clonal dominance in each section, and build a lineage tree that has blood tips.
 
@@ -122,7 +127,10 @@ count(bcrs, compartment, sample)
 
 The section rows get a `sample` that matches the names of the `spatial` list. The bulk and blood rows have their own sample names and no barcode.
 
-> **Note.** To keep the package small, the bulk files hold a subset of the bulk data. They hold the blood sequences of clones seen in a section. They also hold up to 10 bulk thymus sequences of each clone that reaches the blood.
+<div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
+  To keep the package small, the bulk files hold a subset of the bulk data. They hold the blood sequences of clones seen in a section. They also hold up to 10 bulk thymus sequences of each clone that reaches the blood.
+</div>
 
 ## Create a multi-sample object
 

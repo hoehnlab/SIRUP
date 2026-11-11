@@ -26,7 +26,12 @@ has_imgt <- nzchar(imgt_dir) && dir.exists(imgt_dir) && has_shazam
 has_trees <- has_imgt
 ```
 
-> **Time:** about 20 minutes. **Data:** MG thymus section 2, downloaded with `downloadSIRUPExample()`. **Needs:** SIRUP, scoper, dowser, shazam, and the IMGT reference sequences for the germline and tree steps.
+<div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
+  **Time:** ~20 minutes.<br>
+  **Data:** MG thymus section 2, downloaded with `downloadSIRUPExample()`.<br>
+  **Needs:** SIRUP, scoper, dowser, shazam, and the IMGT reference sequences for the germline and tree steps.
+</div>
 
 A clone is a group of B or T cells that descend from one ancestor cell and share its receptor rearrangement. In this page, you call clones in a SIRUP object and build a lineage tree for some of them. A lineage tree shows how the sequences of one clone relate to each other. Each tip of the tree is one sequence. You then pair each tree with the tissue, so you can see where each tip sits. At the end, you compare distances in the tree with distances on the tissue.
 
@@ -243,7 +248,10 @@ trees
 
 `build = "pratchet"` builds maximum parsimony trees, which is fast. The SIRUP paper used maximum likelihood (`build = "pml"`). For B cell models, use IgPhyML (`build = "igphyml"` with the `igphyml` path).
 
-> **Note.** By default, `formatClones()` merges identical sequences into one tip. A tip can then stand for several sequences.
+<div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
+  By default, `formatClones()` merges identical sequences into one tip. A tip can then stand for several sequences.
+</div>
 
 Store the trees in the main object.
 
@@ -318,7 +326,10 @@ With `k = "auto"`, the function chooses `k` for each tree from `k_range`. It sto
 
 `color_by` accepts any column of the dowser clone data. For example, `color_by = "polygon_id"` colors each tip by its eGC, because the code kept `polygon_id` in `traits`.
 
-> **Tip.** `spatialCloneTreePairsToPDF(cluster_pairs, "tree_pairs.pdf", width = 12, height = 6)` writes one page for each clone.
+<div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Tip</b> </p>
+  `spatialCloneTreePairsToPDF(cluster_pairs, "tree_pairs.pdf", width = 12, height = 6)` writes one page for each clone.
+</div>
 
 ## Compare tree distance with physical distance
 

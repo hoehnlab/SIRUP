@@ -4,7 +4,12 @@ Get started with SIRUP
 <div markdown="1"
 style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
 
-<b>Time</b>: ~15 minutes. <b>Data</b>: example MG thymus data in SIRUP.
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+**Time:** ~15 minutes.<br> **Data:** example MG thymus data in SIRUP.
 
 </div>
 
@@ -12,9 +17,9 @@ Here, we will build a SIRUP object from example data and run a few
 simple analyses.
 
 <div markdown="1"
-style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
 
-<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;">
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
 
 <b>Note</b>
 </p>
@@ -23,6 +28,29 @@ This page starts after read processing. If you have raw or demultiplexed
 reads, see [Process demultiplexed reads](processing.md) first.
 
 </div>
+
+## Get the example data
+
+This page uses example files that are not part of the SIRUP package.
+This code downloads them. Change `dest` to a folder you want to keep.
+The default folder is temporary. The function skips files that are
+already there.
+
+``` r
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_gc_polygons.csv",
+  "mg_thymus_cell_types.csv.gz"
+  )
+)
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_cell_types.csv.gz'
+```
 
 ## Install SIRUP
 
@@ -60,12 +88,7 @@ This vignette uses these files:
 | `mg_thymus_slice2_gc_polygons.csv` | Annotated polygons of the eGCs |
 | `mg_thymus_cell_types.csv.gz` | Cell-type proportions for each spot |
 
-The files are in the `extdata` folder of the package. This code finds
-the folder:
-
-``` r
-extdata <- system.file("extdata", package = "SIRUP")
-```
+The code above downloaded these files with `downloadSIRUPExample()`.
 
 The SIRUP paper describes how the authors made these files. To reduce
 file sizes, each Seurat object holds a few hundred genes and a reduced
@@ -228,9 +251,9 @@ use them. If they are not specified when constructing the SIRUP object,
 both settings should be passed to any plotting functions.
 
 <div markdown="1"
-style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
 
-<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;">
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
 
 <b>Note</b>
 </p>
@@ -258,7 +281,7 @@ sirup <- updateReceptors(
   nproc = 1
 )
 #> Warning in prepare_db(db = db, junction = junction, v_call = v_call, j_call =
-#> j_call, : Removed 84 sequences with non ATCG characters.
+#> j_call, : Removed 84 sequences with non-ATCG characters in the junction.
 #> Running defineClonesScoper in bulk mode and only keep heavy chains
 sirup
 #> <SIRUP object>
