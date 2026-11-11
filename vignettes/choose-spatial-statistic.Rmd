@@ -52,6 +52,75 @@ circle with radius `radius` around the point in question and all points inside t
 | Do two discrete variables co-vary in space? | `spatialRipleyCrossK()` | One metadata column with two labels |
 
 
+## Set up the example data
+
+The examples use one myasthenia gravis (MG) thymus section. This code downloads the example files, which are not
+part of the SIRUP package. Change `dest` to a folder you want to keep. The function skips files that are already there.
+
+```{r download-data}
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+    "mg_thymus_cell_types.csv.gz",
+    "mg_thymus_slice2_bcr.tsv.gz",
+    "mg_thymus_slice2_gc_polygons.csv",
+    "mg_thymus_slice2_spatial.rds"
+  )
+)
+```
+
+Then build a SIRUP object from the spatial data, the cell-type estimates, and the BCRs, and call clones.
+`vignette("spatial-statistics", package = "SIRUP")` explains each step.
+
+```{r setup, message = FALSE, warning = FALSE}
+library(SIRUP)
+library(dplyr)
+
+thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
+
+cell_types <- data.table::fread(
+  file.path(extdata, "mg_thymus_cell_types.csv.gz"),
+  data.table = FALSE
+) %>%
+  filter(sample == "mg_thymus_slice2")
+rownames(cell_types) <- cell_types$barcode
+thymus <- Seurat::AddMetaData(thymus, select(cell_types, -sample, -barcode))
+
+bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz")) %>%
+  extractSpatialIds(
+    id = "sequence_id",
+    spatial_id = "barcode_10x",
+    regex = ",([ACGT]{16})$",
+    suffix = "-1"
+  ) %>%
+  filterAirr(
+    locus_val = "IGH",
+    min_v_length = 250,
+    min_j_length = 30,
+    min_junction_length = 10,
+    productive_only = TRUE,
+    min_consensus_count = NULL,
+    spatial_id = "barcode_10x"
+  ) %>%
+  filter(!grepl("[^ACGT]", junction))
+
+x <- createSIRUP(
+  spatial = thymus,
+  receptors = bcrs,
+  spatial_id = "barcode_10x",
+  image_scale = "lowres",
+  swap_coords = FALSE,
+  polygons_path = file.path(extdata, "mg_thymus_slice2_gc_polygons.csv")
+)
+x <- updateReceptors(
+  x,
+  scoper::hierarchicalClones,
+  threshold = 0.1,
+  summarize_clones = FALSE,
+  nproc = 1
+)
+```
+
 ## Is a continuous variable spatially autocorrelated?
 
 Use `spatialMoran()` to determine if a continuous variable is spatially autocorrelated, i.e., if 
@@ -65,12 +134,15 @@ a numeric metadata column (`"metadata"`). `k` is the number of neighbors.
 The estimate $I$ and the associated p value are reported. Note that a larger section can 
 inflate significance, so you may see a tiny p value for a weak pattern in larger datasets.
 
-See the code below for an example on a synthetic object.
+See the code below for an example on the thymus section.
 
 ```{r moran}
-library(SIRUP)
-x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
-moran <- spatialMoran(x, variable = "gene1", variable_type = "feature", k = 4)
+moran <- spatialMoran(
+  x,
+  variable = "GC B",
+  variable_type = "metadata",
+  k = 6
+)
 moran$test$estimate[[1]]
 moran$test$p.value
 ```
@@ -88,12 +160,17 @@ a numeric metadata column (`"metadata"`). `k` is the number of neighbors.
 The result has one row for each spot, with the local I (`local_i`), a z-score (`z_i`), and a p value (`p_value`). Each spot has its
 own p value, so we should adjust for multiple testing. `plotSpatialLocalMoran()` draws the z-scores on the tissue.
 
-See the code below for an example on a synthetic object.
+See the code below for an example on the thymus section.
 
 ```{r local-moran}
-local_moran <- spatialLocalMoran(x, variable = "gene1", variable_type = "feature", k = 4)
+local_moran <- spatialLocalMoran(
+  x,
+  variable = "GC B",
+  variable_type = "metadata",
+  k = 6
+)
 head(local_moran[, c("cell", "local_i", "z_i", "p_value")])
-plotSpatialLocalMoran(x, local_moran)
+plotSpatialLocalMoran(x, local_moran, point_size = 1)
 ```
 
 ## Do two continuous variables co-vary in space?
@@ -111,10 +188,16 @@ The estimate $L$ and the associated p value are reported. The default test (`met
 each pair of spots, so it needs a lot of memory for large datasets. For large data, such as Visium HD, set `method = "mc"` to use
 a permutation test.
 
-See the code below for an example on a synthetic object.
+See the code below for an example on the thymus section.
 
 ```{r lee}
-lee <- spatialLee(x, x = "gene1", x_type = "feature", y = "gene2", y_type = "feature", k = 4)
+lee <- spatialLee(
+  x,
+  x = "AICDA", x_type = "feature",
+  y = "MS4A1", y_type = "feature",
+  assay = "Spatial", layer = "data",
+  k = 6
+)
 lee$L
 lee$test$p.value
 ```
@@ -132,10 +215,13 @@ points (default 2). By default, each sequence is a point, so sequences in the sa
 The result has one row for each sample and clone, with the number of spots (`n_spatial_ids`), the mean distance
 (`mean_pairwise_distance`), and the maximum distance (`max_pairwise_distance`). Distances are in image pixels.
 
-See the code below for an example on a synthetic object.
+See the code below for an example on the thymus section.
 
 ```{r spread}
-spatialCloneSpread(x)
+spread <- spatialCloneSpread(x, min_spatial_ids = 3)
+spread %>%
+  arrange(desc(n_spatial_ids)) %>%
+  head()
 ```
 
 ## Is a discrete variable (i.e., a particular clone) spatially autocorrelated?
@@ -154,11 +240,31 @@ The `summary` table has one row for each clone, with the observed and expected j
 default alternative is `"greater"`, so the test looks for more joins than chance. The function tests many clones at once, so be sure
 to adjust for multiple testing.
 
-See the code below for an example on a synthetic object.
+See the code below for an example on the thymus section.
 
 ```{r join-count}
-join_count <- spatialCloneJoinCount(x, use_stored_polygons = FALSE, k = 4)
+big_clones <- getReceptors(x) %>%
+  filter(!is.na(barcode_10x)) %>%
+  distinct(clone_id, barcode_10x) %>%
+  count(clone_id, sort = TRUE) %>%
+  slice_head(n = 5) %>%
+  pull(clone_id)
+
+join_count <- spatialCloneJoinCount(
+  x,
+  clone_val = big_clones,
+  use_stored_polygons = FALSE,
+  k = 6,
+  return_data = TRUE
+)
 join_count$summary[, c("clone_id", "observed_join_count", "expected_join_count", "p_value")]
+
+plotSpatialCloneJoinCount(
+  join_count = join_count,
+  object = x,
+  clone_val = join_count$summary$clone_id[[1]],
+  show_neighbors = TRUE
+)
 ```
 
 ## Do two discrete variables co-vary in space?
@@ -176,12 +282,31 @@ The result holds the observed K at each distance (`plot_data`). A curve above th
 below the envelope means that A and B are. `plotRipleyCrossK()` draws the curve and the envelope. The distance is in image pixels at the
 stored `image_scale`.
 
-See the code below for an example on a synthetic object.
+See the code below for an example on the thymus section.
 
-```{r ripley, eval = has_spatstat}
+```{r ripley, eval = has_spatstat, results = "hide"}
+# Label spots with mostly GC B cells or mostly T follicular helper (Tfh) cells.
+x <- updateSpatial(x, function(spatial) {
+  gc_b <- spatial$`GC B` > 0.10
+  tfh <- spatial$Tfh > 0.10
+  spatial$gc_tfh_mark <- case_when(
+    gc_b & !tfh ~ "GC B",
+    tfh & !gc_b ~ "Tfh",
+    TRUE ~ NA_character_
+  )
+  spatial
+})
+
 set.seed(1)
-kcross <- spatialRipleyCrossK(x, mark_col = "cell_type", i = "A", j = "B", nsim = 19)
-plotRipleyCrossK(kcross)
+kcross <- spatialRipleyCrossK(
+  x,
+  mark_col = "gc_tfh_mark",
+  i = "GC B",
+  j = "Tfh",
+  nsim = 39,
+  max_r = 40
+)
+plotRipleyCrossK(kcross, title = "Cross K: GC B spots to Tfh spots")
 ```
 
 
