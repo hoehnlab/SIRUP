@@ -8,7 +8,6 @@ plotSpatialPolygons(
   object,
   polygon = NULL,
   images = NULL,
-  sample = NULL,
   sample_id = NULL,
   image_scale = NULL,
   swap_coords = NULL,
@@ -46,8 +45,6 @@ treats each polygon on its own. If \code{object} is a SIRUP object and \code{pol
 is \code{NULL}, the function uses the stored polygons.}
 
 \item{images}{Names of the Seurat images to use.}
-
-\item{sample}{Alias for \code{sample_id}.}
 
 \item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
 objects. If \code{NULL}, the function plots all samples.}

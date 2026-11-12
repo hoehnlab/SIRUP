@@ -1323,7 +1323,7 @@ plotReceptors <- function(object,
 #'   example, use the result of [assignTipColors()].
 #' @param spatial_id Name of the column in `tip_data` that holds the Seurat spot
 #'   names (default `"spatial_id_8um"`).
-#' @param sample Name of the column in `tip_data` that matches the names of a
+#' @param sample_col Name of the column in `tip_data` that matches the names of a
 #'   list of spatial objects.
 #' @param color Name of the column that holds the colors (default
 #'   `"tip_color"`).
@@ -1391,7 +1391,7 @@ plotReceptors <- function(object,
 plotSpatialColorTips <- function(object,
                                  tip_data,
                                 spatial_id = "spatial_id_8um",
-                                sample = NULL,
+                                sample_col = NULL,
                                 color = "tip_color",
                                 label = NULL,
                                 legend_title = "Tip color",
@@ -1444,16 +1444,16 @@ plotSpatialColorTips <- function(object,
   swap_coords <- context$swap_coords
   tip_data <- .as_data_frame(tip_data)
   .check_required_cols(tip_data, c(spatial_id, color), "tip_data")
-  sample <- sample %||% if (.sirup_is_spatial_list(object) && "sample" %in% colnames(tip_data)) "sample" else NULL
-  if (!is.null(sample)) {
-    .check_required_cols(tip_data, sample, "tip_data")
+  sample_col <- sample_col %||% if (.sirup_is_spatial_list(object) && "sample" %in% colnames(tip_data)) "sample" else NULL
+  if (!is.null(sample_col)) {
+    .check_required_cols(tip_data, sample_col, "tip_data")
   }
   if (!is.null(label)) {
     .check_required_cols(tip_data, label, "tip_data")
   }
   tip_data <- tip_data[!is.na(tip_data[[spatial_id]]) & !is.na(tip_data[[color]]), , drop = FALSE]
-  tip_key <- if (!is.null(sample)) {
-    paste(as.character(tip_data[[sample]]), as.character(tip_data[[spatial_id]]), sep = "\r")
+  tip_key <- if (!is.null(sample_col)) {
+    paste(as.character(tip_data[[sample_col]]), as.character(tip_data[[spatial_id]]), sep = "\r")
   } else {
     as.character(tip_data[[spatial_id]])
   }
@@ -1464,8 +1464,8 @@ plotSpatialColorTips <- function(object,
     names(colors) <- colors
   } else {
     tip_data <- tip_data[!is.na(tip_data[[label]]), , drop = FALSE]
-    tip_label_key <- if (!is.null(sample)) {
-      paste(as.character(tip_data[[sample]]), as.character(tip_data[[spatial_id]]), sep = "\r")
+    tip_label_key <- if (!is.null(sample_col)) {
+      paste(as.character(tip_data[[sample_col]]), as.character(tip_data[[spatial_id]]), sep = "\r")
     } else {
       as.character(tip_data[[spatial_id]])
     }
@@ -1482,7 +1482,7 @@ plotSpatialColorTips <- function(object,
   for (image in .sirup_spatial_images(object, images = images, sample_id = sample_id)) {
     spatial <- .sirup_spatial_data(object, image = image, image_scale = image_scale, swap_coords = swap_coords)
     image_polygon_overlay <- .sirup_filter_polygon_plot_sample(polygon_overlay, image)
-    coord_key <- if (!is.null(sample) && "sample" %in% colnames(spatial$coords)) {
+    coord_key <- if (!is.null(sample_col) && "sample" %in% colnames(spatial$coords)) {
       paste(as.character(spatial$coords$sample), as.character(spatial$coords$cell), sep = "\r")
     } else {
       as.character(spatial$coords$cell)
@@ -1491,7 +1491,7 @@ plotSpatialColorTips <- function(object,
     if (nrow(dat) == 0L) {
       next
     }
-    dat_key <- if (!is.null(sample) && "sample" %in% colnames(dat)) {
+    dat_key <- if (!is.null(sample_col) && "sample" %in% colnames(dat)) {
       paste(as.character(dat$sample), as.character(dat$cell), sep = "\r")
     } else {
       as.character(dat$cell)
@@ -1644,7 +1644,7 @@ plotSpatialCloneColorTips <- function(colored_clones,
     plot_object,
     tip_data = clone_df,
     spatial_id = spatial_id,
-    sample = if ("sample" %in% colnames(clone_df)) "sample" else NULL,
+    sample_col = if ("sample" %in% colnames(clone_df)) "sample" else NULL,
     sample_id = sample_id,
     color = "tip_color",
     title = paste("Clone", clone_val),
@@ -1699,11 +1699,8 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #'   function uses the value stored in the SIRUP object. Give a value if
 #'   `object` is a Seurat object.
 #' @param images Names of the Seurat images to use.
-#' @param sample Names of the spatial samples to show. Use it for multi-sample
-#'   SIRUP objects.
 #' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
-#'   objects. If `NULL`, the function plots all samples. It is a clearer alias
-#'   for `sample`.
+#'   objects. If `NULL`, the function plots all samples.
 #' @param zoom Zoom the maps to the clone (default `FALSE`)? If `FALSE`, the
 #'   maps show the full tissue area that the spatial coordinates cover.
 #' @param tipsize Size of the tip points of the tree.
@@ -1805,7 +1802,6 @@ plotSpatialCloneTreePairs <- function(trees,
                                       image_scale = NULL,
                                       swap_coords = NULL,
                                       images = NULL,
-                                      sample = NULL,
                                       sample_id = NULL,
                                       zoom = FALSE,
                                       tipsize = NULL,
@@ -1845,14 +1841,9 @@ plotSpatialCloneTreePairs <- function(trees,
   object_samples <- NULL
   sample_field <- NULL
   uid_col <- ".sirup_uid"
-  sample_id <- sample_id %||% sample
   if (!is.null(sample_id)) {
     sample_id <- .sirup_plot_sample_id(object, sample_id)
-  }
-  if (!is.null(sample_id)) {
     images <- unique(c(images %||% character(), as.character(sample_id)))
-  } else if (!is.null(sample)) {
-    images <- unique(c(images %||% character(), as.character(sample)))
   }
   if (isSIRUP(object)) {
     if (is.null(spatial_id)) {
@@ -1999,7 +1990,7 @@ plotSpatialCloneTreePairs <- function(trees,
       object,
       tip_data = colored_tips,
       spatial_id = spatial_id,
-      sample = sample_field,
+      sample_col = sample_field,
       color = "tip_color",
       title = NULL,
       image_scale = image_scale,

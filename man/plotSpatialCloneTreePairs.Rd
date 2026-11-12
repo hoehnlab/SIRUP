@@ -17,7 +17,6 @@ plotSpatialCloneTreePairs(
   image_scale = NULL,
   swap_coords = NULL,
   images = NULL,
-  sample = NULL,
   sample_id = NULL,
   zoom = FALSE,
   tipsize = NULL,
@@ -96,12 +95,8 @@ function uses the value stored in the SIRUP object. Give a value if
 
 \item{images}{Names of the Seurat images to use.}
 
-\item{sample}{Names of the spatial samples to show. Use it for multi-sample
-SIRUP objects.}
-
 \item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
-objects. If \code{NULL}, the function plots all samples. It is a clearer alias
-for \code{sample}.}
+objects. If \code{NULL}, the function plots all samples.}
 
 \item{zoom}{Zoom the maps to the clone (default \code{FALSE})? If \code{FALSE}, the
 maps show the full tissue area that the spatial coordinates cover.}

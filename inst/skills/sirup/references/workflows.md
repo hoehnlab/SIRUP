@@ -227,7 +227,7 @@ Needs: a named list of Seurat objects, and one receptor table with a `sample` co
 # Bulk and blood rows have a sample name that is not in the list, and no spot.
 sirup <- createSIRUP(
   spatial = spatial_list, receptors = receptor_table,
-  spatial_id = "barcode_10x", sample = "sample",
+  spatial_id = "barcode_10x", sample_id = "sample",
   image_scale = "lowres", swap_coords = FALSE
 )
 spatialSamples(sirup)
@@ -235,7 +235,7 @@ spatialSamples(sirup)
 
 Call clones on all samples at once, so one clone ID names the same lineage in every sample. Make each `sequence_id` unique across samples, for example by pasting the sample name in front. Use `getReceptors(sirup)` to count, for each clone, the sequences in each compartment (section, bulk, blood).
 
-Alternatively, build one object for each section and join them with `mergeSIRUP(a, b, samples = c("a", "b"))`. `subsetSIRUP(x, sample = "a")` keeps one sample.
+Alternatively, build one object for each section and join them with `mergeSIRUP(a, b, samples = c("a", "b"))`. `subsetSIRUP(x, sample_id = "a")` keeps one sample.
 
 ## F. Process reads into an AIRR table
 

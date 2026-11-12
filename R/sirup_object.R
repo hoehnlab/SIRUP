@@ -5,7 +5,7 @@
 #'
 #' @details
 #' `spatial` can be one Seurat object or a named list of Seurat objects. If you
-#' give a list, the `sample` column of `receptors` must name the corresponding
+#' give a list, the column of `receptors` that `sample_id` names must name the corresponding
 #' list entry for each row. The function keeps rows with no matching entry as
 #' nonspatial records. For example, these rows can hold bulk or single-cell
 #' data.
@@ -31,7 +31,7 @@
 #'   the metadata and gives an error if none exists.
 #' @param image Name of the `receptors` column that identifies the Seurat image
 #'   (default `NULL`).
-#' @param sample Name of the `receptors` column that holds the sample name. If
+#' @param sample_id Name of the `receptors` column that holds the sample name. If
 #'   `spatial` is a named list, this argument is required. If a Seurat object
 #'   has no such metadata column, the function fills it with the list name.
 #' @param clone Name of the `receptors` column that holds the clone ID (default
@@ -90,7 +90,7 @@ createSIRUP <- function(spatial,
                         receptors,
                         spatial_id = NULL,
                         image = NULL,
-                        sample = NULL,
+                        sample_id = NULL,
                         clone = NULL,
                         locus = "locus",
                         count = NULL,
@@ -120,14 +120,14 @@ createSIRUP <- function(spatial,
     allow_missing = locus_missing
   )
   image <- .sirup_resolve_optional_col(receptors, image, "image")
-  sample <- .sirup_resolve_optional_col(receptors, sample, "sample")
-  if (.sirup_is_spatial_list(spatial) && is.null(sample)) {
-    rlang::abort("`sample` is required when `spatial` is a named list of Seurat objects.")
+  sample_id <- .sirup_resolve_optional_col(receptors, sample_id, "sample_id")
+  if (.sirup_is_spatial_list(spatial) && is.null(sample_id)) {
+    rlang::abort("`sample_id` is required when `spatial` is a named list of Seurat objects.")
   }
   count <- .sirup_resolve_optional_col(receptors, count, "count")
   image_scale <- .sirup_resolve_image_scale(image_scale)
   swap_coords <- .sirup_resolve_swap_coords(swap_coords)
-  spatial <- .sirup_populate_spatial_sample_metadata(spatial, sample)
+  spatial <- .sirup_populate_spatial_sample_metadata(spatial, sample_id)
 
   if (!is.list(metadata)) {
     rlang::abort("`metadata` must be a named list.")
@@ -156,7 +156,7 @@ createSIRUP <- function(spatial,
   metadata$receptor_fields <- list(
     spatial_id = spatial_id,
     image = image,
-    sample = sample,
+    sample = sample_id,
     clone = clone,
     locus = locus,
     count = count
@@ -409,12 +409,12 @@ mergeSIRUP <- function(...,
     spatial[[sample_name]] <- object_spatial
     receptor_tables[[i]] <- .sirup_merge_receptors_for_sample(
       object,
-      sample = sample_name,
+      sample_id = sample_name,
       sample_field = sample_field
     )
-    polygon_tables[[i]] <- .sirup_polygons_for_merge(object, sample = sample_name)
+    polygon_tables[[i]] <- .sirup_polygons_for_merge(object, sample_id = sample_name)
     if (isTRUE(keep_analyses)) {
-      analyses <- .sirup_merge_analyses(analyses, .sirup_analyses(object), sample = sample_name)
+      analyses <- .sirup_merge_analyses(analyses, .sirup_analyses(object), sample_id = sample_name)
     }
   }
 
@@ -454,13 +454,13 @@ mergeSIRUP <- function(...,
 #' spatial sample names. `getReceptors` returns the receptor table.
 #'
 #' @param x A SIRUP object.
-#' @param sample Name of one spatial sample. Use it only if the object holds a
+#' @param sample_id Name of one spatial sample. Use it only if the object holds a
 #'   named list of Seurat objects.
 #'
 #' @return `getSpatial` returns the Seurat object. For a multi-sample object, it
 #'   returns the named list of Seurat objects, or one Seurat object if you give
-#'   `sample`. `spatialSamples` returns a character vector of sample names.
-#'   `getReceptors` returns the receptor tibble. If you give `sample`, it
+#'   `sample_id`. `spatialSamples` returns a character vector of sample names.
+#'   `getReceptors` returns the receptor tibble. If you give `sample_id`, it
 #'   returns only the rows for that sample.
 #' @seealso [getPolygons()], [getAnalysis()]
 #'
@@ -477,21 +477,21 @@ NULL
 
 #' @rdname sirup-accessors
 #' @export
-getSpatial <- function(x, sample = NULL) {
+getSpatial <- function(x, sample_id = NULL) {
   validateSIRUP(x)
-  if (is.null(sample)) {
+  if (is.null(sample_id)) {
     return(x$spatial)
   }
   if (!.sirup_is_spatial_list(x$spatial)) {
-    rlang::abort("`sample` can only be used when this SIRUP object contains a spatial list.")
+    rlang::abort("`sample_id` can only be used when this SIRUP object contains a spatial list.")
   }
-  if (!.sirup_is_non_empty_string(sample)) {
-    rlang::abort("`sample` must be one non-empty spatial sample name.")
+  if (!.sirup_is_non_empty_string(sample_id)) {
+    rlang::abort("`sample_id` must be one non-empty spatial sample name.")
   }
-  if (!sample %in% names(x$spatial)) {
-    rlang::abort(paste0("Unknown spatial sample: ", sample))
+  if (!sample_id %in% names(x$spatial)) {
+    rlang::abort(paste0("Unknown spatial sample: ", sample_id))
   }
-  x$spatial[[sample]]
+  x$spatial[[sample_id]]
 }
 
 #' @rdname sirup-accessors
@@ -503,12 +503,12 @@ spatialSamples <- function(x) {
 
 #' @rdname sirup-accessors
 #' @export
-getReceptors <- function(x, sample = NULL) {
+getReceptors <- function(x, sample_id = NULL) {
   validateSIRUP(x)
-  if (is.null(sample)) {
+  if (is.null(sample_id)) {
     return(x$receptors)
   }
-  .sirup_receptors_for_sample(x, sample)
+  .sirup_receptors_for_sample(x, sample_id)
 }
 
 #' Subset a SIRUP object
@@ -522,7 +522,7 @@ getReceptors <- function(x, sample = NULL) {
 #' polygon columns stay consistent.
 #'
 #' @param x A SIRUP object.
-#' @param sample Name or names of the spatial samples to keep. Use it only if
+#' @param sample_id Name or names of the spatial samples to keep. Use it only if
 #'   the object holds a named list of Seurat objects.
 #' @param spatial_id Spatial IDs (barcodes) to keep. In a multi-sample object,
 #'   the function matches the IDs in each selected sample.
@@ -556,7 +556,7 @@ getReceptors <- function(x, sample = NULL) {
 #' filterSample(merged, "a")
 #' @export
 subsetSIRUP <- function(x,
-                        sample = NULL,
+                        sample_id = NULL,
                         spatial_id = NULL,
                         receptor_rows = NULL,
                         keep_nonspatial_receptors = FALSE,
@@ -568,16 +568,16 @@ subsetSIRUP <- function(x,
   spatial_id_col <- receptor_fields$spatial_id
   sample_col <- receptor_fields$sample
 
-  if (!is.null(sample)) {
-    sample <- unique(as.character(sample))
-    sample <- sample[!is.na(sample) & nzchar(sample)]
-    if (length(sample) == 0L) {
-      rlang::abort("`sample` must contain at least one non-empty sample name.")
+  if (!is.null(sample_id)) {
+    sample_id <- unique(as.character(sample_id))
+    sample_id <- sample_id[!is.na(sample_id) & nzchar(sample_id)]
+    if (length(sample_id) == 0L) {
+      rlang::abort("`sample_id` must contain at least one non-empty sample name.")
     }
     if (!.sirup_is_spatial_list(x$spatial)) {
-      rlang::abort("`sample` can only be used when this SIRUP object contains a spatial list.")
+      rlang::abort("`sample_id` can only be used when this SIRUP object contains a spatial list.")
     }
-    missing_samples <- setdiff(sample, names(x$spatial))
+    missing_samples <- setdiff(sample_id, names(x$spatial))
     if (length(missing_samples) > 0L) {
       rlang::abort(paste0("Unknown spatial sample(s): ", paste(missing_samples, collapse = ", ")))
     }
@@ -593,18 +593,18 @@ subsetSIRUP <- function(x,
   out <- x
   out$spatial <- .sirup_subset_spatial_component(
     x$spatial,
-    sample = sample,
+    sample_id = sample_id,
     spatial_id = spatial_id,
     drop_empty_spatial = drop_empty_spatial
   )
   out$metadata$sample_names <- .sirup_spatial_names(out$spatial)
 
   keep <- rep(TRUE, nrow(x$receptors))
-  if (!is.null(sample)) {
+  if (!is.null(sample_id)) {
     if (is.null(sample_col) || !sample_col %in% colnames(x$receptors)) {
-      rlang::abort("Cannot subset receptors by `sample`; this SIRUP object has no receptor sample field.")
+      rlang::abort("Cannot subset receptors by `sample_id`; this SIRUP object has no receptor sample field.")
     }
-    keep <- keep & !is.na(x$receptors[[sample_col]]) & as.character(x$receptors[[sample_col]]) %in% sample
+    keep <- keep & !is.na(x$receptors[[sample_col]]) & as.character(x$receptors[[sample_col]]) %in% sample_id
   }
   if (!is.null(spatial_id)) {
     receptor_ids <- as.character(x$receptors[[spatial_id_col]])
@@ -635,8 +635,8 @@ subsetSIRUP <- function(x,
   out$receptors <- tibble::as_tibble(x$receptors[keep, , drop = FALSE])
   out$polygons <- .sirup_subset_polygons_component(
     .sirup_polygons(x),
-    sample = sample,
-    relabel_single_sample = !is.null(sample) && length(sample) == 1L
+    sample_id = sample_id,
+    relabel_single_sample = !is.null(sample_id) && length(sample_id) == 1L
   )
   if (!isTRUE(keep_analyses)) {
     out$analyses <- list()
@@ -651,12 +651,12 @@ subsetSIRUP <- function(x,
 #' @rdname subsetSIRUP
 #' @export
 filterSample <- function(x,
-                         sample,
+                         sample_id,
                          keep_analyses = FALSE,
                          validate = TRUE) {
   out <- subsetSIRUP(
     x,
-    sample = sample,
+    sample_id = sample_id,
     keep_analyses = keep_analyses,
     validate = FALSE
   )
@@ -691,7 +691,7 @@ filterSample <- function(x,
 #' @param polygons_path Path to a flat CSV file of polygon vertices. For a
 #'   multi-sample object, give a named vector or list of paths, with one path
 #'   for each sample.
-#' @param sample Sample name or names to add to the polygons from
+#' @param sample_id Sample name or names to add to the polygons from
 #'   `polygons_path`. Use it only if the paths have no names.
 #' @param include_boundary Count spots on a polygon edge as members of the
 #'   polygon?
@@ -716,24 +716,24 @@ NULL
 
 #' @rdname sirup-polygons
 #' @export
-getPolygons <- function(x, sample = NULL) {
+getPolygons <- function(x, sample_id = NULL) {
   validateSIRUP(x)
   polygons <- .sirup_polygons(x)
-  if (is.null(sample) || nrow(polygons) == 0L) {
+  if (is.null(sample_id) || nrow(polygons) == 0L) {
     return(polygons)
   }
   if (!.sirup_is_spatial_list(x$spatial)) {
-    rlang::abort("`sample` can only be used when this SIRUP object contains a spatial list.")
+    rlang::abort("`sample_id` can only be used when this SIRUP object contains a spatial list.")
   }
-  sample <- unique(as.character(sample))
-  missing_samples <- setdiff(sample, names(x$spatial))
+  sample_id <- unique(as.character(sample_id))
+  missing_samples <- setdiff(sample_id, names(x$spatial))
   if (length(missing_samples) > 0L) {
     rlang::abort(paste0("Unknown spatial sample(s): ", paste(missing_samples, collapse = ", ")))
   }
   .sirup_subset_polygons_component(
     polygons,
-    sample = sample,
-    relabel_single_sample = length(sample) == 1L
+    sample_id = sample_id,
+    relabel_single_sample = length(sample_id) == 1L
   )
 }
 
@@ -742,7 +742,7 @@ getPolygons <- function(x, sample = NULL) {
 addPolygons <- function(x,
                         polygons = NULL,
                         polygons_path = NULL,
-                        sample = NULL,
+                        sample_id = NULL,
                         include_boundary = TRUE,
                         validate = TRUE) {
   validateSIRUP(x)
@@ -750,7 +750,7 @@ addPolygons <- function(x,
     rlang::abort("Supply only one of `polygons` and `polygons_path`.")
   }
   if (!is.null(polygons_path)) {
-    polygons <- .sirup_read_polygons_paths(polygons_path, sample = sample)
+    polygons <- .sirup_read_polygons_paths(polygons_path, sample_id = sample_id)
     x$metadata$polygons_path <- as.character(unlist(polygons_path, recursive = FALSE, use.names = TRUE))
   }
   .sirup_validate_multisample_polygons(x, polygons)
@@ -775,7 +775,7 @@ addPolygons <- function(x,
 #' @param x A SIRUP object.
 #' @param name Name of the analysis. Give one non-empty character string.
 #' @param value R object to store. It can be `NULL`.
-#' @param sample Name of a spatial sample. Use it to store or get a result for
+#' @param sample_id Name of a spatial sample. Use it to store or get a result for
 #'   one sample.
 #' @param validate Validate the updated SIRUP object?
 #'
@@ -796,7 +796,7 @@ NULL
 
 #' @rdname sirup-analyses
 #' @export
-getAnalysis <- function(x, name, sample = NULL) {
+getAnalysis <- function(x, name, sample_id = NULL) {
   validateSIRUP(x)
   name <- .sirup_analysis_name(name)
   analyses <- .sirup_analyses(x)
@@ -804,31 +804,31 @@ getAnalysis <- function(x, name, sample = NULL) {
     rlang::abort(paste0("Analysis '", name, "' is not stored in this SIRUP object."))
   }
   value <- analyses[[name]]
-  if (!is.null(sample)) {
-    .sirup_validate_sample_name(x, sample)
-    if (!is.list(value) || is.null(names(value)) || !sample %in% names(value)) {
-      rlang::abort(paste0("Analysis '", name, "' does not contain sample '", sample, "'."))
+  if (!is.null(sample_id)) {
+    .sirup_validate_sample_name(x, sample_id)
+    if (!is.list(value) || is.null(names(value)) || !sample_id %in% names(value)) {
+      rlang::abort(paste0("Analysis '", name, "' does not contain sample '", sample_id, "'."))
     }
-    value <- value[[sample]]
+    value <- value[[sample_id]]
   }
   value
 }
 
 #' @rdname sirup-analyses
 #' @export
-setAnalysis <- function(x, name, value, sample = NULL, validate = TRUE) {
+setAnalysis <- function(x, name, value, sample_id = NULL, validate = TRUE) {
   validateSIRUP(x)
   name <- .sirup_analysis_name(name)
   analyses <- .sirup_analyses(x)
-  if (is.null(sample)) {
+  if (is.null(sample_id)) {
     analyses[name] <- list(value)
   } else {
-    .sirup_validate_sample_name(x, sample)
+    .sirup_validate_sample_name(x, sample_id)
     current <- analyses[[name]] %||% list()
     if (!is.list(current) || (length(current) > 0L && is.null(names(current)))) {
       rlang::abort(paste0("Analysis '", name, "' is not a named per-sample analysis list."))
     }
-    current[[sample]] <- value
+    current[[sample_id]] <- value
     analyses[name] <- list(current)
   }
   x$analyses <- analyses
@@ -869,12 +869,12 @@ removeAnalysis <- function(x, name, validate = TRUE) {
 #' stores the result as a tibble and keeps the existing field mappings. If the
 #' object has no clone field and the result has a `clone_id` column, the function
 #' records `clone_id` as the clone field. Use `receptor_fields` to set or clear a
-#' mapping yourself. If you give `sample`, the function applies `fun` to the rows
+#' mapping yourself. If you give `sample_id`, the function applies `fun` to the rows
 #' of that sample only. It then puts the result back in the full table.
 #'
 #' `updateSpatial` needs a function that returns a Seurat object. In a
 #' multi-sample object, it applies `fun` to every Seurat object. If you give
-#' `sample`, it updates only that object.
+#' `sample_id`, it updates only that object.
 #'
 #' `updateAnalysis` applies `fun` to the stored result called `name`. To store a
 #' new result, use [setAnalysis()].
@@ -886,7 +886,7 @@ removeAnalysis <- function(x, name, validate = TRUE) {
 #' @param receptor_fields Named list of receptor field mappings to change. The
 #'   names can be `spatial_id`, `image`, `sample`, `clone`, `locus`, or `count`.
 #'   A `NULL` value clears an optional mapping.
-#' @param sample Name of the spatial sample to update. Use it only for
+#' @param sample_id Name of the spatial sample to update. Use it only for
 #'   multi-sample objects.
 #' @param name Name of the stored analysis. Give one non-empty character string.
 #' @param validate Validate the updated SIRUP object?
@@ -920,23 +920,23 @@ NULL
 updateReceptors <- function(x,
                             fun,
                             ...,
-                            sample = NULL,
+                            sample_id = NULL,
                             receptor_fields = NULL,
                             validate = TRUE) {
   validateSIRUP(x)
-  if (is.null(sample)) {
+  if (is.null(sample_id)) {
     receptors <- .sirup_apply(fun, x$receptors, ...)
   } else {
-    selected <- .sirup_receptors_for_sample(x, sample)
+    selected <- .sirup_receptors_for_sample(x, sample_id)
     updated <- .sirup_apply(fun, selected, ...)
     if (!is.data.frame(updated)) {
       rlang::abort("`fun` must return a data frame/tibble when used with `updateReceptors()`.")
     }
     sample_col <- .sirup_receptor_fields(x)$sample
     updated <- tibble::as_tibble(updated)
-    updated[[sample_col]] <- sample
+    updated[[sample_col]] <- sample_id
     original <- x$receptors
-    keep <- as.character(original[[sample_col]]) != sample | is.na(original[[sample_col]])
+    keep <- as.character(original[[sample_col]]) != sample_id | is.na(original[[sample_col]])
     receptors <- .sirup_bind_receptor_tables(original[keep, , drop = FALSE], updated)
   }
   if (!is.data.frame(receptors)) {
@@ -955,9 +955,9 @@ updateReceptors <- function(x,
 
 #' @rdname sirup-transform
 #' @export
-updateSpatial <- function(x, fun, ..., sample = NULL, validate = TRUE) {
+updateSpatial <- function(x, fun, ..., sample_id = NULL, validate = TRUE) {
   validateSIRUP(x)
-  if (is.null(sample)) {
+  if (is.null(sample_id)) {
     if (.sirup_is_spatial_list(x$spatial)) {
       spatial <- lapply(x$spatial, function(spatial_object) .sirup_apply(fun, spatial_object, ...))
       names(spatial) <- names(x$spatial)
@@ -966,11 +966,11 @@ updateSpatial <- function(x, fun, ..., sample = NULL, validate = TRUE) {
     }
   } else {
     if (!.sirup_is_spatial_list(x$spatial)) {
-      rlang::abort("`sample` can only be used when this SIRUP object contains a spatial list.")
+      rlang::abort("`sample_id` can only be used when this SIRUP object contains a spatial list.")
     }
-    .sirup_validate_sample_name(x, sample)
+    .sirup_validate_sample_name(x, sample_id)
     spatial <- x$spatial
-    spatial[[sample]] <- .sirup_apply(fun, spatial[[sample]], ...)
+    spatial[[sample_id]] <- .sirup_apply(fun, spatial[[sample_id]], ...)
   }
   tryCatch(
     .sirup_validate_spatial_component(spatial),
@@ -988,9 +988,9 @@ updateSpatial <- function(x, fun, ..., sample = NULL, validate = TRUE) {
 
 #' @rdname sirup-transform
 #' @export
-updateAnalysis <- function(x, name, fun, ..., sample = NULL, validate = TRUE) {
-  value <- .sirup_apply(fun, getAnalysis(x, name, sample = sample), ...)
-  setAnalysis(x, name, value, sample = sample, validate = validate)
+updateAnalysis <- function(x, name, fun, ..., sample_id = NULL, validate = TRUE) {
+  value <- .sirup_apply(fun, getAnalysis(x, name, sample_id = sample_id), ...)
+  setAnalysis(x, name, value, sample_id = sample_id, validate = validate)
 }
 
 #' @export
@@ -1193,14 +1193,14 @@ print.summary.sirup <- function(x, ...) {
 }
 
 .sirup_subset_polygons_component <- function(polygons,
-                                             sample = NULL,
+                                             sample_id = NULL,
                                              relabel_single_sample = FALSE) {
-  if (is.null(polygons) || nrow(polygons) == 0L || is.null(sample)) {
+  if (is.null(polygons) || nrow(polygons) == 0L || is.null(sample_id)) {
     return(polygons %||% .sirup_empty_polygons())
   }
-  sample <- unique(as.character(sample))
-  sample <- sample[!is.na(sample) & nzchar(sample)]
-  if (length(sample) == 0L) {
+  sample_id <- unique(as.character(sample_id))
+  sample_id <- sample_id[!is.na(sample_id) & nzchar(sample_id)]
+  if (length(sample_id) == 0L) {
     return(polygons[0, , drop = FALSE])
   }
   top_sample_col <- intersect(c("sample", "spatial_sample"), colnames(polygons))
@@ -1209,12 +1209,12 @@ print.summary.sirup <- function(x, ...) {
     if (!is.null(top_sample_col)) {
       value <- as.character(polygons[[top_sample_col]][[i]])
       if (!is.na(value) && nzchar(value)) {
-        return(value %in% sample)
+        return(value %in% sample_id)
       }
     }
     vertices <- polygons$vertices[[i]]
     values <- .sirup_polygon_sample_values(vertices)
-    length(values) == 0L || any(values %in% sample)
+    length(values) == 0L || any(values %in% sample_id)
   }, logical(1))
   out <- polygons[keep, , drop = FALSE]
   if (!isTRUE(relabel_single_sample) || nrow(out) == 0L) {
@@ -1275,24 +1275,24 @@ print.summary.sirup <- function(x, ...) {
   out
 }
 
-.sirup_merge_receptors_for_sample <- function(object, sample, sample_field) {
+.sirup_merge_receptors_for_sample <- function(object, sample_id, sample_field) {
   receptors <- tibble::as_tibble(getReceptors(object))
   if (sample_field %in% colnames(receptors)) {
     values <- unique(stats::na.omit(as.character(receptors[[sample_field]])))
     values <- values[nzchar(values)]
-    if (length(values) > 0L && (!identical(length(values), 1L) || !identical(values[[1L]], sample))) {
+    if (length(values) > 0L && (!identical(length(values), 1L) || !identical(values[[1L]], sample_id))) {
       rlang::abort(paste0(
         "`sample_field = \"", sample_field, "\"` already exists in one receptor table, ",
-        "but its non-missing values do not match the requested sample `", sample,
+        "but its non-missing values do not match the requested sample `", sample_id,
         "`. Found: ", paste(values, collapse = ", "), "."
       ))
     }
   }
-  receptors[[sample_field]] <- sample
+  receptors[[sample_field]] <- sample_id
   receptors
 }
 
-.sirup_polygons_for_merge <- function(object, sample) {
+.sirup_polygons_for_merge <- function(object, sample_id) {
   polygons <- .sirup_polygons(object)
   if (nrow(polygons) == 0L) {
     return(polygons)
@@ -1308,11 +1308,11 @@ print.summary.sirup <- function(x, ...) {
     values <- values[nzchar(values)]
     if (length(values) > 0L) values[[1L]] else as.character(polygons$polygon_id[[i]])
   }, character(1))
-  polygons$polygon_id <- paste(sample, as.character(polygons$polygon_id), sep = "::")
-  polygons$sample <- sample
+  polygons$polygon_id <- paste(sample_id, as.character(polygons$polygon_id), sep = "::")
+  polygons$sample <- sample_id
   polygons$vertices <- lapply(seq_len(nrow(polygons)), function(i) {
     vertices <- tibble::as_tibble(polygons$vertices[[i]])
-    vertices$sample <- sample
+    vertices$sample <- sample_id
     vertices$.sirup_polygon_label <- labels[[i]]
     vertices
   })
@@ -1329,13 +1329,13 @@ print.summary.sirup <- function(x, ...) {
   tibble::as_tibble(out)
 }
 
-.sirup_merge_analyses <- function(out, analyses, sample) {
+.sirup_merge_analyses <- function(out, analyses, sample_id) {
   if (length(analyses) == 0L) {
     return(out)
   }
   for (name in names(analyses)) {
     current <- out[[name]] %||% list()
-    current[[sample]] <- analyses[[name]]
+    current[[sample_id]] <- analyses[[name]]
     out[[name]] <- current
   }
   out
@@ -1369,7 +1369,7 @@ print.summary.sirup <- function(x, ...) {
       return(NULL)
     }
     old_sample <- .sirup_spatial_names(objects[[i]]$spatial)[[1L]]
-    .sirup_sample_option(value, sample = old_sample, argument = field)
+    .sirup_sample_option(value, sample_id = old_sample, argument = field)
   })
   if (all(vapply(values, is.null, logical(1)))) {
     return(NULL)
@@ -1382,7 +1382,7 @@ print.summary.sirup <- function(x, ...) {
   out
 }
 
-.sirup_read_polygons_path <- function(path, sample = NULL) {
+.sirup_read_polygons_path <- function(path, sample_id = NULL) {
   if (!is.character(path) || length(path) != 1L || is.na(path) || !nzchar(path)) {
     rlang::abort("`polygons_path` must be one non-empty character path.")
   }
@@ -1390,13 +1390,13 @@ print.summary.sirup <- function(x, ...) {
     rlang::abort("`polygons_path` does not exist: ", path)
   }
   out <- utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE)
-  if (!is.null(sample)) {
-    out$sample <- sample
+  if (!is.null(sample_id)) {
+    out$sample <- sample_id
   }
   out
 }
 
-.sirup_read_polygons_paths <- function(path, sample = NULL) {
+.sirup_read_polygons_paths <- function(path, sample_id = NULL) {
   if (is.list(path) && !is.data.frame(path)) {
     path_names <- names(path)
     path <- unlist(path, recursive = FALSE, use.names = FALSE)
@@ -1405,15 +1405,15 @@ print.summary.sirup <- function(x, ...) {
   if (!is.character(path) || length(path) < 1L || any(is.na(path) | !nzchar(path))) {
     rlang::abort("`polygons_path` must be one path, or a named vector/list of paths keyed by spatial sample.")
   }
-  if (!is.null(sample)) {
-    if (!is.character(sample) || length(sample) != length(path) || any(is.na(sample) | !nzchar(sample))) {
-      rlang::abort("`sample` must be one non-empty sample name per `polygons_path`.")
+  if (!is.null(sample_id)) {
+    if (!is.character(sample_id) || length(sample_id) != length(path) || any(is.na(sample_id) | !nzchar(sample_id))) {
+      rlang::abort("`sample_id` must be one non-empty sample name per `polygons_path`.")
     }
   } else if (!is.null(names(path)) && all(!is.na(names(path)) & nzchar(names(path)))) {
-    sample <- names(path)
+    sample_id <- names(path)
   }
   out <- lapply(seq_along(path), function(i) {
-    .sirup_read_polygons_path(path[[i]], sample = if (is.null(sample)) NULL else sample[[i]])
+    .sirup_read_polygons_path(path[[i]], sample_id = if (is.null(sample_id)) NULL else sample_id[[i]])
   })
   dplyr::bind_rows(out)
 }
@@ -1705,13 +1705,13 @@ print.summary.sirup <- function(x, ...) {
   invisible(x)
 }
 
-.sirup_sample_option <- function(value, sample = NULL, argument = "option") {
+.sirup_sample_option <- function(value, sample_id = NULL, argument = "option") {
   if (is.null(value) || length(value) == 0L) {
     return(NULL)
   }
   value_names <- names(value)
-  if (!is.null(sample) && !is.null(value_names) && sample %in% value_names) {
-    return(unname(value[[match(sample, value_names)]]))
+  if (!is.null(sample_id) && !is.null(value_names) && sample_id %in% value_names) {
+    return(unname(value[[match(sample_id, value_names)]]))
   }
   unnamed <- if (is.null(value_names)) seq_along(value) else which(is.na(value_names) | !nzchar(value_names))
   if (length(unnamed) > 0L) {
@@ -1720,8 +1720,8 @@ print.summary.sirup <- function(x, ...) {
   if (length(value) == 1L && (is.null(value_names) || is.na(value_names[[1L]]) || !nzchar(value_names[[1L]]))) {
     return(unname(value[[1L]]))
   }
-  if (!is.null(sample)) {
-    rlang::abort(paste0("`", argument, "` does not contain a value for spatial sample \"", sample, "\" and has no global fallback."))
+  if (!is.null(sample_id)) {
+    rlang::abort(paste0("`", argument, "` does not contain a value for spatial sample \"", sample_id, "\" and has no global fallback."))
   }
   if (length(value) == 1L && !is.null(value_names)) {
     return(unname(value[[1L]]))
@@ -1729,11 +1729,11 @@ print.summary.sirup <- function(x, ...) {
   value
 }
 
-.sirup_require_spatial_options <- function(image_scale, swap_coords, sample = NULL) {
+.sirup_require_spatial_options <- function(image_scale, swap_coords, sample_id = NULL) {
   image_scale <- .sirup_resolve_image_scale(image_scale)
   swap_coords <- .sirup_resolve_swap_coords(swap_coords)
-  image_scale <- .sirup_sample_option(image_scale, sample = sample, argument = "image_scale")
-  swap_coords <- .sirup_sample_option(swap_coords, sample = sample, argument = "swap_coords")
+  image_scale <- .sirup_sample_option(image_scale, sample_id = sample_id, argument = "image_scale")
+  swap_coords <- .sirup_sample_option(swap_coords, sample_id = sample_id, argument = "swap_coords")
   if (is.null(image_scale)) {
     rlang::abort("`image_scale` must be supplied explicitly or stored in a SIRUP object.")
   }
@@ -1894,35 +1894,35 @@ print.summary.sirup <- function(x, ...) {
   }))
 }
 
-.sirup_validate_sample_name <- function(x, sample) {
-  if (!.sirup_is_non_empty_string(sample)) {
-    rlang::abort("`sample` must be one non-empty spatial sample name.")
+.sirup_validate_sample_name <- function(x, sample_id) {
+  if (!.sirup_is_non_empty_string(sample_id)) {
+    rlang::abort("`sample_id` must be one non-empty spatial sample name.")
   }
   if (!.sirup_is_spatial_list(x$spatial)) {
-    rlang::abort("`sample` can only be used when this SIRUP object contains a spatial list.")
+    rlang::abort("`sample_id` can only be used when this SIRUP object contains a spatial list.")
   }
-  if (!sample %in% names(x$spatial)) {
-    rlang::abort(paste0("Unknown spatial sample: ", sample))
+  if (!sample_id %in% names(x$spatial)) {
+    rlang::abort(paste0("Unknown spatial sample: ", sample_id))
   }
-  invisible(sample)
+  invisible(sample_id)
 }
 
-.sirup_receptors_for_sample <- function(x, sample) {
-  .sirup_validate_sample_name(x, sample)
+.sirup_receptors_for_sample <- function(x, sample_id) {
+  .sirup_validate_sample_name(x, sample_id)
   sample_col <- .sirup_receptor_fields(x)$sample
   if (is.null(sample_col) || !sample_col %in% colnames(x$receptors)) {
     rlang::abort("This SIRUP object does not have a receptor sample field.")
   }
-  x$receptors[!is.na(x$receptors[[sample_col]]) & as.character(x$receptors[[sample_col]]) == sample, , drop = FALSE]
+  x$receptors[!is.na(x$receptors[[sample_col]]) & as.character(x$receptors[[sample_col]]) == sample_id, , drop = FALSE]
 }
 
 .sirup_subset_spatial_component <- function(spatial,
-                                            sample = NULL,
+                                            sample_id = NULL,
                                             spatial_id = NULL,
                                             drop_empty_spatial = TRUE) {
   if (.sirup_is_spatial_list(spatial)) {
-    if (!is.null(sample)) {
-      spatial <- spatial[sample]
+    if (!is.null(sample_id)) {
+      spatial <- spatial[sample_id]
     }
     if (!is.null(spatial_id)) {
       spatial <- lapply(spatial, function(spatial_object) {

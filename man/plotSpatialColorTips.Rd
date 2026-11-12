@@ -8,7 +8,7 @@ plotSpatialColorTips(
   object,
   tip_data,
   spatial_id = "spatial_id_8um",
-  sample = NULL,
+  sample_col = NULL,
   color = "tip_color",
   label = NULL,
   legend_title = "Tip color",
@@ -50,7 +50,7 @@ example, use the result of \code{\link[=assignTipColors]{assignTipColors()}}.}
 \item{spatial_id}{Name of the column in \code{tip_data} that holds the Seurat spot
 names (default \code{"spatial_id_8um"}).}
 
-\item{sample}{Name of the column in \code{tip_data} that matches the names of a
+\item{sample_col}{Name of the column in \code{tip_data} that matches the names of a
 list of spatial objects.}
 
 \item{color}{Name of the column that holds the colors (default

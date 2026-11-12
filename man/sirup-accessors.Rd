@@ -7,23 +7,23 @@
 \alias{getReceptors}
 \title{Extract data from a SIRUP object}
 \usage{
-getSpatial(x, sample = NULL)
+getSpatial(x, sample_id = NULL)
 
 spatialSamples(x)
 
-getReceptors(x, sample = NULL)
+getReceptors(x, sample_id = NULL)
 }
 \arguments{
 \item{x}{A SIRUP object.}
 
-\item{sample}{Name of one spatial sample. Use it only if the object holds a
+\item{sample_id}{Name of one spatial sample. Use it only if the object holds a
 named list of Seurat objects.}
 }
 \value{
 \code{getSpatial} returns the Seurat object. For a multi-sample object, it
 returns the named list of Seurat objects, or one Seurat object if you give
-\code{sample}. \code{spatialSamples} returns a character vector of sample names.
-\code{getReceptors} returns the receptor tibble. If you give \code{sample}, it
+\code{sample_id}. \code{spatialSamples} returns a character vector of sample names.
+\code{getReceptors} returns the receptor tibble. If you give \code{sample_id}, it
 returns only the rows for that sample.
 }
 \description{

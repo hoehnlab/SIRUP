@@ -51,7 +51,7 @@ obj <- createSIRUP(
   spatial     = list(mg_thymus_slice1 = spatial_1, mg_thymus_slice2 = spatial_2),
   receptors   = airr,
   spatial_id  = "barcode_10x",
-  sample      = "sample",
+  sample_id      = "sample",
   locus       = "locus",
   count       = "consensus_count",
   image_scale = "hires",   # or per-sample: list(mg_thymus_slice1 = "hires", mg_thymus_slice2 = "hires")

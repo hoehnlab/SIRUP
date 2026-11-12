@@ -275,8 +275,9 @@ the list entry of each row. Rows with no matching entry stay in the
 table as non-spatial records. Bulk and blood sequences use this feature.
 `mergeSIRUP()` joins several objects into one. `subsetSIRUP()` keeps
 chosen samples, spots, or receptor rows. `getSpatial()` and
-`getReceptors()` return the data of one sample when you give `sample`.
-[Analyze several sections with bulk AIRR-seq and blood](multisample.md) has a full example.
+`getReceptors()` return the data of one sample when you give
+`sample_id`. [Analyze several sections with bulk AIRR-seq and blood](multisample.md) has a full
+example.
 
 ## Keep results with the data
 

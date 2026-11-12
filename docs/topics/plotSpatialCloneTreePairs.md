@@ -22,7 +22,6 @@ plotSpatialCloneTreePairs(
   image_scale = NULL,
   swap_coords = NULL,
   images = NULL,
-  sample = NULL,
   sample_id = NULL,
   zoom = FALSE,
   tipsize = NULL,
@@ -65,195 +64,191 @@ plotSpatialCloneTreePairs(
 
 `trees`
 
-:   Result of [`dowser::getTrees()`](https://dowser.readthedocs.io/en/latest/topics/getTrees/), or a list with an element `trees` that holds this result.
+: Result of [`dowser::getTrees()`](https://dowser.readthedocs.io/en/latest/topics/getTrees/), or a list with an element `trees` that holds this result.
 
 `object`
 
-:   Seurat object or SIRUP object.
+: Seurat object or SIRUP object.
 
 `spatial_id`
 
-:   Name of the column in the dowser clone data that holds the Seurat spot names. Omit it if `object` is a SIRUP object.
+: Name of the column in the dowser clone data that holds the Seurat spot names. Omit it if `object` is a SIRUP object.
 
 `clone_val`
 
-:   IDs of the clones to plot. If `NULL`, the function plots all clones.
+: IDs of the clones to plot. If `NULL`, the function plots all clones.
 
 `id`
 
-:   Name of the column in the dowser clone data that matches the tree tip labels (default `"sequence_id"`).
+: Name of the column in the dowser clone data that matches the tree tip labels (default `"sequence_id"`).
 
 `sequence_id`
 
-:   Name of the column in the receptor table of `object` that decides which tree tips belong to the current spatial object (default: the value of `id`). The function uses it only if `object` is a SIRUP object. A tip that is not in this column stays in the tree plot, but the map does not show it.
+: Name of the column in the receptor table of `object` that decides which tree tips belong to the current spatial object (default: the value of `id`). The function uses it only if `object` is a SIRUP object. A tip that is not in this column stays in the tree plot, but the map does not show it.
 
 `clone`
 
-:   Name of the column that holds the clone IDs (default `"clone_id"`).
+: Name of the column that holds the clone IDs (default `"clone_id"`).
 
 `color_by`
 
-:   Column that sets the colors of the tips in both plots. With `"identity"` (default), each tip gets its own color. With another column, such as `"tree_cluster"` or a spatial ID column, tips that share a value get one color.
+: Column that sets the colors of the tips in both plots. With `"identity"` (default), each tip gets its own color. With another column, such as `"tree_cluster"` or a spatial ID column, tips that share a value get one color.
 
 `palette`
 
-:   Colors to use. If you give fewer colors than the function needs, it makes more colors by averaging the colors that you give.
+: Colors to use. If you give fewer colors than the function needs, it makes more colors by averaging the colors that you give.
 
 `image_scale`
 
-:   Image scale for `SeuratObject::GetTissueCoordinates()`. If `NULL`, the function uses the value stored in the SIRUP object.
+: Image scale for `SeuratObject::GetTissueCoordinates()`. If `NULL`, the function uses the value stored in the SIRUP object.
 
 `swap_coords`
 
-:   Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in the SIRUP object. Give a value if `object` is a Seurat object.
+: Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in the SIRUP object. Give a value if `object` is a Seurat object.
 
 `images`
 
-:   Names of the Seurat images to use.
-
-`sample`
-
-:   Names of the spatial samples to show. Use it for multi-sample SIRUP objects.
+: Names of the Seurat images to use.
 
 `sample_id`
 
-:   Names of the samples to plot. Use it for multi-sample SIRUP objects. If `NULL`, the function plots all samples. It is a clearer alias for `sample`.
+: Names of the samples to plot. Use it for multi-sample SIRUP objects. If `NULL`, the function plots all samples.
 
 `zoom`
 
-:   Zoom the maps to the clone (default `FALSE`)? If `FALSE`, the maps show the full tissue area that the spatial coordinates cover.
+: Zoom the maps to the clone (default `FALSE`)? If `FALSE`, the maps show the full tissue area that the spatial coordinates cover.
 
 `tipsize`
 
-:   Size of the tip points of the tree.
+: Size of the tip points of the tree.
 
 `scale`
 
-:   Distance that the scale bar of the tree shows, in mutations for each site (default 0.01).
+: Distance that the scale bar of the tree shows, in mutations for each site (default 0.01).
 
 `layout`
 
-:   Layout of the tree, for `ggtree::ggtree()` (default `"rectangular"`).
+: Layout of the tree, for `ggtree::ggtree()` (default `"rectangular"`).
 
 `title`
 
-:   Title of each tree plot. With `TRUE` (default), the title is the clone ID. Give a character string to use it as the title.
+: Title of each tree plot. With `TRUE` (default), the title is the clone ID. Give a character string to use it as the title.
 
 `shape_by`
 
-:   Name of the column in the dowser clone data that sets the shape of the tree tips. The default marks a tip as `"spatial"` if it has a spatial ID, and as `"not_spatial"` if it has none.
+: Name of the column in the dowser clone data that sets the shape of the tree tips. The default marks a tip as `"spatial"` if it has a spatial ID, and as `"not_spatial"` if it has none.
 
 `shape_values`
 
-:   Named vector of shapes, for [`ggplot2::scale_shape_manual()`](https://ggplot2.tidyverse.org/reference/scale_shape_manual.html) (default `c(spatial = 21, not_spatial = 22)`). Shapes 21 to 25 are filled shapes: the tip color fills the shape, and the outline is black. Other shapes get the tip color on the whole mark.
+: Named vector of shapes, for [`ggplot2::scale_shape_manual()`](https://ggplot2.tidyverse.org/reference/scale_shape_manual.html) (default `c(spatial = 21, not_spatial = 22)`). Shapes 21 to 25 are filled shapes: the tip color fills the shape, and the outline is black. Other shapes get the tip color on the whole mark.
 
 `tree_layout`
 
-:   Alias for `layout`.
+: Alias for `layout`.
 
 `tree_tip_size`
 
-:   Alias for `tipsize`.
+: Alias for `tipsize`.
 
 `tree_linewidth`
 
-:   Line width of the tree branches, for `ggtree::ggtree()` (default 0.5).
+: Line width of the tree branches, for `ggtree::ggtree()` (default 0.5).
 
 `tip_stroke`
 
-:   Outline width of the filled tree tips (default 0.3).
+: Outline width of the filled tree tips (default 0.3).
 
 `treescale_fontsize`
 
-:   Font size of the label of the scale bar (default 3.88).
+: Font size of the label of the scale bar (default 3.88).
 
 `treescale`
 
-:   Alias for `scale`.
+: Alias for `scale`.
 
 `treescale_position`
 
-:   Position of the scale bar: `"bottomleft"` (default), `"topleft"` (near the root, at the top of the tips), or `"midleft"` (near the root, halfway down the tips).
+: Position of the scale bar: `"bottomleft"` (default), `"topleft"` (near the root, at the top of the tips), or `"midleft"` (near the root, halfway down the tips).
 
 `spatial_tip_size`
 
-:   Size of the tip points on the map (default 1.6).
+: Size of the tip points on the map (default 1.6).
 
 `spatial_tip_alpha`
 
-:   Opacity of the tip points on the map (default 1).
+: Opacity of the tip points on the map (default 1).
 
 `order_points`
 
-:   Draw the early color groups first on the map, so that the later groups show on top (default `FALSE`)?
+: Draw the early color groups first on the map, so that the later groups show on top (default `FALSE`)?
 
 `show_spatial_legend`
 
-:   Show a color legend below the map, based on the tip colors of the tree (default `FALSE`)?
+: Show a color legend below the map, based on the tip colors of the tree (default `FALSE`)?
 
 `combine_sample_plots`
 
-:   Combine the maps of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns one tree and map pair for each sample.
+: Combine the maps of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns one tree and map pair for each sample.
 
 `polygons`
 
-:   Draw polygons under the points on each spatial panel. With `FALSE` (default), the function draws no polygons. With `TRUE`, it uses the polygons stored in the SIRUP object. You can also give a data frame of polygon vertices, or the path of a CSV file of polygon vertices. A vertex table needs the columns set by `polygon_x` and `polygon_y`. It needs the column set by `polygon_id` if it holds more than one polygon.
+: Draw polygons under the points on each spatial panel. With `FALSE` (default), the function draws no polygons. With `TRUE`, it uses the polygons stored in the SIRUP object. You can also give a data frame of polygon vertices, or the path of a CSV file of polygon vertices. A vertex table needs the columns set by `polygon_x` and `polygon_y`. It needs the column set by `polygon_id` if it holds more than one polygon.
 
 `polygon_x`
 
-:   Name of the x-coordinate column in the polygon table (default `"x"`).
+: Name of the x-coordinate column in the polygon table (default `"x"`).
 
 `polygon_y`
 
-:   Name of the y-coordinate column in the polygon table (default `"y"`).
+: Name of the y-coordinate column in the polygon table (default `"y"`).
 
 `polygon_id`
 
-:   Name of the column that separates the polygons in the polygon table (default `"polygon"`). If the column does not exist, the function uses a `polygon` or `polygon_id` column. If neither exists, all rows form one polygon.
+: Name of the column that separates the polygons in the polygon table (default `"polygon"`). If the column does not exist, the function uses a `polygon` or `polygon_id` column. If neither exists, all rows form one polygon.
 
 `polygon_val`
 
-:   IDs of the polygons to draw. If `NULL`, the function draws all polygons.
+: IDs of the polygons to draw. If `NULL`, the function draws all polygons.
 
 `polygon_alpha`
 
-:   Opacity of the polygon fill (default 0.2).
+: Opacity of the polygon fill (default 0.2).
 
 `polygon_fill`
 
-:   Fill color of the polygons (default `"#0072B2"`).
+: Fill color of the polygons (default `"#0072B2"`).
 
 `polygon_color`
 
-:   Color of the polygon outlines (default `"#0072B2"`).
+: Color of the polygon outlines (default `"#0072B2"`).
 
 `polygon_linewidth`
 
-:   Width of the polygon outlines (default 0.6).
+: Width of the polygon outlines (default 0.6).
 
 `polygon_label`
 
-:   Write a label at the center of each polygon (default `FALSE`)?
+: Write a label at the center of each polygon (default `FALSE`)?
 
 `polygon_label_by`
 
-:   Name of the column that holds the labels. If `NULL`, the function uses the polygon ID.
+: Name of the column that holds the labels. If `NULL`, the function uses the polygon ID.
 
 `polygon_label_size`
 
-:   Text size of the polygon labels (default 3).
+: Text size of the polygon labels (default 3).
 
 `polygon_label_color`
 
-:   Text color of the polygon labels (default `"black"`).
+: Text color of the polygon labels (default `"black"`).
 
 `nproc`
 
-:   Number of processes for building the plot pairs (default 1).
+: Number of processes for building the plot pairs (default 1).
 
 `...`
 
-:   Other arguments for [`plotSpatialColorTips()`](plotSpatialColorTips.md).
+: Other arguments for [`plotSpatialColorTips()`](plotSpatialColorTips.md).
 
 ## Details
 

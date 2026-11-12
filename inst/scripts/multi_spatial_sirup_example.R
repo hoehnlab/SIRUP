@@ -42,7 +42,7 @@ sirup <- createSIRUP(
   spatial = spatial,
   receptors = receptors,
   spatial_id = "spatial_id",
-  sample = "sample",
+  sample_id = "sample",
   clone = "clone_id",
   locus = "locus",
   image_scale = c(tonsil_section_1 = "hires", tonsil_section_2 = "hires"),

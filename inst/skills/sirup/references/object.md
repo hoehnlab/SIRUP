@@ -23,7 +23,7 @@ summary(x)
 | `polygons` | Tissue regions, one row for each polygon, with a list column `vertices` | `getPolygons(x)` |
 | `analyses` | Any R object that you store under a name | `getAnalysis(x, name)` |
 
-The accessors return ordinary R objects. Pass them to any function from another package. In a multi-sample object, `getSpatial(x)` returns a named list of Seurat objects. Give `sample = "name"` to get one sample.
+The accessors return ordinary R objects. Pass them to any function from another package. In a multi-sample object, `getSpatial(x)` returns a named list of Seurat objects. Give `sample_id = "name"` to get one sample.
 
 ## Field names
 

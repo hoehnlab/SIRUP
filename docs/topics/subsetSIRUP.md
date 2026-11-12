@@ -11,7 +11,7 @@
 ``` R
 subsetSIRUP(
   x,
-  sample = NULL,
+  sample_id = NULL,
   spatial_id = NULL,
   receptor_rows = NULL,
   keep_nonspatial_receptors = FALSE,
@@ -20,42 +20,42 @@ subsetSIRUP(
   validate = TRUE
 )
 
-filterSample(x, sample, keep_analyses = FALSE, validate = TRUE)
+filterSample(x, sample_id, keep_analyses = FALSE, validate = TRUE)
 ```
 
 ## Arguments
 
 `x`
 
-:   A SIRUP object.
+: A SIRUP object.
 
-`sample`
+`sample_id`
 
-:   Name or names of the spatial samples to keep. Use it only if the object holds a named list of Seurat objects.
+: Name or names of the spatial samples to keep. Use it only if the object holds a named list of Seurat objects.
 
 `spatial_id`
 
-:   Spatial IDs (barcodes) to keep. In a multi-sample object, the function matches the IDs in each selected sample.
+: Spatial IDs (barcodes) to keep. In a multi-sample object, the function matches the IDs in each selected sample.
 
 `receptor_rows`
 
-:   Logical vector with length `nrow(getReceptors(x))`, or a function. The function takes the receptor tibble and returns such a vector. The function keeps the rows where the vector is `TRUE`.
+: Logical vector with length `nrow(getReceptors(x))`, or a function. The function takes the receptor tibble and returns such a vector. The function keeps the rows where the vector is `TRUE`.
 
 `keep_nonspatial_receptors`
 
-:   Keep receptor rows that have no spatial ID after the other filters (default `FALSE`)? The function uses this argument only if you give `spatial_id`.
+: Keep receptor rows that have no spatial ID after the other filters (default `FALSE`)? The function uses this argument only if you give `spatial_id`.
 
 `keep_analyses`
 
-:   Keep the stored analyses (default `FALSE`)? Most analyses depend on the original spatial and receptor data.
+: Keep the stored analyses (default `FALSE`)? Most analyses depend on the original spatial and receptor data.
 
 `drop_empty_spatial`
 
-:   Drop samples that have no cells left after the `spatial_id` filter (default `TRUE`)? The function uses this argument only for multi-sample objects.
+: Drop samples that have no cells left after the `spatial_id` filter (default `TRUE`)? The function uses this argument only for multi-sample objects.
 
 `validate`
 
-:   Validate the subset object (default `TRUE`)?
+: Validate the subset object (default `TRUE`)?
 
 ## Details
 

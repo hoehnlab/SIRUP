@@ -606,7 +606,7 @@ test_that("polygon plots filter tagged polygons per spatial sample", {
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     clone = "clone_id",
     image_scale = "hires",
     swap_coords = FALSE
@@ -650,7 +650,7 @@ test_that("polygon pies filter tagged polygons per spatial sample", {
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     clone = "clone_id",
     image_scale = "hires",
     swap_coords = FALSE
@@ -1200,7 +1200,7 @@ test_that(".sirup_region_from_dominance selects by polygon_id or polygon label",
       locus = "IGH",
       stringsAsFactors = FALSE
     ),
-    spatial_id = "barcode", sample = "sample", clone = "clone_id",
+    spatial_id = "barcode", sample_id = "sample", clone = "clone_id",
     image_scale = "hires", swap_coords = FALSE
   )
   # Same polygon label "gc1" in BOTH sections -> composite, section-unique ids

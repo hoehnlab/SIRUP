@@ -205,7 +205,7 @@ test_that("receptor spatial plots keep duplicate barcodes separated by sample", 
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     image_scale = "hires",
     swap_coords = FALSE
   )

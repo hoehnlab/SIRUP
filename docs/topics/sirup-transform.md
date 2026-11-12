@@ -13,51 +13,51 @@ updateReceptors(
   x,
   fun,
   ...,
-  sample = NULL,
+  sample_id = NULL,
   receptor_fields = NULL,
   validate = TRUE
 )
 
-updateSpatial(x, fun, ..., sample = NULL, validate = TRUE)
+updateSpatial(x, fun, ..., sample_id = NULL, validate = TRUE)
 
-updateAnalysis(x, name, fun, ..., sample = NULL, validate = TRUE)
+updateAnalysis(x, name, fun, ..., sample_id = NULL, validate = TRUE)
 ```
 
 ## Arguments
 
 `x`
 
-:   A SIRUP object.
+: A SIRUP object.
 
 `fun`
 
-:   Function, or the name of a function. The function receives the selected part of the SIRUP object as its first argument.
+: Function, or the name of a function. The function receives the selected part of the SIRUP object as its first argument.
 
 `...`
 
-:   Other arguments for `fun`.
+: Other arguments for `fun`.
 
-`sample`
+`sample_id`
 
-:   Name of the spatial sample to update. Use it only for multi-sample objects.
+: Name of the spatial sample to update. Use it only for multi-sample objects.
 
 `receptor_fields`
 
-:   Named list of receptor field mappings to change. The names can be `spatial_id`, `image`, `sample`, `clone`, `locus`, or `count`. A `NULL` value clears an optional mapping.
+: Named list of receptor field mappings to change. The names can be `spatial_id`, `image`, `sample`, `clone`, `locus`, or `count`. A `NULL` value clears an optional mapping.
 
 `validate`
 
-:   Validate the updated SIRUP object?
+: Validate the updated SIRUP object?
 
 `name`
 
-:   Name of the stored analysis. Give one non-empty character string.
+: Name of the stored analysis. Give one non-empty character string.
 
 ## Details
 
-`updateReceptors` needs a function that returns a data frame. The function stores the result as a tibble and keeps the existing field mappings. If the object has no clone field and the result has a `clone_id` column, the function records `clone_id` as the clone field. Use `receptor_fields` to set or clear a mapping yourself. If you give `sample`, the function applies `fun` to the rows of that sample only. It then puts the result back in the full table.
+`updateReceptors` needs a function that returns a data frame. The function stores the result as a tibble and keeps the existing field mappings. If the object has no clone field and the result has a `clone_id` column, the function records `clone_id` as the clone field. Use `receptor_fields` to set or clear a mapping yourself. If you give `sample_id`, the function applies `fun` to the rows of that sample only. It then puts the result back in the full table.
 
-`updateSpatial` needs a function that returns a Seurat object. In a multi-sample object, it applies `fun` to every Seurat object. If you give `sample`, it updates only that object.
+`updateSpatial` needs a function that returns a Seurat object. In a multi-sample object, it applies `fun` to every Seurat object. If you give `sample_id`, it updates only that object.
 
 `updateAnalysis` applies `fun` to the stored result called `name`. To store a new result, use [`setAnalysis()`](sirup-analyses.md).
 

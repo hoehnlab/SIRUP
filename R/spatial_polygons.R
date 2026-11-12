@@ -1264,7 +1264,6 @@ expandPolygons <- function(polygons,
 #'   treats each polygon on its own. If `object` is a SIRUP object and `polygon`
 #'   is `NULL`, the function uses the stored polygons.
 #' @param images Names of the Seurat images to use.
-#' @param sample Alias for `sample_id`.
 #' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
 #'   objects. If `NULL`, the function plots all samples.
 #' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
@@ -1328,7 +1327,6 @@ expandPolygons <- function(polygons,
 plotSpatialPolygons <- function(object,
                                 polygon = NULL,
                                 images = NULL,
-                                sample = NULL,
                                 sample_id = NULL,
                                 image_scale = NULL,
                                 swap_coords = NULL,
@@ -1356,14 +1354,9 @@ plotSpatialPolygons <- function(object,
                                 combine = TRUE,
                                 combine_sample_plots = FALSE) {
   sirup_object <- if (isSIRUP(object)) object else NULL
-  sample_id <- sample_id %||% sample
   if (!is.null(sample_id)) {
     sample_id <- .sirup_plot_sample_id(object, sample_id)
-  }
-  if (!is.null(sample_id)) {
     images <- unique(c(images %||% character(), as.character(sample_id)))
-  } else if (!is.null(sample)) {
-    images <- unique(c(images %||% character(), as.character(sample)))
   }
   context <- .sirup_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
@@ -2587,13 +2580,13 @@ assignReceptorPolygons <- function(receptors,
   out
 }
 
-.sirup_filter_polygon_sample <- function(polygon, sample) {
+.sirup_filter_polygon_sample <- function(polygon, sample_id) {
   polygon <- .as_data_frame(polygon)
   sample_col <- .sirup_polygon_sample_col(polygon)
   if (is.null(sample_col)) {
     return(polygon)
   }
-  keep <- is.na(polygon[[sample_col]]) | as.character(polygon[[sample_col]]) == sample
+  keep <- is.na(polygon[[sample_col]]) | as.character(polygon[[sample_col]]) == sample_id
   polygon[keep, , drop = FALSE]
 }
 

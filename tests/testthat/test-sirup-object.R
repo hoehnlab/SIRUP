@@ -116,7 +116,7 @@ test_that("createSIRUP supports named spatial lists keyed by receptor sample", {
     spatial = spatial,
     receptors = receptors,
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     clone = "clone_id",
     image_scale = "hires",
     swap_coords = FALSE
@@ -127,7 +127,7 @@ test_that("createSIRUP supports named spatial lists keyed by receptor sample", {
   expect_equal(x$metadata$sample_names, c("section_a", "section_b"))
   section_a <- spatial$section_a
   section_a$sample <- "section_a"
-  expect_identical(getSpatial(x, sample = "section_a"), section_a)
+  expect_identical(getSpatial(x, sample_id = "section_a"), section_a)
   expect_identical(getReceptors(x), x$receptors)
   expect_equal(summary(x)$n_spatial_ids, 4)
   expect_equal(summary(x)$n_receptor_ids, 3)
@@ -172,9 +172,9 @@ test_that("mergeSIRUP combines single-sample objects into a multisample object",
   expect_equal(spatialSamples(merged), c("samp1", "samp2"))
   expect_equal(merged$metadata$sample_names, c("samp1", "samp2"))
   expect_equal(getReceptors(merged)$sample_id, c("samp1", "samp1", "samp2", "samp2"))
-  expect_equal(getReceptors(merged, sample = "samp2")$clone_id, c("C", "D"))
-  expect_identical(getAnalysis(merged, "score", sample = "samp1"), data.frame(x = 1))
-  expect_identical(getAnalysis(merged, "score", sample = "samp2"), data.frame(x = 2))
+  expect_equal(getReceptors(merged, sample_id = "samp2")$clone_id, c("C", "D"))
+  expect_identical(getAnalysis(merged, "score", sample_id = "samp1"), data.frame(x = 1))
+  expect_identical(getAnalysis(merged, "score", sample_id = "samp2"), data.frame(x = 2))
   expect_equal(merged$metadata$receptor_fields$sample, "sample_id")
   expect_invisible(validateSIRUP(merged))
 })
@@ -237,7 +237,7 @@ test_that("mergeSIRUP preserves sample-tagged polygons when inputs differ", {
 
   expect_equal(getPolygons(merged)$sample, "samp1")
   expect_equal(getPolygons(merged)$polygon_id, "samp1::GC1")
-  expect_equal(getPolygons(merged, sample = "samp1")$polygon_id, "GC1")
+  expect_equal(getPolygons(merged, sample_id = "samp1")$polygon_id, "GC1")
   expect_equal(getSpatial(merged, "samp1")[[]]["cell1", "polygon_id"], "samp1::GC1")
   expect_true(is.na(getSpatial(merged, "samp2")[[]]["cell1", "polygon_id"]))
   expect_equal(getReceptors(merged)$polygon_id, c("samp1::GC1", NA))
@@ -264,7 +264,7 @@ test_that("spatial list coordinate options resolve per sample", {
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     image_scale = list(section_a = "hires", section_b = "hires"),
     swap_coords = c(section_a = FALSE, section_b = TRUE)
   )
@@ -292,7 +292,7 @@ test_that("spatial list SIRUP objects require a sample receptor field", {
       image_scale = "hires",
       swap_coords = FALSE
     ),
-    "`sample` is required"
+    "`sample_id` is required"
   )
 })
 
@@ -320,7 +320,7 @@ test_that("stored polygons annotate spatial list SIRUP objects by sample", {
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     clone = "clone_id",
     image_scale = "hires",
     swap_coords = FALSE
@@ -372,7 +372,7 @@ test_that("direct polygon dominance honors polygon sample columns", {
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     clone = "clone_id",
     image_scale = "hires",
     swap_coords = FALSE
@@ -418,7 +418,7 @@ test_that("addPolygons can tag multisample polygons from named paths", {
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     clone = "clone_id",
     image_scale = "hires",
     swap_coords = FALSE
@@ -817,7 +817,7 @@ test_that("accessor and update methods can target one spatial sample", {
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     clone = "clone_id",
     image_scale = "hires",
     swap_coords = FALSE
@@ -830,7 +830,7 @@ test_that("accessor and update methods can target one spatial sample", {
     receptors$sample_only <- "yes"
     receptors$clone_id <- paste0(receptors$clone_id, "_updated")
     receptors
-  }, sample = "section_b")
+  }, sample_id = "section_b")
   expect_true(all(is.na(getReceptors(x, "section_a")$sample_only)))
   expect_true(all(getReceptors(x, "section_b")$sample_only == "yes"))
   expect_equal(getReceptors(x, "section_b")$clone_id, c("B_updated", "C_updated"))
@@ -838,7 +838,7 @@ test_that("accessor and update methods can target one spatial sample", {
   x <- updateSpatial(x, function(spatial) {
     spatial$updated <- TRUE
     spatial
-  }, sample = "section_a")
+  }, sample_id = "section_a")
   expect_true(all(getSpatial(x, "section_a")$updated))
   expect_false("updated" %in% colnames(getSpatial(x, "section_b")[[]]))
 
@@ -902,7 +902,7 @@ test_that("spatialReceptorSummary counts sample and spatial ID pairs", {
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     clone = "clone_id",
     image_scale = "hires",
     swap_coords = FALSE
@@ -1152,7 +1152,7 @@ test_that("multi-sample SIRUP summaries include per-sample counts", {
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     clone = "clone_id",
     image_scale = "hires",
     swap_coords = FALSE
@@ -1181,7 +1181,7 @@ test_that("multi-sample SIRUP summaries include per-sample counts", {
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     clone = "clone_id",
     image_scale = c(section_a = "hires", section_b = "lowres"),
     swap_coords = c(section_a = FALSE, section_b = TRUE)

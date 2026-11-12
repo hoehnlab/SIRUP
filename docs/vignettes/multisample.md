@@ -71,11 +71,11 @@ extdata <- SIRUP::downloadSIRUPExample(
   )
 )
 #> ℹ Downloading 'mg_thymus_slice1_spatial.rds'
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice2_spatial.rds'
 #> ℹ Downloading 'mg_thymus_slice1_bcr.tsv.gz'
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice2_bcr.tsv.gz'
 #> ℹ Downloading 'mg_thymus_slice1_gc_polygons.csv'
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice2_gc_polygons.csv'
 #> ℹ Downloading 'mg_thymus_bulk_thymus_1.tsv.gz'
 #> ℹ Downloading 'mg_thymus_bulk_thymus_2.tsv.gz'
 #> ℹ Downloading 'mg_thymus_bulk_blood_month0_1.tsv.gz'
@@ -177,17 +177,19 @@ blood.
 
 ## Create a multi-sample object
 
-Give `createSIRUP()` the named list and the name of the `sample` column.
+Give `createSIRUP()` the named list. Give the name of the `sample`
+column to `sample_id`.
 
 ``` r
 sirup <- createSIRUP(
   spatial = spatial,
   receptors = bcrs,
   spatial_id = "barcode_10x",
-  sample = "sample",
+  sample_id = "sample",
   image_scale = "lowres",
   swap_coords = FALSE
 )
+#> Loading required namespace: Seurat
 
 sirup
 #> <SIRUP object>
@@ -212,7 +214,7 @@ If the sections need different image settings, give named values:
 
 ## Get one sample
 
-The accessors take a `sample` argument.
+The accessors take a `sample_id` argument.
 
 ``` r
 getSpatial(sirup, "mg_thymus_slice1")

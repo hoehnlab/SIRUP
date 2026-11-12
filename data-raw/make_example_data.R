@@ -238,7 +238,7 @@ check <- createSIRUP(
     read_section("mg_thymus_slice2_bcr.tsv.gz", "mg_thymus_slice2")
   ),
   spatial_id = "barcode_10x",
-  sample = "sample",
+  sample_id = "sample",
   image_scale = "lowres",
   swap_coords = FALSE
 )

@@ -9,7 +9,7 @@ createSIRUP(
   receptors,
   spatial_id = NULL,
   image = NULL,
-  sample = NULL,
+  sample_id = NULL,
   clone = NULL,
   locus = "locus",
   count = NULL,
@@ -38,7 +38,7 @@ the metadata and gives an error if none exists.}
 \item{image}{Name of the \code{receptors} column that identifies the Seurat image
 (default \code{NULL}).}
 
-\item{sample}{Name of the \code{receptors} column that holds the sample name. If
+\item{sample_id}{Name of the \code{receptors} column that holds the sample name. If
 \code{spatial} is a named list, this argument is required. If a Seurat object
 has no such metadata column, the function fills it with the list name.}
 
@@ -94,7 +94,7 @@ one SIRUP object.
 }
 \details{
 \code{spatial} can be one Seurat object or a named list of Seurat objects. If you
-give a list, the \code{sample} column of \code{receptors} must name the corresponding
+give a list, the column of \code{receptors} that \code{sample_id} names must name the corresponding
 list entry for each row. The function keeps rows with no matching entry as
 nonspatial records. For example, these rows can hold bulk or single-cell
 data.

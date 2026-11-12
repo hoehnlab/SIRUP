@@ -1868,11 +1868,11 @@ extdata <- SIRUP::downloadSIRUPExample(
   )
 )
 #> ℹ Downloading 'mg_thymus_slice1_spatial.rds'
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice2_spatial.rds'
 #> ℹ Downloading 'mg_thymus_slice1_bcr.tsv.gz'
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice2_bcr.tsv.gz'
 #> ℹ Downloading 'mg_thymus_slice1_gc_polygons.csv'
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice2_gc_polygons.csv'
 #> ℹ Downloading 'mg_thymus_bulk_thymus_1.tsv.gz'
 #> ℹ Downloading 'mg_thymus_bulk_thymus_2.tsv.gz'
 #> ℹ Downloading 'mg_thymus_bulk_blood_month0_1.tsv.gz'
@@ -1974,17 +1974,19 @@ blood.
 
 ## Create a multi-sample object
 
-Give `createSIRUP()` the named list and the name of the `sample` column.
+Give `createSIRUP()` the named list. Give the name of the `sample`
+column to `sample_id`.
 
 ``` r
 sirup <- createSIRUP(
   spatial = spatial,
   receptors = bcrs,
   spatial_id = "barcode_10x",
-  sample = "sample",
+  sample_id = "sample",
   image_scale = "lowres",
   swap_coords = FALSE
 )
+#> Loading required namespace: Seurat
 
 sirup
 #> <SIRUP object>
@@ -2009,7 +2011,7 @@ If the sections need different image settings, give named values:
 
 ## Get one sample
 
-The accessors take a `sample` argument.
+The accessors take a `sample_id` argument.
 
 ``` r
 getSpatial(sirup, "mg_thymus_slice1")
@@ -3929,8 +3931,9 @@ the list entry of each row. Rows with no matching entry stay in the
 table as non-spatial records. Bulk and blood sequences use this feature.
 `mergeSIRUP()` joins several objects into one. `subsetSIRUP()` keeps
 chosen samples, spots, or receptor rows. `getSpatial()` and
-`getReceptors()` return the data of one sample when you give `sample`.
-[Analyze several sections with bulk AIRR-seq and blood](multisample.md) has a full example.
+`getReceptors()` return the data of one sample when you give
+`sample_id`. [Analyze several sections with bulk AIRR-seq and blood](multisample.md) has a full
+example.
 
 ## Keep results with the data
 
@@ -5468,7 +5471,7 @@ createSIRUP(
   receptors,
   spatial_id = NULL,
   image = NULL,
-  sample = NULL,
+  sample_id = NULL,
   clone = NULL,
   locus = "locus",
   count = NULL,
@@ -5487,71 +5490,71 @@ createSIRUP(
 
 `spatial`
 
-:   Seurat object with spatial expression data, or a named list of Seurat objects (one per spatial sample).
+: Seurat object with spatial expression data, or a named list of Seurat objects (one per spatial sample).
 
 `receptors`
 
-:   AIRR-style receptor table (a data frame or similar).
+: AIRR-style receptor table (a data frame or similar).
 
 `spatial_id`
 
-:   Name of the `receptors` column that holds the spatial cell or spot IDs. If `NULL`, the function uses the first column found from this list: `spatial_id`, `spatial_id_8um`, `spatial_id_2um`, `spatial_id_16um`, `barcode_8um`, `barcode_2um`, `cell`, `cell_barcode`. It stores the name in the metadata and gives an error if none exists.
+: Name of the `receptors` column that holds the spatial cell or spot IDs. If `NULL`, the function uses the first column found from this list: `spatial_id`, `spatial_id_8um`, `spatial_id_2um`, `spatial_id_16um`, `barcode_8um`, `barcode_2um`, `cell`, `cell_barcode`. It stores the name in the metadata and gives an error if none exists.
 
 `image`
 
-:   Name of the `receptors` column that identifies the Seurat image (default `NULL`).
+: Name of the `receptors` column that identifies the Seurat image (default `NULL`).
 
-`sample`
+`sample_id`
 
-:   Name of the `receptors` column that holds the sample name. If `spatial` is a named list, this argument is required. If a Seurat object has no such metadata column, the function fills it with the list name.
+: Name of the `receptors` column that holds the sample name. If `spatial` is a named list, this argument is required. If a Seurat object has no such metadata column, the function fills it with the list name.
 
 `clone`
 
-:   Name of the `receptors` column that holds the clone ID (default `NULL`). The function gives an error if the column does not exist.
+: Name of the `receptors` column that holds the clone ID (default `NULL`). The function gives an error if the column does not exist.
 
 `locus`
 
-:   Name of the `receptors` column that holds the receptor locus (default `"locus"`). If you use the default and the column does not exist, the function stores `NULL`. If you give another name that does not exist, the function gives an error.
+: Name of the `receptors` column that holds the receptor locus (default `"locus"`). If you use the default and the column does not exist, the function stores `NULL`. If you give another name that does not exist, the function gives an error.
 
 `count`
 
-:   Name of the `receptors` column that holds the observation count or weight (default `NULL`).
+: Name of the `receptors` column that holds the observation count or weight (default `NULL`).
 
 `image_scale`
 
-:   Default Seurat image scale (default `NULL`). Plotting and spatial statistics functions use it when their own `image_scale` is `NULL`. For multi-sample objects, give a named vector or list with one value for each sample, or one unnamed value that applies to all samples.
+: Default Seurat image scale (default `NULL`). Plotting and spatial statistics functions use it when their own `image_scale` is `NULL`. For multi-sample objects, give a named vector or list with one value for each sample, or one unnamed value that applies to all samples.
 
 `swap_coords`
 
-:   Swap the two Seurat coordinate axes by default (default `NULL`)? Plotting and spatial statistics functions use this value when their own `swap_coords` is `NULL`. For multi-sample objects, give a named vector or list with one value for each sample, or one unnamed value that applies to all samples.
+: Swap the two Seurat coordinate axes by default (default `NULL`)? Plotting and spatial statistics functions use this value when their own `swap_coords` is `NULL`. For multi-sample objects, give a named vector or list with one value for each sample, or one unnamed value that applies to all samples.
 
 `metadata`
 
-:   Named list of dataset-level metadata.
+: Named list of dataset-level metadata.
 
 `polygons`
 
-:   Polygon table (default `NULL`). The table has one row per polygon, with a `polygon_id` column and a list column `vertices`. Each `vertices` table needs columns `x` and `y`. It can also have `spatial_id` and `image`. The function adds a `polygon_id` column and one logical `⁠polygon_<ID>⁠` column per polygon to both the Seurat metadata and the receptor table.
+: Polygon table (default `NULL`). The table has one row per polygon, with a `polygon_id` column and a list column `vertices`. Each `vertices` table needs columns `x` and `y`. It can also have `spatial_id` and `image`. The function adds a `polygon_id` column and one logical `⁠polygon_<ID>⁠` column per polygon to both the Seurat metadata and the receptor table.
 
 `polygons_path`
 
-:   Path to a flat CSV file of polygon vertices (default `NULL`). The file needs `x` and `y` columns and a `polygon_id` or `polygon` column. The function annotates these polygons in the same way as `polygons`.
+: Path to a flat CSV file of polygon vertices (default `NULL`). The file needs `x` and `y` columns and a `polygon_id` or `polygon` column. The function annotates these polygons in the same way as `polygons`.
 
 `include_boundary`
 
-:   Count spots on a polygon edge as members of the polygon (default `TRUE`)?
+: Count spots on a polygon edge as members of the polygon (default `TRUE`)?
 
 `analyses`
 
-:   Named list of derived analysis results.
+: Named list of derived analysis results.
 
 `validate`
 
-:   Validate the new object (default `TRUE`)?
+: Validate the new object (default `TRUE`)?
 
 ## Details
 
-`spatial` can be one Seurat object or a named list of Seurat objects. If you give a list, the `sample` column of `receptors` must name the corresponding list entry for each row. The function keeps rows with no matching entry as nonspatial records. For example, these rows can hold bulk or single-cell data.
+`spatial` can be one Seurat object or a named list of Seurat objects. If you give a list, the column of `receptors` that `sample_id` names must name the corresponding list entry for each row. The function keeps rows with no matching entry as nonspatial records. For example, these rows can hold bulk or single-cell data.
 
 The function stores key receptor column names in `metadata$receptor_fields` and converts `receptors` to a [`tibble::tibble()`](https://tibble.tidyverse.org/reference/tibble.html). The optional `analyses` list keeps derived results.
 
@@ -7801,7 +7804,6 @@ plotSpatialCloneTreePairs(
   image_scale = NULL,
   swap_coords = NULL,
   images = NULL,
-  sample = NULL,
   sample_id = NULL,
   zoom = FALSE,
   tipsize = NULL,
@@ -7844,195 +7846,191 @@ plotSpatialCloneTreePairs(
 
 `trees`
 
-:   Result of [`dowser::getTrees()`](https://dowser.readthedocs.io/en/latest/topics/getTrees/), or a list with an element `trees` that holds this result.
+: Result of [`dowser::getTrees()`](https://dowser.readthedocs.io/en/latest/topics/getTrees/), or a list with an element `trees` that holds this result.
 
 `object`
 
-:   Seurat object or SIRUP object.
+: Seurat object or SIRUP object.
 
 `spatial_id`
 
-:   Name of the column in the dowser clone data that holds the Seurat spot names. Omit it if `object` is a SIRUP object.
+: Name of the column in the dowser clone data that holds the Seurat spot names. Omit it if `object` is a SIRUP object.
 
 `clone_val`
 
-:   IDs of the clones to plot. If `NULL`, the function plots all clones.
+: IDs of the clones to plot. If `NULL`, the function plots all clones.
 
 `id`
 
-:   Name of the column in the dowser clone data that matches the tree tip labels (default `"sequence_id"`).
+: Name of the column in the dowser clone data that matches the tree tip labels (default `"sequence_id"`).
 
 `sequence_id`
 
-:   Name of the column in the receptor table of `object` that decides which tree tips belong to the current spatial object (default: the value of `id`). The function uses it only if `object` is a SIRUP object. A tip that is not in this column stays in the tree plot, but the map does not show it.
+: Name of the column in the receptor table of `object` that decides which tree tips belong to the current spatial object (default: the value of `id`). The function uses it only if `object` is a SIRUP object. A tip that is not in this column stays in the tree plot, but the map does not show it.
 
 `clone`
 
-:   Name of the column that holds the clone IDs (default `"clone_id"`).
+: Name of the column that holds the clone IDs (default `"clone_id"`).
 
 `color_by`
 
-:   Column that sets the colors of the tips in both plots. With `"identity"` (default), each tip gets its own color. With another column, such as `"tree_cluster"` or a spatial ID column, tips that share a value get one color.
+: Column that sets the colors of the tips in both plots. With `"identity"` (default), each tip gets its own color. With another column, such as `"tree_cluster"` or a spatial ID column, tips that share a value get one color.
 
 `palette`
 
-:   Colors to use. If you give fewer colors than the function needs, it makes more colors by averaging the colors that you give.
+: Colors to use. If you give fewer colors than the function needs, it makes more colors by averaging the colors that you give.
 
 `image_scale`
 
-:   Image scale for `SeuratObject::GetTissueCoordinates()`. If `NULL`, the function uses the value stored in the SIRUP object.
+: Image scale for `SeuratObject::GetTissueCoordinates()`. If `NULL`, the function uses the value stored in the SIRUP object.
 
 `swap_coords`
 
-:   Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in the SIRUP object. Give a value if `object` is a Seurat object.
+: Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in the SIRUP object. Give a value if `object` is a Seurat object.
 
 `images`
 
-:   Names of the Seurat images to use.
-
-`sample`
-
-:   Names of the spatial samples to show. Use it for multi-sample SIRUP objects.
+: Names of the Seurat images to use.
 
 `sample_id`
 
-:   Names of the samples to plot. Use it for multi-sample SIRUP objects. If `NULL`, the function plots all samples. It is a clearer alias for `sample`.
+: Names of the samples to plot. Use it for multi-sample SIRUP objects. If `NULL`, the function plots all samples.
 
 `zoom`
 
-:   Zoom the maps to the clone (default `FALSE`)? If `FALSE`, the maps show the full tissue area that the spatial coordinates cover.
+: Zoom the maps to the clone (default `FALSE`)? If `FALSE`, the maps show the full tissue area that the spatial coordinates cover.
 
 `tipsize`
 
-:   Size of the tip points of the tree.
+: Size of the tip points of the tree.
 
 `scale`
 
-:   Distance that the scale bar of the tree shows, in mutations for each site (default 0.01).
+: Distance that the scale bar of the tree shows, in mutations for each site (default 0.01).
 
 `layout`
 
-:   Layout of the tree, for `ggtree::ggtree()` (default `"rectangular"`).
+: Layout of the tree, for `ggtree::ggtree()` (default `"rectangular"`).
 
 `title`
 
-:   Title of each tree plot. With `TRUE` (default), the title is the clone ID. Give a character string to use it as the title.
+: Title of each tree plot. With `TRUE` (default), the title is the clone ID. Give a character string to use it as the title.
 
 `shape_by`
 
-:   Name of the column in the dowser clone data that sets the shape of the tree tips. The default marks a tip as `"spatial"` if it has a spatial ID, and as `"not_spatial"` if it has none.
+: Name of the column in the dowser clone data that sets the shape of the tree tips. The default marks a tip as `"spatial"` if it has a spatial ID, and as `"not_spatial"` if it has none.
 
 `shape_values`
 
-:   Named vector of shapes, for [`ggplot2::scale_shape_manual()`](https://ggplot2.tidyverse.org/reference/scale_shape_manual.html) (default `c(spatial = 21, not_spatial = 22)`). Shapes 21 to 25 are filled shapes: the tip color fills the shape, and the outline is black. Other shapes get the tip color on the whole mark.
+: Named vector of shapes, for [`ggplot2::scale_shape_manual()`](https://ggplot2.tidyverse.org/reference/scale_shape_manual.html) (default `c(spatial = 21, not_spatial = 22)`). Shapes 21 to 25 are filled shapes: the tip color fills the shape, and the outline is black. Other shapes get the tip color on the whole mark.
 
 `tree_layout`
 
-:   Alias for `layout`.
+: Alias for `layout`.
 
 `tree_tip_size`
 
-:   Alias for `tipsize`.
+: Alias for `tipsize`.
 
 `tree_linewidth`
 
-:   Line width of the tree branches, for `ggtree::ggtree()` (default 0.5).
+: Line width of the tree branches, for `ggtree::ggtree()` (default 0.5).
 
 `tip_stroke`
 
-:   Outline width of the filled tree tips (default 0.3).
+: Outline width of the filled tree tips (default 0.3).
 
 `treescale_fontsize`
 
-:   Font size of the label of the scale bar (default 3.88).
+: Font size of the label of the scale bar (default 3.88).
 
 `treescale`
 
-:   Alias for `scale`.
+: Alias for `scale`.
 
 `treescale_position`
 
-:   Position of the scale bar: `"bottomleft"` (default), `"topleft"` (near the root, at the top of the tips), or `"midleft"` (near the root, halfway down the tips).
+: Position of the scale bar: `"bottomleft"` (default), `"topleft"` (near the root, at the top of the tips), or `"midleft"` (near the root, halfway down the tips).
 
 `spatial_tip_size`
 
-:   Size of the tip points on the map (default 1.6).
+: Size of the tip points on the map (default 1.6).
 
 `spatial_tip_alpha`
 
-:   Opacity of the tip points on the map (default 1).
+: Opacity of the tip points on the map (default 1).
 
 `order_points`
 
-:   Draw the early color groups first on the map, so that the later groups show on top (default `FALSE`)?
+: Draw the early color groups first on the map, so that the later groups show on top (default `FALSE`)?
 
 `show_spatial_legend`
 
-:   Show a color legend below the map, based on the tip colors of the tree (default `FALSE`)?
+: Show a color legend below the map, based on the tip colors of the tree (default `FALSE`)?
 
 `combine_sample_plots`
 
-:   Combine the maps of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns one tree and map pair for each sample.
+: Combine the maps of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns one tree and map pair for each sample.
 
 `polygons`
 
-:   Draw polygons under the points on each spatial panel. With `FALSE` (default), the function draws no polygons. With `TRUE`, it uses the polygons stored in the SIRUP object. You can also give a data frame of polygon vertices, or the path of a CSV file of polygon vertices. A vertex table needs the columns set by `polygon_x` and `polygon_y`. It needs the column set by `polygon_id` if it holds more than one polygon.
+: Draw polygons under the points on each spatial panel. With `FALSE` (default), the function draws no polygons. With `TRUE`, it uses the polygons stored in the SIRUP object. You can also give a data frame of polygon vertices, or the path of a CSV file of polygon vertices. A vertex table needs the columns set by `polygon_x` and `polygon_y`. It needs the column set by `polygon_id` if it holds more than one polygon.
 
 `polygon_x`
 
-:   Name of the x-coordinate column in the polygon table (default `"x"`).
+: Name of the x-coordinate column in the polygon table (default `"x"`).
 
 `polygon_y`
 
-:   Name of the y-coordinate column in the polygon table (default `"y"`).
+: Name of the y-coordinate column in the polygon table (default `"y"`).
 
 `polygon_id`
 
-:   Name of the column that separates the polygons in the polygon table (default `"polygon"`). If the column does not exist, the function uses a `polygon` or `polygon_id` column. If neither exists, all rows form one polygon.
+: Name of the column that separates the polygons in the polygon table (default `"polygon"`). If the column does not exist, the function uses a `polygon` or `polygon_id` column. If neither exists, all rows form one polygon.
 
 `polygon_val`
 
-:   IDs of the polygons to draw. If `NULL`, the function draws all polygons.
+: IDs of the polygons to draw. If `NULL`, the function draws all polygons.
 
 `polygon_alpha`
 
-:   Opacity of the polygon fill (default 0.2).
+: Opacity of the polygon fill (default 0.2).
 
 `polygon_fill`
 
-:   Fill color of the polygons (default `"#0072B2"`).
+: Fill color of the polygons (default `"#0072B2"`).
 
 `polygon_color`
 
-:   Color of the polygon outlines (default `"#0072B2"`).
+: Color of the polygon outlines (default `"#0072B2"`).
 
 `polygon_linewidth`
 
-:   Width of the polygon outlines (default 0.6).
+: Width of the polygon outlines (default 0.6).
 
 `polygon_label`
 
-:   Write a label at the center of each polygon (default `FALSE`)?
+: Write a label at the center of each polygon (default `FALSE`)?
 
 `polygon_label_by`
 
-:   Name of the column that holds the labels. If `NULL`, the function uses the polygon ID.
+: Name of the column that holds the labels. If `NULL`, the function uses the polygon ID.
 
 `polygon_label_size`
 
-:   Text size of the polygon labels (default 3).
+: Text size of the polygon labels (default 3).
 
 `polygon_label_color`
 
-:   Text color of the polygon labels (default `"black"`).
+: Text color of the polygon labels (default `"black"`).
 
 `nproc`
 
-:   Number of processes for building the plot pairs (default 1).
+: Number of processes for building the plot pairs (default 1).
 
 `...`
 
-:   Other arguments for [`plotSpatialColorTips()`](plotSpatialColorTips.md).
+: Other arguments for [`plotSpatialColorTips()`](plotSpatialColorTips.md).
 
 ## Details
 
@@ -8090,7 +8088,7 @@ plotSpatialColorTips(
   object,
   tip_data,
   spatial_id = "spatial_id_8um",
-  sample = NULL,
+  sample_col = NULL,
   color = "tip_color",
   label = NULL,
   legend_title = "Tip color",
@@ -8128,139 +8126,139 @@ plotSpatialColorTips(
 
 `object`
 
-:   Seurat object or SIRUP object.
+: Seurat object or SIRUP object.
 
 `tip_data`
 
-:   Data frame with a spatial ID column and a color column. For example, use the result of [`assignTipColors()`](assignTipColors.md).
+: Data frame with a spatial ID column and a color column. For example, use the result of [`assignTipColors()`](assignTipColors.md).
 
 `spatial_id`
 
-:   Name of the column in `tip_data` that holds the Seurat spot names (default `"spatial_id_8um"`).
+: Name of the column in `tip_data` that holds the Seurat spot names (default `"spatial_id_8um"`).
 
-`sample`
+`sample_col`
 
-:   Name of the column in `tip_data` that matches the names of a list of spatial objects.
+: Name of the column in `tip_data` that matches the names of a list of spatial objects.
 
 `color`
 
-:   Name of the column that holds the colors (default `"tip_color"`).
+: Name of the column that holds the colors (default `"tip_color"`).
 
 `label`
 
-:   Name of the column that holds the legend labels of the colors.
+: Name of the column that holds the legend labels of the colors.
 
 `legend_title`
 
-:   Title of the color legend (default `"Tip color"`).
+: Title of the color legend (default `"Tip color"`).
 
 `legend_colors`
 
-:   Named vector of colors for the legend.
+: Named vector of colors for the legend.
 
 `title`
 
-:   Plot title.
+: Plot title.
 
 `image_scale`
 
-:   Image scale for `SeuratObject::GetTissueCoordinates()`. If `NULL`, the function uses the value stored in the SIRUP object.
+: Image scale for `SeuratObject::GetTissueCoordinates()`. If `NULL`, the function uses the value stored in the SIRUP object.
 
 `swap_coords`
 
-:   Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in the SIRUP object. Give a value if `object` is a Seurat object.
+: Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in the SIRUP object. Give a value if `object` is a Seurat object.
 
 `point_size`
 
-:   Size of the spots. The default is 1.6.
+: Size of the spots. The default is 1.6.
 
 `point_alpha`
 
-:   Opacity of the spots.
+: Opacity of the spots.
 
 `order_points`
 
-:   Draw the early color groups first, so that the later groups show on top (default `TRUE`)?
+: Draw the early color groups first, so that the later groups show on top (default `TRUE`)?
 
 `images`
 
-:   Names of the Seurat images to use.
+: Names of the Seurat images to use.
 
 `sample_id`
 
-:   Names of the samples to plot. Use it for multi-sample SIRUP objects. If `NULL`, the function plots all samples.
+: Names of the samples to plot. Use it for multi-sample SIRUP objects. If `NULL`, the function plots all samples.
 
 `image_alpha`
 
-:   Opacity of the tissue image.
+: Opacity of the tissue image.
 
 `zoom`
 
-:   Zoom to the plotted spots (default `FALSE`)? If `FALSE`, the plot shows the full tissue area that the spatial coordinates cover.
+: Zoom to the plotted spots (default `FALSE`)? If `FALSE`, the plot shows the full tissue area that the spatial coordinates cover.
 
 `show_legend`
 
-:   Show the color legend (default `FALSE`)?
+: Show the color legend (default `FALSE`)?
 
 `polygons`
 
-:   Draw polygons under the points on each spatial panel. With `FALSE` (default), the function draws no polygons. With `TRUE`, it uses the polygons stored in the SIRUP object. You can also give a data frame of polygon vertices, or the path of a CSV file of polygon vertices. A vertex table needs the columns set by `polygon_x` and `polygon_y`. It needs the column set by `polygon_id` if it holds more than one polygon.
+: Draw polygons under the points on each spatial panel. With `FALSE` (default), the function draws no polygons. With `TRUE`, it uses the polygons stored in the SIRUP object. You can also give a data frame of polygon vertices, or the path of a CSV file of polygon vertices. A vertex table needs the columns set by `polygon_x` and `polygon_y`. It needs the column set by `polygon_id` if it holds more than one polygon.
 
 `polygon_x`
 
-:   Name of the x-coordinate column in the polygon table (default `"x"`).
+: Name of the x-coordinate column in the polygon table (default `"x"`).
 
 `polygon_y`
 
-:   Name of the y-coordinate column in the polygon table (default `"y"`).
+: Name of the y-coordinate column in the polygon table (default `"y"`).
 
 `polygon_id`
 
-:   Name of the column that separates the polygons in the polygon table (default `"polygon"`). If the column does not exist, the function uses a `polygon` or `polygon_id` column. If neither exists, all rows form one polygon.
+: Name of the column that separates the polygons in the polygon table (default `"polygon"`). If the column does not exist, the function uses a `polygon` or `polygon_id` column. If neither exists, all rows form one polygon.
 
 `polygon_val`
 
-:   IDs of the polygons to draw. If `NULL`, the function draws all polygons.
+: IDs of the polygons to draw. If `NULL`, the function draws all polygons.
 
 `polygon_alpha`
 
-:   Opacity of the polygon fill (default 0.2).
+: Opacity of the polygon fill (default 0.2).
 
 `polygon_fill`
 
-:   Fill color of the polygons (default `"#0072B2"`).
+: Fill color of the polygons (default `"#0072B2"`).
 
 `polygon_color`
 
-:   Color of the polygon outlines (default `"#0072B2"`).
+: Color of the polygon outlines (default `"#0072B2"`).
 
 `polygon_linewidth`
 
-:   Width of the polygon outlines (default 0.6).
+: Width of the polygon outlines (default 0.6).
 
 `polygon_label`
 
-:   Write a label at the center of each polygon (default `FALSE`)?
+: Write a label at the center of each polygon (default `FALSE`)?
 
 `polygon_label_by`
 
-:   Name of the column that holds the labels. If `NULL`, the function uses the polygon ID.
+: Name of the column that holds the labels. If `NULL`, the function uses the polygon ID.
 
 `polygon_label_size`
 
-:   Text size of the polygon labels (default 3).
+: Text size of the polygon labels (default 3).
 
 `polygon_label_color`
 
-:   Text color of the polygon labels (default `"black"`).
+: Text color of the polygon labels (default `"black"`).
 
 `combine`
 
-:   Combine the image panels with patchwork (default `TRUE`)?
+: Combine the image panels with patchwork (default `TRUE`)?
 
 `combine_sample_plots`
 
-:   Combine the plots of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns a named list with one plot for each sample.
+: Combine the plots of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns a named list with one plot for each sample.
 
 ## Details
 
@@ -8597,7 +8595,6 @@ plotSpatialPolygons(
   object,
   polygon = NULL,
   images = NULL,
-  sample = NULL,
   sample_id = NULL,
   image_scale = NULL,
   swap_coords = NULL,
@@ -8631,123 +8628,119 @@ plotSpatialPolygons(
 
 `object`
 
-:   Seurat object or SIRUP object.
+: Seurat object or SIRUP object.
 
 `polygon`
 
-:   Data frame of polygon vertices in order. It needs the columns set by `x` and `y`. If the column set by `polygon_id` exists, the function treats each polygon on its own. If `object` is a SIRUP object and `polygon` is `NULL`, the function uses the stored polygons.
+: Data frame of polygon vertices in order. It needs the columns set by `x` and `y`. If the column set by `polygon_id` exists, the function treats each polygon on its own. If `object` is a SIRUP object and `polygon` is `NULL`, the function uses the stored polygons.
 
 `images`
 
-:   Names of the Seurat images to use.
-
-`sample`
-
-:   Alias for `sample_id`.
+: Names of the Seurat images to use.
 
 `sample_id`
 
-:   Names of the samples to plot. Use it for multi-sample SIRUP objects. If `NULL`, the function plots all samples.
+: Names of the samples to plot. Use it for multi-sample SIRUP objects. If `NULL`, the function plots all samples.
 
 `image_scale`
 
-:   Image scale for `SeuratObject::GetTissueCoordinates()`. If `NULL`, the function uses the value stored in the SIRUP object.
+: Image scale for `SeuratObject::GetTissueCoordinates()`. If `NULL`, the function uses the value stored in the SIRUP object.
 
 `swap_coords`
 
-:   Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in the SIRUP object. Give a value if `object` is a Seurat object.
+: Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in the SIRUP object. Give a value if `object` is a Seurat object.
 
 `polygon_val`
 
-:   IDs of the polygons to use. If `NULL`, the function uses all polygons.
+: IDs of the polygons to use. If `NULL`, the function uses all polygons.
 
 `x`
 
-:   Name of the x-coordinate column in `polygon` (default `"x"`).
+: Name of the x-coordinate column in `polygon` (default `"x"`).
 
 `y`
 
-:   Name of the y-coordinate column in `polygon` (default `"y"`).
+: Name of the y-coordinate column in `polygon` (default `"y"`).
 
 `polygon_id`
 
-:   Name of the column in `polygon` that groups the vertices by polygon (default `"polygon"`).
+: Name of the column in `polygon` that groups the vertices by polygon (default `"polygon"`).
 
 `polygon_alpha`
 
-:   Opacity of the polygon fill (default 0.2).
+: Opacity of the polygon fill (default 0.2).
 
 `polygon_fill`
 
-:   Fill color of the polygons, if no analysis is mapped (default `"#0072B2"`).
+: Fill color of the polygons, if no analysis is mapped (default `"#0072B2"`).
 
 `fill_analysis`
 
-:   Name of a stored SIRUP analysis that has one row for each polygon. The function colors the polygons with it.
+: Name of a stored SIRUP analysis that has one row for each polygon. The function colors the polygons with it.
 
 `fill_column`
 
-:   Name of the column that sets the fill color. If `fill_analysis` is `NULL`, the function reads the column from the polygon data. Otherwise, it reads the column from the analysis. The analysis must have a `polygon_id` or `polygon` column as the polygon key.
+: Name of the column that sets the fill color. If `fill_analysis` is `NULL`, the function reads the column from the polygon data. Otherwise, it reads the column from the analysis. The analysis must have a `polygon_id` or `polygon` column as the polygon key.
 
 `analysis_fill`
 
-:   Two colors for the low and high end of the gradient for numeric analysis values (default `c("#D3D3D3", "#FFFF00")`). The function uses the Glasbey palette for other values.
+: Two colors for the low and high end of the gradient for numeric analysis values (default `c("#D3D3D3", "#FFFF00")`). The function uses the Glasbey palette for other values.
 
 `polygon_color`
 
-:   Color of the polygon outlines (default `"#0072B2"`).
+: Color of the polygon outlines (default `"#0072B2"`).
 
 `linewidth`
 
-:   Width of the polygon outlines (default 0.6).
+: Width of the polygon outlines (default 0.6).
 
 `image_alpha`
 
-:   Opacity of the tissue image.
+: Opacity of the tissue image.
 
 `label`
 
-:   Write a label at the center of each polygon (default `TRUE`)?
+: Write a label at the center of each polygon (default `TRUE`)?
 
 `label_by`
 
-:   Name of the column in the polygon data that holds the labels (default `"polygon"`).
+: Name of the column in the polygon data that holds the labels (default `"polygon"`).
 
 `label_size`
 
-:   Text size of the labels (default 3).
+: Text size of the labels (default 3).
 
 `label_color`
 
-:   Text color of the labels (default `"black"`).
+: Text color of the labels (default `"black"`).
 
 `label_outside`
 
-:   Put each label outside its polygon (default `FALSE`)? The function pushes each label away from the centroid of all plotted polygons, so that labels spread outward from a group of small polygons. The label is `label_offset` away from the polygon.
+: Put each label outside its polygon (default `FALSE`)? The function pushes each label away from the centroid of all plotted polygons, so that labels spread outward from a group of small polygons. The label is `label_offset` away from the polygon.
 
 `label_offset`
 
-:   Gap between a polygon edge and its label, if `label_outside` is `TRUE` (default 0.08). The value is a fraction of the plotted coordinate range.
+: Gap between a polygon edge and its label, if `label_outside` is `TRUE` (default 0.08). The value is a fraction of the plotted coordinate range.
 
 `label_leader`
 
-:   Draw a line from each polygon to its label, if `label_outside` is `TRUE` (default `TRUE`)?
+: Draw a line from each polygon to its label, if `label_outside` is `TRUE` (default `TRUE`)?
 
 `label_leader_color`
 
-:   Color of the leader lines (default `"grey40"`).
+: Color of the leader lines (default `"grey40"`).
 
 `zoom`
 
-:   Zoom to the extent of the polygons, not the full tissue (default `FALSE`)?
+: Zoom to the extent of the polygons, not the full tissue (default `FALSE`)?
 
 `combine`
 
-:   Combine the plots with patchwork, if possible (default `TRUE`)?
+: Combine the plots with patchwork, if possible (default `TRUE`)?
 
 `combine_sample_plots`
 
-:   Combine the plots of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns a named list with one plot for each sample.
+: Combine the plots of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns a named list with one plot for each sample.
 
 ## Details
 
@@ -10107,26 +10100,26 @@ ncol(subset)
 ## Usage
 
 ``` R
-getSpatial(x, sample = NULL)
+getSpatial(x, sample_id = NULL)
 
 spatialSamples(x)
 
-getReceptors(x, sample = NULL)
+getReceptors(x, sample_id = NULL)
 ```
 
 ## Arguments
 
 `x`
 
-:   A SIRUP object.
+: A SIRUP object.
 
-`sample`
+`sample_id`
 
-:   Name of one spatial sample. Use it only if the object holds a named list of Seurat objects.
+: Name of one spatial sample. Use it only if the object holds a named list of Seurat objects.
 
 ## Value
 
-`getSpatial` returns the Seurat object. For a multi-sample object, it returns the named list of Seurat objects, or one Seurat object if you give `sample`. `spatialSamples` returns a character vector of sample names. `getReceptors` returns the receptor tibble. If you give `sample`, it returns only the rows for that sample.
+`getSpatial` returns the Seurat object. For a multi-sample object, it returns the named list of Seurat objects, or one Seurat object if you give `sample_id`. `spatialSamples` returns a character vector of sample names. `getReceptors` returns the receptor tibble. If you give `sample_id`, it returns only the rows for that sample.
 
 ## See Also
 
@@ -10157,9 +10150,9 @@ spatialSamples(x)
 ## Usage
 
 ``` R
-getAnalysis(x, name, sample = NULL)
+getAnalysis(x, name, sample_id = NULL)
 
-setAnalysis(x, name, value, sample = NULL, validate = TRUE)
+setAnalysis(x, name, value, sample_id = NULL, validate = TRUE)
 
 listAnalyses(x)
 
@@ -10170,23 +10163,23 @@ removeAnalysis(x, name, validate = TRUE)
 
 `x`
 
-:   A SIRUP object.
+: A SIRUP object.
 
 `name`
 
-:   Name of the analysis. Give one non-empty character string.
+: Name of the analysis. Give one non-empty character string.
 
-`sample`
+`sample_id`
 
-:   Name of a spatial sample. Use it to store or get a result for one sample.
+: Name of a spatial sample. Use it to store or get a result for one sample.
 
 `value`
 
-:   R object to store. It can be `NULL`.
+: R object to store. It can be `NULL`.
 
 `validate`
 
-:   Validate the updated SIRUP object?
+: Validate the updated SIRUP object?
 
 ## Details
 
@@ -10295,13 +10288,13 @@ x2
 ## Usage
 
 ``` R
-getPolygons(x, sample = NULL)
+getPolygons(x, sample_id = NULL)
 
 addPolygons(
   x,
   polygons = NULL,
   polygons_path = NULL,
-  sample = NULL,
+  sample_id = NULL,
   include_boundary = TRUE,
   validate = TRUE
 )
@@ -10311,27 +10304,27 @@ addPolygons(
 
 `x`
 
-:   A SIRUP object.
+: A SIRUP object.
 
-`sample`
+`sample_id`
 
-:   Sample name or names to add to the polygons from `polygons_path`. Use it only if the paths have no names.
+: Sample name or names to add to the polygons from `polygons_path`. Use it only if the paths have no names.
 
 `polygons`
 
-:   Polygon table.
+: Polygon table.
 
 `polygons_path`
 
-:   Path to a flat CSV file of polygon vertices. For a multi-sample object, give a named vector or list of paths, with one path for each sample.
+: Path to a flat CSV file of polygon vertices. For a multi-sample object, give a named vector or list of paths, with one path for each sample.
 
 `include_boundary`
 
-:   Count spots on a polygon edge as members of the polygon?
+: Count spots on a polygon edge as members of the polygon?
 
 `validate`
 
-:   Validate the updated object?
+: Validate the updated object?
 
 ## Details
 
@@ -10382,51 +10375,51 @@ updateReceptors(
   x,
   fun,
   ...,
-  sample = NULL,
+  sample_id = NULL,
   receptor_fields = NULL,
   validate = TRUE
 )
 
-updateSpatial(x, fun, ..., sample = NULL, validate = TRUE)
+updateSpatial(x, fun, ..., sample_id = NULL, validate = TRUE)
 
-updateAnalysis(x, name, fun, ..., sample = NULL, validate = TRUE)
+updateAnalysis(x, name, fun, ..., sample_id = NULL, validate = TRUE)
 ```
 
 ## Arguments
 
 `x`
 
-:   A SIRUP object.
+: A SIRUP object.
 
 `fun`
 
-:   Function, or the name of a function. The function receives the selected part of the SIRUP object as its first argument.
+: Function, or the name of a function. The function receives the selected part of the SIRUP object as its first argument.
 
 `...`
 
-:   Other arguments for `fun`.
+: Other arguments for `fun`.
 
-`sample`
+`sample_id`
 
-:   Name of the spatial sample to update. Use it only for multi-sample objects.
+: Name of the spatial sample to update. Use it only for multi-sample objects.
 
 `receptor_fields`
 
-:   Named list of receptor field mappings to change. The names can be `spatial_id`, `image`, `sample`, `clone`, `locus`, or `count`. A `NULL` value clears an optional mapping.
+: Named list of receptor field mappings to change. The names can be `spatial_id`, `image`, `sample`, `clone`, `locus`, or `count`. A `NULL` value clears an optional mapping.
 
 `validate`
 
-:   Validate the updated SIRUP object?
+: Validate the updated SIRUP object?
 
 `name`
 
-:   Name of the stored analysis. Give one non-empty character string.
+: Name of the stored analysis. Give one non-empty character string.
 
 ## Details
 
-`updateReceptors` needs a function that returns a data frame. The function stores the result as a tibble and keeps the existing field mappings. If the object has no clone field and the result has a `clone_id` column, the function records `clone_id` as the clone field. Use `receptor_fields` to set or clear a mapping yourself. If you give `sample`, the function applies `fun` to the rows of that sample only. It then puts the result back in the full table.
+`updateReceptors` needs a function that returns a data frame. The function stores the result as a tibble and keeps the existing field mappings. If the object has no clone field and the result has a `clone_id` column, the function records `clone_id` as the clone field. Use `receptor_fields` to set or clear a mapping yourself. If you give `sample_id`, the function applies `fun` to the rows of that sample only. It then puts the result back in the full table.
 
-`updateSpatial` needs a function that returns a Seurat object. In a multi-sample object, it applies `fun` to every Seurat object. If you give `sample`, it updates only that object.
+`updateSpatial` needs a function that returns a Seurat object. In a multi-sample object, it applies `fun` to every Seurat object. If you give `sample_id`, it updates only that object.
 
 `updateAnalysis` applies `fun` to the stored result called `name`. To store a new result, use [`setAnalysis()`](sirup-analyses.md).
 
@@ -12163,7 +12156,7 @@ head(kcross$plot_data)
 ``` R
 subsetSIRUP(
   x,
-  sample = NULL,
+  sample_id = NULL,
   spatial_id = NULL,
   receptor_rows = NULL,
   keep_nonspatial_receptors = FALSE,
@@ -12172,42 +12165,42 @@ subsetSIRUP(
   validate = TRUE
 )
 
-filterSample(x, sample, keep_analyses = FALSE, validate = TRUE)
+filterSample(x, sample_id, keep_analyses = FALSE, validate = TRUE)
 ```
 
 ## Arguments
 
 `x`
 
-:   A SIRUP object.
+: A SIRUP object.
 
-`sample`
+`sample_id`
 
-:   Name or names of the spatial samples to keep. Use it only if the object holds a named list of Seurat objects.
+: Name or names of the spatial samples to keep. Use it only if the object holds a named list of Seurat objects.
 
 `spatial_id`
 
-:   Spatial IDs (barcodes) to keep. In a multi-sample object, the function matches the IDs in each selected sample.
+: Spatial IDs (barcodes) to keep. In a multi-sample object, the function matches the IDs in each selected sample.
 
 `receptor_rows`
 
-:   Logical vector with length `nrow(getReceptors(x))`, or a function. The function takes the receptor tibble and returns such a vector. The function keeps the rows where the vector is `TRUE`.
+: Logical vector with length `nrow(getReceptors(x))`, or a function. The function takes the receptor tibble and returns such a vector. The function keeps the rows where the vector is `TRUE`.
 
 `keep_nonspatial_receptors`
 
-:   Keep receptor rows that have no spatial ID after the other filters (default `FALSE`)? The function uses this argument only if you give `spatial_id`.
+: Keep receptor rows that have no spatial ID after the other filters (default `FALSE`)? The function uses this argument only if you give `spatial_id`.
 
 `keep_analyses`
 
-:   Keep the stored analyses (default `FALSE`)? Most analyses depend on the original spatial and receptor data.
+: Keep the stored analyses (default `FALSE`)? Most analyses depend on the original spatial and receptor data.
 
 `drop_empty_spatial`
 
-:   Drop samples that have no cells left after the `spatial_id` filter (default `TRUE`)? The function uses this argument only for multi-sample objects.
+: Drop samples that have no cells left after the `spatial_id` filter (default `TRUE`)? The function uses this argument only for multi-sample objects.
 
 `validate`
 
-:   Validate the subset object (default `TRUE`)?
+: Validate the subset object (default `TRUE`)?
 
 ## Details
 

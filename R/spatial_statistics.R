@@ -1626,7 +1626,7 @@ plotRipleyCrossK <- function(kcross,
 
 .sirup_spatial_fetch_data <- function(object, vars, layer = "counts", assay = NULL) {
   vars <- unique(as.character(vars))
-  fetch_one <- function(spatial, sample = NULL) {
+  fetch_one <- function(spatial, sample_id = NULL) {
     dat <- tryCatch(
       .sirup_fetch_data(spatial, vars = vars, layer = layer, assay = assay),
       error = function(e) NULL
@@ -1654,7 +1654,7 @@ plotRipleyCrossK <- function(kcross,
       missing_vars <- absent
     }
     if (length(missing_vars) > 0L) {
-      where <- if (is.null(sample)) "spatial object" else paste0("spatial sample '", sample, "'")
+      where <- if (is.null(sample_id)) "spatial object" else paste0("spatial sample '", sample_id, "'")
       rlang::warn(paste0(
         "Feature(s) not found in ", where, " for assay = ",
         assay %||% .sirup_fetch_data_assay(spatial), ", layer = ", layer,
@@ -1666,7 +1666,7 @@ plotRipleyCrossK <- function(kcross,
   }
   if (.sirup_is_spatial_list(object)) {
     out <- lapply(names(object), function(sample) {
-      dat <- fetch_one(object[[sample]], sample = sample)
+      dat <- fetch_one(object[[sample]], sample_id = sample)
       dat$cell <- rownames(dat)
       rownames(dat) <- NULL
       dat$sample <- sample

@@ -357,7 +357,7 @@ test_that("clone spatial statistics distinguish duplicate barcodes across spatia
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     clone = "clone_id",
     image_scale = "hires",
     swap_coords = FALSE
@@ -413,7 +413,7 @@ test_that("spatialLee builds independent neighbor graphs per spatial sample", {
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     clone = "clone_id",
     image_scale = "hires",
     swap_coords = FALSE
@@ -451,7 +451,7 @@ test_that("spatialRipleyCrossK reads marks from multisample spatial metadata", {
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     clone = "clone_id",
     image_scale = "hires",
     swap_coords = FALSE
@@ -488,7 +488,7 @@ test_that("spatialCloneJoinCount uses sample-aware receptor coordinate joins", {
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     clone = "clone_id",
     image_scale = "hires",
     swap_coords = FALSE
@@ -536,7 +536,7 @@ test_that("spatialCloneJoinCount honors use_stored_polygons for multisample obje
         clone_id = rep(c("A", "A", "C", "C"), 2),
         stringsAsFactors = FALSE
       ),
-      spatial_id = "barcode", sample = "sample", clone = "clone_id",
+      spatial_id = "barcode", sample_id = "sample", clone = "clone_id",
       image_scale = "hires", swap_coords = FALSE
     )
     if (with_polygons) obj <- addPolygons(obj, polygons = rbind(gc("section_a"), gc("section_b")))

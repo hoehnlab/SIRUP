@@ -9,9 +9,9 @@
 ## Usage
 
 ``` R
-getAnalysis(x, name, sample = NULL)
+getAnalysis(x, name, sample_id = NULL)
 
-setAnalysis(x, name, value, sample = NULL, validate = TRUE)
+setAnalysis(x, name, value, sample_id = NULL, validate = TRUE)
 
 listAnalyses(x)
 
@@ -22,23 +22,23 @@ removeAnalysis(x, name, validate = TRUE)
 
 `x`
 
-:   A SIRUP object.
+: A SIRUP object.
 
 `name`
 
-:   Name of the analysis. Give one non-empty character string.
+: Name of the analysis. Give one non-empty character string.
 
-`sample`
+`sample_id`
 
-:   Name of a spatial sample. Use it to store or get a result for one sample.
+: Name of a spatial sample. Use it to store or get a result for one sample.
 
 `value`
 
-:   R object to store. It can be `NULL`.
+: R object to store. It can be `NULL`.
 
 `validate`
 
-:   Validate the updated SIRUP object?
+: Validate the updated SIRUP object?
 
 ## Details
 

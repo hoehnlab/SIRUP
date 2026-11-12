@@ -6,13 +6,13 @@
 \alias{addPolygons}
 \title{Add or retrieve polygon geometry from a SIRUP object}
 \usage{
-getPolygons(x, sample = NULL)
+getPolygons(x, sample_id = NULL)
 
 addPolygons(
   x,
   polygons = NULL,
   polygons_path = NULL,
-  sample = NULL,
+  sample_id = NULL,
   include_boundary = TRUE,
   validate = TRUE
 )
@@ -20,7 +20,7 @@ addPolygons(
 \arguments{
 \item{x}{A SIRUP object.}
 
-\item{sample}{Sample name or names to add to the polygons from
+\item{sample_id}{Sample name or names to add to the polygons from
 \code{polygons_path}. Use it only if the paths have no names.}
 
 \item{polygons}{Polygon table.}

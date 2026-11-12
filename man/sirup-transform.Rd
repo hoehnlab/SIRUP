@@ -11,14 +11,14 @@ updateReceptors(
   x,
   fun,
   ...,
-  sample = NULL,
+  sample_id = NULL,
   receptor_fields = NULL,
   validate = TRUE
 )
 
-updateSpatial(x, fun, ..., sample = NULL, validate = TRUE)
+updateSpatial(x, fun, ..., sample_id = NULL, validate = TRUE)
 
-updateAnalysis(x, name, fun, ..., sample = NULL, validate = TRUE)
+updateAnalysis(x, name, fun, ..., sample_id = NULL, validate = TRUE)
 }
 \arguments{
 \item{x}{A SIRUP object.}
@@ -28,7 +28,7 @@ selected part of the SIRUP object as its first argument.}
 
 \item{...}{Other arguments for \code{fun}.}
 
-\item{sample}{Name of the spatial sample to update. Use it only for
+\item{sample_id}{Name of the spatial sample to update. Use it only for
 multi-sample objects.}
 
 \item{receptor_fields}{Named list of receptor field mappings to change. The
@@ -51,12 +51,12 @@ one part of a SIRUP object. They return the updated SIRUP object.
 stores the result as a tibble and keeps the existing field mappings. If the
 object has no clone field and the result has a \code{clone_id} column, the function
 records \code{clone_id} as the clone field. Use \code{receptor_fields} to set or clear a
-mapping yourself. If you give \code{sample}, the function applies \code{fun} to the rows
+mapping yourself. If you give \code{sample_id}, the function applies \code{fun} to the rows
 of that sample only. It then puts the result back in the full table.
 
 \code{updateSpatial} needs a function that returns a Seurat object. In a
 multi-sample object, it applies \code{fun} to every Seurat object. If you give
-\code{sample}, it updates only that object.
+\code{sample_id}, it updates only that object.
 
 \code{updateAnalysis} applies \code{fun} to the stored result called \code{name}. To store a
 new result, use \code{\link[=setAnalysis]{setAnalysis()}}.

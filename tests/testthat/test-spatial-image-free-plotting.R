@@ -144,7 +144,7 @@ test_that("spatialDiscretePlot reads multisample metadata without barcode bleed"
       stringsAsFactors = FALSE
     ),
     spatial_id = "barcode",
-    sample = "sample",
+    sample_id = "sample",
     clone = "clone_id",
     image_scale = "hires",
     swap_coords = FALSE
@@ -431,7 +431,7 @@ test_that("stored polygon overlays are filtered per spatial sample", {
       stringsAsFactors = FALSE
     ),
     spatial_id = "spatial_id",
-    sample = "sample",
+    sample_id = "sample",
     image_scale = "hires",
     swap_coords = FALSE
   )
@@ -453,7 +453,7 @@ test_that("stored polygon overlays are filtered per spatial sample", {
       stringsAsFactors = FALSE
     ),
     spatial_id = "spatial_id",
-    sample = "sample",
+    sample_col = "sample",
     polygons = TRUE,
     combine = FALSE
   )

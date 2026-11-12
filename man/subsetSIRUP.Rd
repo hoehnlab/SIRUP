@@ -7,7 +7,7 @@
 \usage{
 subsetSIRUP(
   x,
-  sample = NULL,
+  sample_id = NULL,
   spatial_id = NULL,
   receptor_rows = NULL,
   keep_nonspatial_receptors = FALSE,
@@ -16,12 +16,12 @@ subsetSIRUP(
   validate = TRUE
 )
 
-filterSample(x, sample, keep_analyses = FALSE, validate = TRUE)
+filterSample(x, sample_id, keep_analyses = FALSE, validate = TRUE)
 }
 \arguments{
 \item{x}{A SIRUP object.}
 
-\item{sample}{Name or names of the spatial samples to keep. Use it only if
+\item{sample_id}{Name or names of the spatial samples to keep. Use it only if
 the object holds a named list of Seurat objects.}
 
 \item{spatial_id}{Spatial IDs (barcodes) to keep. In a multi-sample object,

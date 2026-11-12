@@ -134,14 +134,14 @@ The section rows get a `sample` that matches the names of the `spatial` list. Th
 
 ## Create a multi-sample object
 
-Give `createSIRUP()` the named list and the name of the `sample` column.
+Give `createSIRUP()` the named list. Give the name of the `sample` column to `sample_id`.
 
 ```{r create}
 sirup <- createSIRUP(
   spatial = spatial,
   receptors = bcrs,
   spatial_id = "barcode_10x",
-  sample = "sample",
+  sample_id = "sample",
   image_scale = "lowres",
   swap_coords = FALSE
 )
@@ -156,7 +156,7 @@ If the sections need different image settings, give named values: `image_scale =
 
 ## Get one sample
 
-The accessors take a `sample` argument.
+The accessors take a `sample_id` argument.
 
 ```{r accessors}
 getSpatial(sirup, "mg_thymus_slice1")

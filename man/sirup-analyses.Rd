@@ -8,9 +8,9 @@
 \alias{removeAnalysis}
 \title{Store and retrieve analyses in a SIRUP object}
 \usage{
-getAnalysis(x, name, sample = NULL)
+getAnalysis(x, name, sample_id = NULL)
 
-setAnalysis(x, name, value, sample = NULL, validate = TRUE)
+setAnalysis(x, name, value, sample_id = NULL, validate = TRUE)
 
 listAnalyses(x)
 
@@ -21,7 +21,7 @@ removeAnalysis(x, name, validate = TRUE)
 
 \item{name}{Name of the analysis. Give one non-empty character string.}
 
-\item{sample}{Name of a spatial sample. Use it to store or get a result for
+\item{sample_id}{Name of a spatial sample. Use it to store or get a result for
 one sample.}
 
 \item{value}{R object to store. It can be \code{NULL}.}
