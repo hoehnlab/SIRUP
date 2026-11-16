@@ -11,7 +11,6 @@
 ^vignettes/figures$
 ^vignettes/polygon_selection_screenshots$
 ^vignettes/(choose-spatial-statistic|clones-and-trees|get-started|multisample|processing|regions|sirup-object|spatial-statistics|llm-agents)\.Rmd$
-^inst/scripts/lab_vignettes$
 ^src/.*[.]o$
 ^src/.*[.]so$
 ^docs/readthedocs/html$
