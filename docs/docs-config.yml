@@ -68,7 +68,7 @@ freshness_exclude: []
 # Paths under docs/ that hold legacy or hand-kept pages the link check should skip, e.g.
 # [readthedocs]. If you list any, also add them to `exclude_docs:` in mkdocs.yml (MkDocs >= 1.5)
 # so the site build ignores them too.
-ignore_paths: [readthedocs, rrad-equivalence.md, rrad-equivalence-results.md]
+ignore_paths: [readthedocs]
 
 # Where \link[pkg:topic] links to OTHER packages should point. {topic} is replaced.
 # Anything not listed falls back to base-R manuals or rdrr.io.
