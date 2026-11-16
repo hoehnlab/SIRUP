@@ -3034,27 +3034,41 @@ withPolygons <- function(receptors,
 
 #' Estimate clonal abundance inside polygons
 #'
-#' `polygonAbundance` runs [alakazam::estimateAbundance()] on the receptors of
-#' each polygon.
+#' `polygonAbundance` runs [alakazam::estimateAbundance()] once on the receptors
+#' of all polygons, with the polygon as the group. alakazam then resamples every
+#' polygon to the same number of receptors, so the curves of different polygons
+#' are comparable. With `common_size = FALSE`, the function analyses each polygon
+#' alone instead.
 #'
 #' @details
-#' With `mode = "by_polygon"`, the function runs once for each polygon. With
-#' `mode = "all_polygons"`, it runs once on all receptors in any polygon. A
-#' polygon with fewer than `min_n` receptor rows returns `NULL`. For a SIRUP
-#' object, the function stores the result as an analysis and returns the updated
-#' object.
+#' The function puts the receptors of all polygons in one table and passes the
+#' polygon column to [alakazam::estimateAbundance()] as `group`. With
+#' `uniform = TRUE` (the default), alakazam resamples each polygon to the size
+#' of the smallest polygon that has at least `min_n` receptors. Use `max_n` to
+#' set a smaller size. The function leaves out polygons with fewer than `min_n`
+#' receptors. If no polygon has enough receptors, the function gives an error.
+#'
+#' The result is one `AbundanceCurve` object. Its `abundance` table has one
+#' column of polygon IDs. [alakazam::plotAbundanceCurve()] plots all polygons
+#' together. For a SIRUP object, the function stores the result as an analysis
+#' and returns the updated object.
+#'
+#' With `common_size = FALSE`, the function runs
+#' [alakazam::estimateAbundance()] once for each polygon. Each polygon is then
+#' resampled to its own size, so polygons with more receptors can look more
+#' diverse. A polygon with fewer than `min_n` receptors gives `NULL`. The result
+#' is a named list with one `AbundanceCurve` for each polygon.
 #'
 #' The arguments from `clone` to `progress` go to
 #' [alakazam::estimateAbundance()].
 #'
 #' @param receptors SIRUP object, or an AIRR-style receptor table.
-#' @param polygons Polygon table that sets the order of the output polygons. If
-#'   `NULL`, the function takes the polygon IDs from the SIRUP object, or from
-#'   the `polygon_id` values in `receptors`.
+#' @param polygons Polygon table that sets the polygons to use. If `NULL`, the
+#'   function takes the polygon IDs from the SIRUP object, or from the
+#'   `polygon_id` values in `receptors`.
 #' @param polygon_id Name of the column that holds the primary polygon of each
-#'   receptor (default `"polygon"`).
-#' @param mode `"by_polygon"` runs the calculation once for each polygon.
-#'   `"all_polygons"` runs it once on all receptors in any polygon.
+#'   receptor (default `"polygon"`). For a SIRUP object, the default is
+#'   `"polygon_id"`.
 #' @param analysis_name Name for the stored result in a SIRUP object (default
 #'   `"polygon_abundance"`).
 #' @param clone Name of the column that holds the clone IDs (default
@@ -3063,16 +3077,19 @@ withPolygons <- function(receptors,
 #'   (default `NULL`). If `NULL`, the function measures clone abundance as the
 #'   number of sequences. Otherwise, it uses the sum of the copy numbers in each
 #'   clone.
-#' @param group Name of the column that holds the group IDs (default `NULL`). If
-#'   `NULL`, the function does not group, and the `group` column of the result
-#'   is `NA`.
-#' @param min_n Smallest number of observations in a group (default 5). The
-#'   function drops a group with fewer observations.
-#' @param max_n Largest number of observations to sample (default `NULL`). If
-#'   `NULL`, there is no maximum.
-#' @param uniform Resample each group to the same number of observations
-#'   (default `TRUE`)? If `FALSE`, the function resamples each group to its
-#'   original size, or to `max_n` if you give it.
+#' @param common_size Resample all polygons to the same size (default `TRUE`)?
+#'   If `FALSE`, the function analyses each polygon alone, as in earlier
+#'   versions of SIRUP, and returns a list with one result for each polygon.
+#' @param min_n Smallest number of receptors that a polygon needs (default 10).
+#'   The function drops a polygon with fewer receptors. With
+#'   `common_size = TRUE`, the smallest polygon that stays sets the size of the
+#'   resampling, so a larger `min_n` gives less noisy curves and keeps fewer
+#'   polygons.
+#' @param max_n Largest number of receptors to sample from each polygon
+#'   (default `NULL`). If `NULL`, the size is the size of the smallest polygon
+#'   that stays.
+#' @param uniform Resample each polygon to the same number of receptors
+#'   (default `TRUE`)? Passed to [alakazam::estimateAbundance()].
 #' @param ci Confidence interval, between 0 and 1 (default 0.95).
 #' @param nboot Number of bootstrap samples (default 2000).
 #' @param cell_id Name of the column that holds the cell IDs (default `NULL`).
@@ -3081,25 +3098,25 @@ withPolygons <- function(receptors,
 #' @param validate Validate the updated SIRUP object (default `TRUE`)?
 #'
 #' @return For a SIRUP object, the updated SIRUP object. Otherwise, the
-#'   abundance results.
+#'   abundance results: one `AbundanceCurve` object, or a list with one object
+#'   for each polygon if `common_size = FALSE`.
 #' @seealso [polygonDiversity()], [withPolygons()]
 #'
 #' @examples
 #' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
 #'
-#' # Use all polygons together. The example polygons have few receptors.
-#' x <- polygonAbundance(x, mode = "all_polygons", min_n = 2, nboot = 50)
+#' # The example polygons have few receptors, so lower min_n.
+#' x <- polygonAbundance(x, min_n = 2, nboot = 50)
 #' listAnalyses(x)
 #' @export
 polygonAbundance <- function(receptors,
                              polygons = NULL,
                              polygon_id = "polygon",
-                             mode = c("by_polygon", "all_polygons"),
                              analysis_name = "polygon_abundance",
                              clone = "clone_id",
                              copy = NULL,
-                             group = NULL,
-                             min_n = 5,
+                             common_size = TRUE,
+                             min_n = 10,
                              max_n = NULL,
                              uniform = TRUE,
                              ci = 0.95,
@@ -3113,17 +3130,15 @@ polygonAbundance <- function(receptors,
     clone <- .sirup_receptor_fields(receptors)$clone %||% clone
   }
   polygon_column <- if (isSIRUP(receptors) && isTRUE(polygon_id_missing)) "polygon_id" else polygon_id
-  mode <- match.arg(mode)
   result <- .sirup_polygon_alakazam(
     receptors = receptors,
     polygons = polygons,
     polygon_id = polygon_column,
-    mode = mode,
+    common_size = common_size,
     threshold_n = min_n,
     fun = alakazam::estimateAbundance,
     clone = clone,
     copy = copy,
-    group = group,
     min_n = min_n,
     max_n = max_n,
     uniform = uniform,
@@ -3140,26 +3155,40 @@ polygonAbundance <- function(receptors,
 
 #' Estimate clonal diversity inside polygons
 #'
-#' `polygonDiversity` runs [alakazam::alphaDiversity()] on the receptors of each
-#' polygon.
+#' `polygonDiversity` runs [alakazam::alphaDiversity()] once on the receptors of
+#' all polygons, with the polygon as the group. alakazam then resamples every
+#' polygon to the same number of receptors, so the diversity of different
+#' polygons is comparable. With `common_size = FALSE`, the function analyses each
+#' polygon alone instead.
 #'
 #' @details
-#' With `mode = "by_polygon"`, the function runs once for each polygon. With
-#' `mode = "all_polygons"`, it runs once on all receptors in any polygon. A
-#' polygon with fewer than `min_n` receptor rows returns `NULL`. For a SIRUP
-#' object, the function stores the result as an analysis and returns the updated
-#' object.
+#' The function puts the receptors of all polygons in one table and passes the
+#' polygon column to [alakazam::alphaDiversity()] as `group`. alakazam resamples
+#' each polygon to the size of the smallest polygon that has at least `min_n`
+#' receptors. Use `max_n` (through `...`) to set a smaller size. The function
+#' leaves out polygons with fewer than `min_n` receptors. If no polygon has
+#' enough receptors, the function gives an error.
+#'
+#' The result is one `DiversityCurve` object. Its `diversity` table has one
+#' column of polygon IDs. [alakazam::plotDiversityCurve()] plots all polygons
+#' together. For a SIRUP object, the function stores the result as an analysis
+#' and returns the updated object.
+#'
+#' With `common_size = FALSE`, the function runs [alakazam::alphaDiversity()]
+#' once for each polygon. Each polygon is then resampled to its own size, so
+#' polygons with more receptors can look more diverse. A polygon with fewer than
+#' `min_n` receptors gives `NULL`. The result is a named list with one
+#' `DiversityCurve` for each polygon.
 #'
 #' The arguments from `clone` to `...` go to [alakazam::alphaDiversity()].
 #'
 #' @param receptors SIRUP object, or an AIRR-style receptor table.
-#' @param polygons Polygon table that sets the order of the output polygons. If
-#'   `NULL`, the function takes the polygon IDs from the SIRUP object, or from
-#'   the `polygon_id` values in `receptors`.
+#' @param polygons Polygon table that sets the polygons to use. If `NULL`, the
+#'   function takes the polygon IDs from the SIRUP object, or from the
+#'   `polygon_id` values in `receptors`.
 #' @param polygon_id Name of the column that holds the primary polygon of each
-#'   receptor (default `"polygon"`).
-#' @param mode `"by_polygon"` runs the calculation once for each polygon.
-#'   `"all_polygons"` runs it once on all receptors in any polygon.
+#'   receptor (default `"polygon"`). For a SIRUP object, the default is
+#'   `"polygon_id"`.
 #' @param analysis_name Name for the stored result in a SIRUP object (default
 #'   `"polygon_diversity"`).
 #' @param clone Name of the column that holds the clone IDs (default
@@ -3168,20 +3197,26 @@ polygonAbundance <- function(receptors,
 #'   (default `NULL`). If `NULL`, the function measures clone abundance as the
 #'   number of sequences. Otherwise, it uses the sum of the copy numbers in each
 #'   clone.
-#' @param group Name of the column that holds the group IDs (default `NULL`). If
-#'   `NULL`, the function does not group, and the `group` column of the result
-#'   is `NA`.
-#' @param min_n Smallest number of observations in a group (default 30). The
-#'   function drops a group with fewer observations.
+#' @param common_size Resample all polygons to the same size (default `TRUE`)?
+#'   If `FALSE`, the function analyses each polygon alone, as in earlier
+#'   versions of SIRUP, and returns a list with one result for each polygon.
+#' @param min_n Smallest number of receptors that a polygon needs (default 10).
+#'   The function drops a polygon with fewer receptors. With
+#'   `common_size = TRUE`, the smallest polygon that stays sets the size of the
+#'   resampling, so a larger `min_n` gives less noisy estimates and keeps fewer
+#'   polygons.
 #' @param min_q Smallest diversity order q (default 0).
 #' @param max_q Largest diversity order q (default 4).
 #' @param step_q Step between the values of q (default 0.1).
 #' @param ci Confidence interval, between 0 and 1 (default 0.95).
-#' @param ... Other arguments for [alakazam::alphaDiversity()].
+#' @param ... Other arguments for [alakazam::alphaDiversity()], such as
+#'   `nboot`, `max_n` and `uniform`. You cannot give `group`, because the
+#'   function uses the polygon as the group.
 #' @param validate Validate the updated SIRUP object (default `TRUE`)?
 #'
 #' @return For a SIRUP object, the updated SIRUP object. Otherwise, the
-#'   diversity results.
+#'   diversity results: one `DiversityCurve` object, or a list with one object
+#'   for each polygon if `common_size = FALSE`.
 #' @seealso [summarizePolygonDiversity()], [polygonAbundance()]
 #'
 #' @examples
@@ -3192,35 +3227,35 @@ polygonAbundance <- function(receptors,
 polygonDiversity <- function(receptors,
                              polygons = NULL,
                              polygon_id = "polygon",
-                             mode = c("by_polygon", "all_polygons"),
                              analysis_name = "polygon_diversity",
                              clone = "clone_id",
                              copy = NULL,
-                             group = NULL,
-                             min_n = 30,
+                             common_size = TRUE,
+                             min_n = 10,
                              min_q = 0,
                              max_q = 4,
                              step_q = 0.1,
                              ci = 0.95,
                              ...,
                              validate = TRUE) {
+  if ("group" %in% names(list(...))) {
+    rlang::abort("`group` is not an argument of `polygonDiversity()`. The function uses the polygon as the group.")
+  }
   clone_missing <- missing(clone)
   polygon_id_missing <- missing(polygon_id)
   if (isSIRUP(receptors) && isTRUE(clone_missing)) {
     clone <- .sirup_receptor_fields(receptors)$clone %||% clone
   }
   polygon_column <- if (isSIRUP(receptors) && isTRUE(polygon_id_missing)) "polygon_id" else polygon_id
-  mode <- match.arg(mode)
   result <- .sirup_polygon_alakazam(
     receptors = receptors,
     polygons = polygons,
     polygon_id = polygon_column,
-    mode = mode,
+    common_size = common_size,
     threshold_n = min_n,
     fun = alakazam::alphaDiversity,
     clone = clone,
     copy = copy,
-    group = group,
     min_n = min_n,
     min_q = min_q,
     max_q = max_q,
@@ -3239,6 +3274,13 @@ polygonDiversity <- function(receptors,
 #' `summarizePolygonDiversity` takes the diversity estimate for one diversity
 #' order q from a stored analysis. It makes one table row for each polygon and
 #' stores the table as a new analysis.
+#'
+#' @details
+#' Polygons that [polygonDiversity()] left out, because they had fewer than
+#' `min_n` receptors, get a row with `NA` values. [plotSpatialPolygons()] draws
+#' these polygons in grey. The function reads both kinds of result: one
+#' `DiversityCurve` for all polygons, and the list that
+#' `polygonDiversity(common_size = FALSE)` makes.
 #'
 #' @param object SIRUP object.
 #' @param q Diversity order to take, for example `2` for Simpson diversity.
@@ -3273,9 +3315,37 @@ summarizePolygonDiversity <- function(object,
     analysis_name <- paste0("polygon_diversity_q", gsub("[^0-9A-Za-z]+", "_", as.character(q)))
   }
   diversity <- getAnalysis(object, diversity_analysis)
-  if (!is.list(diversity)) {
-    rlang::abort("`diversity_analysis` must be a polygon diversity analysis list.")
+  if (is.list(diversity) && !methods::is(diversity, "DiversityCurve")) {
+    return(.sirup_summarize_diversity_list(object, diversity, q, analysis_name, tolerance, validate))
   }
+  if (!methods::is(diversity, "DiversityCurve")) {
+    rlang::abort("`diversity_analysis` must be a result of `polygonDiversity()`.")
+  }
+  dat <- .sirup_diversity_curve_table(diversity)
+  group_column <- methods::slot(diversity, "group_by")
+  if (!all(c("q", group_column) %in% colnames(dat))) {
+    rlang::abort("The diversity table must contain a `q` column and a column of polygon IDs.")
+  }
+  dat <- dat[abs(as.numeric(dat$q) - q) <= tolerance, , drop = FALSE]
+  dat$polygon_id <- as.character(dat[[group_column]])
+  if (!identical(group_column, "polygon_id")) {
+    dat[[group_column]] <- NULL
+  }
+  dat <- dat[!duplicated(dat$polygon_id), , drop = FALSE]
+  # Keep polygons that polygonDiversity() left out, with NA values.
+  all_ids <- as.character(getPolygons(object)$polygon_id)
+  missing_ids <- setdiff(all_ids, dat$polygon_id)
+  if (length(missing_ids) > 0L) {
+    empty <- tibble::tibble(polygon_id = missing_ids, q = q)
+    dat <- dplyr::bind_rows(dat, empty)
+  }
+  dat <- dat[match(unique(c(all_ids, dat$polygon_id)), dat$polygon_id), , drop = FALSE]
+  dat <- dat[!is.na(dat$polygon_id), c("polygon_id", setdiff(colnames(dat), "polygon_id")), drop = FALSE]
+  setAnalysis(object, analysis_name, tibble::as_tibble(dat), validate = validate)
+}
+
+# Summarize a per-polygon list of diversity curves (polygonDiversity(common_size = FALSE)).
+.sirup_summarize_diversity_list <- function(object, diversity, q, analysis_name, tolerance, validate) {
   rows <- lapply(names(diversity), function(polygon) {
     curve <- diversity[[polygon]]
     if (is.null(curve)) {
@@ -3293,8 +3363,7 @@ summarizePolygonDiversity <- function(object,
     row$polygon_id <- polygon
     row[, c("polygon_id", setdiff(colnames(row), "polygon_id")), drop = FALSE]
   })
-  summary <- dplyr::bind_rows(rows)
-  setAnalysis(object, analysis_name, summary, validate = validate)
+  setAnalysis(object, analysis_name, dplyr::bind_rows(rows), validate = validate)
 }
 
 # Return polygon IDs from stored polygons when available, otherwise from the
@@ -3536,36 +3605,62 @@ summarizePolygonDiversity <- function(object,
   sum(w * (x - mu)^2) / sum(w)
 }
 
-# Apply an Alakazam estimator to polygon-specific receptor tables, returning
-# NULL for polygons that do not meet the requested receptor-count threshold.
+# Run an alakazam function on the receptors of polygons.
+# common_size = TRUE: one call on all polygons, with the polygon column as the group.
+#   alakazam resamples every group to the same size (the smallest group with at least
+#   `threshold_n` rows, or `max_n`), so the results of different polygons are comparable.
+# common_size = FALSE: one call for each polygon, as in earlier versions. A polygon with fewer
+#   than `threshold_n` rows gives NULL, and the result is a named list.
 .sirup_polygon_alakazam <- function(receptors,
                                     polygons,
                                     polygon_id,
-                                    mode,
+                                    common_size = TRUE,
                                     threshold_n,
                                     fun,
                                     ...) {
-  groups <- withPolygons(
-    receptors = receptors,
-    .f = identity,
-    polygons = polygons,
+  is_sirup <- isSIRUP(receptors)
+  receptor_table <- if (is_sirup) getReceptors(receptors) else tibble::as_tibble(receptors)
+  if (is_sirup) {
+    polygons <- polygons %||% getPolygons(receptors)
+  }
+  polygon_ids <- .sirup_polygon_ids(receptor_table, polygons = polygons, polygon_id = polygon_id)
+  args <- list(...)
+  if (!isTRUE(common_size)) {
+    groups <- .sirup_polygon_receptor_groups(
+      receptors = receptor_table,
+      polygon_ids = polygon_ids,
+      polygon_id = polygon_id,
+      mode = "by_polygon"
+    )
+    run_one <- function(dat) {
+      if (nrow(dat) < threshold_n) {
+        return(NULL)
+      }
+      one_args <- args
+      if ("cell_id" %in% names(one_args) && is.null(one_args$cell_id)) {
+        one_args$cell_id <- .sirup_absent_column_name(dat, ".sirup_bulk_cell_id")
+      }
+      do.call(fun, c(list(data = dat), one_args))
+    }
+    return(lapply(groups, run_one))
+  }
+  dat <- .sirup_polygon_receptor_groups(
+    receptors = receptor_table,
+    polygon_ids = polygon_ids,
     polygon_id = polygon_id,
-    mode = mode
-  )
-  run_one <- function(dat) {
-    if (nrow(dat) < threshold_n) {
-      return(NULL)
-    }
-    args <- list(...)
-    if ("cell_id" %in% names(args) && is.null(args$cell_id)) {
-      args$cell_id <- .sirup_absent_column_name(dat, ".sirup_bulk_cell_id")
-    }
-    do.call(fun, c(list(data = dat), args))
+    mode = "all_polygons"
+  )[[1L]]
+  dat[[polygon_id]] <- as.character(dat[[polygon_id]])
+  sizes <- table(dat[[polygon_id]])
+  if (!any(sizes >= threshold_n)) {
+    rlang::abort(paste0(
+      "No polygon has at least ", threshold_n, " receptors. Lower `min_n`."
+    ))
   }
-  if (identical(mode, "all_polygons")) {
-    return(run_one(groups))
+  if ("cell_id" %in% names(args) && is.null(args$cell_id)) {
+    args$cell_id <- .sirup_absent_column_name(dat, ".sirup_bulk_cell_id")
   }
-  lapply(groups, run_one)
+  do.call(fun, c(list(data = dat, group = polygon_id), args))
 }
 
 # Choose a column name guaranteed not to exist in a data frame.

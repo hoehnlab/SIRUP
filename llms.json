@@ -456,7 +456,7 @@
       "source": "docs/topics/polygonAbundance.md",
       "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/polygonAbundance.md",
       "url": "https://sirup.readthedocs.io/en/latest/topics/polygonAbundance/",
-      "summary": "`polygonAbundance` runs [`alakazam::estimateAbundance()`](https://alakazam.readthedocs.io/en/stable/topics/estimateAbundance/) on the receptors of each polygon."
+      "summary": "`polygonAbundance` runs [`alakazam::estimateAbundance()`](https://alakazam.readthedocs.io/en/stable/topics/estimateAbundance/) once on the receptors of all polygons, with the polygon as the group."
     },
     {
       "type": "function",
@@ -474,7 +474,7 @@
       "source": "docs/topics/polygonDiversity.md",
       "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/polygonDiversity.md",
       "url": "https://sirup.readthedocs.io/en/latest/topics/polygonDiversity/",
-      "summary": "`polygonDiversity` runs [`alakazam::alphaDiversity()`](https://alakazam.readthedocs.io/en/stable/topics/alphaDiversity/) on the receptors of each polygon."
+      "summary": "`polygonDiversity` runs [`alakazam::alphaDiversity()`](https://alakazam.readthedocs.io/en/stable/topics/alphaDiversity/) once on the receptors of all polygons, with the polygon as the group."
     },
     {
       "type": "function",

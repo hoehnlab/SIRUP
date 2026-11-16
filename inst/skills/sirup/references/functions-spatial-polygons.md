@@ -410,19 +410,18 @@ Value: A ggplot or patchwork object. If `combine = FALSE`, a named list of ggplo
 
 Estimate clonal abundance inside polygons.
 
-`polygonAbundance` runs [`alakazam::estimateAbundance()`](https://alakazam.readthedocs.io/en/stable/topics/estimateAbundance/) on the receptors of each polygon.
+`polygonAbundance` runs [`alakazam::estimateAbundance()`](https://alakazam.readthedocs.io/en/stable/topics/estimateAbundance/) once on the receptors of all polygons, with the polygon as the group. alakazam then resamples every polygon to the same number of receptors, so the curves of different polygons are comparable. With `common_size = FALSE`, the function analyses each polygon alone instead.
 
 ```r
 polygonAbundance(
   receptors,
   polygons = NULL,
   polygon_id = "polygon",
-  mode = c("by_polygon", "all_polygons"),
   analysis_name = "polygon_abundance",
   clone = "clone_id",
   copy = NULL,
-  group = NULL,
-  min_n = 5,
+  common_size = TRUE,
+  min_n = 10,
   max_n = NULL,
   uniform = TRUE,
   ci = 0.95,
@@ -436,23 +435,22 @@ polygonAbundance(
 Arguments:
 
 - `receptors`: SIRUP object, or an AIRR-style receptor table.
-- `polygons`: Polygon table that sets the order of the output polygons. If `NULL`, the function takes the polygon IDs from the SIRUP object, or from the `polygon_id` values in `receptors`.
-- `polygon_id`: Name of the column that holds the primary polygon of each receptor (default `"polygon"`).
-- `mode`: `"by_polygon"` runs the calculation once for each polygon. `"all_polygons"` runs it once on all receptors in any polygon.
+- `polygons`: Polygon table that sets the polygons to use. If `NULL`, the function takes the polygon IDs from the SIRUP object, or from the `polygon_id` values in `receptors`.
+- `polygon_id`: Name of the column that holds the primary polygon of each receptor (default `"polygon"`). For a SIRUP object, the default is `"polygon_id"`.
 - `analysis_name`: Name for the stored result in a SIRUP object (default `"polygon_abundance"`).
 - `clone`: Name of the column that holds the clone IDs (default `"clone_id"`).
 - `copy`: Name of the column that holds the copy number of each sequence (default `NULL`). If `NULL`, the function measures clone abundance as the number of sequences. Otherwise, it uses the sum of the copy numbers in each clone.
-- `group`: Name of the column that holds the group IDs (default `NULL`). If `NULL`, the function does not group, and the `group` column of the result is `NA`.
-- `min_n`: Smallest number of observations in a group (default 5). The function drops a group with fewer observations.
-- `max_n`: Largest number of observations to sample (default `NULL`). If `NULL`, there is no maximum.
-- `uniform`: Resample each group to the same number of observations (default `TRUE`)? If `FALSE`, the function resamples each group to its original size, or to `max_n` if you give it.
+- `common_size`: Resample all polygons to the same size (default `TRUE`)? If `FALSE`, the function analyses each polygon alone, as in earlier versions of SIRUP, and returns a list with one result for each polygon.
+- `min_n`: Smallest number of receptors that a polygon needs (default 10). The function drops a polygon with fewer receptors. With `common_size = TRUE`, the smallest polygon that stays sets the size of the resampling, so a larger `min_n` gives less noisy curves and keeps fewer polygons.
+- `max_n`: Largest number of receptors to sample from each polygon (default `NULL`). If `NULL`, the size is the size of the smallest polygon that stays.
+- `uniform`: Resample each polygon to the same number of receptors (default `TRUE`)? Passed to [`alakazam::estimateAbundance()`](https://alakazam.readthedocs.io/en/stable/topics/estimateAbundance/).
 - `ci`: Confidence interval, between 0 and 1 (default 0.95).
 - `nboot`: Number of bootstrap samples (default 2000).
 - `cell_id`: Name of the column that holds the cell IDs (default `NULL`). If `NULL`, the function assumes bulk data.
 - `progress`: Show a progress bar (default `FALSE`)?
 - `validate`: Validate the updated SIRUP object (default `TRUE`)?
 
-Value: For a SIRUP object, the updated SIRUP object. Otherwise, the abundance results.
+Value: For a SIRUP object, the updated SIRUP object. Otherwise, the abundance results: one `AbundanceCurve` object, or a list with one object for each polygon if `common_size = FALSE`.
 
 ## polygonCentroids
 
@@ -484,19 +482,18 @@ Value: A tibble with one row for each polygon. The columns are `sample`, `polygo
 
 Estimate clonal diversity inside polygons.
 
-`polygonDiversity` runs [`alakazam::alphaDiversity()`](https://alakazam.readthedocs.io/en/stable/topics/alphaDiversity/) on the receptors of each polygon.
+`polygonDiversity` runs [`alakazam::alphaDiversity()`](https://alakazam.readthedocs.io/en/stable/topics/alphaDiversity/) once on the receptors of all polygons, with the polygon as the group. alakazam then resamples every polygon to the same number of receptors, so the diversity of different polygons is comparable. With `common_size = FALSE`, the function analyses each polygon alone instead.
 
 ```r
 polygonDiversity(
   receptors,
   polygons = NULL,
   polygon_id = "polygon",
-  mode = c("by_polygon", "all_polygons"),
   analysis_name = "polygon_diversity",
   clone = "clone_id",
   copy = NULL,
-  group = NULL,
-  min_n = 30,
+  common_size = TRUE,
+  min_n = 10,
   min_q = 0,
   max_q = 4,
   step_q = 0.1,
@@ -509,22 +506,21 @@ polygonDiversity(
 Arguments:
 
 - `receptors`: SIRUP object, or an AIRR-style receptor table.
-- `polygons`: Polygon table that sets the order of the output polygons. If `NULL`, the function takes the polygon IDs from the SIRUP object, or from the `polygon_id` values in `receptors`.
-- `polygon_id`: Name of the column that holds the primary polygon of each receptor (default `"polygon"`).
-- `mode`: `"by_polygon"` runs the calculation once for each polygon. `"all_polygons"` runs it once on all receptors in any polygon.
+- `polygons`: Polygon table that sets the polygons to use. If `NULL`, the function takes the polygon IDs from the SIRUP object, or from the `polygon_id` values in `receptors`.
+- `polygon_id`: Name of the column that holds the primary polygon of each receptor (default `"polygon"`). For a SIRUP object, the default is `"polygon_id"`.
 - `analysis_name`: Name for the stored result in a SIRUP object (default `"polygon_diversity"`).
 - `clone`: Name of the column that holds the clone IDs (default `"clone_id"`).
 - `copy`: Name of the column that holds the copy number of each sequence (default `NULL`). If `NULL`, the function measures clone abundance as the number of sequences. Otherwise, it uses the sum of the copy numbers in each clone.
-- `group`: Name of the column that holds the group IDs (default `NULL`). If `NULL`, the function does not group, and the `group` column of the result is `NA`.
-- `min_n`: Smallest number of observations in a group (default 30). The function drops a group with fewer observations.
+- `common_size`: Resample all polygons to the same size (default `TRUE`)? If `FALSE`, the function analyses each polygon alone, as in earlier versions of SIRUP, and returns a list with one result for each polygon.
+- `min_n`: Smallest number of receptors that a polygon needs (default 10). The function drops a polygon with fewer receptors. With `common_size = TRUE`, the smallest polygon that stays sets the size of the resampling, so a larger `min_n` gives less noisy estimates and keeps fewer polygons.
 - `min_q`: Smallest diversity order q (default 0).
 - `max_q`: Largest diversity order q (default 4).
 - `step_q`: Step between the values of q (default 0.1).
 - `ci`: Confidence interval, between 0 and 1 (default 0.95).
-- `...`: Other arguments for [`alakazam::alphaDiversity()`](https://alakazam.readthedocs.io/en/stable/topics/alphaDiversity/).
+- `...`: Other arguments for [`alakazam::alphaDiversity()`](https://alakazam.readthedocs.io/en/stable/topics/alphaDiversity/), such as `nboot`, `max_n` and `uniform`. You cannot give `group`, because the function uses the polygon as the group.
 - `validate`: Validate the updated SIRUP object (default `TRUE`)?
 
-Value: For a SIRUP object, the updated SIRUP object. Otherwise, the diversity results.
+Value: For a SIRUP object, the updated SIRUP object. Otherwise, the diversity results: one `DiversityCurve` object, or a list with one object for each polygon if `common_size = FALSE`.
 
 ## polygonPairwiseDistance
 

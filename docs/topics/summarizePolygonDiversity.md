@@ -45,6 +45,10 @@ summarizePolygonDiversity(
 
 :   Validate the updated SIRUP object (default `TRUE`)?
 
+## Details
+
+Polygons that [`polygonDiversity()`](polygonDiversity.md) left out, because they had fewer than `min_n` receptors, get a row with `NA` values. [`plotSpatialPolygons()`](plotSpatialPolygons.md) draws these polygons in grey. The function reads both kinds of result: one `DiversityCurve` for all polygons, and the list that `polygonDiversity(common_size = FALSE)` makes.
+
 ## Value
 
 The updated SIRUP object, with the diversity summary as an analysis.

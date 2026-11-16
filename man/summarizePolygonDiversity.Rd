@@ -37,6 +37,13 @@ The updated SIRUP object, with the diversity summary as an analysis.
 order q from a stored analysis. It makes one table row for each polygon and
 stores the table as a new analysis.
 }
+\details{
+Polygons that \code{\link[=polygonDiversity]{polygonDiversity()}} left out, because they had fewer than
+\code{min_n} receptors, get a row with \code{NA} values. \code{\link[=plotSpatialPolygons]{plotSpatialPolygons()}} draws
+these polygons in grey. The function reads both kinds of result: one
+\code{DiversityCurve} for all polygons, and the list that
+\code{polygonDiversity(common_size = FALSE)} makes.
+}
 \examples{
 x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
 x <- polygonDiversity(x, min_n = 2, max_q = 2, step_q = 1)

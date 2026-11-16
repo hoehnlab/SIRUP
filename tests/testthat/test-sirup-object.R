@@ -622,7 +622,7 @@ test_that("formatSpatialClones asks for germlines before formatting", {
   )
 })
 
-test_that("polygonAbundance and polygonDiversity return NULL below threshold", {
+test_that("polygonAbundance and polygonDiversity give an error below threshold", {
   x <- make_test_sirup()
   polygon <- data.frame(
     polygon = "GC1",
@@ -631,11 +631,8 @@ test_that("polygonAbundance and polygonDiversity return NULL below threshold", {
   )
   x <- addPolygons(x, polygons = polygon)
 
-  abundance <- polygonAbundance(x, min_n = 10)
-  diversity <- polygonDiversity(x, min_n = 10)
-
-  expect_null(getAnalysis(abundance, "polygon_abundance")$GC1)
-  expect_null(getAnalysis(diversity, "polygon_diversity")$GC1)
+  expect_error(polygonAbundance(x, min_n = 10), "No polygon has at least 10")
+  expect_error(polygonDiversity(x, min_n = 10), "No polygon has at least 10")
 })
 
 test_that("polygonAbundance runs above threshold with bulk default cell_id", {
@@ -650,7 +647,125 @@ test_that("polygonAbundance runs above threshold with bulk default cell_id", {
   abundance <- polygonAbundance(x, min_n = 1, nboot = 2)
 
   expect_s3_class(abundance, "sirup")
-  expect_s4_class(getAnalysis(abundance, "polygon_abundance")$GC1, "AbundanceCurve")
+  expect_s4_class(getAnalysis(abundance, "polygon_abundance"), "AbundanceCurve")
+})
+
+make_polygon_depth_sirup <- function() {
+  # Three polygons with 14, 9 and 3 receptors.
+  cells <- paste0("cell", 1:9)
+  spatial <- sirup_test_seurat(
+    counts = matrix(1, nrow = 1, ncol = 9, dimnames = list("gene", cells))
+  )
+  spatial$x <- c(1, 1, 1, 11, 11, 11, 21, 21, 21)
+  spatial$y <- spatial$x
+  receptors <- data.frame(
+    spatial_id = c(
+      rep(cells[1:3], length.out = 14),
+      rep(cells[4:6], length.out = 9),
+      rep(cells[7:9], length.out = 3)
+    ),
+    clone_id = c(
+      rep(c("A", "B", "C", "D", "E"), length.out = 14),
+      rep(c("F", "G", "H"), length.out = 9),
+      c("I", "J", "I")
+    ),
+    locus = "IGH",
+    stringsAsFactors = FALSE
+  )
+  x <- createSIRUP(
+    spatial = spatial,
+    receptors = receptors,
+    spatial_id = "spatial_id",
+    clone = "clone_id",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+  square <- function(id, centre) {
+    data.frame(
+      polygon = id,
+      x = centre + c(-1, 1, 1, -1),
+      y = centre + c(-1, -1, 1, 1)
+    )
+  }
+  addPolygons(x, polygons = rbind(square("GC1", 1), square("GC2", 11), square("GC3", 21)))
+}
+
+test_that("polygonDiversity and polygonAbundance use min_n = 10 by default", {
+  expect_equal(formals(polygonDiversity)$min_n, 10)
+  expect_equal(formals(polygonAbundance)$min_n, 10)
+})
+
+test_that("polygonDiversity makes one object for all polygons", {
+  x <- make_polygon_depth_sirup()
+  expect_warning(
+    x <- polygonDiversity(x, min_n = 5, max_q = 1, step_q = 1, nboot = 5),
+    "Excluded: GC3"
+  )
+  diversity <- getAnalysis(x, "polygon_diversity")
+  expect_s4_class(diversity, "DiversityCurve")
+  expect_equal(diversity@group_by, "polygon_id")
+  # GC3 has 3 receptors and is left out.
+  expect_setequal(unique(as.character(diversity@diversity$polygon_id)), c("GC1", "GC2"))
+})
+
+test_that("min_n sets which polygons stay", {
+  x <- make_polygon_depth_sirup()
+  x <- polygonAbundance(x, min_n = 3, nboot = 5)
+  abundance <- getAnalysis(x, "polygon_abundance")
+  expect_s4_class(abundance, "AbundanceCurve")
+  expect_setequal(unique(as.character(abundance@abundance$polygon_id)), c("GC1", "GC2", "GC3"))
+  expect_warning(x2 <- polygonAbundance(x, min_n = 5, nboot = 5), "Excluded: GC3")
+  expect_setequal(
+    unique(as.character(getAnalysis(x2, "polygon_abundance")@abundance$polygon_id)),
+    c("GC1", "GC2")
+  )
+})
+
+test_that("polygonDiversity does not accept group", {
+  x <- make_polygon_depth_sirup()
+  expect_error(polygonDiversity(x, min_n = 5, group = "locus"), "`group` is not an argument")
+})
+
+test_that("common_size = FALSE analyses each polygon alone and returns a list", {
+  x <- make_polygon_depth_sirup()
+  x <- polygonDiversity(x, common_size = FALSE, min_n = 5, max_q = 2, step_q = 1, nboot = 5)
+  diversity <- getAnalysis(x, "polygon_diversity")
+  expect_type(diversity, "list")
+  expect_named(diversity, c("GC1", "GC2", "GC3"))
+  expect_s4_class(diversity$GC1, "DiversityCurve")
+  expect_s4_class(diversity$GC2, "DiversityCurve")
+  expect_null(diversity$GC3)
+  x <- polygonAbundance(x, common_size = FALSE, min_n = 5, nboot = 5)
+  abundance <- getAnalysis(x, "polygon_abundance")
+  expect_type(abundance, "list")
+  expect_s4_class(abundance$GC1, "AbundanceCurve")
+  expect_null(abundance$GC3)
+  # no polygon passes: each polygon gives NULL and there is no error
+  y <- polygonAbundance(make_polygon_depth_sirup(), common_size = FALSE, min_n = 100, nboot = 5)
+  expect_true(all(vapply(getAnalysis(y, "polygon_abundance"), is.null, logical(1))))
+})
+
+test_that("summarizePolygonDiversity reads the list from common_size = FALSE", {
+  x <- make_polygon_depth_sirup()
+  x <- polygonDiversity(x, common_size = FALSE, min_n = 5, max_q = 2, step_q = 1, nboot = 5)
+  x <- summarizePolygonDiversity(x, q = 1, analysis_name = "shannon")
+  tab <- getAnalysis(x, "shannon")
+  expect_equal(tab$polygon_id, c("GC1", "GC2", "GC3"))
+  expect_true(is.na(tab$d[tab$polygon_id == "GC3"]))
+  expect_false(anyNA(tab$d[tab$polygon_id != "GC3"]))
+})
+
+test_that("summarizePolygonDiversity keeps polygons that were left out", {
+  x <- make_polygon_depth_sirup()
+  expect_warning(
+    x <- polygonDiversity(x, min_n = 5, max_q = 2, step_q = 1, nboot = 5),
+    "Excluded: GC3"
+  )
+  x <- summarizePolygonDiversity(x, q = 1, analysis_name = "shannon")
+  tab <- getAnalysis(x, "shannon")
+  expect_setequal(tab$polygon_id, c("GC1", "GC2", "GC3"))
+  expect_true(is.na(tab$d[tab$polygon_id == "GC3"]))
+  expect_false(anyNA(tab$d[tab$polygon_id != "GC3"]))
 })
 
 test_that("summarizePolygonDiversity stores a q-specific diversity table", {

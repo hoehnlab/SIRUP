@@ -8,12 +8,11 @@ polygonDiversity(
   receptors,
   polygons = NULL,
   polygon_id = "polygon",
-  mode = c("by_polygon", "all_polygons"),
   analysis_name = "polygon_diversity",
   clone = "clone_id",
   copy = NULL,
-  group = NULL,
-  min_n = 30,
+  common_size = TRUE,
+  min_n = 10,
   min_q = 0,
   max_q = 4,
   step_q = 0.1,
@@ -25,15 +24,13 @@ polygonDiversity(
 \arguments{
 \item{receptors}{SIRUP object, or an AIRR-style receptor table.}
 
-\item{polygons}{Polygon table that sets the order of the output polygons. If
-\code{NULL}, the function takes the polygon IDs from the SIRUP object, or from
-the \code{polygon_id} values in \code{receptors}.}
+\item{polygons}{Polygon table that sets the polygons to use. If \code{NULL}, the
+function takes the polygon IDs from the SIRUP object, or from the
+\code{polygon_id} values in \code{receptors}.}
 
 \item{polygon_id}{Name of the column that holds the primary polygon of each
-receptor (default \code{"polygon"}).}
-
-\item{mode}{\code{"by_polygon"} runs the calculation once for each polygon.
-\code{"all_polygons"} runs it once on all receptors in any polygon.}
+receptor (default \code{"polygon"}). For a SIRUP object, the default is
+\code{"polygon_id"}.}
 
 \item{analysis_name}{Name for the stored result in a SIRUP object (default
 \code{"polygon_diversity"}).}
@@ -46,12 +43,15 @@ receptor (default \code{"polygon"}).}
 number of sequences. Otherwise, it uses the sum of the copy numbers in each
 clone.}
 
-\item{group}{Name of the column that holds the group IDs (default \code{NULL}). If
-\code{NULL}, the function does not group, and the \code{group} column of the result
-is \code{NA}.}
+\item{common_size}{Resample all polygons to the same size (default \code{TRUE})?
+If \code{FALSE}, the function analyses each polygon alone, as in earlier
+versions of SIRUP, and returns a list with one result for each polygon.}
 
-\item{min_n}{Smallest number of observations in a group (default 30). The
-function drops a group with fewer observations.}
+\item{min_n}{Smallest number of receptors that a polygon needs (default 10).
+The function drops a polygon with fewer receptors. With
+\code{common_size = TRUE}, the smallest polygon that stays sets the size of the
+resampling, so a larger \code{min_n} gives less noisy estimates and keeps fewer
+polygons.}
 
 \item{min_q}{Smallest diversity order q (default 0).}
 
@@ -61,24 +61,42 @@ function drops a group with fewer observations.}
 
 \item{ci}{Confidence interval, between 0 and 1 (default 0.95).}
 
-\item{...}{Other arguments for \code{\link[alakazam:alphaDiversity]{alakazam::alphaDiversity()}}.}
+\item{...}{Other arguments for \code{\link[alakazam:alphaDiversity]{alakazam::alphaDiversity()}}, such as
+\code{nboot}, \code{max_n} and \code{uniform}. You cannot give \code{group}, because the
+function uses the polygon as the group.}
 
 \item{validate}{Validate the updated SIRUP object (default \code{TRUE})?}
 }
 \value{
 For a SIRUP object, the updated SIRUP object. Otherwise, the
-diversity results.
+diversity results: one \code{DiversityCurve} object, or a list with one object
+for each polygon if \code{common_size = FALSE}.
 }
 \description{
-\code{polygonDiversity} runs \code{\link[alakazam:alphaDiversity]{alakazam::alphaDiversity()}} on the receptors of each
-polygon.
+\code{polygonDiversity} runs \code{\link[alakazam:alphaDiversity]{alakazam::alphaDiversity()}} once on the receptors of
+all polygons, with the polygon as the group. alakazam then resamples every
+polygon to the same number of receptors, so the diversity of different
+polygons is comparable. With \code{common_size = FALSE}, the function analyses each
+polygon alone instead.
 }
 \details{
-With \code{mode = "by_polygon"}, the function runs once for each polygon. With
-\code{mode = "all_polygons"}, it runs once on all receptors in any polygon. A
-polygon with fewer than \code{min_n} receptor rows returns \code{NULL}. For a SIRUP
-object, the function stores the result as an analysis and returns the updated
-object.
+The function puts the receptors of all polygons in one table and passes the
+polygon column to \code{\link[alakazam:alphaDiversity]{alakazam::alphaDiversity()}} as \code{group}. alakazam resamples
+each polygon to the size of the smallest polygon that has at least \code{min_n}
+receptors. Use \code{max_n} (through \code{...}) to set a smaller size. The function
+leaves out polygons with fewer than \code{min_n} receptors. If no polygon has
+enough receptors, the function gives an error.
+
+The result is one \code{DiversityCurve} object. Its \code{diversity} table has one
+column of polygon IDs. \code{\link[alakazam:plotDiversityCurve]{alakazam::plotDiversityCurve()}} plots all polygons
+together. For a SIRUP object, the function stores the result as an analysis
+and returns the updated object.
+
+With \code{common_size = FALSE}, the function runs \code{\link[alakazam:alphaDiversity]{alakazam::alphaDiversity()}}
+once for each polygon. Each polygon is then resampled to its own size, so
+polygons with more receptors can look more diverse. A polygon with fewer than
+\code{min_n} receptors gives \code{NULL}. The result is a named list with one
+\code{DiversityCurve} for each polygon.
 
 The arguments from \code{clone} to \code{...} go to \code{\link[alakazam:alphaDiversity]{alakazam::alphaDiversity()}}.
 }

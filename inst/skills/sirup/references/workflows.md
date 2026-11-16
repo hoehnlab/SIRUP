@@ -111,7 +111,7 @@ pies$page_1
 sirup <- setAnalysis(sirup, "gc_dominance", dominance)
 ```
 
-Other region functions: `expandPolygons()` makes a zone around a polygon. `withPolygons()` runs a function on the receptors of each polygon. `polygonDiversity()` and `polygonAbundance()` estimate clonal diversity and abundance. `polygonPairwiseDistance()` measures the distances between polygon centers. Read their usage in `references/functions-spatial-polygons.md`. `polygonDiversity()` leaves out polygons with fewer than `min_n` receptors (default 30). Set `min_n` before you compare regions.
+Other region functions: `expandPolygons()` makes a zone around a polygon. `withPolygons()` runs a function on the receptors of each polygon. `polygonDiversity()` and `polygonAbundance()` estimate clonal diversity and abundance. `polygonPairwiseDistance()` measures the distances between polygon centers. Read their usage in `references/functions-spatial-polygons.md`. Both functions resample all polygons to the same number of receptors, the size of the smallest polygon that has at least `min_n` receptors (default 10), and leave out smaller polygons. Set `min_n` before you compare regions.
 
 Check: `getPolygons(sirup)` has one row for each polygon. The receptor table has a `polygon_id` column, with `NA` for receptors outside every polygon.
 

@@ -945,8 +945,8 @@ plotSpatialPolygons(
 
 ## Clonal abundance and diversity within polygons
 
-For clonal abundance and diversity, we can also estimate curves separately for each polygon using `polygonAbundance()` and `polygonDiversity()` which are wrappers for `alakazam` functions `estimateAbundance()` and `alphaDiversity()`. Arguments to both are the SIRUP object or airr table `receptors`, `polygons` (default NULL, which pulls from the SIRUP object), `polygon_id` (default "polygon"), `mode` (by_polygon or all_polygons) which determines whether to do this by polygons separately or using all receptors in any polygon, and `analysis_name` (default polygon_abundance) which sets the name of the analysis to save. Other arguments are directly from the `alakazam` functions.
-Polygons below the requested `min_n` threshold return `NULL`. Once the diversity curves are
+For clonal abundance and diversity, we can also estimate curves for every polygon using `polygonAbundance()` and `polygonDiversity()`, which are wrappers for `alakazam` functions `estimateAbundance()` and `alphaDiversity()`. Both run once on all polygons, with the polygon as the group, so `alakazam` resamples every polygon to the same number of receptors and the polygons are comparable. Arguments to both are the SIRUP object or airr table `receptors`, `polygons` (default NULL, which pulls from the SIRUP object), `polygon_id` (default "polygon"), `min_n` (default 10), and `analysis_name` (default polygon_abundance) which sets the name of the analysis to save. Other arguments are directly from the `alakazam` functions. The smallest polygon with at least `min_n` receptors sets the resampling size, so a larger `min_n` gives less noisy curves and keeps fewer polygons.
+Polygons below the requested `min_n` threshold are left out of the result. The stored result is one `alakazam` object, which `plotDiversityCurve()` and `plotAbundanceCurve()` plot directly. Once the diversity curves are
 stored, `summarizePolygonDiversity()` pulls out a single `q` value into a polygon-level table,
 which is handy if we want to map something like Simpson diversity (`q = 2`) back onto polygons.
 

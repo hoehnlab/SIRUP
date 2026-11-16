@@ -36,7 +36,7 @@ The neighbors of a spot come from `k` (the number of nearest spots) or `radius`.
 | Which receptors sit in a zone around a region? | `expandPolygons()`, then `addPolygons()` |
 | What do the receptors of each region look like, with my own summary? | `withPolygons()` |
 
-These functions describe each region. They do not test a spatial pattern. `polygonDiversity()` leaves out polygons with fewer than `min_n` receptors (default 30).
+These functions describe each region. They do not test a spatial pattern. `polygonDiversity()` and `polygonAbundance()` resample all polygons to the same number of receptors. They leave out polygons with fewer than `min_n` receptors (default 10).
 
 ## Clones and trees
 

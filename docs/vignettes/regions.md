@@ -504,34 +504,29 @@ rises, large clones get more weight. `q = 1` gives the exponential of
 Shannon entropy. `q = 2` gives the inverse Simpson index.
 
 Small regions have few receptors, and a diversity estimate depends on
-sample size. `polygonDiversity()` calls `alakazam::alphaDiversity()`.
-This function rarefies every polygon to the same number of receptors. It
-also adds bootstrap confidence intervals. The function leaves out
-polygons with fewer than `min_n` receptors:
+sample size. `polygonDiversity()` calls `alakazam::alphaDiversity()`
+once, with the polygon as the group. alakazam then resamples every
+polygon to the same number of receptors, the size of the smallest
+polygon that has at least `min_n` receptors. It also adds bootstrap
+confidence intervals. The function leaves out polygons with fewer than
+`min_n` receptors (default 10). A larger `min_n` gives less noisy
+estimates and keeps fewer polygons:
 
 ``` r
-sirup <- polygonDiversity(sirup, polygon_id = "polygon_id", min_n = 30, nboot = 200)
+sirup <- polygonDiversity(sirup, polygon_id = "polygon_id", min_n = 10, nboot = 200)
 diversity <- getAnalysis(sirup, "polygon_diversity")
-names(diversity)
-#> [1] "1" "2" "3" "4" "5" "6" "7" "8" "9"
+class(diversity)
+#> [1] "DiversityCurve"
+#> attr(,"package")
+#> [1] "alakazam"
 ```
 
-The stored analysis is a list with one `alakazam` result for each
-polygon. Collect the curves and plot them:
+The stored analysis is one `alakazam` `DiversityCurve` object, with one
+curve for each polygon. Plot it with `alakazam::plotDiversityCurve()`.
+The plot shows the 95% confidence band of each polygon:
 
 ``` r
-curves <- bind_rows(
-  lapply(names(diversity), function(id) {
-    if (is.null(diversity[[id]])) return(NULL)
-    mutate(diversity[[id]]@diversity, polygon = id)
-  })
-)
-
-ggplot(curves, aes(q, d, color = polygon, fill = polygon)) +
-  geom_ribbon(aes(ymin = d_lower, ymax = d_upper), alpha = 0.2, color = NA) +
-  geom_line() +
-  labs(x = "Order (q)", y = "Hill diversity", color = "eGC", fill = "eGC") +
-  theme_bw()
+alakazam::plotDiversityCurve(diversity, legend_title = "eGC")
 ```
 
 ![](regions_files/figure-gfm/diversity-plot-1.jpeg)
@@ -559,7 +554,9 @@ plotSpatialPolygons(
 `analysis_fill` sets the colors for the lowest and the highest value.
 Polygons with too few receptors for the estimate are grey.
 `polygonAbundance()` works the same way for clonal rank-abundance
-curves. It calls `alakazam::estimateAbundance()`.
+curves. It calls `alakazam::estimateAbundance()` once on all polygons
+and stores one `AbundanceCurve`. Plot it with
+`alakazam::plotAbundanceCurve()`.
 
 ## Extract gene expression from regions
 

@@ -8,12 +8,11 @@ polygonAbundance(
   receptors,
   polygons = NULL,
   polygon_id = "polygon",
-  mode = c("by_polygon", "all_polygons"),
   analysis_name = "polygon_abundance",
   clone = "clone_id",
   copy = NULL,
-  group = NULL,
-  min_n = 5,
+  common_size = TRUE,
+  min_n = 10,
   max_n = NULL,
   uniform = TRUE,
   ci = 0.95,
@@ -26,15 +25,13 @@ polygonAbundance(
 \arguments{
 \item{receptors}{SIRUP object, or an AIRR-style receptor table.}
 
-\item{polygons}{Polygon table that sets the order of the output polygons. If
-\code{NULL}, the function takes the polygon IDs from the SIRUP object, or from
-the \code{polygon_id} values in \code{receptors}.}
+\item{polygons}{Polygon table that sets the polygons to use. If \code{NULL}, the
+function takes the polygon IDs from the SIRUP object, or from the
+\code{polygon_id} values in \code{receptors}.}
 
 \item{polygon_id}{Name of the column that holds the primary polygon of each
-receptor (default \code{"polygon"}).}
-
-\item{mode}{\code{"by_polygon"} runs the calculation once for each polygon.
-\code{"all_polygons"} runs it once on all receptors in any polygon.}
+receptor (default \code{"polygon"}). For a SIRUP object, the default is
+\code{"polygon_id"}.}
 
 \item{analysis_name}{Name for the stored result in a SIRUP object (default
 \code{"polygon_abundance"}).}
@@ -47,19 +44,22 @@ receptor (default \code{"polygon"}).}
 number of sequences. Otherwise, it uses the sum of the copy numbers in each
 clone.}
 
-\item{group}{Name of the column that holds the group IDs (default \code{NULL}). If
-\code{NULL}, the function does not group, and the \code{group} column of the result
-is \code{NA}.}
+\item{common_size}{Resample all polygons to the same size (default \code{TRUE})?
+If \code{FALSE}, the function analyses each polygon alone, as in earlier
+versions of SIRUP, and returns a list with one result for each polygon.}
 
-\item{min_n}{Smallest number of observations in a group (default 5). The
-function drops a group with fewer observations.}
+\item{min_n}{Smallest number of receptors that a polygon needs (default 10).
+The function drops a polygon with fewer receptors. With
+\code{common_size = TRUE}, the smallest polygon that stays sets the size of the
+resampling, so a larger \code{min_n} gives less noisy curves and keeps fewer
+polygons.}
 
-\item{max_n}{Largest number of observations to sample (default \code{NULL}). If
-\code{NULL}, there is no maximum.}
+\item{max_n}{Largest number of receptors to sample from each polygon
+(default \code{NULL}). If \code{NULL}, the size is the size of the smallest polygon
+that stays.}
 
-\item{uniform}{Resample each group to the same number of observations
-(default \code{TRUE})? If \code{FALSE}, the function resamples each group to its
-original size, or to \code{max_n} if you give it.}
+\item{uniform}{Resample each polygon to the same number of receptors
+(default \code{TRUE})? Passed to \code{\link[alakazam:estimateAbundance]{alakazam::estimateAbundance()}}.}
 
 \item{ci}{Confidence interval, between 0 and 1 (default 0.95).}
 
@@ -74,18 +74,34 @@ If \code{NULL}, the function assumes bulk data.}
 }
 \value{
 For a SIRUP object, the updated SIRUP object. Otherwise, the
-abundance results.
+abundance results: one \code{AbundanceCurve} object, or a list with one object
+for each polygon if \code{common_size = FALSE}.
 }
 \description{
-\code{polygonAbundance} runs \code{\link[alakazam:estimateAbundance]{alakazam::estimateAbundance()}} on the receptors of
-each polygon.
+\code{polygonAbundance} runs \code{\link[alakazam:estimateAbundance]{alakazam::estimateAbundance()}} once on the receptors
+of all polygons, with the polygon as the group. alakazam then resamples every
+polygon to the same number of receptors, so the curves of different polygons
+are comparable. With \code{common_size = FALSE}, the function analyses each polygon
+alone instead.
 }
 \details{
-With \code{mode = "by_polygon"}, the function runs once for each polygon. With
-\code{mode = "all_polygons"}, it runs once on all receptors in any polygon. A
-polygon with fewer than \code{min_n} receptor rows returns \code{NULL}. For a SIRUP
-object, the function stores the result as an analysis and returns the updated
-object.
+The function puts the receptors of all polygons in one table and passes the
+polygon column to \code{\link[alakazam:estimateAbundance]{alakazam::estimateAbundance()}} as \code{group}. With
+\code{uniform = TRUE} (the default), alakazam resamples each polygon to the size
+of the smallest polygon that has at least \code{min_n} receptors. Use \code{max_n} to
+set a smaller size. The function leaves out polygons with fewer than \code{min_n}
+receptors. If no polygon has enough receptors, the function gives an error.
+
+The result is one \code{AbundanceCurve} object. Its \code{abundance} table has one
+column of polygon IDs. \code{\link[alakazam:plotAbundanceCurve]{alakazam::plotAbundanceCurve()}} plots all polygons
+together. For a SIRUP object, the function stores the result as an analysis
+and returns the updated object.
+
+With \code{common_size = FALSE}, the function runs
+\code{\link[alakazam:estimateAbundance]{alakazam::estimateAbundance()}} once for each polygon. Each polygon is then
+resampled to its own size, so polygons with more receptors can look more
+diverse. A polygon with fewer than \code{min_n} receptors gives \code{NULL}. The result
+is a named list with one \code{AbundanceCurve} for each polygon.
 
 The arguments from \code{clone} to \code{progress} go to
 \code{\link[alakazam:estimateAbundance]{alakazam::estimateAbundance()}}.
@@ -93,8 +109,8 @@ The arguments from \code{clone} to \code{progress} go to
 \examples{
 x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
 
-# Use all polygons together. The example polygons have few receptors.
-x <- polygonAbundance(x, mode = "all_polygons", min_n = 2, nboot = 50)
+# The example polygons have few receptors, so lower min_n.
+x <- polygonAbundance(x, min_n = 2, nboot = 50)
 listAnalyses(x)
 }
 \seealso{
