@@ -24,7 +24,8 @@ assignReceptorPolygons(
   receptor_x = "x",
   receptor_y = "y",
   polygon_id = "polygon",
-  include_boundary = TRUE
+  include_boundary = TRUE,
+  slot = NULL
 )
 ```
 
@@ -89,6 +90,10 @@ assignReceptorPolygons(
 `include_boundary`
 
 :   Count spots on a polygon edge as inside the polygon (default `TRUE`)?
+
+`slot`
+
+:   Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots. The function ignores `slot` if you give a plain receptor table.
 
 ## Details
 

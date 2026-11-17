@@ -43,7 +43,8 @@ plotReceptorsExpression(
   receptor_legend_title = NULL,
   show_receptor_legend = TRUE,
   combine = TRUE,
-  combine_sample_plots = FALSE
+  combine_sample_plots = FALSE,
+  slot = NULL
 )
 ```
 
@@ -184,6 +185,10 @@ plotReceptorsExpression(
 `combine_sample_plots`
 
 :   Combine the plots of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns a named list with one plot for each sample.
+
+`slot`
+
+:   Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots. The function ignores `slot` if you give a plain receptor table.
 
 ## Details
 

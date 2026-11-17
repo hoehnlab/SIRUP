@@ -13,10 +13,11 @@ polygonAbundance(
   receptors,
   polygons = NULL,
   polygon_id = "polygon",
-  analysis_name = "polygon_abundance",
+  analysis_name = NULL,
   clone = "clone_id",
   copy = NULL,
   common_size = TRUE,
+  slot = NULL,
   min_n = 10,
   max_n = NULL,
   uniform = TRUE,
@@ -44,7 +45,7 @@ polygonAbundance(
 
 `analysis_name`
 
-:   Name for the stored result in a SIRUP object (default `"polygon_abundance"`).
+:   Name for the stored result in a SIRUP object (default `"polygon_abundance"`). If the object has several receptor slots, the default also ends with `⁠_⁠` and the slot name.
 
 `clone`
 
@@ -57,6 +58,10 @@ polygonAbundance(
 `common_size`
 
 :   Resample all polygons to the same size (default `TRUE`)? If `FALSE`, the function analyses each polygon alone, as in earlier versions of SIRUP, and returns a list with one result for each polygon.
+
+`slot`
+
+:   Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots. The function ignores `slot` if you give a plain receptor table.
 
 `min_n`
 

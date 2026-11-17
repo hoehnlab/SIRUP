@@ -29,6 +29,25 @@ createSIRUP(
 )
 ```
 
+Arguments:
+
+- `spatial`: Seurat object with spatial expression data, or a named list of Seurat objects (one per spatial sample).
+- `receptors`: AIRR-style receptor table (a data frame or similar), or a named list of such tables. Each table in a list is one slot, for example `list(bcr = bcr_table, tcr = tcr_table)`.
+- `spatial_id`: Name of the `receptors` column that holds the spatial cell or spot IDs. If `NULL`, the function uses the first column found from this list: `spatial_id`, `spatial_id_8um`, `spatial_id_2um`, `spatial_id_16um`, `barcode_8um`, `barcode_2um`, `cell`, `cell_barcode`. It stores the name in the metadata and gives an error if none exists.
+- `image`: Name of the `receptors` column that identifies the Seurat image (default `NULL`).
+- `sample_id`: Name of the `receptors` column that holds the sample name. If `spatial` is a named list, this argument is required. If a Seurat object has no such metadata column, the function fills it with the list name.
+- `clone`: Name of the `receptors` column that holds the clone ID (default `NULL`). The function gives an error if the column does not exist.
+- `locus`: Name of the `receptors` column that holds the receptor locus (default `"locus"`). If you use the default and the column does not exist, the function stores `NULL`. If you give another name that does not exist, the function gives an error.
+- `count`: Name of the `receptors` column that holds the observation count or weight (default `NULL`).
+- `image_scale`: Default Seurat image scale (default `NULL`). Plotting and spatial statistics functions use it when their own `image_scale` is `NULL`. For multi-sample objects, give a named vector or list with one value for each sample, or one unnamed value that applies to all samples.
+- `swap_coords`: Swap the two Seurat coordinate axes by default (default `NULL`)? Plotting and spatial statistics functions use this value when their own `swap_coords` is `NULL`. For multi-sample objects, give a named vector or list with one value for each sample, or one unnamed value that applies to all samples.
+- `metadata`: Named list of dataset-level metadata.
+- `polygons`: Polygon table (default `NULL`). The table has one row per polygon, with a `polygon_id` column and a list column `vertices`. Each `vertices` table needs columns `x` and `y`. It can also have `spatial_id` and `image`. The function adds a `polygon_id` column and one logical `⁠polygon_<ID>⁠` column per polygon to both the Seurat metadata and the receptor table.
+- `polygons_path`: Path to a flat CSV file of polygon vertices (default `NULL`). The file needs `x` and `y` columns and a `polygon_id` or `polygon` column. The function annotates these polygons in the same way as `polygons`.
+- `include_boundary`: Count spots on a polygon edge as members of the polygon (default `TRUE`)?
+- `analyses`: Named list of derived analysis results.
+- `validate`: Validate the new object (default `TRUE`)?
+
 Value: A SIRUP object (S3 class `sirup`).
 
 ## isSIRUP
@@ -77,19 +96,27 @@ Value: A multi-sample SIRUP object.
 
 Extract data from a SIRUP object.
 
-This topic also documents: `getSpatial`, `spatialSamples`, `getReceptors`.
+This topic also documents: `getSpatial`, `spatialSamples`, `getReceptors`, `receptorSlots`.
 
-`getSpatial` returns the Seurat object(s). `spatialSamples` returns the spatial sample names. `getReceptors` returns the receptor table.
+`getSpatial` returns the Seurat object(s). `spatialSamples` returns the spatial sample names. `getReceptors` returns one receptor table. `receptorSlots` returns the names of the receptor slots.
 
 ```r
 getSpatial(x, sample_id = NULL)
 
 spatialSamples(x)
 
-getReceptors(x, sample_id = NULL)
+getReceptors(x, sample_id = NULL, slot = NULL)
+
+receptorSlots(x)
 ```
 
-Value: `getSpatial` returns the Seurat object. For a multi-sample object, it returns the named list of Seurat objects, or one Seurat object if you give `sample_id`. `spatialSamples` returns a character vector of sample names. `getReceptors` returns the receptor tibble. If you give `sample_id`, it returns only the rows for that sample.
+Arguments:
+
+- `x`: A SIRUP object.
+- `sample_id`: Name of one spatial sample. Use it only if the object holds a named list of Seurat objects.
+- `slot`: Name of the receptor slot. If the object has one receptor table, leave it `NULL` (the slot is called `"only_slot"`). If the object has several slots, you must give one.
+
+Value: `getSpatial` returns the Seurat object. For a multi-sample object, it returns the named list of Seurat objects, or one Seurat object if you give `sample_id`. `spatialSamples` returns a character vector of sample names. `getReceptors` returns the receptor tibble of one slot. If you give `sample_id`, it returns only the rows for that sample. `receptorSlots` returns a character vector of slot names.
 
 ## sirup-analyses
 
@@ -148,6 +175,7 @@ updateReceptors(
   fun,
   ...,
   sample_id = NULL,
+  slot = NULL,
   receptor_fields = NULL,
   validate = TRUE
 )
@@ -156,6 +184,17 @@ updateSpatial(x, fun, ..., sample_id = NULL, validate = TRUE)
 
 updateAnalysis(x, name, fun, ..., sample_id = NULL, validate = TRUE)
 ```
+
+Arguments:
+
+- `x`: A SIRUP object.
+- `fun`: Function, or the name of a function. The function receives the selected part of the SIRUP object as its first argument.
+- `...`: Other arguments for `fun`.
+- `sample_id`: Name of the spatial sample to update. Use it only for multi-sample objects.
+- `slot`: Name of the receptor slot that `updateReceptors` changes. Leave it `NULL` if the object has one receptor table. You must give it if the object has several slots.
+- `receptor_fields`: Named list of receptor field mappings to change. The names can be `spatial_id`, `image`, `sample`, `clone`, `locus`, or `count`. A `NULL` value clears an optional mapping.
+- `validate`: Validate the updated SIRUP object?
+- `name`: Name of the stored analysis. Give one non-empty character string.
 
 Value: The updated SIRUP object.
 
@@ -173,6 +212,7 @@ subsetSIRUP(
   sample_id = NULL,
   spatial_id = NULL,
   receptor_rows = NULL,
+  slot = NULL,
   keep_nonspatial_receptors = FALSE,
   keep_analyses = FALSE,
   drop_empty_spatial = TRUE,
@@ -181,6 +221,18 @@ subsetSIRUP(
 
 filterSample(x, sample_id, keep_analyses = FALSE, validate = TRUE)
 ```
+
+Arguments:
+
+- `x`: A SIRUP object.
+- `sample_id`: Name or names of the spatial samples to keep. Use it only if the object holds a named list of Seurat objects.
+- `spatial_id`: Spatial IDs (barcodes) to keep. In a multi-sample object, the function matches the IDs in each selected sample.
+- `receptor_rows`: Logical vector with length `nrow(getReceptors(x, slot = slot))`, or a function. The function takes the receptor tibble of `slot` and returns such a vector. The function keeps the rows where the vector is `TRUE`. It applies this filter to `slot` only. The other filters apply to every slot.
+- `slot`: Name of the receptor slot that `receptor_rows` applies to. Leave it `NULL` if the object has one receptor table. You must give it if the object has several slots and you use `receptor_rows`.
+- `keep_nonspatial_receptors`: Keep receptor rows that have no spatial ID after the other filters (default `FALSE`)? The function uses this argument only if you give `spatial_id`.
+- `keep_analyses`: Keep the stored analyses (default `FALSE`)? Most analyses depend on the original spatial and receptor data.
+- `drop_empty_spatial`: Drop samples that have no cells left after the `spatial_id` filter (default `TRUE`)? The function uses this argument only for multi-sample objects.
+- `validate`: Validate the subset object (default `TRUE`)?
 
 Value: A SIRUP object that contains the subset.
 

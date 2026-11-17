@@ -13,6 +13,7 @@ plotSpatialCloneColorTips(
   image_scale = NULL,
   swap_coords = NULL,
   sample_id = NULL,
+  slot = NULL,
   ...
 )
 }
@@ -42,6 +43,10 @@ function uses the value stored in the SIRUP object.}
 
 \item{sample_id}{Names of the samples to plot. Use it for multi-sample SIRUP
 objects. If \code{NULL}, the function plots all samples.}
+
+\item{slot}{Name of the receptor slot to use. Leave it \code{NULL} if the SIRUP
+object has one receptor table. You must give it if the object has several
+slots. The function ignores \code{slot} if you give a plain receptor table.}
 
 \item{...}{Other arguments for \code{\link[=plotSpatialColorTips]{plotSpatialColorTips()}}.}
 }

@@ -19,6 +19,7 @@ collapseIdenticalNeighbors(
   image_scale = NULL,
   swap_coords = NULL,
   num_neighbors_non_boundary = 6L,
+  slot = NULL,
   validate = TRUE
 )
 ```
@@ -60,6 +61,10 @@ collapseIdenticalNeighbors(
 `num_neighbors_non_boundary`
 
 :   Number of nearby spots that makes a spot a non-boundary spot (default 6).
+
+`slot`
+
+:   Name of the receptor slot to collapse if `object` is a SIRUP object. Leave it `NULL` if the object has one receptor table. You must give it if the object has several slots. The function changes only that slot.
 
 `validate`
 

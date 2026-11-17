@@ -4,7 +4,7 @@
 \alias{plotLengthQc}
 \title{Plot length histograms of V, J, and junction regions}
 \usage{
-plotLengthQc(airr_df, bin_width = 5, title = NULL)
+plotLengthQc(airr_df, bin_width = 5, title = NULL, slot = NULL)
 }
 \arguments{
 \item{airr_df}{AIRR-style receptor table, or a SIRUP object. The table needs
@@ -14,6 +14,10 @@ the columns \code{v_sequence_start}, \code{v_sequence_end}, \code{j_sequence_sta
 \item{bin_width}{Width of the histogram bins (default 5).}
 
 \item{title}{Plot title.}
+
+\item{slot}{Name of the receptor slot to use. Leave it \code{NULL} if the SIRUP
+object has one receptor table. You must give it if the object has several
+slots. The function ignores \code{slot} if you give a plain receptor table.}
 }
 \value{
 A ggplot object with one panel for each length.

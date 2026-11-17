@@ -11,7 +11,8 @@ withPolygons(
   polygons = NULL,
   polygon_id = "polygon",
   mode = c("by_polygon", "all_polygons"),
-  pass_polygon_id = FALSE
+  pass_polygon_id = FALSE,
+  slot = NULL
 )
 }
 \arguments{
@@ -33,6 +34,10 @@ runs \code{.f} once on all receptors in any polygon.}
 
 \item{pass_polygon_id}{Pass the current polygon ID to \code{.f} as the argument
 \code{polygon_id}, if \code{.f} accepts it (default \code{FALSE})?}
+
+\item{slot}{Name of the receptor slot to use. Leave it \code{NULL} if the SIRUP
+object has one receptor table. You must give it if the object has several
+slots. The function ignores \code{slot} if you give a plain receptor table.}
 }
 \value{
 For \code{mode = "by_polygon"}, a named list with one result for each

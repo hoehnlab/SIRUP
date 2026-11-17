@@ -42,14 +42,16 @@ extdata <- SIRUP::downloadSIRUPExample(
   files = c(
   "mg_thymus_slice2_spatial.rds",
   "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_tcr.tsv.gz",
   "mg_thymus_slice2_gc_polygons.csv",
   "mg_thymus_cell_types.csv.gz"
   )
 )
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
-#> ℹ Downloading 'mg_thymus_cell_types.csv.gz'
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_cell_types.csv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
 ```
 
 ## Install SIRUP
@@ -85,6 +87,7 @@ This vignette uses these files:
 |----|----|
 | `mg_thymus_slice2_spatial.rds` | A spatial Seurat object for MG thymus |
 | `mg_thymus_slice2_bcr.tsv.gz` | AIRR rearrangement table of IGH sequences with spatial IDs |
+| `mg_thymus_slice2_tcr.tsv.gz` | AIRR rearrangement table of TRB sequences with spatial IDs |
 | `mg_thymus_slice2_gc_polygons.csv` | Annotated polygons of the eGCs |
 | `mg_thymus_cell_types.csv.gz` | Cell-type proportions for each spot |
 
@@ -127,10 +130,12 @@ bcrs %>%
 #> 4 6,TGATTCCCGGTTACCT  IGHV5-51*01               IGHJ5… IGHG2  GAGGTGCCGCTGGTGCA…
 #> 5 5,CCTACATTCACAGACG  IGHV3-23*01,IGHV3-23*04,… IGHJ4… IGHG1  .................…
 #> 6 3,CCTACATTCACAGACG  IGHV1-2*02,IGHV1-2*04     IGHJ4… IGHG1  CAGGTGCATCTGGTGCA…
+
+tcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_tcr.tsv.gz"))
 ```
 
-Each row is one BCR sequence. The processing pipeline wrote the spatial
-ID at the end of `sequence_id`, after a comma.
+Each row is one BCR or TCR sequence. The processing pipeline wrote the
+spatial ID at the end of `sequence_id`, after a comma.
 
 ## Match each sequence to a spot
 
@@ -147,12 +152,21 @@ bcrs <- extractSpatialIds(
   regex = ",([ACGT]{16})$",
   suffix = "-1"
 )
+tcrs <- extractSpatialIds(
+  tcrs,
+  id = "sequence_id",
+  spatial_id = "barcode_10x",
+  regex = ",([ACGT]{16})$",
+  suffix = "-1"
+)
 
 head(colnames(thymus))
 #> [1] "AAACAAGTATCTCCCA-1" "AAACACCAATAACTGC-1" "AAACAGCTTTCAGAAG-1"
 #> [4] "AAACAGGGTCTATATT-1" "AAACAGTGTTCCTGGG-1" "AAACATGGTGAGAGGA-1"
 mean(bcrs$barcode_10x %in% colnames(thymus))
 #> [1] 0.9372528
+mean(tcrs$barcode_10x %in% colnames(thymus))
+#> [1] 0.9176248
 ```
 
 A few sequences have a spatial ID that is not in the Seurat object. The
@@ -177,19 +191,36 @@ bcrs <- filterAirr(
   spatial_id = "barcode_10x"
 )
 #> filterAirr kept 2189 of 3793 rows (dropped 1604).
+
+tcrs <- filterAirr(
+  tcrs,
+  locus_val = "TRB",
+  min_v_length = 250,
+  min_j_length = 30,
+  min_junction_length = 10,
+  productive_only = TRUE,
+  min_consensus_count = NULL,
+  spatial_id = "barcode_10x"
+)
+#> filterAirr kept 3718 of 7915 rows (dropped 4197).
 ```
 
 ## Create a SIRUP object
 
-`createSIRUP()` joins the Seurat object and the receptor table. Tell it
+`createSIRUP()` joins the Seurat object and the receptor tables. This
+object holds BCRs and TCRs. Give `receptors` a named list with one table
+for each receptor type. Each table is a *slot*, and here the slots are
+named `"BCR"` and `"TCR"`. Later functions that read receptors take a
+`slot` argument. This guide uses `slot = "BCR"`. Tell `createSIRUP()`
 which receptor column holds the spatial ID and which holds the locus.
-You can also specify the image scale and coordinate settings when
-constructing the object, which are discussed further below.
+All slots share these field names. You can also specify the image scale
+and coordinate settings when constructing the object, which are
+discussed further below.
 
 ``` r
 sirup <- createSIRUP(
   spatial = thymus,
-  receptors = bcrs,
+  receptors = list(BCR = bcrs, TCR = tcrs),
   spatial_id = "barcode_10x",
   locus = "locus",
   image_scale = "lowres",
@@ -200,29 +231,38 @@ sirup <- createSIRUP(
 sirup
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image
-#> Receptor data:   tibble, 2,189 receptor sequences x 56 columns
-#> Spatial overlap: 817/888 receptor IDs in spatial data (92.0%)
+#> Receptor data:   2 slots
+#>   BCR: 2,189 receptor sequences x 56 columns; 817/888 receptor IDs in spatial data (92.0%)
+#>   TCR: 3,718 receptor sequences x 56 columns; 1,433/1,592 receptor IDs in spatial data (90.0%)
 #> Spatial ID field: barcode_10x
 #> Analyses:        0
+
+receptorSlots(sirup)
+#> [1] "BCR" "TCR"
 
 summary(sirup)
 #> SIRUP summary
 #>   Spatial IDs:      3,203
-#>   Receptor records: 2,189
-#>   Receptor IDs:     888
-#>   Matched IDs:      817 (92.0%)
-#>   Matched records:  2,047
+#>   Receptor records: 5,907
+#>   Receptor IDs:     2,480
+#>   Matched IDs:      2,250 (90.7%)
+#>   Matched records:  5,458
 #>   Image scale:      lowres
 #>   Swap coords:      FALSE
 #>   Stored analyses:  0
 #> 
 #> Per-sample summary
-#> # A tibble: 1 × 7
-#>   sample  n_spatial_ids n_receptor_records n_receptor_ids n_matched_ids
-#>   <chr>           <int>              <int>          <int>         <int>
-#> 1 spatial          3203               2189            888           817
+#> # A tibble: 2 × 8
+#>   slot  sample  n_spatial_ids n_receptor_records n_receptor_ids n_matched_ids
+#>   <chr> <chr>           <int>              <int>          <int>         <int>
+#> 1 BCR   spatial          3203               2189            888           817
+#> 2 TCR   spatial          3203               3718           1592          1433
 #> # ℹ 2 more variables: n_matched_records <int>, id_match_rate <dbl>
 ```
+
+If an object holds one receptor table, give `receptors` the table
+itself, and you do not need `slot`.
+[How the SIRUP object works](sirup-object.md) explains slots.
 
 If a `spatial_id`, `locus`, and/or `clone` column are specified when
 constructing the SIRUP object, later functions can find these columns
@@ -270,24 +310,26 @@ SIRUP functions work with clone-level data, but SIRUP does not itself
 build clones. The `updateReceptors()` function is a method that can runs
 any function on the receptor table and updates the receptor table in the
 object with the result. This call runs `hierarchicalClones()` from the
-`scoper` package.
+`scoper` package on the BCR slot.
 
 ``` r
 sirup <- updateReceptors(
   sirup,
   scoper::hierarchicalClones,
+  slot = "BCR",
   threshold = 0.1,
   summarize_clones = FALSE,
   nproc = 1
 )
 #> Warning in prepare_db(db = db, junction = junction, v_call = v_call, j_call =
-#> j_call, : Removed 84 sequences with non-ATCG characters in the junction.
+#> j_call, : Removed 84 sequences with non ATCG characters.
 #> Running defineClonesScoper in bulk mode and only keep heavy chains
 sirup
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image
-#> Receptor data:   tibble, 2,105 receptor sequences x 57 columns
-#> Spatial overlap: 797/868 receptor IDs in spatial data (91.8%)
+#> Receptor data:   2 slots
+#>   BCR: 2,105 receptor sequences x 57 columns; 797/868 receptor IDs in spatial data (91.8%)
+#>   TCR: 3,718 receptor sequences x 56 columns; 1,433/1,592 receptor IDs in spatial data (90.0%)
 #> Spatial ID field: barcode_10x
 #> Clone ID field:  clone_id
 #> Analyses:        0
@@ -328,6 +370,7 @@ are IGH, so they all are colored the same.
 ``` r
 plotReceptors(
   sirup,
+  slot = "BCR",
   group = "locus",
   colors = "#0072B2",
   receptor_size = 1.2,
@@ -342,7 +385,7 @@ the `group` column, use the `group_val` argument. This plot includes
 only the three largest IGH clones.
 
 ``` r
-top_clones <- getReceptors(sirup) %>%
+top_clones <- getReceptors(sirup, slot = "BCR") %>%
   count(clone_id, sort = TRUE) %>%
   slice_head(n = 3) %>%
   pull(clone_id)
@@ -351,6 +394,7 @@ top_clones
 
 plotReceptors(
   sirup,
+  slot = "BCR",
   group = "clone_id",
   group_val = top_clones,
   overlap = "average",
@@ -374,6 +418,7 @@ on top:
 ``` r
 plotReceptorsExpression(
   sirup,
+  slot = "BCR",
   group = "locus",
   gene = "AICDA",
   assay = "alra",
@@ -470,11 +515,11 @@ plotSpatialPolygons(
 
 ![](get-started_files/figure-gfm/plot-spatial-polygons-1.jpeg)
 
-The receptor table now has a `polygon_id` column. Receptors outside
+Every receptor table now has a `polygon_id` column. Receptors outside
 every polygon get `NA`:
 
 ``` r
-getReceptors(sirup) %>%
+getReceptors(sirup, slot = "BCR") %>%
   count(polygon_id)
 #> # A tibble: 9 × 2
 #>   polygon_id     n
@@ -496,8 +541,8 @@ getReceptors(sirup) %>%
 each polygon. It stores the result in the object as an analysis.
 
 ``` r
-sirup <- polygonReceptorSummary(sirup, polygon_id = "polygon_id")
-getAnalysis(sirup, "polygon_receptor_summary")
+sirup <- polygonReceptorSummary(sirup, slot = "BCR", polygon_id = "polygon_id")
+getAnalysis(sirup, "polygon_receptor_summary_BCR")
 #> # A tibble: 9 × 5
 #>   polygon_id n_receptors n_spatial_ids n_clones top_clone_fraction
 #>   <chr>            <int>         <int>    <int>              <dbl>
@@ -518,7 +563,7 @@ polygon that belongs to each clone. `plotSpatialPolygonPies()` draws one
 pie chart (or stacked bar chart) for each polygon next to the tissue.
 
 ``` r
-dominance <- spatialCloneDominance(object = sirup)
+dominance <- spatialCloneDominance(object = sirup, slot = "BCR")
 
 dominance$dominance %>%
   group_by(polygon) %>%
@@ -564,7 +609,7 @@ can be accessed with `getAnalysis()`.
 ``` r
 sirup <- setAnalysis(sirup, "gc_dominance", dominance)
 listAnalyses(sirup)
-#> [1] "polygon_receptor_summary" "gc_dominance"
+#> [1] "polygon_receptor_summary_BCR" "gc_dominance"
 
 getAnalysis(sirup, "gc_dominance") %>% str(max.level = 1)
 #> List of 6
@@ -594,8 +639,9 @@ sirup <- readSIRUP(path)
 sirup
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image
-#> Receptor data:   tibble, 2,105 receptor sequences x 67 columns
-#> Spatial overlap: 797/868 receptor IDs in spatial data (91.8%)
+#> Receptor data:   2 slots
+#>   BCR: 2,105 receptor sequences x 67 columns; 797/868 receptor IDs in spatial data (91.8%)
+#>   TCR: 3,718 receptor sequences x 66 columns; 1,433/1,592 receptor IDs in spatial data (90.0%)
 #> Spatial ID field: barcode_10x
 #> Clone ID field:  clone_id
 #> Analyses:        2

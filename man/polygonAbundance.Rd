@@ -8,10 +8,11 @@ polygonAbundance(
   receptors,
   polygons = NULL,
   polygon_id = "polygon",
-  analysis_name = "polygon_abundance",
+  analysis_name = NULL,
   clone = "clone_id",
   copy = NULL,
   common_size = TRUE,
+  slot = NULL,
   min_n = 10,
   max_n = NULL,
   uniform = TRUE,
@@ -34,7 +35,8 @@ receptor (default \code{"polygon"}). For a SIRUP object, the default is
 \code{"polygon_id"}.}
 
 \item{analysis_name}{Name for the stored result in a SIRUP object (default
-\code{"polygon_abundance"}).}
+\code{"polygon_abundance"}). If the object has several receptor slots, the default also ends
+with \verb{_} and the slot name.}
 
 \item{clone}{Name of the column that holds the clone IDs (default
 \code{"clone_id"}).}
@@ -47,6 +49,10 @@ clone.}
 \item{common_size}{Resample all polygons to the same size (default \code{TRUE})?
 If \code{FALSE}, the function analyses each polygon alone, as in earlier
 versions of SIRUP, and returns a list with one result for each polygon.}
+
+\item{slot}{Name of the receptor slot to use. Leave it \code{NULL} if the SIRUP
+object has one receptor table. You must give it if the object has several
+slots. The function ignores \code{slot} if you give a plain receptor table.}
 
 \item{min_n}{Smallest number of receptors that a polygon needs (default 10).
 The function drops a polygon with fewer receptors. With

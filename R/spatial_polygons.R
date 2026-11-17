@@ -53,6 +53,9 @@
 #'   (default `TRUE`)? The function ignores this argument if
 #'   `object` is a SIRUP object with stored polygon annotations and `polygon` is
 #'   `NULL`.
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots. The function ignores `slot` if you give a plain receptor table.
 #'
 #' @return An object of class `sirup_spatial_clone_dominance`. It is a list with
 #'   these items: `dominance` (the dominance table), `region_spatial_ids`,
@@ -86,7 +89,8 @@ spatialCloneDominance <- function(receptors = NULL,
                                   x = "x",
                                   y = "y",
                                   polygon_id = "polygon",
-                                  include_boundary = TRUE) {
+                                  include_boundary = TRUE,
+                                  slot = NULL) {
   clone_missing <- missing(clone)
   locus_missing <- missing(locus)
   count_missing <- missing(count)
@@ -109,7 +113,7 @@ spatialCloneDominance <- function(receptors = NULL,
       rlang::abort("The SIRUP object does not contain stored polygons.")
     }
   }
-  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id)
+  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id, slot)
   object <- inputs$object
   receptors <- inputs$receptors
   spatial_id <- inputs$spatial_id_col
@@ -2434,6 +2438,9 @@ assignSpatialPolygons <- function(object,
 #'   by polygon (default `"polygon"`).
 #' @param include_boundary Count spots on a polygon edge as inside the polygon
 #'   (default `TRUE`)?
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots. The function ignores `slot` if you give a plain receptor table.
 #'
 #' @return A tibble with the `column` added.
 #' @seealso [assignSpatialPolygons()], [withPolygons()]
@@ -2459,7 +2466,8 @@ assignReceptorPolygons <- function(receptors,
                                    receptor_x = "x",
                                    receptor_y = "y",
                                    polygon_id = "polygon",
-                                   include_boundary = TRUE) {
+                                   include_boundary = TRUE,
+                                   slot = NULL) {
   if (!.sirup_is_non_empty_string(column)) {
     rlang::abort("`column` must be a non-empty character string.")
   }
@@ -2509,7 +2517,7 @@ assignReceptorPolygons <- function(receptors,
     return(out)
   }
   options <- .sirup_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
-  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id)
+  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id, slot)
   object <- inputs$object
   receptors <- .as_data_frame(inputs$receptors)
   spatial_id <- .guess_spatial_id_col(receptors, inputs$spatial_id_col)
@@ -2687,7 +2695,11 @@ assignReceptorPolygons <- function(receptors,
 #'   column holds the number of all spots in each polygon, including spots with
 #'   no receptor rows. It works only for SIRUP objects.
 #' @param analysis_name Name for the stored summary in a SIRUP object (default
-#'   `"polygon_receptor_summary"`).
+#'   `"polygon_receptor_summary"`). If the object has several receptor slots, the default also ends
+#'   with `_` and the slot name.
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots. The function ignores `slot` if you give a plain receptor table.
 #' @param validate Validate the updated SIRUP object (default `TRUE`)?
 #'
 #' @return For a SIRUP object, the updated SIRUP object. Otherwise, a summary
@@ -2708,13 +2720,14 @@ polygonReceptorSummary <- function(object,
                                    summary_columns = NULL,
                                    summary_operations = NULL,
                                    include_total_spots = FALSE,
-                                   analysis_name = "polygon_receptor_summary",
+                                   analysis_name = NULL,
+                                   slot = NULL,
                                    validate = TRUE) {
   is_sirup <- isSIRUP(object)
   x <- if (is_sirup) object else NULL
   polygon_id_missing <- missing(polygon_id)
   polygon_column <- if (is_sirup && isTRUE(polygon_id_missing)) "polygon_id" else polygon_id
-  receptor_table <- if (is_sirup) getReceptors(x) else tibble::as_tibble(object)
+  receptor_table <- if (is_sirup) getReceptors(x, slot = slot) else tibble::as_tibble(object)
   if (is_sirup) {
     fields <- .sirup_receptor_fields(x)
     spatial_id <- spatial_id %||% fields$spatial_id
@@ -2749,6 +2762,7 @@ polygonReceptorSummary <- function(object,
   }
 
   if (is_sirup) {
+    analysis_name <- analysis_name %||% .sirup_slot_analysis_name(x, "polygon_receptor_summary", slot)
     return(setAnalysis(x, analysis_name, summary, validate = validate))
   }
   summary
@@ -2983,6 +2997,9 @@ polygonPairwiseDistance <- function(object,
 #'   runs `.f` once on all receptors in any polygon.
 #' @param pass_polygon_id Pass the current polygon ID to `.f` as the argument
 #'   `polygon_id`, if `.f` accepts it (default `FALSE`)?
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots. The function ignores `slot` if you give a plain receptor table.
 #'
 #' @return For `mode = "by_polygon"`, a named list with one result for each
 #'   polygon. Otherwise, the result of `.f`.
@@ -3004,13 +3021,14 @@ withPolygons <- function(receptors,
                          polygons = NULL,
                          polygon_id = "polygon",
                          mode = c("by_polygon", "all_polygons"),
-                         pass_polygon_id = FALSE) {
+                         pass_polygon_id = FALSE,
+                         slot = NULL) {
   mode <- match.arg(mode)
   is_sirup <- isSIRUP(receptors)
   x <- if (is_sirup) receptors else NULL
   polygon_id_missing <- missing(polygon_id)
   polygon_column <- if (is_sirup && isTRUE(polygon_id_missing)) "polygon_id" else polygon_id
-  receptor_table <- if (is_sirup) getReceptors(x) else tibble::as_tibble(receptors)
+  receptor_table <- if (is_sirup) getReceptors(x, slot = slot) else tibble::as_tibble(receptors)
   if (is_sirup) {
     polygons <- polygons %||% getPolygons(x)
   }
@@ -3070,7 +3088,8 @@ withPolygons <- function(receptors,
 #'   receptor (default `"polygon"`). For a SIRUP object, the default is
 #'   `"polygon_id"`.
 #' @param analysis_name Name for the stored result in a SIRUP object (default
-#'   `"polygon_abundance"`).
+#'   `"polygon_abundance"`). If the object has several receptor slots, the default also ends
+#'   with `_` and the slot name.
 #' @param clone Name of the column that holds the clone IDs (default
 #'   `"clone_id"`).
 #' @param copy Name of the column that holds the copy number of each sequence
@@ -3080,6 +3099,9 @@ withPolygons <- function(receptors,
 #' @param common_size Resample all polygons to the same size (default `TRUE`)?
 #'   If `FALSE`, the function analyses each polygon alone, as in earlier
 #'   versions of SIRUP, and returns a list with one result for each polygon.
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots. The function ignores `slot` if you give a plain receptor table.
 #' @param min_n Smallest number of receptors that a polygon needs (default 10).
 #'   The function drops a polygon with fewer receptors. With
 #'   `common_size = TRUE`, the smallest polygon that stays sets the size of the
@@ -3112,10 +3134,11 @@ withPolygons <- function(receptors,
 polygonAbundance <- function(receptors,
                              polygons = NULL,
                              polygon_id = "polygon",
-                             analysis_name = "polygon_abundance",
+                             analysis_name = NULL,
                              clone = "clone_id",
                              copy = NULL,
                              common_size = TRUE,
+                             slot = NULL,
                              min_n = 10,
                              max_n = NULL,
                              uniform = TRUE,
@@ -3137,6 +3160,7 @@ polygonAbundance <- function(receptors,
     common_size = common_size,
     threshold_n = min_n,
     fun = alakazam::estimateAbundance,
+    slot = slot,
     clone = clone,
     copy = copy,
     min_n = min_n,
@@ -3148,6 +3172,7 @@ polygonAbundance <- function(receptors,
     progress = progress
   )
   if (isSIRUP(receptors)) {
+    analysis_name <- analysis_name %||% .sirup_slot_analysis_name(receptors, "polygon_abundance", slot)
     return(setAnalysis(receptors, analysis_name, result, validate = validate))
   }
   result
@@ -3190,7 +3215,8 @@ polygonAbundance <- function(receptors,
 #'   receptor (default `"polygon"`). For a SIRUP object, the default is
 #'   `"polygon_id"`.
 #' @param analysis_name Name for the stored result in a SIRUP object (default
-#'   `"polygon_diversity"`).
+#'   `"polygon_diversity"`). If the object has several receptor slots, the default also ends
+#'   with `_` and the slot name.
 #' @param clone Name of the column that holds the clone IDs (default
 #'   `"clone_id"`).
 #' @param copy Name of the column that holds the copy number of each sequence
@@ -3200,6 +3226,9 @@ polygonAbundance <- function(receptors,
 #' @param common_size Resample all polygons to the same size (default `TRUE`)?
 #'   If `FALSE`, the function analyses each polygon alone, as in earlier
 #'   versions of SIRUP, and returns a list with one result for each polygon.
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots. The function ignores `slot` if you give a plain receptor table.
 #' @param min_n Smallest number of receptors that a polygon needs (default 10).
 #'   The function drops a polygon with fewer receptors. With
 #'   `common_size = TRUE`, the smallest polygon that stays sets the size of the
@@ -3227,10 +3256,11 @@ polygonAbundance <- function(receptors,
 polygonDiversity <- function(receptors,
                              polygons = NULL,
                              polygon_id = "polygon",
-                             analysis_name = "polygon_diversity",
+                             analysis_name = NULL,
                              clone = "clone_id",
                              copy = NULL,
                              common_size = TRUE,
+                             slot = NULL,
                              min_n = 10,
                              min_q = 0,
                              max_q = 4,
@@ -3254,6 +3284,7 @@ polygonDiversity <- function(receptors,
     common_size = common_size,
     threshold_n = min_n,
     fun = alakazam::alphaDiversity,
+    slot = slot,
     clone = clone,
     copy = copy,
     min_n = min_n,
@@ -3264,6 +3295,7 @@ polygonDiversity <- function(receptors,
     ...
   )
   if (isSIRUP(receptors)) {
+    analysis_name <- analysis_name %||% .sirup_slot_analysis_name(receptors, "polygon_diversity", slot)
     return(setAnalysis(receptors, analysis_name, result, validate = validate))
   }
   result
@@ -3285,11 +3317,17 @@ polygonDiversity <- function(receptors,
 #' @param object SIRUP object.
 #' @param q Diversity order to take, for example `2` for Simpson diversity.
 #' @param diversity_analysis Name of the stored analysis from
-#'   [polygonDiversity()] (default `"polygon_diversity"`).
+#'   [polygonDiversity()]. If `NULL`, the function uses `"polygon_diversity"`,
+#'   or `"polygon_diversity_<slot>"` if the object has several receptor slots.
 #' @param analysis_name Name for the stored table. If `NULL`, the function uses
-#'   `polygon_diversity_q` followed by the value of `q`.
+#'   `polygon_diversity_q` followed by the value of `q`, and the slot name if
+#'   the object has several receptor slots.
 #' @param tolerance Tolerance for the match of `q` (default
 #'   `sqrt(.Machine$double.eps)`).
+#' @param slot Name of the receptor slot whose diversity you summarize. The
+#'   function uses it only to find the default analysis names. Leave it `NULL`
+#'   if the object has one receptor table. You must give it if the object has
+#'   several slots and you use the default names.
 #' @param validate Validate the updated SIRUP object (default `TRUE`)?
 #'
 #' @return The updated SIRUP object, with the diversity summary as an analysis.
@@ -3303,16 +3341,22 @@ polygonDiversity <- function(receptors,
 #' @export
 summarizePolygonDiversity <- function(object,
                                       q,
-                                      diversity_analysis = "polygon_diversity",
+                                      diversity_analysis = NULL,
                                       analysis_name = NULL,
                                       tolerance = sqrt(.Machine$double.eps),
+                                      slot = NULL,
                                       validate = TRUE) {
   validateSIRUP(object)
+  diversity_analysis <- diversity_analysis %||% .sirup_slot_analysis_name(object, "polygon_diversity", slot)
   if (!is.numeric(q) || length(q) != 1L || is.na(q)) {
     rlang::abort("`q` must be one numeric diversity order.")
   }
   if (is.null(analysis_name)) {
-    analysis_name <- paste0("polygon_diversity_q", gsub("[^0-9A-Za-z]+", "_", as.character(q)))
+    analysis_name <- .sirup_slot_analysis_name(
+      object,
+      paste0("polygon_diversity_q", gsub("[^0-9A-Za-z]+", "_", as.character(q))),
+      slot
+    )
   }
   diversity <- getAnalysis(object, diversity_analysis)
   if (is.list(diversity) && !methods::is(diversity, "DiversityCurve")) {
@@ -3617,9 +3661,10 @@ summarizePolygonDiversity <- function(object,
                                     common_size = TRUE,
                                     threshold_n,
                                     fun,
+                                    slot = NULL,
                                     ...) {
   is_sirup <- isSIRUP(receptors)
-  receptor_table <- if (is_sirup) getReceptors(receptors) else tibble::as_tibble(receptors)
+  receptor_table <- if (is_sirup) getReceptors(receptors, slot = slot) else tibble::as_tibble(receptors)
   if (is_sirup) {
     polygons <- polygons %||% getPolygons(receptors)
   }

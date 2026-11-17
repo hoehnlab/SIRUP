@@ -27,7 +27,9 @@ createSIRUP(
 \item{spatial}{Seurat object with spatial expression data, or a named list of
 Seurat objects (one per spatial sample).}
 
-\item{receptors}{AIRR-style receptor table (a data frame or similar).}
+\item{receptors}{AIRR-style receptor table (a data frame or similar), or a
+named list of such tables. Each table in a list is one slot, for example
+\code{list(bcr = bcr_table, tcr = tcr_table)}.}
 
 \item{spatial_id}{Name of the \code{receptors} column that holds the spatial cell
 or spot IDs. If \code{NULL}, the function uses the first column found from this
@@ -102,6 +104,14 @@ data.
 The function stores key receptor column names in \code{metadata$receptor_fields}
 and converts \code{receptors} to a \code{\link[tibble:tibble]{tibble::tibble()}}. The optional \code{analyses}
 list keeps derived results.
+
+\code{receptors} can also be a named list of tables, for example one table of BCRs
+and one of TCRs. Each table is a \emph{slot}. All slots share the same spatial
+data, polygons and field mappings. The spatial ID and sample columns must be
+in every table. Each other mapped column, such as \code{clone_id}, must be in at
+least one table. Clone IDs only need to be unique within one slot. Functions
+that use receptors analyse one slot at a time, chosen with their \code{slot}
+argument. A SIRUP object with one table has the slot name \code{"only_slot"}.
 
 The examples in this package use a small synthetic SIRUP object. It has 25
 spots, 10 genes, 5 clones, and 2 polygons. The spots and gene counts are

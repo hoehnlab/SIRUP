@@ -50,6 +50,7 @@ extdata <- SIRUP::downloadSIRUPExample(
   files = c(
   "mg_thymus_slice2_spatial.rds",
   "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_tcr.tsv.gz",
   "mg_thymus_slice2_gc_polygons.csv"
   )
 )
@@ -84,10 +85,27 @@ bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz
     spatial_id = "barcode_10x"
   ) %>%
   filter(!grepl("[^ACGT]", junction))
+tcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_tcr.tsv.gz")) %>%
+  extractSpatialIds(
+    id = "sequence_id",
+    spatial_id = "barcode_10x",
+    regex = ",([ACGT]{16})$",
+    suffix = "-1"
+  ) %>%
+  filterAirr(
+    locus_val = "TRB",
+    min_v_length = 250,
+    min_j_length = 30,
+    min_junction_length = 10,
+    productive_only = TRUE,
+    min_consensus_count = NULL,
+    spatial_id = "barcode_10x"
+  ) %>%
+  filter(!grepl("[^ACGT]", junction))
 
 sirup <- createSIRUP(
   spatial = thymus,
-  receptors = bcrs,
+  receptors = list(BCR = bcrs, TCR = tcrs),
   spatial_id = "barcode_10x",
   image_scale = "lowres",
   swap_coords = FALSE
@@ -95,13 +113,14 @@ sirup <- createSIRUP(
 sirup <- updateReceptors(
   sirup,
   scoper::hierarchicalClones,
+  slot = "BCR",
   threshold = 0.1,
   summarize_clones = FALSE,
   nproc = 1
 )
 ```
 
-The setup chunk reads the consensus BCRs of section 2. It takes the spot barcode from `sequence_id`. It keeps high-quality sequences that have an unambiguous junction. It then calls clones with `scoper::hierarchicalClones()`. `vignette("get-started", package = "SIRUP")` explains each step.
+The setup chunk reads the consensus BCRs and TCRs of section 2. It stores them as the slots `"BCR"` and `"TCR"` of one object. The polygons apply to both slots. The functions on this page read one slot at a time, and they use `slot = "BCR"`. It takes the spot barcode from `sequence_id`. It keeps high-quality sequences that have an unambiguous junction. It then calls BCR clones with `scoper::hierarchicalClones()`. `vignette("get-started", package = "SIRUP")` explains each step.
 
 ## Draw regions
 
@@ -177,6 +196,7 @@ Most SIRUP spatial plots accept `polygons = TRUE`. This draws the stored polygon
 ```{r receptors-polygons}
 plotReceptors(
   sirup,
+  slot = "BCR",
   group = "locus",
   colors = "#0072B2",
   receptor_size = 1,
@@ -207,7 +227,7 @@ zone <- vertices %>%
 
 nested <- addPolygons(sirup, polygons = bind_rows(vertices, zone))
 
-getReceptors(nested) %>%
+getReceptors(nested, slot = "BCR") %>%
   filter(polygon_5_zone) %>%
   count(polygon_id, polygon_5, polygon_5_zone)
 
@@ -223,13 +243,14 @@ The inner polygon is eGC 5. The outer polygon is the zone. Receptors in eGC 5 ke
 ```{r receptor-summary}
 sirup <- polygonReceptorSummary(
   sirup,
+  slot = "BCR",
   polygon_id = "polygon_id",
   include_total_spots = TRUE,
   summary_columns = c("c_call", "junction_length"),
   summary_operations = c("cat", "mean")
 )
 
-getAnalysis(sirup, "polygon_receptor_summary")
+getAnalysis(sirup, "polygon_receptor_summary_BCR")
 ```
 
 The default columns count the receptors, the spots with receptors, and the clones. They also give the fraction of receptors in the largest clone. `include_total_spots = TRUE` adds the number of spots in the polygon, with or without a receptor.
@@ -241,6 +262,7 @@ The default columns count the receptors, the spots with receptors, and the clone
 ```{r with-polygons}
 isotypes <- withPolygons(
   sirup,
+  slot = "BCR",
   function(receptors) {
     receptors %>%
       mutate(isotype = substr(c_call, 1, 4)) %>%
@@ -259,7 +281,7 @@ With `mode = "all_polygons"`, `withPolygons()` runs the function once on the rec
 `spatialCloneDominance()` computes this for every polygon:
 
 ```{r dominance}
-dominance <- spatialCloneDominance(object = sirup, locus_val = "IGH")
+dominance <- spatialCloneDominance(object = sirup, slot = "BCR", locus_val = "IGH")
 names(dominance)
 
 dominance$dominance %>%
@@ -358,8 +380,8 @@ Use `plot_type = "histogram"` for 3D bars in place of smooth surfaces. Set `retu
 Small regions have few receptors, and a diversity estimate depends on sample size. `polygonDiversity()` calls `alakazam::alphaDiversity()` once, with the polygon as the group. alakazam then resamples every polygon to the same number of receptors, the size of the smallest polygon that has at least `min_n` receptors. It also adds bootstrap confidence intervals. The function leaves out polygons with fewer than `min_n` receptors (default 10). A larger `min_n` gives less noisy estimates and keeps fewer polygons:
 
 ```{r diversity, warning = FALSE}
-sirup <- polygonDiversity(sirup, polygon_id = "polygon_id", min_n = 10, nboot = 200)
-diversity <- getAnalysis(sirup, "polygon_diversity")
+sirup <- polygonDiversity(sirup, slot = "BCR", polygon_id = "polygon_id", min_n = 10, nboot = 200)
+diversity <- getAnalysis(sirup, "polygon_diversity_BCR")
 class(diversity)
 ```
 
@@ -372,7 +394,7 @@ alakazam::plotDiversityCurve(diversity, legend_title = "eGC")
 `summarizePolygonDiversity()` picks one `q`. It stores a table with one row for each polygon. `plotSpatialPolygons()` can then fill each polygon by a column of any stored analysis:
 
 ```{r diversity-map}
-sirup <- summarizePolygonDiversity(sirup, q = 1, analysis_name = "shannon")
+sirup <- summarizePolygonDiversity(sirup, slot = "BCR", q = 1, analysis_name = "shannon")
 
 plotSpatialPolygons(
   sirup,

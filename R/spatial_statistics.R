@@ -46,6 +46,10 @@
 #' @param k Number of nearest neighbors, used if `radius` is `NULL` (default 6).
 #' @param alternative Alternative hypothesis for `spdep::moran.test()` (default
 #'   `"greater"`).
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots and the function reads receptors. The function ignores `slot` if you
+#'   give a plain receptor table.
 #'
 #' @return For one image, a list with these items: `test` (the
 #'   `spdep::moran.test()` result), `data` (the values tested), `neighbors` and
@@ -78,7 +82,8 @@ spatialMoran <- function(object,
                          swap_coords = NULL,
                          radius = NULL,
                          k = 6,
-                         alternative = "greater") {
+                         alternative = "greater",
+                         slot = NULL) {
   dat <- .sirup_spatial_variable_values(
     object = object,
     variable = variable,
@@ -91,7 +96,8 @@ spatialMoran <- function(object,
     layer = layer,
     images = images,
     image_scale = image_scale,
-    swap_coords = swap_coords
+    swap_coords = swap_coords,
+    slot = slot
   )
   dat <- dat[is.finite(dat$value), , drop = FALSE]
   .check_spatial_values(dat$value)
@@ -454,6 +460,10 @@ spatialLee <- function(object,
 #' @param radius Distance that defines a neighborhood. If `NULL`, the function
 #'   uses the `k` nearest neighbors.
 #' @param k Number of nearest neighbors, used if `radius` is `NULL` (default 6).
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots and the function reads receptors. The function ignores `slot` if you
+#'   give a plain receptor table.
 #'
 #' @return A data frame with the coordinates, the values, local Moran's I, the
 #'   z-scores, and the p-values.
@@ -477,7 +487,8 @@ spatialLocalMoran <- function(object,
                               image_scale = NULL,
                               swap_coords = NULL,
                               radius = NULL,
-                              k = 6) {
+                              k = 6,
+                              slot = NULL) {
 
   dat <- .sirup_spatial_variable_values(
     object = object,
@@ -491,7 +502,8 @@ spatialLocalMoran <- function(object,
     layer = layer,
     images = images,
     image_scale = image_scale,
-    swap_coords = swap_coords
+    swap_coords = swap_coords,
+    slot = slot
   )
   dat <- dat[is.finite(dat$value), , drop = FALSE]
   .check_spatial_values(dat$value)
@@ -599,6 +611,10 @@ spatialLocalMoran <- function(object,
 #'   (default), the function uses `TRUE` when a SIRUP object has stored polygons
 #'   and you give no `polygon`. Otherwise, it uses `FALSE`.
 #' @param return_data Return the data used for each test (default `FALSE`)?
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots and the function reads receptors. The function ignores `slot` if you
+#'   give a plain receptor table.
 #'
 #' @return A list with these items: `summary` (a table with one row for each
 #'   tested clone and region, ordered by p-value), `tests` (the `spdep` test
@@ -639,7 +655,8 @@ spatialCloneJoinCount <- function(object,
                                   alternative = "greater",
                                   other_label = "Other",
                                   use_stored_polygons = NULL,
-                                  return_data = FALSE) {
+                                  return_data = FALSE,
+                                  slot = NULL) {
   sirup_container <- if (isSIRUP(object)) object else NULL
   auto_stored_polygons <- !is.null(sirup_container) &&
     is.null(polygon) &&
@@ -659,7 +676,8 @@ spatialCloneJoinCount <- function(object,
   inputs <- .sirup_resolve_inputs(
     object,
     receptors,
-    spatial_id
+    spatial_id,
+    slot
   )
   object <- inputs$object
   receptors <- inputs$receptors
@@ -1536,11 +1554,18 @@ plotRipleyCrossK <- function(kcross,
                                    layer,
                                            images,
                                            image_scale,
-                                           swap_coords) {
+                                           swap_coords,
+                                           slot = NULL) {
   options <- .sirup_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
-  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id_col)
+  # Genes and metadata need no receptors. The receptor table only supplies the sample field,
+  # which all slots share, so any slot works then.
+  needs_receptors <- variable_type %in% c("receptor", "clone")
+  if (!needs_receptors && isSIRUP(object) && is.null(slot)) {
+    slot <- .sirup_slot_names(object)[[1L]]
+  }
+  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id_col, slot)
   object <- inputs$object
   receptors <- inputs$receptors
   spatial_id_col <- inputs$spatial_id_col
@@ -1860,6 +1885,10 @@ spatialCoordinateExtents <- function(object,
 #'   `FALSE`, the function counts every sequence, so sequences in the same spot
 #'   give pairs with distance zero. Use `TRUE` to measure the spread over
 #'   distinct spots only.
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots and the function reads receptors. The function ignores `slot` if you
+#'   give a plain receptor table.
 #'
 #' @return A tibble with one row for each sample and clone. The columns are
 #'   `sample`, `clone_id`, `n_spatial_ids`, `mean_pairwise_distance`, and
@@ -1879,8 +1908,9 @@ spatialCloneSpread <- function(object,
                                image_scale = NULL,
                                swap_coords = NULL,
                                min_spatial_ids = 2L,
-                               collapse_within_spot = FALSE) {
-  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id)
+                               collapse_within_spot = FALSE,
+                               slot = NULL) {
+  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id, slot)
   spatial_source <- if (isSIRUP(object)) object else inputs$object
   spatial <- inputs$object
   receptors <- .as_data_frame(inputs$receptors)

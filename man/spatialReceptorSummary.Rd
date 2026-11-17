@@ -4,7 +4,7 @@
 \alias{spatialReceptorSummary}
 \title{Count the sequences and spots of a receptor table}
 \usage{
-spatialReceptorSummary(airr_df, spatial_id = "spatial_id_2um")
+spatialReceptorSummary(airr_df, spatial_id = "spatial_id_2um", slot = NULL)
 }
 \arguments{
 \item{airr_df}{AIRR-style data frame, or a SIRUP object.}
@@ -13,6 +13,10 @@ spatialReceptorSummary(airr_df, spatial_id = "spatial_id_2um")
 \code{"spatial_id_2um"}). For a SIRUP object, if you omit it, the function uses
 the stored spatial ID field. If the object has a sample field, the function
 counts each spatial ID once for each sample.}
+
+\item{slot}{Name of the receptor slot to use if \code{airr_df} is a SIRUP object.
+Leave it \code{NULL} if the object has one receptor table. You must give it if
+the object has several slots.}
 }
 \value{
 A one-row tibble with the columns \code{n_sequences}, \code{n_spatial_ids},

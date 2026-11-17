@@ -19,7 +19,8 @@ spatialMoran(
   swap_coords = NULL,
   radius = NULL,
   k = 6,
-  alternative = "greater"
+  alternative = "greater",
+  slot = NULL
 )
 }
 \arguments{
@@ -68,6 +69,11 @@ uses \code{k}.}
 
 \item{alternative}{Alternative hypothesis for \code{spdep::moran.test()} (default
 \code{"greater"}).}
+
+\item{slot}{Name of the receptor slot to use. Leave it \code{NULL} if the SIRUP
+object has one receptor table. You must give it if the object has several
+slots and the function reads receptors. The function ignores \code{slot} if you
+give a plain receptor table.}
 }
 \value{
 For one image, a list with these items: \code{test} (the

@@ -6,7 +6,7 @@
 \usage{
 formatSpatialClones(
   object,
-  analysis_name = "f_clones",
+  analysis_name = NULL,
   seq = "sequence_alignment",
   clone = "clone_id",
   subgroup = "clone_subgroup",
@@ -40,6 +40,7 @@ formatSpatialClones(
   light_traits = FALSE,
   majoronly = FALSE,
   columns = NULL,
+  slot = NULL,
   validate = TRUE
 )
 }
@@ -47,7 +48,8 @@ formatSpatialClones(
 \item{object}{A SIRUP object.}
 
 \item{analysis_name}{Name for the stored formatted clones (default
-\code{"f_clones"}).}
+\code{"f_clones"}). If the object has several receptor slots, the default also
+ends with \verb{_} and the slot name.}
 
 \item{seq}{Name of the column that holds the observed DNA sequences (default
 \code{"sequence_alignment"}). The sequences must be aligned to each other.}
@@ -142,6 +144,10 @@ joins and collapses the sequences (default \code{FALSE})?}
 light chain (default \code{FALSE})?}
 
 \item{columns}{Names of other columns to keep in the result.}
+
+\item{slot}{Name of the receptor slot to use. Leave it \code{NULL} if the SIRUP
+object has one receptor table. You must give it if the object has several
+slots.}
 
 \item{validate}{Validate the updated SIRUP object (default \code{TRUE})?}
 }

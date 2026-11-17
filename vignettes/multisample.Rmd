@@ -57,6 +57,7 @@ extdata <- SIRUP::downloadSIRUPExample(
   "mg_thymus_slice2_spatial.rds",
   "mg_thymus_slice1_bcr.tsv.gz",
   "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_tcr.tsv.gz",
   "mg_thymus_slice1_gc_polygons.csv",
   "mg_thymus_slice2_gc_polygons.csv",
   "mg_thymus_bulk_thymus_1.tsv.gz",
@@ -121,9 +122,27 @@ bcrs <- bind_rows(sections, bulk) %>%
   filter(!grepl("[^ACGT]", junction))
 
 count(bcrs, compartment, sample)
+
+tcrs <- read_bcrs("mg_thymus_slice2_tcr.tsv.gz", "mg_thymus_slice2", "thymus_slice2") %>%
+  extractSpatialIds(
+    id = "sequence_id",
+    spatial_id = "barcode_10x",
+    regex = ",([ACGT]{16})$",
+    suffix = "-1"
+  ) %>%
+  mutate(sequence_id = paste(sample, gsub(",", "_", sequence_id), sep = "_")) %>%
+  filterAirr(
+    locus_val = "TRB",
+    min_v_length = 250,
+    min_j_length = 30,
+    min_junction_length = 10,
+    productive_only = TRUE,
+    min_consensus_count = NULL
+  ) %>%
+  filter(!grepl("[^ACGT]", junction))
 ```
 
-`read_bcrs()` reads one AIRR file and adds two columns: `sample` and `compartment`. After the barcodes come out of the section IDs, the code makes each `sequence_id` unique and safe for trees. It puts the sample name in front, because IDs repeat between files. It replaces the comma with `_`, because dowser renames tree tips that contain a comma.
+`read_bcrs()` reads one AIRR file (BCRs or TCRs) and adds two columns: `sample` and `compartment`. After the barcodes come out of the section IDs, the code makes each `sequence_id` unique and safe for trees. It puts the sample name in front, because IDs repeat between files. It replaces the comma with `_`, because dowser renames tree tips that contain a comma.
 
 The section rows get a `sample` that matches the names of the `spatial` list. The bulk and blood rows have their own sample names and no barcode.
 
@@ -134,12 +153,12 @@ The section rows get a `sample` that matches the names of the `spatial` list. Th
 
 ## Create a multi-sample object
 
-Give `createSIRUP()` the named list. Give the name of the `sample` column to `sample_id`.
+Give `createSIRUP()` the named list of Seurat objects. Give `receptors` a named list of receptor tables. The tables are the slots `"BCR"` and `"TCR"`. Only section 2 has TCRs. Give the name of the `sample` column to `sample_id`. All slots use this column.
 
 ```{r create}
 sirup <- createSIRUP(
   spatial = spatial,
-  receptors = bcrs,
+  receptors = list(BCR = bcrs, TCR = tcrs),
   spatial_id = "barcode_10x",
   sample_id = "sample",
   image_scale = "lowres",
@@ -156,12 +175,12 @@ If the sections need different image settings, give named values: `image_scale =
 
 ## Get one sample
 
-The accessors take a `sample_id` argument.
+The accessors take a `sample_id` argument. The receptor accessors also take a `slot` argument.
 
 ```{r accessors}
 getSpatial(sirup, "mg_thymus_slice1")
-nrow(getReceptors(sirup, "mg_thymus_slice1"))
-nrow(getReceptors(sirup))
+nrow(getReceptors(sirup, "mg_thymus_slice1", slot = "BCR"))
+nrow(getReceptors(sirup, slot = "BCR"))
 ```
 
 `filterSample()` returns a new SIRUP object with one section. It drops the nonspatial rows.
@@ -221,17 +240,18 @@ spatialExpressionPlot(
 
 ## Call clones across all samples
 
-Call clones on the whole receptor table. One clone ID then covers the sections, the bulk thymus, and the blood.
+Call clones on the whole BCR table. One clone ID then covers the sections, the bulk thymus, and the blood.
 
 ```{r clones, message = FALSE}
 sirup <- updateReceptors(
   sirup,
   scoper::hierarchicalClones,
+  slot = "BCR",
   threshold = 0.1,
   summarize_clones = FALSE,
   nproc = 1
 )
-dplyr::n_distinct(getReceptors(sirup)$clone_id)
+dplyr::n_distinct(getReceptors(sirup, slot = "BCR")$clone_id)
 ```
 
 ## Find where each clone was seen
@@ -239,7 +259,7 @@ dplyr::n_distinct(getReceptors(sirup)$clone_id)
 Each row has a `compartment`. For each clone, the code below counts the sequences in each compartment. It also records the eGCs that hold the clone.
 
 ```{r presence}
-clones <- getReceptors(sirup) %>%
+clones <- getReceptors(sirup, slot = "BCR") %>%
   group_by(clone_id) %>%
   summarise(
     in_section = any(compartment %in% c("thymus_slice1", "thymus_slice2")),
@@ -267,7 +287,7 @@ fisher.test(table(section_clones$in_egc, section_clones$in_blood))
 For each eGC, count the clones that it holds and the clones that reach the blood.
 
 ```{r per-egc}
-getReceptors(sirup) %>%
+getReceptors(sirup, slot = "BCR") %>%
   filter(!is.na(polygon_id)) %>%
   distinct(polygon_id, clone_id) %>%
   left_join(select(clones, clone_id, in_blood), by = "clone_id") %>%
@@ -283,7 +303,7 @@ The bulk files hold a subset of the bulk data, and the clones come from that sub
 Clonal dominance is the share of the receptors in a region that belong to its largest clones. The regional functions work on all sections at once. The dominance table has a `sample` column and the full `polygon_id`. For a longer treatment, see `vignette("regions", package = "SIRUP")`.
 
 ```{r dominance}
-dominance <- spatialCloneDominance(object = sirup, locus_val = "IGH")
+dominance <- spatialCloneDominance(object = sirup, slot = "BCR", locus_val = "IGH")
 
 dominance$dominance %>%
   group_by(polygon_id) %>%
@@ -342,21 +362,23 @@ Make the germline of the clone with `dowser::createGermlines()`. The germline is
 Keep `compartment` in `traits`. The tree plot uses it to set the tip shapes.
 
 ```{r tree, eval = has_trees}
-tree_sirup <- updateReceptors(sirup, dplyr::filter, clone_id == tree_clone)
+tree_sirup <- updateReceptors(sirup, dplyr::filter, clone_id == tree_clone, slot = "BCR")
 tree_sirup <- updateReceptors(
   tree_sirup,
   dowser::createGermlines,
+  slot = "BCR",
   references = dowser::readIMGT(imgt_dir),
   id = "sequence_id"
 )
 tree_sirup <- formatSpatialClones(
   tree_sirup,
+  slot = "BCR",
   id = "sequence_id",
   traits = c("barcode_10x", "sample", "compartment", "polygon_id")
 )
 set.seed(1)
-tree_sirup <- getSpatialTrees(tree_sirup)
-trees <- getAnalysis(tree_sirup, "trees")
+tree_sirup <- getSpatialTrees(tree_sirup, slot = "BCR")
+trees <- getAnalysis(tree_sirup, "trees_BCR")
 ```
 
 `plotSpatialCloneTreePairs()` puts the spatial tips on their sections. Bulk and blood tips appear in the tree only. The argument `shape_by` sets one shape for each compartment. The argument `color_by` colors the tips by tree cluster. `clusterTreesTips()` makes the clusters.
@@ -367,6 +389,7 @@ trees <- clusterTreesTips(trees, k = "auto", id = "sequence_id", k_range = 1:6)
 pair <- plotSpatialCloneTreePairs(
   trees,
   object = sirup,
+  slot = "BCR",
   id = "sequence_id",
   color_by = "tree_cluster",
   shape_by = "compartment",

@@ -38,6 +38,8 @@ Each input object becomes one spatial sample, named by \code{samples}. The
 function does these steps:
 \itemize{
 \item It sets \code{sample_field} in each receptor table, then binds the rows.
+If the objects have several receptor slots, they must have the same slot
+names. The function binds each slot separately.
 \item It stores the Seurat objects in a named list.
 \item It adds the sample name to each stored polygon (if any) and keeps
 the polygons.

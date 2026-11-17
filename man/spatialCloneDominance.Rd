@@ -22,7 +22,8 @@ spatialCloneDominance(
   x = "x",
   y = "y",
   polygon_id = "polygon",
-  include_boundary = TRUE
+  include_boundary = TRUE,
+  slot = NULL
 )
 }
 \arguments{
@@ -84,6 +85,10 @@ by polygon (default \code{"polygon"}).}
 (default \code{TRUE})? The function ignores this argument if
 \code{object} is a SIRUP object with stored polygon annotations and \code{polygon} is
 \code{NULL}.}
+
+\item{slot}{Name of the receptor slot to use. Leave it \code{NULL} if the SIRUP
+object has one receptor table. You must give it if the object has several
+slots. The function ignores \code{slot} if you give a plain receptor table.}
 }
 \value{
 An object of class \code{sirup_spatial_clone_dominance}. It is a list with

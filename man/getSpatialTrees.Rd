@@ -6,8 +6,8 @@
 \usage{
 getSpatialTrees(
   object,
-  f_clones_analysis = "f_clones",
-  analysis_name = "trees",
+  f_clones_analysis = NULL,
+  analysis_name = NULL,
   trait = NULL,
   id = NULL,
   dir = NULL,
@@ -24,16 +24,20 @@ getSpatialTrees(
   collapse = FALSE,
   check_divergence = TRUE,
   ...,
+  slot = NULL,
   validate = TRUE
 )
 }
 \arguments{
 \item{object}{A SIRUP object.}
 
-\item{f_clones_analysis}{Name of the stored formatted clones (default
-\code{"f_clones"}).}
+\item{f_clones_analysis}{Name of the stored formatted clones. If \code{NULL}, the
+function uses \code{"f_clones"}, or \code{"f_clones_<slot>"} if the object has several
+receptor slots.}
 
-\item{analysis_name}{Name for the stored trees (default \code{"trees"}).}
+\item{analysis_name}{Name for the stored trees (default \code{"trees"}). If the
+object has several receptor slots, the default also ends with \verb{_} and the
+slot name.}
 
 \item{trait}{Trait for the parsimony models. You need it if you use
 \code{igphyml}.}
@@ -71,6 +75,11 @@ getSpatialTrees(
 \item{check_divergence}{Run \code{checkDivergence} on the trees (default \code{TRUE})?}
 
 \item{...}{Other arguments for the tree-building programs.}
+
+\item{slot}{Name of the receptor slot that the trees come from. The function
+uses it only to find the default analysis names. Leave it \code{NULL} if the
+object has one receptor table. You must give it if the object has several
+slots and you use the default names.}
 
 \item{validate}{Validate the updated SIRUP object (default \code{TRUE})?}
 }

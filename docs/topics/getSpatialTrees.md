@@ -11,8 +11,8 @@
 ``` R
 getSpatialTrees(
   object,
-  f_clones_analysis = "f_clones",
-  analysis_name = "trees",
+  f_clones_analysis = NULL,
+  analysis_name = NULL,
   trait = NULL,
   id = NULL,
   dir = NULL,
@@ -29,6 +29,7 @@ getSpatialTrees(
   collapse = FALSE,
   check_divergence = TRUE,
   ...,
+  slot = NULL,
   validate = TRUE
 )
 ```
@@ -41,11 +42,11 @@ getSpatialTrees(
 
 `f_clones_analysis`
 
-:   Name of the stored formatted clones (default `"f_clones"`).
+:   Name of the stored formatted clones. If `NULL`, the function uses `"f_clones"`, or `"f_clones_<slot>"` if the object has several receptor slots.
 
 `analysis_name`
 
-:   Name for the stored trees (default `"trees"`).
+:   Name for the stored trees (default `"trees"`). If the object has several receptor slots, the default also ends with `⁠_⁠` and the slot name.
 
 `trait`
 
@@ -110,6 +111,10 @@ getSpatialTrees(
 `...`
 
 :   Other arguments for the tree-building programs.
+
+`slot`
+
+:   Name of the receptor slot that the trees come from. The function uses it only to find the default analysis names. Leave it `NULL` if the object has one receptor table. You must give it if the object has several slots and you use the default names.
 
 `validate`
 

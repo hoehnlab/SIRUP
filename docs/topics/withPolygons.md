@@ -16,7 +16,8 @@ withPolygons(
   polygons = NULL,
   polygon_id = "polygon",
   mode = c("by_polygon", "all_polygons"),
-  pass_polygon_id = FALSE
+  pass_polygon_id = FALSE,
+  slot = NULL
 )
 ```
 
@@ -49,6 +50,10 @@ withPolygons(
 `pass_polygon_id`
 
 :   Pass the current polygon ID to `.f` as the argument `polygon_id`, if `.f` accepts it (default `FALSE`)?
+
+`slot`
+
+:   Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots. The function ignores `slot` if you give a plain receptor table.
 
 ## Value
 

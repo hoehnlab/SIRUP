@@ -30,7 +30,8 @@ spatialCloneJoinCount(
   alternative = "greater",
   other_label = "Other",
   use_stored_polygons = NULL,
-  return_data = FALSE
+  return_data = FALSE,
+  slot = NULL
 )
 ```
 
@@ -119,6 +120,10 @@ spatialCloneJoinCount(
 `return_data`
 
 :   Return the data used for each test (default `FALSE`)?
+
+`slot`
+
+:   Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots and the function reads receptors. The function ignores `slot` if you give a plain receptor table.
 
 ## Details
 

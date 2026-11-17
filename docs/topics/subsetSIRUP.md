@@ -14,6 +14,7 @@ subsetSIRUP(
   sample_id = NULL,
   spatial_id = NULL,
   receptor_rows = NULL,
+  slot = NULL,
   keep_nonspatial_receptors = FALSE,
   keep_analyses = FALSE,
   drop_empty_spatial = TRUE,
@@ -27,35 +28,39 @@ filterSample(x, sample_id, keep_analyses = FALSE, validate = TRUE)
 
 `x`
 
-: A SIRUP object.
+:   A SIRUP object.
 
 `sample_id`
 
-: Name or names of the spatial samples to keep. Use it only if the object holds a named list of Seurat objects.
+:   Name or names of the spatial samples to keep. Use it only if the object holds a named list of Seurat objects.
 
 `spatial_id`
 
-: Spatial IDs (barcodes) to keep. In a multi-sample object, the function matches the IDs in each selected sample.
+:   Spatial IDs (barcodes) to keep. In a multi-sample object, the function matches the IDs in each selected sample.
 
 `receptor_rows`
 
-: Logical vector with length `nrow(getReceptors(x))`, or a function. The function takes the receptor tibble and returns such a vector. The function keeps the rows where the vector is `TRUE`.
+:   Logical vector with length `nrow(getReceptors(x, slot = slot))`, or a function. The function takes the receptor tibble of `slot` and returns such a vector. The function keeps the rows where the vector is `TRUE`. It applies this filter to `slot` only. The other filters apply to every slot.
+
+`slot`
+
+:   Name of the receptor slot that `receptor_rows` applies to. Leave it `NULL` if the object has one receptor table. You must give it if the object has several slots and you use `receptor_rows`.
 
 `keep_nonspatial_receptors`
 
-: Keep receptor rows that have no spatial ID after the other filters (default `FALSE`)? The function uses this argument only if you give `spatial_id`.
+:   Keep receptor rows that have no spatial ID after the other filters (default `FALSE`)? The function uses this argument only if you give `spatial_id`.
 
 `keep_analyses`
 
-: Keep the stored analyses (default `FALSE`)? Most analyses depend on the original spatial and receptor data.
+:   Keep the stored analyses (default `FALSE`)? Most analyses depend on the original spatial and receptor data.
 
 `drop_empty_spatial`
 
-: Drop samples that have no cells left after the `spatial_id` filter (default `TRUE`)? The function uses this argument only for multi-sample objects.
+:   Drop samples that have no cells left after the `spatial_id` filter (default `TRUE`)? The function uses this argument only for multi-sample objects.
 
 `validate`
 
-: Validate the subset object (default `TRUE`)?
+:   Validate the subset object (default `TRUE`)?
 
 ## Details
 

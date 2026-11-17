@@ -44,7 +44,7 @@ mergeSIRUP(
 
 Each input object becomes one spatial sample, named by `samples`. The function does these steps:
 
-- It sets `sample_field` in each receptor table, then binds the rows.
+- It sets `sample_field` in each receptor table, then binds the rows. If the objects have several receptor slots, they must have the same slot names. The function binds each slot separately.
 
 - It stores the Seurat objects in a named list.
 

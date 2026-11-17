@@ -19,7 +19,8 @@ spatialCloneSpread(
   image_scale = NULL,
   swap_coords = NULL,
   min_spatial_ids = 2L,
-  collapse_within_spot = FALSE
+  collapse_within_spot = FALSE,
+  slot = NULL
 )
 ```
 
@@ -64,6 +65,10 @@ spatialCloneSpread(
 `collapse_within_spot`
 
 :   Merge the sequences that share a spatial ID into one point before the function calculates distances (default `FALSE`)? If `FALSE`, the function counts every sequence, so sequences in the same spot give pairs with distance zero. Use `TRUE` to measure the spread over distinct spots only.
+
+`slot`
+
+:   Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots and the function reads receptors. The function ignores `slot` if you give a plain receptor table.
 
 ## Details
 

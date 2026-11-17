@@ -9,7 +9,7 @@
 ## Usage
 
 ``` R
-plotLengthQc(airr_df, bin_width = 5, title = NULL)
+plotLengthQc(airr_df, bin_width = 5, title = NULL, slot = NULL)
 ```
 
 ## Arguments
@@ -25,6 +25,10 @@ plotLengthQc(airr_df, bin_width = 5, title = NULL)
 `title`
 
 :   Plot title.
+
+`slot`
+
+:   Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots. The function ignores `slot` if you give a plain receptor table.
 
 ## Value
 

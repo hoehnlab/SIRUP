@@ -60,6 +60,7 @@ extdata <- SIRUP::downloadSIRUPExample(
   "mg_thymus_slice2_spatial.rds",
   "mg_thymus_slice1_bcr.tsv.gz",
   "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_tcr.tsv.gz",
   "mg_thymus_slice1_gc_polygons.csv",
   "mg_thymus_slice2_gc_polygons.csv",
   "mg_thymus_bulk_thymus_1.tsv.gz",
@@ -71,11 +72,12 @@ extdata <- SIRUP::downloadSIRUPExample(
   )
 )
 #> ℹ Downloading 'mg_thymus_slice1_spatial.rds'
-#> ℹ Downloading 'mg_thymus_slice2_spatial.rds'
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_slice1_bcr.tsv.gz'
-#> ℹ Downloading 'mg_thymus_slice2_bcr.tsv.gz'
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_slice1_gc_polygons.csv'
-#> ℹ Downloading 'mg_thymus_slice2_gc_polygons.csv'
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_bulk_thymus_1.tsv.gz'
 #> ℹ Downloading 'mg_thymus_bulk_thymus_2.tsv.gz'
 #> ℹ Downloading 'mg_thymus_bulk_blood_month0_1.tsv.gz'
@@ -148,13 +150,33 @@ count(bcrs, compartment, sample)
 #> 6 bulk_thymus   bulk_thymus_2          576
 #> 7 thymus_slice1 mg_thymus_slice1      1967
 #> 8 thymus_slice2 mg_thymus_slice2      2105
+
+tcrs <- read_bcrs("mg_thymus_slice2_tcr.tsv.gz", "mg_thymus_slice2", "thymus_slice2") %>%
+  extractSpatialIds(
+    id = "sequence_id",
+    spatial_id = "barcode_10x",
+    regex = ",([ACGT]{16})$",
+    suffix = "-1"
+  ) %>%
+  mutate(sequence_id = paste(sample, gsub(",", "_", sequence_id), sep = "_")) %>%
+  filterAirr(
+    locus_val = "TRB",
+    min_v_length = 250,
+    min_j_length = 30,
+    min_junction_length = 10,
+    productive_only = TRUE,
+    min_consensus_count = NULL
+  ) %>%
+  filter(!grepl("[^ACGT]", junction))
+#> filterAirr kept 3718 of 7915 rows (dropped 4197).
 ```
 
-`read_bcrs()` reads one AIRR file and adds two columns: `sample` and
-`compartment`. After the barcodes come out of the section IDs, the code
-makes each `sequence_id` unique and safe for trees. It puts the sample
-name in front, because IDs repeat between files. It replaces the comma
-with `_`, because dowser renames tree tips that contain a comma.
+`read_bcrs()` reads one AIRR file (BCRs or TCRs) and adds two columns:
+`sample` and `compartment`. After the barcodes come out of the section
+IDs, the code makes each `sequence_id` unique and safe for trees. It
+puts the sample name in front, because IDs repeat between files. It
+replaces the comma with `_`, because dowser renames tree tips that
+contain a comma.
 
 The section rows get a `sample` that matches the names of the `spatial`
 list. The bulk and blood rows have their own sample names and no
@@ -177,25 +199,27 @@ blood.
 
 ## Create a multi-sample object
 
-Give `createSIRUP()` the named list. Give the name of the `sample`
-column to `sample_id`.
+Give `createSIRUP()` the named list of Seurat objects. Give `receptors`
+a named list of receptor tables. The tables are the slots `"BCR"` and
+`"TCR"`. Only section 2 has TCRs. Give the name of the `sample` column
+to `sample_id`. All slots use this column.
 
 ``` r
 sirup <- createSIRUP(
   spatial = spatial,
-  receptors = bcrs,
+  receptors = list(BCR = bcrs, TCR = tcrs),
   spatial_id = "barcode_10x",
   sample_id = "sample",
   image_scale = "lowres",
   swap_coords = FALSE
 )
-#> Loading required namespace: Seurat
 
 sirup
 #> <SIRUP object>
 #> Spatial data:    Seurat, 6,599 spatial IDs, 449 genes, 2 spatial samples, 2 images
-#> Receptor data:   tibble, 5,537 receptor sequences x 58 columns
-#> Spatial overlap: 1,567/1,640 receptor IDs in spatial data (95.5%)
+#> Receptor data:   2 slots
+#>   BCR: 5,537 receptor sequences x 58 columns; 1,567/1,640 receptor IDs in spatial data (95.5%)
+#>   TCR: 3,610 receptor sequences x 58 columns; 1,414/1,571 receptor IDs in spatial data (90.0%)
 #> Samples:         2
 #> Spatial ID field: barcode_10x
 #> Sample ID field: sample
@@ -214,7 +238,8 @@ If the sections need different image settings, give named values:
 
 ## Get one sample
 
-The accessors take a `sample_id` argument.
+The accessors take a `sample_id` argument. The receptor accessors also
+take a `slot` argument.
 
 ``` r
 getSpatial(sirup, "mg_thymus_slice1")
@@ -224,9 +249,9 @@ getSpatial(sirup, "mg_thymus_slice1")
 #>  2 layers present: counts, data
 #>  1 other assay present: alra
 #>  1 spatial field of view present: thymus_slice1
-nrow(getReceptors(sirup, "mg_thymus_slice1"))
+nrow(getReceptors(sirup, "mg_thymus_slice1", slot = "BCR"))
 #> [1] 1967
-nrow(getReceptors(sirup))
+nrow(getReceptors(sirup, slot = "BCR"))
 #> [1] 5537
 ```
 
@@ -238,8 +263,9 @@ slice1 <- filterSample(sirup, "mg_thymus_slice1")
 slice1
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,396 spatial IDs, 449 genes, 1 image
-#> Receptor data:   tibble, 1,967 receptor sequences x 58 columns
-#> Spatial overlap: 770/772 receptor IDs in spatial data (99.7%)
+#> Receptor data:   2 slots
+#>   BCR: 1,967 receptor sequences x 58 columns; 770/772 receptor IDs in spatial data (99.7%)
+#>   TCR: 0 receptor sequences x 58 columns; 0/0 receptor IDs in spatial data (NaN%)
 #> Spatial ID field: barcode_10x
 #> Analyses:        0
 ```
@@ -262,8 +288,9 @@ merged <- mergeSIRUP(
 merged
 #> <SIRUP object>
 #> Spatial data:    Seurat, 6,599 spatial IDs, 449 genes, 2 spatial samples, 2 images
-#> Receptor data:   tibble, 4,072 receptor sequences x 58 columns
-#> Spatial overlap: 1,567/1,640 receptor IDs in spatial data (95.5%)
+#> Receptor data:   2 slots
+#>   BCR: 4,072 receptor sequences x 58 columns; 1,567/1,640 receptor IDs in spatial data (95.5%)
+#>   TCR: 3,610 receptor sequences x 58 columns; 1,414/1,571 receptor IDs in spatial data (90.0%)
 #> Samples:         2
 #> Spatial ID field: barcode_10x
 #> Sample ID field: sample
@@ -338,18 +365,19 @@ spatialExpressionPlot(
 
 ## Call clones across all samples
 
-Call clones on the whole receptor table. One clone ID then covers the
+Call clones on the whole BCR table. One clone ID then covers the
 sections, the bulk thymus, and the blood.
 
 ``` r
 sirup <- updateReceptors(
   sirup,
   scoper::hierarchicalClones,
+  slot = "BCR",
   threshold = 0.1,
   summarize_clones = FALSE,
   nproc = 1
 )
-dplyr::n_distinct(getReceptors(sirup)$clone_id)
+dplyr::n_distinct(getReceptors(sirup, slot = "BCR")$clone_id)
 #> [1] 1860
 ```
 
@@ -360,7 +388,7 @@ sequences in each compartment. It also records the eGCs that hold the
 clone.
 
 ``` r
-clones <- getReceptors(sirup) %>%
+clones <- getReceptors(sirup, slot = "BCR") %>%
   group_by(clone_id) %>%
   summarise(
     in_section = any(compartment %in% c("thymus_slice1", "thymus_slice2")),
@@ -410,7 +438,7 @@ For each eGC, count the clones that it holds and the clones that reach
 the blood.
 
 ``` r
-getReceptors(sirup) %>%
+getReceptors(sirup, slot = "BCR") %>%
   filter(!is.na(polygon_id)) %>%
   distinct(polygon_id, clone_id) %>%
   left_join(select(clones, clone_id, in_blood), by = "clone_id") %>%
@@ -451,7 +479,7 @@ once. The dominance table has a `sample` column and the full
 [Draw tissue regions and measure clonal dominance and diversity](regions.md).
 
 ``` r
-dominance <- spatialCloneDominance(object = sirup, locus_val = "IGH")
+dominance <- spatialCloneDominance(object = sirup, slot = "BCR", locus_val = "IGH")
 
 dominance$dominance %>%
   group_by(polygon_id) %>%
@@ -547,21 +575,26 @@ Keep `compartment` in `traits`. The tree plot uses it to set the tip
 shapes.
 
 ``` r
-tree_sirup <- updateReceptors(sirup, dplyr::filter, clone_id == tree_clone)
+tree_sirup <- updateReceptors(sirup, dplyr::filter, clone_id == tree_clone, slot = "BCR")
 tree_sirup <- updateReceptors(
   tree_sirup,
   dowser::createGermlines,
+  slot = "BCR",
   references = dowser::readIMGT(imgt_dir),
   id = "sequence_id"
 )
+#> Warning in fun(sirup_data, ...): 107 sequence lengths longer than predicted
+#> germlines, consider setting trim_lengths=TRUE if germlines fail
+#> [1] "Read in 1198 from 17 fasta files"
 tree_sirup <- formatSpatialClones(
   tree_sirup,
+  slot = "BCR",
   id = "sequence_id",
   traits = c("barcode_10x", "sample", "compartment", "polygon_id")
 )
 set.seed(1)
-tree_sirup <- getSpatialTrees(tree_sirup)
-trees <- getAnalysis(tree_sirup, "trees")
+tree_sirup <- getSpatialTrees(tree_sirup, slot = "BCR")
+trees <- getAnalysis(tree_sirup, "trees_BCR")
 ```
 
 `plotSpatialCloneTreePairs()` puts the spatial tips on their sections.
@@ -575,6 +608,7 @@ trees <- clusterTreesTips(trees, k = "auto", id = "sequence_id", k_range = 1:6)
 pair <- plotSpatialCloneTreePairs(
   trees,
   object = sirup,
+  slot = "BCR",
   id = "sequence_id",
   color_by = "tree_cluster",
   shape_by = "compartment",
@@ -590,6 +624,7 @@ pair <- plotSpatialCloneTreePairs(
 )
 
 names(pair)
+#> [1] "1045"
 ```
 
 The list has one element for each clone. If the tips of a clone fall in
@@ -613,6 +648,8 @@ cowplot::plot_grid(
 )
 ```
 
+![](multisample_files/figure-gfm/tree-plot-show-1.jpeg)
+
 Shapes show the compartment of each tip. Circles are tips from a
 section. Squares are bulk thymus. Triangles are blood at the thymectomy.
 Diamonds are blood 12 months later. The legend shows the colors, which
@@ -630,8 +667,9 @@ saveSIRUP(sirup, path)
 readSIRUP(path)
 #> <SIRUP object>
 #> Spatial data:    Seurat, 6,599 spatial IDs, 449 genes, 2 spatial samples, 2 images
-#> Receptor data:   tibble, 5,537 receptor sequences x 79 columns
-#> Spatial overlap: 1,567/1,640 receptor IDs in spatial data (95.5%)
+#> Receptor data:   2 slots
+#>   BCR: 5,537 receptor sequences x 79 columns; 1,567/1,640 receptor IDs in spatial data (95.5%)
+#>   TCR: 3,610 receptor sequences x 68 columns; 1,414/1,571 receptor IDs in spatial data (90.0%)
 #> Samples:         2
 #> Spatial ID field: barcode_10x
 #> Sample ID field: sample

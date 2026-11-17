@@ -1001,6 +1001,9 @@ addSequenceQualityMetrics <- function(airr_df,
 #'   `"spatial_id_2um"`). For a SIRUP object, if you omit it, the function uses
 #'   the stored spatial ID field. If the object has a sample field, the function
 #'   counts each spatial ID once for each sample.
+#' @param slot Name of the receptor slot to use if `airr_df` is a SIRUP object.
+#'   Leave it `NULL` if the object has one receptor table. You must give it if
+#'   the object has several slots.
 #'
 #' @return A one-row tibble with the columns `n_sequences`, `n_spatial_ids`,
 #'   `n_loci`, and `n_productive`. `n_loci` and `n_productive` are `NA` if the
@@ -1011,11 +1014,12 @@ addSequenceQualityMetrics <- function(airr_df,
 #' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
 #' spatialReceptorSummary(x)
 #' @export
-spatialReceptorSummary <- function(airr_df, spatial_id = "spatial_id_2um") {
+spatialReceptorSummary <- function(airr_df, spatial_id = "spatial_id_2um", slot = NULL) {
   spatial_id_missing <- missing(spatial_id)
   inputs <- .sirup_receptor_input(
     airr_df,
-    if (isSIRUP(airr_df) && spatial_id_missing) NULL else spatial_id
+    if (isSIRUP(airr_df) && spatial_id_missing) NULL else spatial_id,
+    slot
   )
   airr_df <- inputs$receptors
   spatial_id <- inputs$spatial_id_col %||% "spatial_id_2um"
@@ -1065,6 +1069,9 @@ spatialReceptorSummary <- function(airr_df, spatial_id = "spatial_id_2um") {
 #' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
 #' @param swap_coords Swap the x and y coordinates after the function reads the
 #'   Seurat coordinates?
+#' @param slot Name of the receptor slot to collapse if `object` is a SIRUP
+#'   object. Leave it `NULL` if the object has one receptor table. You must give
+#'   it if the object has several slots. The function changes only that slot.
 #' @param num_neighbors_non_boundary Number of nearby spots that makes a spot a
 #'   non-boundary spot (default 6).
 #' @param validate Validate the updated SIRUP object (default `TRUE`)? The
@@ -1084,6 +1091,7 @@ collapseIdenticalNeighbors <- function(object,
                                        image_scale = NULL,
                                        swap_coords = NULL,
                                        num_neighbors_non_boundary = 6L,
+                                       slot = NULL,
                                        validate = TRUE) {
   is_sirup <- isSIRUP(object)
   if (is_sirup) {
@@ -1092,7 +1100,8 @@ collapseIdenticalNeighbors <- function(object,
     }
     validateSIRUP(object)
     receptor_fields <- .sirup_receptor_fields(object)
-    receptors <- object$receptors
+    slot <- .sirup_resolve_slot(object, slot)
+    receptors <- .sirup_get_slot(object, slot)
     spatial_id <- spatial_id %||% receptor_fields$spatial_id
     sample_col <- .sirup_receptor_sample_col(receptors, receptor_fields, object$spatial)
     seurat_object <- object$spatial
@@ -1132,7 +1141,7 @@ collapseIdenticalNeighbors <- function(object,
     return(collapsed)
   }
 
-  object$receptors <- tibble::as_tibble(collapsed)
+  object <- .sirup_set_slot(object, slot, tibble::as_tibble(collapsed))
   if (isTRUE(validate)) {
     validateSIRUP(object)
   }

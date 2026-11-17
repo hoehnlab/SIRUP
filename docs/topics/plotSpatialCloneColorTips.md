@@ -18,6 +18,7 @@ plotSpatialCloneColorTips(
   image_scale = NULL,
   swap_coords = NULL,
   sample_id = NULL,
+  slot = NULL,
   ...
 )
 ```
@@ -55,6 +56,10 @@ plotSpatialCloneColorTips(
 `sample_id`
 
 :   Names of the samples to plot. Use it for multi-sample SIRUP objects. If `NULL`, the function plots all samples.
+
+`slot`
+
+:   Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots. The function ignores `slot` if you give a plain receptor table.
 
 `...`
 

@@ -25,7 +25,8 @@ spatialCloneJoinCount(
   alternative = "greater",
   other_label = "Other",
   use_stored_polygons = NULL,
-  return_data = FALSE
+  return_data = FALSE,
+  slot = NULL
 )
 }
 \arguments{
@@ -93,6 +94,11 @@ neighbor graph for each sample and ignore stored polygons. If \code{NULL}
 and you give no \code{polygon}. Otherwise, it uses \code{FALSE}.}
 
 \item{return_data}{Return the data used for each test (default \code{FALSE})?}
+
+\item{slot}{Name of the receptor slot to use. Leave it \code{NULL} if the SIRUP
+object has one receptor table. You must give it if the object has several
+slots and the function reads receptors. The function ignores \code{slot} if you
+give a plain receptor table.}
 }
 \value{
 A list with these items: \code{summary} (a table with one row for each

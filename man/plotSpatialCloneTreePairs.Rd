@@ -51,6 +51,7 @@ plotSpatialCloneTreePairs(
   polygon_label_size = 3,
   polygon_label_color = "black",
   nproc = 1L,
+  slot = NULL,
   ...
 )
 }
@@ -193,6 +194,10 @@ the function uses the polygon ID.}
 \code{"black"}).}
 
 \item{nproc}{Number of processes for building the plot pairs (default 1).}
+
+\item{slot}{Name of the receptor slot to use. Leave it \code{NULL} if the SIRUP
+object has one receptor table. You must give it if the object has several
+slots. The function ignores \code{slot} if you give a plain receptor table.}
 
 \item{...}{Other arguments for \code{\link[=plotSpatialColorTips]{plotSpatialColorTips()}}.}
 }

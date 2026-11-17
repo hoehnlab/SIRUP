@@ -172,7 +172,8 @@ spatialCloneJoinCount(
   alternative = "greater",
   other_label = "Other",
   use_stored_polygons = NULL,
-  return_data = FALSE
+  return_data = FALSE,
+  slot = NULL
 )
 ```
 
@@ -199,6 +200,7 @@ Arguments:
 - `other_label`: Label for the spatial IDs that do not contain the tested clone (default `"Other"`).
 - `use_stored_polygons`: Run one test for each stored polygon of a SIRUP object? Use `TRUE` to require stored polygons. Use `FALSE` to build one neighbor graph for each sample and ignore stored polygons. If `NULL` (default), the function uses `TRUE` when a SIRUP object has stored polygons and you give no `polygon`. Otherwise, it uses `FALSE`.
 - `return_data`: Return the data used for each test (default `FALSE`)?
+- `slot`: Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots and the function reads receptors. The function ignores `slot` if you give a plain receptor table.
 
 Value: A list with these items: `summary` (a table with one row for each tested clone and region, ordered by p-value), `tests` (the `spdep` test results), `data` (the data for each test, or `NULL` if `return_data` is `FALSE`), `neighbors`, `weights`, `radius`, `k`, `alternative`, and `min_spatial_ids`.
 
@@ -219,7 +221,8 @@ spatialCloneSpread(
   image_scale = NULL,
   swap_coords = NULL,
   min_spatial_ids = 2L,
-  collapse_within_spot = FALSE
+  collapse_within_spot = FALSE,
+  slot = NULL
 )
 ```
 
@@ -235,6 +238,7 @@ Arguments:
 - `swap_coords`: Swap the x and y coordinates before the function calculates distances?
 - `min_spatial_ids`: Smallest number of observations that a clone needs in a sample (default 2). If `collapse_within_spot` is `TRUE`, the function counts distinct spots. Otherwise, it counts sequences.
 - `collapse_within_spot`: Merge the sequences that share a spatial ID into one point before the function calculates distances (default `FALSE`)? If `FALSE`, the function counts every sequence, so sequences in the same spot give pairs with distance zero. Use `TRUE` to measure the spread over distinct spots only.
+- `slot`: Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots and the function reads receptors. The function ignores `slot` if you give a plain receptor table.
 
 Value: A tibble with one row for each sample and clone. The columns are `sample`, `clone_id`, `n_spatial_ids`, `mean_pairwise_distance`, and `max_pairwise_distance`.
 
@@ -357,7 +361,8 @@ spatialLocalMoran(
   image_scale = NULL,
   swap_coords = NULL,
   radius = NULL,
-  k = 6
+  k = 6,
+  slot = NULL
 )
 ```
 
@@ -377,6 +382,7 @@ Arguments:
 - `swap_coords`: Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in the SIRUP object. Give a value if `object` is a Seurat object.
 - `radius`: Distance that defines a neighborhood. If `NULL`, the function uses the `k` nearest neighbors.
 - `k`: Number of nearest neighbors, used if `radius` is `NULL` (default 6).
+- `slot`: Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots and the function reads receptors. The function ignores `slot` if you give a plain receptor table.
 
 Value: A data frame with the coordinates, the values, local Moran\'s I, the z-scores, and the p-values.
 
@@ -402,7 +408,8 @@ spatialMoran(
   swap_coords = NULL,
   radius = NULL,
   k = 6,
-  alternative = "greater"
+  alternative = "greater",
+  slot = NULL
 )
 ```
 
@@ -423,6 +430,7 @@ Arguments:
 - `radius`: Distance that defines a neighborhood. If `NULL`, the function uses `k`.
 - `k`: Number of nearest neighbors, used if `radius` is `NULL` (default 6).
 - `alternative`: Alternative hypothesis for `spdep::moran.test()` (default `"greater"`).
+- `slot`: Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots and the function reads receptors. The function ignores `slot` if you give a plain receptor table.
 
 Value: For one image, a list with these items: `test` (the `spdep::moran.test()` result), `data` (the values tested), `neighbors` and `weights` (from `spdep`), `radius`, `k`, and `variable`. For several images, the list has `tests`, `neighbors`, and `weights` as named lists with one entry for each image. It also has `summary`, a data frame with one row for each image (`image`, `statistic`, `p_value`, `moran_i`, `expectation`, `variance`), and the items `data`, `radius`, `k`, and `variable`.
 

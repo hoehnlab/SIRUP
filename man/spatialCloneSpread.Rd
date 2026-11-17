@@ -14,7 +14,8 @@ spatialCloneSpread(
   image_scale = NULL,
   swap_coords = NULL,
   min_spatial_ids = 2L,
-  collapse_within_spot = FALSE
+  collapse_within_spot = FALSE,
+  slot = NULL
 )
 }
 \arguments{
@@ -48,6 +49,11 @@ one point before the function calculates distances (default \code{FALSE})? If
 \code{FALSE}, the function counts every sequence, so sequences in the same spot
 give pairs with distance zero. Use \code{TRUE} to measure the spread over
 distinct spots only.}
+
+\item{slot}{Name of the receptor slot to use. Leave it \code{NULL} if the SIRUP
+object has one receptor table. You must give it if the object has several
+slots and the function reads receptors. The function ignores \code{slot} if you
+give a plain receptor table.}
 }
 \value{
 A tibble with one row for each sample and clone. The columns are

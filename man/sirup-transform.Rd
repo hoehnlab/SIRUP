@@ -12,6 +12,7 @@ updateReceptors(
   fun,
   ...,
   sample_id = NULL,
+  slot = NULL,
   receptor_fields = NULL,
   validate = TRUE
 )
@@ -30,6 +31,10 @@ selected part of the SIRUP object as its first argument.}
 
 \item{sample_id}{Name of the spatial sample to update. Use it only for
 multi-sample objects.}
+
+\item{slot}{Name of the receptor slot that \code{updateReceptors} changes. Leave it
+\code{NULL} if the object has one receptor table. You must give it if the object
+has several slots.}
 
 \item{receptor_fields}{Named list of receptor field mappings to change. The
 names can be \code{spatial_id}, \code{image}, \code{sample}, \code{clone}, \code{locus}, or \code{count}.
@@ -53,6 +58,10 @@ object has no clone field and the result has a \code{clone_id} column, the funct
 records \code{clone_id} as the clone field. Use \code{receptor_fields} to set or clear a
 mapping yourself. If you give \code{sample_id}, the function applies \code{fun} to the rows
 of that sample only. It then puts the result back in the full table.
+If the object has several receptor slots, \code{slot} chooses the table that \code{fun}
+changes. The other slots stay as they are. The field mappings are shared by
+all slots. The \code{spatial_id} and \code{sample} columns must stay in every slot. The
+other mapped columns, such as \code{clone_id}, must stay in at least one slot.
 
 \code{updateSpatial} needs a function that returns a Seurat object. In a
 multi-sample object, it applies \code{fun} to every Seurat object. If you give

@@ -12,9 +12,10 @@
 summarizePolygonDiversity(
   object,
   q,
-  diversity_analysis = "polygon_diversity",
+  diversity_analysis = NULL,
   analysis_name = NULL,
   tolerance = sqrt(.Machine$double.eps),
+  slot = NULL,
   validate = TRUE
 )
 ```
@@ -31,15 +32,19 @@ summarizePolygonDiversity(
 
 `diversity_analysis`
 
-:   Name of the stored analysis from [`polygonDiversity()`](polygonDiversity.md) (default `"polygon_diversity"`).
+:   Name of the stored analysis from [`polygonDiversity()`](polygonDiversity.md). If `NULL`, the function uses `"polygon_diversity"`, or `"polygon_diversity_<slot>"` if the object has several receptor slots.
 
 `analysis_name`
 
-:   Name for the stored table. If `NULL`, the function uses `polygon_diversity_q` followed by the value of `q`.
+:   Name for the stored table. If `NULL`, the function uses `polygon_diversity_q` followed by the value of `q`, and the slot name if the object has several receptor slots.
 
 `tolerance`
 
 :   Tolerance for the match of `q` (default `sqrt(.Machine$double.eps)`).
+
+`slot`
+
+:   Name of the receptor slot whose diversity you summarize. The function uses it only to find the default analysis names. Leave it `NULL` if the object has one receptor table. You must give it if the object has several slots and you use the default names.
 
 `validate`
 

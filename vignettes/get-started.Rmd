@@ -47,6 +47,7 @@ extdata <- SIRUP::downloadSIRUPExample(
   files = c(
   "mg_thymus_slice2_spatial.rds",
   "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_tcr.tsv.gz",
   "mg_thymus_slice2_gc_polygons.csv",
   "mg_thymus_cell_types.csv.gz"
   )
@@ -85,6 +86,7 @@ This vignette uses these files:
 |---|---|
 | `mg_thymus_slice2_spatial.rds` | A spatial Seurat object for MG thymus |
 | `mg_thymus_slice2_bcr.tsv.gz` | AIRR rearrangement table of IGH sequences with spatial IDs |
+| `mg_thymus_slice2_tcr.tsv.gz` | AIRR rearrangement table of TRB sequences with spatial IDs |
 | `mg_thymus_slice2_gc_polygons.csv` | Annotated polygons of the eGCs |
 | `mg_thymus_cell_types.csv.gz` | Cell-type proportions for each spot |
 
@@ -111,9 +113,11 @@ bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz
 bcrs %>%
   select(sequence_id, v_call, j_call, c_call, sequence_alignment) %>%
   head()
+
+tcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_tcr.tsv.gz"))
 ```
 
-Each row is one BCR sequence. The processing pipeline wrote the spatial ID at
+Each row is one BCR or TCR sequence. The processing pipeline wrote the spatial ID at
 the end of `sequence_id`, after a comma.
 
 ## Match each sequence to a spot
@@ -130,9 +134,17 @@ bcrs <- extractSpatialIds(
   regex = ",([ACGT]{16})$",
   suffix = "-1"
 )
+tcrs <- extractSpatialIds(
+  tcrs,
+  id = "sequence_id",
+  spatial_id = "barcode_10x",
+  regex = ",([ACGT]{16})$",
+  suffix = "-1"
+)
 
 head(colnames(thymus))
 mean(bcrs$barcode_10x %in% colnames(thymus))
+mean(tcrs$barcode_10x %in% colnames(thymus))
 ```
 
 A few sequences have a spatial ID that is not in the Seurat object. The spot was likely
@@ -155,19 +167,34 @@ bcrs <- filterAirr(
   min_consensus_count = NULL,
   spatial_id = "barcode_10x"
 )
+
+tcrs <- filterAirr(
+  tcrs,
+  locus_val = "TRB",
+  min_v_length = 250,
+  min_j_length = 30,
+  min_junction_length = 10,
+  productive_only = TRUE,
+  min_consensus_count = NULL,
+  spatial_id = "barcode_10x"
+)
 ```
 
 ## Create a SIRUP object
 
-`createSIRUP()` joins the Seurat object and the receptor table. Tell it which
-receptor column holds the spatial ID and which holds the locus. You can also 
+`createSIRUP()` joins the Seurat object and the receptor tables. This object
+holds BCRs and TCRs. Give `receptors` a named list with one table for each receptor type. 
+Each table is a *slot*, and here the slots are named `"BCR"` and `"TCR"`. Later
+functions that read receptors take a `slot` argument. This guide uses `slot = "BCR"`.
+Tell `createSIRUP()` which receptor column holds the spatial ID and which holds the locus.
+All slots share these field names. You can also 
 specify the image scale and coordinate settings when constructing the object, 
 which are discussed further below.
 
 ```{r create}
 sirup <- createSIRUP(
   spatial = thymus,
-  receptors = bcrs,
+  receptors = list(BCR = bcrs, TCR = tcrs),
   spatial_id = "barcode_10x",
   locus = "locus",
   image_scale = "lowres",
@@ -177,8 +204,13 @@ sirup <- createSIRUP(
 
 sirup
 
+receptorSlots(sirup)
+
 summary(sirup)
 ```
+
+If an object holds one receptor table, give `receptors` the table itself, and you do not need `slot`.
+`vignette("sirup-object", package = "SIRUP")` explains slots.
 
 If a `spatial_id`, `locus`, and/or `clone` column are specified when constructing the SIRUP object,
 later functions can find these columns without including them as arguments.
@@ -213,12 +245,13 @@ A clone is a group of cells that descend from a common ancestor. Many SIRUP
 functions work with clone-level data, but SIRUP does not itself build clones. 
 The `updateReceptors()` function is a method that can runs any function on 
 the receptor table and updates the receptor table in the object with the result. 
-This call runs `hierarchicalClones()` from the `scoper` package.
+This call runs `hierarchicalClones()` from the `scoper` package on the BCR slot.
 
 ```{r call-clones}
 sirup <- updateReceptors(
   sirup,
   scoper::hierarchicalClones,
+  slot = "BCR",
   threshold = 0.1,
   summarize_clones = FALSE,
   nproc = 1
@@ -259,6 +292,7 @@ they all are colored the same.
 ```{r receptors}
 plotReceptors(
   sirup,
+  slot = "BCR",
   group = "locus",
   colors = "#0072B2",
   receptor_size = 1.2,
@@ -270,7 +304,7 @@ To restrict a receptors plot to a set with only a particular value of the `group
 use the `group_val` argument. This plot includes only the three largest IGH clones.
 
 ```{r clones}
-top_clones <- getReceptors(sirup) %>%
+top_clones <- getReceptors(sirup, slot = "BCR") %>%
   count(clone_id, sort = TRUE) %>%
   slice_head(n = 3) %>%
   pull(clone_id)
@@ -278,6 +312,7 @@ top_clones
 
 plotReceptors(
   sirup,
+  slot = "BCR",
   group = "clone_id",
   group_val = top_clones,
   overlap = "average",
@@ -298,6 +333,7 @@ filled points. Spots with a receptor have a hollow ring on top:
 ```{r receptors-expression}
 plotReceptorsExpression(
   sirup,
+  slot = "BCR",
   group = "locus",
   gene = "AICDA",
   assay = "alra",
@@ -375,11 +411,11 @@ plotSpatialPolygons(
 )
 ```
 
-The receptor table now has a `polygon_id` column. Receptors outside every
+Every receptor table now has a `polygon_id` column. Receptors outside every
 polygon get `NA`:
 
 ```{r polygon-column}
-getReceptors(sirup) %>%
+getReceptors(sirup, slot = "BCR") %>%
   count(polygon_id)
 ```
 
@@ -389,8 +425,8 @@ getReceptors(sirup) %>%
 polygon. It stores the result in the object as an analysis.
 
 ```{r polygon-summary}
-sirup <- polygonReceptorSummary(sirup, polygon_id = "polygon_id")
-getAnalysis(sirup, "polygon_receptor_summary")
+sirup <- polygonReceptorSummary(sirup, slot = "BCR", polygon_id = "polygon_id")
+getAnalysis(sirup, "polygon_receptor_summary_BCR")
 ```
 
 Clonal dominance measures how much of a region the largest clones fill.
@@ -399,7 +435,7 @@ that belongs to each clone. `plotSpatialPolygonPies()` draws one pie chart (or s
 each polygon next to the tissue.
 
 ```{r dominance, fig.width = 9, fig.height = 6}
-dominance <- spatialCloneDominance(object = sirup)
+dominance <- spatialCloneDominance(object = sirup, slot = "BCR")
 
 dominance$dominance %>%
   group_by(polygon) %>%

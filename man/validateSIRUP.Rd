@@ -23,12 +23,17 @@ The function gives an error if one of these checks fails:
 \itemize{
 \item The object does not have class \code{sirup}.
 \item No receptor spatial ID matches a cell or spot name in the Seurat
-object.
+object. The function checks every receptor slot.
 \item A column named in \code{metadata$receptor_fields} does not exist in the
-receptor table.
-\item The \code{sample} field is set, but the column is missing from the receptor
+receptor table. The \code{spatial_id} column must be in every receptor slot.
+Each other named column, such as \code{clone_id}, must be in at least one slot.
+\item The \code{sample} field is set, but the column is missing from a receptor
 table or from the Seurat metadata.
 }
+
+An object with several receptor slots can have a slot with no rows. For
+example, one section can have BCRs and no TCRs. The function skips the spatial
+ID checks for that slot.
 }
 \examples{
 x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))

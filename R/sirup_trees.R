@@ -512,7 +512,12 @@ clusterTreesTips <- function(trees,
 #'
 #' @param object A SIRUP object.
 #' @param analysis_name Name for the stored formatted clones (default
-#'   `"f_clones"`).
+#'   `"f_clones"`). If the object has several receptor slots, the default also
+#'   ends with `_` and the slot name.
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots. 
+
 #' @param seq Name of the column that holds the observed DNA sequences (default
 #'   `"sequence_alignment"`). The sequences must be aligned to each other.
 #' @param clone Name of the column that holds the clone ID (default
@@ -575,6 +580,9 @@ clusterTreesTips <- function(trees,
 #'   light chain (default `FALSE`)?
 #' @param columns Names of other columns to keep in the result.
 #' @param validate Validate the updated SIRUP object (default `TRUE`)?
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots.
 #'
 #' @return The updated SIRUP object, with the formatted clones as an analysis.
 #' @seealso [getSpatialTrees()], [dowser::formatClones()]
@@ -590,7 +598,7 @@ clusterTreesTips <- function(trees,
 #' getAnalysis(x, "f_clones")
 #' @export
 formatSpatialClones <- function(object,
-                                analysis_name = "f_clones",
+                                analysis_name = NULL,
                                 seq = "sequence_alignment",
                                 clone = "clone_id",
                                 subgroup = "clone_subgroup",
@@ -624,9 +632,10 @@ formatSpatialClones <- function(object,
                                 light_traits = FALSE,
                                 majoronly = FALSE,
                                 columns = NULL,
+                                slot = NULL,
                                 validate = TRUE) {
   validateSIRUP(object)
-  receptors <- getReceptors(object)
+  receptors <- getReceptors(object, slot = slot)
   if (!germ %in% colnames(receptors)) {
     rlang::abort(paste0(
       "The receptor table does not contain `", germ,
@@ -684,6 +693,7 @@ formatSpatialClones <- function(object,
     majoronly = majoronly,
     columns = columns
   )
+  analysis_name <- analysis_name %||% .sirup_slot_analysis_name(object, "f_clones", slot)
   setAnalysis(object, analysis_name, f_clones, validate = validate)
 }
 
@@ -714,9 +724,16 @@ formatSpatialClones <- function(object,
 #' The arguments from `trait` to `...` go to [dowser::getTrees()].
 #'
 #' @param object A SIRUP object.
-#' @param f_clones_analysis Name of the stored formatted clones (default
-#'   `"f_clones"`).
-#' @param analysis_name Name for the stored trees (default `"trees"`).
+#' @param f_clones_analysis Name of the stored formatted clones. If `NULL`, the
+#'   function uses `"f_clones"`, or `"f_clones_<slot>"` if the object has several
+#'   receptor slots.
+#' @param analysis_name Name for the stored trees (default `"trees"`). If the
+#'   object has several receptor slots, the default also ends with `_` and the
+#'   slot name.
+#' @param slot Name of the receptor slot that the trees come from. The function
+#'   uses it only to find the default analysis names. Leave it `NULL` if the
+#'   object has one receptor table. You must give it if the object has several
+#'   slots and you use the default names.
 #' @param trait Trait for the parsimony models. You need it if you use
 #'   `igphyml`.
 #' @param id Unique name for this analysis. You need it if you use `igphyml` or
@@ -756,8 +773,8 @@ formatSpatialClones <- function(object,
 #' getAnalysis(x, "trees")
 #' @export
 getSpatialTrees <- function(object,
-                            f_clones_analysis = "f_clones",
-                            analysis_name = "trees",
+                            f_clones_analysis = NULL,
+                            analysis_name = NULL,
                             trait = NULL,
                             id = NULL,
                             dir = NULL,
@@ -774,8 +791,10 @@ getSpatialTrees <- function(object,
                             collapse = FALSE,
                             check_divergence = TRUE,
                             ...,
+                            slot = NULL,
                             validate = TRUE) {
   validateSIRUP(object)
+  f_clones_analysis <- f_clones_analysis %||% .sirup_slot_analysis_name(object, "f_clones", slot)
   clones <- getAnalysis(object, f_clones_analysis)
   trees <- dowser::getTrees(
     clones = clones,
@@ -796,6 +815,7 @@ getSpatialTrees <- function(object,
     check_divergence = check_divergence,
     ...
   )
+  analysis_name <- analysis_name %||% .sirup_slot_analysis_name(object, "trees", slot)
   setAnalysis(object, analysis_name, trees, validate = validate)
 }
 

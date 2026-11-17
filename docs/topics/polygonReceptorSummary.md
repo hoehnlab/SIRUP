@@ -19,7 +19,8 @@ polygonReceptorSummary(
   summary_columns = NULL,
   summary_operations = NULL,
   include_total_spots = FALSE,
-  analysis_name = "polygon_receptor_summary",
+  analysis_name = NULL,
+  slot = NULL,
   validate = TRUE
 )
 ```
@@ -64,7 +65,11 @@ polygonReceptorSummary(
 
 `analysis_name`
 
-:   Name for the stored summary in a SIRUP object (default `"polygon_receptor_summary"`).
+:   Name for the stored summary in a SIRUP object (default `"polygon_receptor_summary"`). If the object has several receptor slots, the default also ends with `⁠_⁠` and the slot name.
+
+`slot`
+
+:   Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots. The function ignores `slot` if you give a plain receptor table.
 
 `validate`
 

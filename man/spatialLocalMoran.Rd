@@ -18,7 +18,8 @@ spatialLocalMoran(
   image_scale = NULL,
   swap_coords = NULL,
   radius = NULL,
-  k = 6
+  k = 6,
+  slot = NULL
 )
 }
 \arguments{
@@ -64,6 +65,11 @@ function uses the value stored in the SIRUP object. Give a value if
 uses the \code{k} nearest neighbors.}
 
 \item{k}{Number of nearest neighbors, used if \code{radius} is \code{NULL} (default 6).}
+
+\item{slot}{Name of the receptor slot to use. Leave it \code{NULL} if the SIRUP
+object has one receptor table. You must give it if the object has several
+slots and the function reads receptors. The function ignores \code{slot} if you
+give a plain receptor table.}
 }
 \value{
 A data frame with the coordinates, the values, local Moran's I, the

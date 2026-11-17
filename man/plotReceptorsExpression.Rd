@@ -38,7 +38,8 @@ plotReceptorsExpression(
   receptor_legend_title = NULL,
   show_receptor_legend = TRUE,
   combine = TRUE,
-  combine_sample_plots = FALSE
+  combine_sample_plots = FALSE,
+  slot = NULL
 )
 }
 \arguments{
@@ -135,6 +136,10 @@ function uses \code{group}.}
 \item{combine_sample_plots}{Combine the plots of all samples into one
 patchwork (default \code{FALSE})? The function uses it only for multi-sample
 objects. If \code{FALSE}, it returns a named list with one plot for each sample.}
+
+\item{slot}{Name of the receptor slot to use. Leave it \code{NULL} if the SIRUP
+object has one receptor table. You must give it if the object has several
+slots. The function ignores \code{slot} if you give a plain receptor table.}
 }
 \value{
 A ggplot object or a patchwork object. If \code{combine = FALSE}, a list.

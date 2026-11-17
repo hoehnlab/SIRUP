@@ -43,12 +43,14 @@ extdata <- SIRUP::downloadSIRUPExample(
   files = c(
   "mg_thymus_slice2_spatial.rds",
   "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_tcr.tsv.gz",
   "mg_thymus_slice2_gc_polygons.csv"
   )
 )
-#> ℹ Downloading 'mg_thymus_slice2_spatial.rds'
-#> ℹ Downloading 'mg_thymus_slice2_bcr.tsv.gz'
-#> ℹ Downloading 'mg_thymus_slice2_gc_polygons.csv'
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
 ```
 
 ## Load the data
@@ -85,17 +87,39 @@ bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz
   ) %>%
   filter(!grepl("[^ACGT]", junction))
 #> filterAirr kept 2189 of 3793 rows (dropped 1604).
+tcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_tcr.tsv.gz")) %>%
+  extractSpatialIds(
+    id = "sequence_id",
+    spatial_id = "barcode_10x",
+    regex = ",([ACGT]{16})$",
+    suffix = "-1"
+  ) %>%
+  mutate(sequence_id = gsub(",", "_", sequence_id)) %>%
+  filterAirr(
+    locus_val = "TRB",
+    min_v_length = 250,
+    min_j_length = 30,
+    min_junction_length = 10,
+    productive_only = TRUE,
+    min_consensus_count = NULL,
+    spatial_id = "barcode_10x"
+  ) %>%
+  filter(!grepl("[^ACGT]", junction))
+#> filterAirr kept 3718 of 7915 rows (dropped 4197).
 
 sirup <- createSIRUP(
   spatial = thymus,
-  receptors = bcrs,
+  receptors = list(BCR = bcrs, TCR = tcrs),
   spatial_id = "barcode_10x",
   image_scale = "lowres",
   swap_coords = FALSE,
   polygons_path = file.path(extdata, "mg_thymus_slice2_gc_polygons.csv")
 )
-#> Loading required namespace: Seurat
 ```
+
+The object holds two receptor slots, `"BCR"` and `"TCR"`. The functions
+on this page read one slot at a time. This page works on the BCR slot,
+so each call that reads receptors has `slot = "BCR"`.
 
 The code replaces the comma in each `sequence_id` with `_`. dowser
 writes trees in Newick format, and a comma separates tips in that
@@ -107,6 +131,7 @@ each tip on the tissue.
 
 The object has no clones yet. To call clones, run
 `scoper::hierarchicalClones()` through `updateReceptors()`.
+`slot = "BCR"` tells `updateReceptors()` to change the BCR table only.
 `updateReceptors()` gives the receptor table to the function as its
 first argument, with your other arguments. It then stores the returned
 table and validates the object.
@@ -115,6 +140,7 @@ table and validates the object.
 sirup <- updateReceptors(
   sirup,
   scoper::hierarchicalClones,
+  slot = "BCR",
   threshold = 0.1,
   summarize_clones = FALSE,
   nproc = 1
@@ -123,13 +149,14 @@ sirup <- updateReceptors(
 sirup
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image
-#> Receptor data:   tibble, 2,105 receptor sequences x 67 columns
-#> Spatial overlap: 797/868 receptor IDs in spatial data (91.8%)
+#> Receptor data:   2 slots
+#>   BCR: 2,105 receptor sequences x 67 columns; 797/868 receptor IDs in spatial data (91.8%)
+#>   TCR: 3,610 receptor sequences x 66 columns; 1,414/1,571 receptor IDs in spatial data (90.0%)
 #> Spatial ID field: barcode_10x
 #> Clone ID field:  clone_id
 #> Analyses:        0
 #> Polygons:        9
-dplyr::n_distinct(getReceptors(sirup)$clone_id)
+dplyr::n_distinct(getReceptors(sirup, slot = "BCR")$clone_id)
 #> [1] 953
 ```
 
@@ -159,16 +186,18 @@ and tree chunks on this page run only when that folder exists.
 
 ``` r
 references <- dowser::readIMGT(imgt_dir)
+#> [1] "Read in 1198 from 17 fasta files"
 
 sirup <- updateReceptors(
   sirup,
   dowser::createGermlines,
+  slot = "BCR",
   references = references,
   id = "sequence_id",
   nproc = 1
 )
 
-sirup <- updateReceptors(sirup, function(receptors) {
+sirup <- updateReceptors(sirup, slot = "BCR", function(receptors) {
   chimera <- shazam::slideWindowDb(
     receptors,
     sequenceColumn = "sequence_alignment",
@@ -194,14 +223,15 @@ goes in `mu_freq`, the fraction of mutated positions.
 sirup <- updateReceptors(
   sirup,
   shazam::observedMutations,
+  slot = "BCR",
   sequenceColumn = "sequence_alignment",
   germlineColumn = "germline_alignment",
   frequency = TRUE,
   combine = TRUE
 )
-summary(getReceptors(sirup)$mu_freq)
+summary(getReceptors(sirup, slot = "BCR")$mu_freq)
 #>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#> 0.00000 0.01484 0.03857 0.04331 0.06609 0.15160
+#> 0.00000 0.01462 0.03750 0.04184 0.06377 0.13467
 ```
 
 `plotReceptors()` can color spots by a numeric receptor column. Give the
@@ -211,6 +241,7 @@ how SIRUP combines them. The default is the mean.
 ``` r
 plotReceptors(
   sirup,
+  slot = "BCR",
   group = "locus",
   value = "mu_freq",
   value_colors = c("white", "darkred"),
@@ -231,7 +262,7 @@ that have 10 to 60 sequences and at least one sequence in an eGC. It
 sorts them by the number of sequences in eGCs.
 
 ``` r
-clone_sizes <- getReceptors(sirup) %>%
+clone_sizes <- getReceptors(sirup, slot = "BCR") %>%
   group_by(clone_id) %>%
   summarise(
     n_sequences = n(),
@@ -246,8 +277,8 @@ head(clone_sizes)
 #> # A tibble: 6 × 5
 #>   clone_id n_sequences n_in_gc n_gcs gcs  
 #>   <chr>          <int>   <int> <int> <chr>
-#> 1 739               16       6     2 6, 7 
-#> 2 810               14       6     1 5    
+#> 1 739               15       6     2 6, 7 
+#> 2 810               13       6     1 5    
 #> 3 196               40       5     2 3, 5 
 #> 4 604               12       3     2 5, 6 
 #> 5 428               11       2     1 5    
@@ -261,6 +292,7 @@ the Visium slide.
 ``` r
 plotReceptors(
   sirup,
+  slot = "BCR",
   group = "clone_id",
   group_val = tree_clones,
   receptor_size = 1.6,
@@ -287,10 +319,11 @@ with only the clones that you want. `updateReceptors()` with
 `dplyr::filter()` does this.
 
 ``` r
-tree_sirup <- updateReceptors(sirup, dplyr::filter, clone_id %in% tree_clones)
+tree_sirup <- updateReceptors(sirup, dplyr::filter, clone_id %in% tree_clones, slot = "BCR")
 
 tree_sirup <- formatSpatialClones(
   tree_sirup,
+  slot = "BCR",
   analysis_name = "formatted_clones",
   id = "sequence_id",
   germ = "germline_alignment_d_mask",
@@ -300,6 +333,7 @@ tree_sirup <- formatSpatialClones(
 set.seed(1)
 tree_sirup <- getSpatialTrees(
   tree_sirup,
+  slot = "BCR",
   f_clones_analysis = "formatted_clones",
   analysis_name = "trees",
   build = "pratchet"
@@ -307,6 +341,12 @@ tree_sirup <- getSpatialTrees(
 
 trees <- getAnalysis(tree_sirup, "trees")
 trees
+#> # A tibble: 3 × 5
+#>   clone_id data       locus  seqs trees  
+#>   <chr>    <list>     <chr> <int> <list> 
+#> 1 196      <airrClon> IGH      38 <phylo>
+#> 2 739      <airrClon> IGH      15 <phylo>
+#> 3 810      <airrClon> IGH      13 <phylo>
 ```
 
 `traits` keeps the columns that the tree plots need. Keep the spatial
@@ -346,6 +386,7 @@ can find a tip of the tree on the tissue.
 pairs <- plotSpatialCloneTreePairs(
   trees,
   object = sirup,
+  slot = "BCR",
   clone_val = tree_clones,
   id = "sequence_id",
   zoom = TRUE,
@@ -353,7 +394,15 @@ pairs <- plotSpatialCloneTreePairs(
   polygon_alpha = 0,
   polygon_color = "black"
 )
+#> Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+#> ℹ Please use `linewidth` instead.
+#> ℹ The deprecated feature was likely used in the ggtree package.
+#>   Please report the issue at <https://github.com/YuLab-SMU/ggtree/issues>.
+#> This warning is displayed once per session.
+#> Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+#> generated.
 names(pairs)
+#> [1] "196" "739" "810"
 
 cowplot::plot_grid(
   pairs[[1]]$tree,
@@ -361,6 +410,8 @@ cowplot::plot_grid(
   rel_widths = c(1.2, 1)
 )
 ```
+
+![](clones-and-trees_files/figure-gfm/tree-pairs-1.jpeg)
 
 The result is a list with one element for each clone. Each element holds
 a `tree` plot and a `spatial_clone` plot. Tips with a spot in this
@@ -385,6 +436,7 @@ clustered <- clusterTreesTips(
 cluster_pairs <- plotSpatialCloneTreePairs(
   clustered,
   object = sirup,
+  slot = "BCR",
   clone_val = tree_clones,
   id = "sequence_id",
   color_by = "tree_cluster",
@@ -406,6 +458,8 @@ cowplot::plot_grid(
   rel_heights = c(1, cluster_pairs[[1]]$legend_rel_height)
 )
 ```
+
+![](clones-and-trees_files/figure-gfm/tree-clusters-1.jpeg)
 
 With `k = "auto"`, the function chooses `k` for each tree from
 `k_range`. It stops when one more cut reduces the mean within-group
@@ -447,6 +501,7 @@ multi_gc_clone <- clone_sizes %>%
   slice_max(n_gcs, n = 1, with_ties = FALSE) %>%
   pull(clone_id)
 multi_gc_clone
+#> [1] "739"
 
 index <- which(trees$clone_id == multi_gc_clone)
 clone_data <- trees$data[[index]]@data
@@ -470,6 +525,11 @@ pairs_table <- as.data.frame(as.table(distances)) %>%
 pairs_table %>%
   group_by(pair) %>%
   summarise(n_pairs = n(), median_distance = median(distance))
+#> # A tibble: 2 × 3
+#>   pair           n_pairs median_distance
+#>   <chr>            <int>           <dbl>
+#> 1 different eGCs       5          0.0273
+#> 2 same eGC            10          0.0178
 ```
 
 Read the two medians in the table. One clone cannot support a

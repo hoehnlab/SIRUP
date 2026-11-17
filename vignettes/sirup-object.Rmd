@@ -50,7 +50,7 @@ A SIRUP object is a list with five parts, in this order:
 | Part | Contents | How to get it |
 |---|---|---|
 | `spatial` | The Seurat object, with expression and the H&E image | `getSpatial(x)` |
-| `receptors` | The AIRR receptor table, as a tibble | `getReceptors(x)` |
+| `receptors` | The AIRR receptor table, as a tibble, or a named list of tables | `getReceptors(x)` |
 | `metadata` | The field names and the image settings | `x$metadata` |
 | `polygons` | The tissue regions, with one row for each polygon | `getPolygons(x)` |
 | `analyses` | Results that you choose to keep | `getAnalysis(x, name)` |
@@ -101,9 +101,12 @@ rules fails:
 
 1. The object has class `sirup`.
 2. At least one receptor spatial ID matches a spot name in the Seurat object.
-3. Each column that `receptor_fields` names exists in the receptor table.
-4. If the `sample` field is set, the column exists in both the receptor table
-   and the Seurat metadata.
+3. Each column that `receptor_fields` names exists in the receptor table. If the
+   object has several receptor tables, the spatial ID column must be in every
+   table. Each other named column, such as `clone_id`, must be in at least one
+   table.
+4. If the `sample` field is set, the column exists in every receptor table and
+   in the Seurat metadata.
 
 ```{r validate}
 validateSIRUP(x, verbose = TRUE)
@@ -201,6 +204,49 @@ and blood sequences use this feature. `mergeSIRUP()` joins several objects into 
 samples, spots, or receptor rows. `getSpatial()` and `getReceptors()` return the
 data of one sample when you give `sample_id`.
 `vignette("multisample", package = "SIRUP")` has a full example.
+
+## Several receptor tables
+
+One object can hold more than one receptor table, for example one table of BCRs
+and one of TCRs. Give `createSIRUP()` a named list of tables. Each table is a
+*slot*. All slots share the spatial data, the polygons, and the field names. The
+spatial ID column must be in every table. A column such as `clone_id` can be in
+one table only, for example in the BCR table. Clone IDs only need to be unique
+within one slot.
+
+```{r slots}
+bcr <- getReceptors(x)
+tcr <- bcr[1:8, ]
+tcr$locus <- "TRB"
+
+both <- createSIRUP(
+  spatial = getSpatial(x),
+  receptors = list(bcr = bcr, tcr = tcr),
+  spatial_id = "spatial_id",
+  clone = "clone_id",
+  image_scale = "hires",
+  swap_coords = FALSE,
+  polygons = getPolygons(x)
+)
+receptorSlots(both)
+both
+```
+
+Functions that use receptors work on one slot at a time. Choose the slot with the
+`slot` argument. If the object has several slots, you must give `slot`. If the
+object has one table, leave it out. That table has the slot name `"only_slot"`.
+
+```{r slot-use}
+head(getReceptors(both, slot = "tcr"), 3)
+both <- polygonReceptorSummary(both, slot = "tcr")
+listAnalyses(both)
+tryCatch(getReceptors(both), error = function(e) conditionMessage(e))
+```
+
+The polygons apply to every slot. A receptor is in a polygon if it is in the same
+sample and its spatial ID lies inside the polygon. The default analysis names
+end with the slot name, so results for different slots do not overwrite each
+other.
 
 ## Keep results with the data
 

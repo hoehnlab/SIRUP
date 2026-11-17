@@ -9,6 +9,9 @@
 #'   `j_sequence_end`, and `junction_length`.
 #' @param bin_width Width of the histogram bins (default 5).
 #' @param title Plot title.
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots. The function ignores `slot` if you give a plain receptor table.
 #'
 #' @return A ggplot object with one panel for each length.
 #' @seealso [filterAirr()]
@@ -17,8 +20,8 @@
 #' x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
 #' plotLengthQc(x)
 #' @export
-plotLengthQc <- function(airr_df, bin_width = 5, title = NULL) {
-  airr_df <- .sirup_receptor_input(airr_df)$receptors
+plotLengthQc <- function(airr_df, bin_width = 5, title = NULL, slot = NULL) {
+  airr_df <- .sirup_receptor_input(airr_df, slot = slot)$receptors
   .check_required_cols(airr_df, c("v_sequence_end", "v_sequence_start", "j_sequence_end", "j_sequence_start", "junction_length"), "airr_df")
   out <- .as_data_frame(airr_df)
   out$v_sequence_length <- out$v_sequence_end - out$v_sequence_start + 1L
@@ -694,6 +697,9 @@ spatialExpressionMultiPlot <- function(object,
 #' @param combine_sample_plots Combine the plots of all samples into one
 #'   patchwork (default `FALSE`)? The function uses it only for multi-sample
 #'   objects. If `FALSE`, it returns a named list with one plot for each sample.
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots. The function ignores `slot` if you give a plain receptor table.
 #'
 #' @return A ggplot object or a patchwork object. If `combine = FALSE`, a list.
 #' @seealso [plotReceptors()], [spatialExpressionPlot()]
@@ -735,12 +741,13 @@ plotReceptorsExpression <- function(object,
                                     receptor_legend_title = NULL,
                                     show_receptor_legend = TRUE,
                                     combine = TRUE,
-                                    combine_sample_plots = FALSE) {
+                                    combine_sample_plots = FALSE,
+                                    slot = NULL) {
   sample_id <- .sirup_plot_sample_id(object, sample_id)
   options <- .sirup_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
-  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id)
+  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id, slot)
   object <- inputs$object
   receptors <- inputs$receptors
   spatial_id <- inputs$spatial_id_col
@@ -1054,6 +1061,9 @@ plotReceptorsExpression <- function(object,
 #' @param combine_sample_plots Combine the plots of all samples into one
 #'   patchwork (default `FALSE`)? The function uses it only for multi-sample
 #'   objects. If `FALSE`, it returns a named list with one plot for each sample.
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots. The function ignores `slot` if you give a plain receptor table.
 #'
 #' @return A ggplot object or a patchwork object. If `combine = FALSE`, a list.
 #' @seealso [plotReceptorsExpression()], [plotSpatialColorTips()]
@@ -1102,7 +1112,8 @@ plotReceptors <- function(object,
                           polygon_label_size = 3,
                           polygon_label_color = "black",
                           combine = TRUE,
-                          combine_sample_plots = FALSE) {
+                          combine_sample_plots = FALSE,
+                          slot = NULL) {
   sample_id <- .sirup_plot_sample_id(object, sample_id)
   options <- .sirup_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
   image_scale <- options$image_scale
@@ -1118,7 +1129,7 @@ plotReceptors <- function(object,
     polygon_val = polygon_val,
     label_by = polygon_label_by
   )
-  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id)
+  inputs <- .sirup_resolve_inputs(object, receptors, spatial_id, slot)
   object <- inputs$object
   receptors <- inputs$receptors
   spatial_id <- inputs$spatial_id_col
@@ -1584,6 +1595,9 @@ plotSpatialColorTips <- function(object,
 #' @param sample_id Names of the samples to plot. Use it for multi-sample SIRUP
 #'   objects. If `NULL`, the function plots all samples.
 #' @param ... Other arguments for [plotSpatialColorTips()].
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots. The function ignores `slot` if you give a plain receptor table.
 #'
 #' @return A ggplot object.
 #' @seealso [plotSpatialColorTips()], [assignTipColors()], [plotSpatialCloneTreePairs()]
@@ -1601,6 +1615,7 @@ plotSpatialCloneColorTips <- function(colored_clones,
                                     image_scale = NULL,
                                     swap_coords = NULL,
                                     sample_id = NULL,
+                                    slot = NULL,
                                     ...) {
   clone_missing <- missing(clone)
   spatial_id_missing <- missing(spatial_id)
@@ -1612,7 +1627,8 @@ plotSpatialCloneColorTips <- function(colored_clones,
     spatial_options_object <- container
     plot_object <- tissue_positions %||% container
     tissue_positions <- tissue_positions %||% container$spatial
-    colored_clones <- container$receptors
+    colored_clones <- .sirup_get_slot(container, slot)
+    receptor_fields <- .sirup_slot_fields(receptor_fields, colored_clones)
     if (clone_missing && !is.null(receptor_fields$clone)) {
       clone <- receptor_fields$clone
     }
@@ -1766,6 +1782,9 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #'   `"black"`).
 #' @param nproc Number of processes for building the plot pairs (default 1).
 #' @param ... Other arguments for [plotSpatialColorTips()].
+#' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
+#'   object has one receptor table. You must give it if the object has several
+#'   slots. The function ignores `slot` if you give a plain receptor table.
 #'
 #' @return A named list with one element for each clone. Each element is a list
 #'   with the items `tree` and `spatial_clone` (the two plots), and `legend` and
@@ -1835,6 +1854,7 @@ plotSpatialCloneTreePairs <- function(trees,
                                       polygon_label_size = 3,
                                       polygon_label_color = "black",
                                       nproc = 1L,
+                                      slot = NULL,
                                       ...) {
   object_tip_ids <- NULL
   object_spatial_ids <- NULL
@@ -1849,7 +1869,7 @@ plotSpatialCloneTreePairs <- function(trees,
     if (is.null(spatial_id)) {
       spatial_id <- .sirup_receptor_fields(object)$spatial_id
     }
-    receptor_data <- getReceptors(object)
+    receptor_data <- getReceptors(object, slot = slot)
     .check_required_cols(receptor_data, c(sequence_id, spatial_id), "object receptor data")
     object_tip_ids <- unique(stats::na.omit(as.character(receptor_data[[sequence_id]])))
     object_spatial_ids <- unique(stats::na.omit(as.character(receptor_data[[spatial_id]])))

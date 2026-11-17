@@ -43,12 +43,14 @@ extdata <- SIRUP::downloadSIRUPExample(
   files = c(
   "mg_thymus_slice2_spatial.rds",
   "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_tcr.tsv.gz",
   "mg_thymus_slice2_gc_polygons.csv"
   )
 )
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
 ```
 
 ## Set up the object
@@ -81,10 +83,28 @@ bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz
   ) %>%
   filter(!grepl("[^ACGT]", junction))
 #> filterAirr kept 2189 of 3793 rows (dropped 1604).
+tcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_tcr.tsv.gz")) %>%
+  extractSpatialIds(
+    id = "sequence_id",
+    spatial_id = "barcode_10x",
+    regex = ",([ACGT]{16})$",
+    suffix = "-1"
+  ) %>%
+  filterAirr(
+    locus_val = "TRB",
+    min_v_length = 250,
+    min_j_length = 30,
+    min_junction_length = 10,
+    productive_only = TRUE,
+    min_consensus_count = NULL,
+    spatial_id = "barcode_10x"
+  ) %>%
+  filter(!grepl("[^ACGT]", junction))
+#> filterAirr kept 3718 of 7915 rows (dropped 4197).
 
 sirup <- createSIRUP(
   spatial = thymus,
-  receptors = bcrs,
+  receptors = list(BCR = bcrs, TCR = tcrs),
   spatial_id = "barcode_10x",
   image_scale = "lowres",
   swap_coords = FALSE
@@ -92,6 +112,7 @@ sirup <- createSIRUP(
 sirup <- updateReceptors(
   sirup,
   scoper::hierarchicalClones,
+  slot = "BCR",
   threshold = 0.1,
   summarize_clones = FALSE,
   nproc = 1
@@ -99,10 +120,12 @@ sirup <- updateReceptors(
 #> Running defineClonesScoper in bulk mode and only keep heavy chains
 ```
 
-The setup chunk reads the consensus BCRs of section 2. It takes the spot
-barcode from `sequence_id`. It keeps high-quality sequences that have an
-unambiguous junction. It then calls clones with
-`scoper::hierarchicalClones()`.
+The setup chunk reads the consensus BCRs and TCRs of section 2. It
+stores them as the slots `"BCR"` and `"TCR"` of one object. The polygons
+apply to both slots. The functions on this page read one slot at a time,
+and they use `slot = "BCR"`. It takes the spot barcode from
+`sequence_id`. It keeps high-quality sequences that have an unambiguous
+junction. It then calls BCR clones with `scoper::hierarchicalClones()`.
 [Get started with SIRUP](get-started.md) explains each step.
 
 ## Draw regions
@@ -187,8 +210,9 @@ sirup <- addPolygons(
 sirup
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image
-#> Receptor data:   tibble, 2,105 receptor sequences x 67 columns
-#> Spatial overlap: 797/868 receptor IDs in spatial data (91.8%)
+#> Receptor data:   2 slots
+#>   BCR: 2,105 receptor sequences x 67 columns; 797/868 receptor IDs in spatial data (91.8%)
+#>   TCR: 3,610 receptor sequences x 66 columns; 1,414/1,571 receptor IDs in spatial data (90.0%)
 #> Spatial ID field: barcode_10x
 #> Clone ID field:  clone_id
 #> Analyses:        0
@@ -226,6 +250,7 @@ outlines:
 ``` r
 plotReceptors(
   sirup,
+  slot = "BCR",
   group = "locus",
   colors = "#0072B2",
   receptor_size = 1,
@@ -263,7 +288,7 @@ zone <- vertices %>%
 
 nested <- addPolygons(sirup, polygons = bind_rows(vertices, zone))
 
-getReceptors(nested) %>%
+getReceptors(nested, slot = "BCR") %>%
   filter(polygon_5_zone) %>%
   count(polygon_id, polygon_5, polygon_5_zone)
 #> # A tibble: 2 × 4
@@ -290,13 +315,14 @@ stores the table in the object as an analysis:
 ``` r
 sirup <- polygonReceptorSummary(
   sirup,
+  slot = "BCR",
   polygon_id = "polygon_id",
   include_total_spots = TRUE,
   summary_columns = c("c_call", "junction_length"),
   summary_operations = c("cat", "mean")
 )
 
-getAnalysis(sirup, "polygon_receptor_summary")
+getAnalysis(sirup, "polygon_receptor_summary_BCR")
 #>   polygon_id n_receptors n_spatial_ids n_clones top_clone_fraction
 #> 1          1          28             6       16          0.1428571
 #> 2          2          23             3       16          0.1739130
@@ -337,6 +363,7 @@ returns a list with one result for each polygon:
 ``` r
 isotypes <- withPolygons(
   sirup,
+  slot = "BCR",
   function(receptors) {
     receptors %>%
       mutate(isotype = substr(c_call, 1, 4)) %>%
@@ -364,7 +391,7 @@ few, large clones. A polyclonal region has many small clones.
 `spatialCloneDominance()` computes this for every polygon:
 
 ``` r
-dominance <- spatialCloneDominance(object = sirup, locus_val = "IGH")
+dominance <- spatialCloneDominance(object = sirup, slot = "BCR", locus_val = "IGH")
 names(dominance)
 #> [1] "dominance"          "region_spatial_ids" "region_coordinates"
 #> [4] "region_receptors"   "polygons"           "metadata"
@@ -469,6 +496,8 @@ plotSpatialPolygonPies(
   top_n = 5,
   zoom = TRUE
 )
+#> Warning: package 'sf' was built under R version 4.5.3
+#> Linking to GEOS 3.7.2, GDAL 3.0.4, PROJ 6.3.2; sf_use_s2() is TRUE
 ```
 
 ![](regions_files/figure-gfm/clipped-1.jpeg)
@@ -513,8 +542,8 @@ confidence intervals. The function leaves out polygons with fewer than
 estimates and keeps fewer polygons:
 
 ``` r
-sirup <- polygonDiversity(sirup, polygon_id = "polygon_id", min_n = 10, nboot = 200)
-diversity <- getAnalysis(sirup, "polygon_diversity")
+sirup <- polygonDiversity(sirup, slot = "BCR", polygon_id = "polygon_id", min_n = 10, nboot = 200)
+diversity <- getAnalysis(sirup, "polygon_diversity_BCR")
 class(diversity)
 #> [1] "DiversityCurve"
 #> attr(,"package")
@@ -536,7 +565,7 @@ row for each polygon. `plotSpatialPolygons()` can then fill each polygon
 by a column of any stored analysis:
 
 ``` r
-sirup <- summarizePolygonDiversity(sirup, q = 1, analysis_name = "shannon")
+sirup <- summarizePolygonDiversity(sirup, slot = "BCR", q = 1, analysis_name = "shannon")
 
 plotSpatialPolygons(
   sirup,

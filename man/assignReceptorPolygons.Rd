@@ -19,7 +19,8 @@ assignReceptorPolygons(
   receptor_x = "x",
   receptor_y = "y",
   polygon_id = "polygon",
-  include_boundary = TRUE
+  include_boundary = TRUE,
+  slot = NULL
 )
 }
 \arguments{
@@ -67,6 +68,10 @@ by polygon (default \code{"polygon"}).}
 
 \item{include_boundary}{Count spots on a polygon edge as inside the polygon
 (default \code{TRUE})?}
+
+\item{slot}{Name of the receptor slot to use. Leave it \code{NULL} if the SIRUP
+object has one receptor table. You must give it if the object has several
+slots. The function ignores \code{slot} if you give a plain receptor table.}
 }
 \value{
 A tibble with the \code{column} added.

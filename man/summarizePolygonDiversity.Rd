@@ -7,9 +7,10 @@
 summarizePolygonDiversity(
   object,
   q,
-  diversity_analysis = "polygon_diversity",
+  diversity_analysis = NULL,
   analysis_name = NULL,
   tolerance = sqrt(.Machine$double.eps),
+  slot = NULL,
   validate = TRUE
 )
 }
@@ -19,13 +20,20 @@ summarizePolygonDiversity(
 \item{q}{Diversity order to take, for example \code{2} for Simpson diversity.}
 
 \item{diversity_analysis}{Name of the stored analysis from
-\code{\link[=polygonDiversity]{polygonDiversity()}} (default \code{"polygon_diversity"}).}
+\code{\link[=polygonDiversity]{polygonDiversity()}}. If \code{NULL}, the function uses \code{"polygon_diversity"},
+or \code{"polygon_diversity_<slot>"} if the object has several receptor slots.}
 
 \item{analysis_name}{Name for the stored table. If \code{NULL}, the function uses
-\code{polygon_diversity_q} followed by the value of \code{q}.}
+\code{polygon_diversity_q} followed by the value of \code{q}, and the slot name if
+the object has several receptor slots.}
 
 \item{tolerance}{Tolerance for the match of \code{q} (default
 \code{sqrt(.Machine$double.eps)}).}
+
+\item{slot}{Name of the receptor slot whose diversity you summarize. The
+function uses it only to find the default analysis names. Leave it \code{NULL}
+if the object has one receptor table. You must give it if the object has
+several slots and you use the default names.}
 
 \item{validate}{Validate the updated SIRUP object (default \code{TRUE})?}
 }

@@ -10,6 +10,7 @@ subsetSIRUP(
   sample_id = NULL,
   spatial_id = NULL,
   receptor_rows = NULL,
+  slot = NULL,
   keep_nonspatial_receptors = FALSE,
   keep_analyses = FALSE,
   drop_empty_spatial = TRUE,
@@ -27,9 +28,14 @@ the object holds a named list of Seurat objects.}
 \item{spatial_id}{Spatial IDs (barcodes) to keep. In a multi-sample object,
 the function matches the IDs in each selected sample.}
 
-\item{receptor_rows}{Logical vector with length \code{nrow(getReceptors(x))}, or a
-function. The function takes the receptor tibble and returns such a vector.
-The function keeps the rows where the vector is \code{TRUE}.}
+\item{receptor_rows}{Logical vector with length \code{nrow(getReceptors(x, slot = slot))}, or a
+function. The function takes the receptor tibble of \code{slot} and returns such
+a vector. The function keeps the rows where the vector is \code{TRUE}. It applies
+this filter to \code{slot} only. The other filters apply to every slot.}
+
+\item{slot}{Name of the receptor slot that \code{receptor_rows} applies to. Leave it
+\code{NULL} if the object has one receptor table. You must give it if the object
+has several slots and you use \code{receptor_rows}.}
 
 \item{keep_nonspatial_receptors}{Keep receptor rows that have no spatial ID
 after the other filters (default \code{FALSE})? The function uses this argument

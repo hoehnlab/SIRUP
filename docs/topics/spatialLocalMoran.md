@@ -23,7 +23,8 @@ spatialLocalMoran(
   image_scale = NULL,
   swap_coords = NULL,
   radius = NULL,
-  k = 6
+  k = 6,
+  slot = NULL
 )
 ```
 
@@ -84,6 +85,10 @@ spatialLocalMoran(
 `k`
 
 :   Number of nearest neighbors, used if `radius` is `NULL` (default 6).
+
+`slot`
+
+:   Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots and the function reads receptors. The function ignores `slot` if you give a plain receptor table.
 
 ## Details
 

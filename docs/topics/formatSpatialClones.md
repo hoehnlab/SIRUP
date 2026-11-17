@@ -11,7 +11,7 @@
 ``` R
 formatSpatialClones(
   object,
-  analysis_name = "f_clones",
+  analysis_name = NULL,
   seq = "sequence_alignment",
   clone = "clone_id",
   subgroup = "clone_subgroup",
@@ -45,6 +45,7 @@ formatSpatialClones(
   light_traits = FALSE,
   majoronly = FALSE,
   columns = NULL,
+  slot = NULL,
   validate = TRUE
 )
 ```
@@ -57,7 +58,7 @@ formatSpatialClones(
 
 `analysis_name`
 
-:   Name for the stored formatted clones (default `"f_clones"`).
+:   Name for the stored formatted clones (default `"f_clones"`). If the object has several receptor slots, the default also ends with `⁠_⁠` and the slot name.
 
 `seq`
 
@@ -190,6 +191,10 @@ formatSpatialClones(
 `columns`
 
 :   Names of other columns to keep in the result.
+
+`slot`
+
+:   Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots.
 
 `validate`
 

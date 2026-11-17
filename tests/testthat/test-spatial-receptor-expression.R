@@ -1,6 +1,6 @@
 test_that("plotReceptorsExpression layers grouped receptors over expression", {
   testthat::local_mocked_bindings(
-    .sirup_resolve_inputs = function(object, receptors = NULL, spatial_id = NULL) {
+    .sirup_resolve_inputs = function(object, receptors = NULL, spatial_id = NULL, slot = NULL) {
       list(object = object, receptors = receptors, spatial_id_col = spatial_id)
     },
     .require_namespace = function(package) invisible(TRUE),

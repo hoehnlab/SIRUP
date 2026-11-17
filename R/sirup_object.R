@@ -14,6 +14,14 @@
 #' and converts `receptors` to a [tibble::tibble()]. The optional `analyses`
 #' list keeps derived results.
 #'
+#' `receptors` can also be a named list of tables, for example one table of BCRs
+#' and one of TCRs. Each table is a *slot*. All slots share the same spatial
+#' data, polygons and field mappings. The spatial ID and sample columns must be
+#' in every table. Each other mapped column, such as `clone_id`, must be in at
+#' least one table. Clone IDs only need to be unique within one slot. Functions
+#' that use receptors analyse one slot at a time, chosen with their `slot`
+#' argument. A SIRUP object with one table has the slot name `"only_slot"`.
+#'
 #' The examples in this package use a small synthetic SIRUP object. It has 25
 #' spots, 10 genes, 5 clones, and 2 polygons. The spots and gene counts are
 #' simulated. The receptor rows are real BCR sequences from a human thymus
@@ -23,7 +31,9 @@
 #'
 #' @param spatial Seurat object with spatial expression data, or a named list of
 #'   Seurat objects (one per spatial sample).
-#' @param receptors AIRR-style receptor table (a data frame or similar).
+#' @param receptors AIRR-style receptor table (a data frame or similar), or a
+#'   named list of such tables. Each table in a list is one slot, for example
+#'   `list(bcr = bcr_table, tcr = tcr_table)`.
 #' @param spatial_id Name of the `receptors` column that holds the spatial cell
 #'   or spot IDs. If `NULL`, the function uses the first column found from this
 #'   list: `spatial_id`, `spatial_id_8um`, `spatial_id_2um`, `spatial_id_16um`,
@@ -104,8 +114,8 @@ createSIRUP <- function(spatial,
                         validate = TRUE) {
   clone_missing <- missing(clone)
   locus_missing <- missing(locus)
-  receptors <- tibble::as_tibble(receptors)
-  spatial_id <- .guess_spatial_id_col(receptors, spatial_id)
+  receptors <- .sirup_as_receptor_tables(receptors)
+  spatial_id <- .sirup_guess_spatial_id_col(receptors, spatial_id)
 
   clone <- .sirup_resolve_optional_col(
     receptors,
@@ -120,7 +130,7 @@ createSIRUP <- function(spatial,
     allow_missing = locus_missing
   )
   image <- .sirup_resolve_optional_col(receptors, image, "image")
-  sample_id <- .sirup_resolve_optional_col(receptors, sample_id, "sample_id")
+  sample_id <- .sirup_resolve_optional_col(receptors, sample_id, "sample_id", require_all = TRUE)
   if (.sirup_is_spatial_list(spatial) && is.null(sample_id)) {
     rlang::abort("`sample_id` is required when `spatial` is a named list of Seurat objects.")
   }
@@ -194,12 +204,17 @@ createSIRUP <- function(spatial,
 #' \itemize{
 #'   \item The object does not have class `sirup`.
 #'   \item No receptor spatial ID matches a cell or spot name in the Seurat
-#'     object.
+#'     object. The function checks every receptor slot.
 #'   \item A column named in `metadata$receptor_fields` does not exist in the
-#'     receptor table.
-#'   \item The `sample` field is set, but the column is missing from the receptor
+#'     receptor table. The `spatial_id` column must be in every receptor slot.
+#'     Each other named column, such as `clone_id`, must be in at least one slot.
+#'   \item The `sample` field is set, but the column is missing from a receptor
 #'     table or from the Seurat metadata.
 #' }
+#'
+#' An object with several receptor slots can have a slot with no rows. For
+#' example, one section can have BCRs and no TCRs. The function skips the spatial
+#' ID checks for that slot.
 #'
 #' @param x Object to validate.
 #' @param verbose Print a short summary of the result (default `FALSE`)?
@@ -235,9 +250,7 @@ validateSIRUP <- function(x, verbose = FALSE) {
   if (.sirup_is_spatial_list(x$spatial) && is.null(.sirup_receptor_fields(x)$sample)) {
     rlang::abort("SIRUP objects with a spatial list require a non-NULL sample receptor field.")
   }
-  if (!tibble::is_tibble(x$receptors)) {
-    rlang::abort("`x$receptors` must be a tibble.")
-  }
+  .sirup_validate_receptor_component(x$receptors)
   if (!is.list(x$metadata)) {
     rlang::abort("`x$metadata` must be a list.")
   }
@@ -264,14 +277,31 @@ validateSIRUP <- function(x, verbose = FALSE) {
   if (!is.character(spatial_id_col) || length(spatial_id_col) != 1L || is.na(spatial_id_col) || !nzchar(spatial_id_col)) {
     rlang::abort("The SIRUP spatial_id field must name one receptor column.")
   }
-  .check_required_cols(x$receptors, spatial_id_col, "x$receptors")
+  slots <- .sirup_receptor_slots(x)
+  slotted <- .sirup_is_slotted(x$receptors)
+  slot_label <- function(slot) if (slotted) paste0("x$receptors$", slot) else "x$receptors"
+  for (slot in names(slots)) {
+    .check_required_cols(slots[[slot]], spatial_id_col, slot_label(slot))
+  }
   for (field in setdiff(field_names, "spatial_id")) {
     column <- receptor_fields[[field]]
     if (!is.null(column)) {
       if (!is.character(column) || length(column) != 1L || is.na(column) || !nzchar(column)) {
         rlang::abort(paste0("The SIRUP ", field, " field must be `NULL` or one column name."))
       }
-      .check_required_cols(x$receptors, column, "x$receptors")
+      # The sample column must be in every slot, so that each receptor can
+      # find its spatial sample. The other mapped columns need to be in one
+      # slot only. For example, only the BCR slot can have clones.
+      if (identical(field, "sample")) {
+        for (slot in names(slots)) {
+          .check_required_cols(slots[[slot]], column, slot_label(slot))
+        }
+      } else if (!any(vapply(slots, function(table) column %in% colnames(table), logical(1)))) {
+        rlang::abort(paste0(
+          "The SIRUP ", field, " field names column `", column,
+          "`, which is missing from ", if (slotted) "every receptor slot." else "the receptor table."
+        ))
+      }
     }
   }
 
@@ -301,12 +331,23 @@ validateSIRUP <- function(x, verbose = FALSE) {
     }
   }
 
-  diagnostics <- .sirup_join_diagnostics(x)
-  if (diagnostics$n_receptor_ids == 0L) {
-    rlang::abort("`x$receptors` contains no non-missing spatial IDs.")
-  }
-  if (diagnostics$n_matched_ids == 0L) {
-    rlang::abort("No receptor IDs match the spatial Seurat object.")
+  for (slot in names(slots)) {
+    # A slot with no rows is allowed in a multi-slot object. For example, one
+    # section can have BCRs and no TCRs.
+    if (slotted && nrow(.sirup_get_slot(x, slot)) == 0L) {
+      next
+    }
+    diagnostics <- .sirup_join_diagnostics(x, slot)
+    if (diagnostics$n_receptor_ids == 0L) {
+      rlang::abort(paste0("`", slot_label(slot), "` contains no non-missing spatial IDs."))
+    }
+    if (diagnostics$n_matched_ids == 0L) {
+      rlang::abort(if (slotted) {
+        paste0("No receptor IDs in slot `", slot, "` match the spatial Seurat object.")
+      } else {
+        "No receptor IDs match the spatial Seurat object."
+      })
+    }
   }
   if (isTRUE(verbose)) {
     print(x)
@@ -343,6 +384,8 @@ isSIRUP <- function(x) {
 #' function does these steps:
 #' \itemize{
 #'   \item It sets `sample_field` in each receptor table, then binds the rows.
+#'     If the objects have several receptor slots, they must have the same slot
+#'     names. The function binds each slot separately.
 #'   \item It stores the Seurat objects in a named list.
 #'   \item It adds the sample name to each stored polygon (if any) and keeps
 #'     the polygons.
@@ -391,6 +434,7 @@ mergeSIRUP <- function(...,
     object
   })
   fields <- .sirup_check_merge_receptor_fields(objects)
+  slot_names <- .sirup_check_merge_slots(objects)
 
   spatial <- list()
   receptor_tables <- vector("list", length(objects))
@@ -407,18 +451,25 @@ mergeSIRUP <- function(...,
       object_spatial <- object_spatial[[1L]]
     }
     spatial[[sample_name]] <- object_spatial
-    receptor_tables[[i]] <- .sirup_merge_receptors_for_sample(
-      object,
-      sample_id = sample_name,
-      sample_field = sample_field
-    )
+    receptor_tables[[i]] <- lapply(.sirup_receptor_slots(object), function(table) {
+      .sirup_merge_receptors_for_sample(
+        table,
+        sample_id = sample_name,
+        sample_field = sample_field
+      )
+    })
     polygon_tables[[i]] <- .sirup_polygons_for_merge(object, sample_id = sample_name)
     if (isTRUE(keep_analyses)) {
       analyses <- .sirup_merge_analyses(analyses, .sirup_analyses(object), sample_id = sample_name)
     }
   }
 
-  receptors <- Reduce(.sirup_bind_receptor_tables, receptor_tables)
+  receptors <- stats::setNames(lapply(slot_names, function(slot) {
+    tibble::as_tibble(Reduce(.sirup_bind_receptor_tables, lapply(receptor_tables, `[[`, slot)))
+  }), slot_names)
+  if (identical(slot_names, .sirup_only_slot)) {
+    receptors <- receptors[[1L]]
+  }
   metadata <- .sirup_merge_metadata(objects, samples = samples)
   metadata$receptor_fields <- fields
   metadata$receptor_fields$sample <- sample_field
@@ -433,7 +484,7 @@ mergeSIRUP <- function(...,
   out <- structure(
     list(
       spatial = spatial,
-      receptors = tibble::as_tibble(receptors),
+      receptors = receptors,
       metadata = metadata,
       polygons = polygons,
       analyses = analyses
@@ -451,17 +502,22 @@ mergeSIRUP <- function(...,
 #' Extract data from a SIRUP object
 #'
 #' `getSpatial` returns the Seurat object(s). `spatialSamples` returns the
-#' spatial sample names. `getReceptors` returns the receptor table.
+#' spatial sample names. `getReceptors` returns one receptor table. `receptorSlots`
+#' returns the names of the receptor slots.
 #'
 #' @param x A SIRUP object.
 #' @param sample_id Name of one spatial sample. Use it only if the object holds a
 #'   named list of Seurat objects.
+#' @param slot Name of the receptor slot. If the object has one receptor table,
+#'   leave it `NULL` (the slot is called `"only_slot"`). If the object has
+#'   several slots, you must give one.
 #'
 #' @return `getSpatial` returns the Seurat object. For a multi-sample object, it
 #'   returns the named list of Seurat objects, or one Seurat object if you give
 #'   `sample_id`. `spatialSamples` returns a character vector of sample names.
-#'   `getReceptors` returns the receptor tibble. If you give `sample_id`, it
-#'   returns only the rows for that sample.
+#'   `getReceptors` returns the receptor tibble of one slot. If you give
+#'   `sample_id`, it returns only the rows for that sample. `receptorSlots`
+#'   returns a character vector of slot names.
 #' @seealso [getPolygons()], [getAnalysis()]
 #'
 #' @examples
@@ -469,6 +525,7 @@ mergeSIRUP <- function(...,
 #' getSpatial(x)
 #' head(getReceptors(x))
 #' spatialSamples(x)
+#' receptorSlots(x)
 #' @name sirup-accessors
 NULL
 
@@ -503,12 +560,19 @@ spatialSamples <- function(x) {
 
 #' @rdname sirup-accessors
 #' @export
-getReceptors <- function(x, sample_id = NULL) {
+getReceptors <- function(x, sample_id = NULL, slot = NULL) {
   validateSIRUP(x)
   if (is.null(sample_id)) {
-    return(x$receptors)
+    return(.sirup_get_slot(x, slot))
   }
-  .sirup_receptors_for_sample(x, sample_id)
+  .sirup_receptors_for_sample(x, sample_id, slot)
+}
+
+#' @rdname sirup-accessors
+#' @export
+receptorSlots <- function(x) {
+  validateSIRUP(x)
+  .sirup_slot_names(x)
 }
 
 #' Subset a SIRUP object
@@ -526,9 +590,13 @@ getReceptors <- function(x, sample_id = NULL) {
 #'   the object holds a named list of Seurat objects.
 #' @param spatial_id Spatial IDs (barcodes) to keep. In a multi-sample object,
 #'   the function matches the IDs in each selected sample.
-#' @param receptor_rows Logical vector with length `nrow(getReceptors(x))`, or a
-#'   function. The function takes the receptor tibble and returns such a vector.
-#'   The function keeps the rows where the vector is `TRUE`.
+#' @param receptor_rows Logical vector with length `nrow(getReceptors(x, slot = slot))`, or a
+#'   function. The function takes the receptor tibble of `slot` and returns such
+#'   a vector. The function keeps the rows where the vector is `TRUE`. It applies
+#'   this filter to `slot` only. The other filters apply to every slot.
+#' @param slot Name of the receptor slot that `receptor_rows` applies to. Leave it
+#'   `NULL` if the object has one receptor table. You must give it if the object
+#'   has several slots and you use `receptor_rows`.
 #' @param keep_nonspatial_receptors Keep receptor rows that have no spatial ID
 #'   after the other filters (default `FALSE`)? The function uses this argument
 #'   only if you give `spatial_id`.
@@ -559,11 +627,13 @@ subsetSIRUP <- function(x,
                         sample_id = NULL,
                         spatial_id = NULL,
                         receptor_rows = NULL,
+                        slot = NULL,
                         keep_nonspatial_receptors = FALSE,
                         keep_analyses = FALSE,
                         drop_empty_spatial = TRUE,
                         validate = TRUE) {
   validateSIRUP(x)
+  row_slot <- if (is.null(receptor_rows)) NULL else .sirup_resolve_slot(x, slot)
   receptor_fields <- .sirup_receptor_fields(x)
   spatial_id_col <- receptor_fields$spatial_id
   sample_col <- receptor_fields$sample
@@ -599,40 +669,42 @@ subsetSIRUP <- function(x,
   )
   out$metadata$sample_names <- .sirup_spatial_names(out$spatial)
 
-  keep <- rep(TRUE, nrow(x$receptors))
-  if (!is.null(sample_id)) {
-    if (is.null(sample_col) || !sample_col %in% colnames(x$receptors)) {
-      rlang::abort("Cannot subset receptors by `sample_id`; this SIRUP object has no receptor sample field.")
+  out <- .sirup_map_slots(out, function(receptors, slot_name) {
+    keep <- rep(TRUE, nrow(receptors))
+    if (!is.null(sample_id)) {
+      if (is.null(sample_col) || !sample_col %in% colnames(receptors)) {
+        rlang::abort("Cannot subset receptors by `sample_id`; this SIRUP object has no receptor sample field.")
+      }
+      keep <- keep & !is.na(receptors[[sample_col]]) & as.character(receptors[[sample_col]]) %in% sample_id
     }
-    keep <- keep & !is.na(x$receptors[[sample_col]]) & as.character(x$receptors[[sample_col]]) %in% sample_id
-  }
-  if (!is.null(spatial_id)) {
-    receptor_ids <- as.character(x$receptors[[spatial_id_col]])
-    if (.sirup_is_spatial_list(out$spatial) && !is.null(sample_col) && sample_col %in% colnames(x$receptors)) {
-      allowed_spatial <- .sirup_spatial_cells(out$spatial)
-      allowed_keys <- paste(allowed_spatial$.sirup_sample, allowed_spatial$spatial_id, sep = "\r")
-      receptor_keys <- paste(as.character(x$receptors[[sample_col]]), receptor_ids, sep = "\r")
-      spatial_keep <- !is.na(receptor_ids) & receptor_keys %in% allowed_keys
-    } else {
-      spatial_keep <- !is.na(receptor_ids) & receptor_ids %in% spatial_id
+    if (!is.null(spatial_id)) {
+      receptor_ids <- as.character(receptors[[spatial_id_col]])
+      if (.sirup_is_spatial_list(out$spatial) && !is.null(sample_col) && sample_col %in% colnames(receptors)) {
+        allowed_spatial <- .sirup_spatial_cells(out$spatial)
+        allowed_keys <- paste(allowed_spatial$.sirup_sample, allowed_spatial$spatial_id, sep = "\r")
+        receptor_keys <- paste(as.character(receptors[[sample_col]]), receptor_ids, sep = "\r")
+        spatial_keep <- !is.na(receptor_ids) & receptor_keys %in% allowed_keys
+      } else {
+        spatial_keep <- !is.na(receptor_ids) & receptor_ids %in% spatial_id
+      }
+      if (isTRUE(keep_nonspatial_receptors)) {
+        spatial_keep <- spatial_keep | is.na(receptor_ids) | !nzchar(receptor_ids)
+      }
+      keep <- keep & spatial_keep
     }
-    if (isTRUE(keep_nonspatial_receptors)) {
-      spatial_keep <- spatial_keep | is.na(receptor_ids) | !nzchar(receptor_ids)
+    if (!is.null(receptor_rows) && identical(slot_name, row_slot)) {
+      row_keep <- if (is.function(receptor_rows)) {
+        receptor_rows(receptors)
+      } else {
+        receptor_rows
+      }
+      if (!is.logical(row_keep) || length(row_keep) != nrow(receptors) || anyNA(row_keep)) {
+        rlang::abort("`receptor_rows` must be a non-missing logical vector with one value per receptor row, or a function returning one.")
+      }
+      keep <- keep & row_keep
     }
-    keep <- keep & spatial_keep
-  }
-  if (!is.null(receptor_rows)) {
-    row_keep <- if (is.function(receptor_rows)) {
-      receptor_rows(x$receptors)
-    } else {
-      receptor_rows
-    }
-    if (!is.logical(row_keep) || length(row_keep) != nrow(x$receptors) || anyNA(row_keep)) {
-      rlang::abort("`receptor_rows` must be a non-missing logical vector with one value per receptor row, or a function returning one.")
-    }
-    keep <- keep & row_keep
-  }
-  out$receptors <- tibble::as_tibble(x$receptors[keep, , drop = FALSE])
+    tibble::as_tibble(receptors[keep, , drop = FALSE])
+  })
   out$polygons <- .sirup_subset_polygons_component(
     .sirup_polygons(x),
     sample_id = sample_id,
@@ -871,6 +943,10 @@ removeAnalysis <- function(x, name, validate = TRUE) {
 #' records `clone_id` as the clone field. Use `receptor_fields` to set or clear a
 #' mapping yourself. If you give `sample_id`, the function applies `fun` to the rows
 #' of that sample only. It then puts the result back in the full table.
+#' If the object has several receptor slots, `slot` chooses the table that `fun`
+#' changes. The other slots stay as they are. The field mappings are shared by
+#' all slots. The `spatial_id` and `sample` columns must stay in every slot. The
+#' other mapped columns, such as `clone_id`, must stay in at least one slot.
 #'
 #' `updateSpatial` needs a function that returns a Seurat object. In a
 #' multi-sample object, it applies `fun` to every Seurat object. If you give
@@ -883,6 +959,9 @@ removeAnalysis <- function(x, name, validate = TRUE) {
 #' @param fun Function, or the name of a function. The function receives the
 #'   selected part of the SIRUP object as its first argument.
 #' @param ... Other arguments for `fun`.
+#' @param slot Name of the receptor slot that `updateReceptors` changes. Leave it
+#'   `NULL` if the object has one receptor table. You must give it if the object
+#'   has several slots.
 #' @param receptor_fields Named list of receptor field mappings to change. The
 #'   names can be `spatial_id`, `image`, `sample`, `clone`, `locus`, or `count`.
 #'   A `NULL` value clears an optional mapping.
@@ -921,13 +1000,16 @@ updateReceptors <- function(x,
                             fun,
                             ...,
                             sample_id = NULL,
+                            slot = NULL,
                             receptor_fields = NULL,
                             validate = TRUE) {
   validateSIRUP(x)
+  slot <- .sirup_resolve_slot(x, slot)
+  current <- .sirup_get_slot(x, slot)
   if (is.null(sample_id)) {
-    receptors <- .sirup_apply(fun, x$receptors, ...)
+    receptors <- .sirup_apply(fun, current, ...)
   } else {
-    selected <- .sirup_receptors_for_sample(x, sample_id)
+    selected <- .sirup_receptors_for_sample(x, sample_id, slot)
     updated <- .sirup_apply(fun, selected, ...)
     if (!is.data.frame(updated)) {
       rlang::abort("`fun` must return a data frame/tibble when used with `updateReceptors()`.")
@@ -935,14 +1017,14 @@ updateReceptors <- function(x,
     sample_col <- .sirup_receptor_fields(x)$sample
     updated <- tibble::as_tibble(updated)
     updated[[sample_col]] <- sample_id
-    original <- x$receptors
+    original <- current
     keep <- as.character(original[[sample_col]]) != sample_id | is.na(original[[sample_col]])
     receptors <- .sirup_bind_receptor_tables(original[keep, , drop = FALSE], updated)
   }
   if (!is.data.frame(receptors)) {
     rlang::abort("`fun` must return a data frame/tibble when used with `updateReceptors()`.")
   }
-  x$receptors <- tibble::as_tibble(receptors)
+  x <- .sirup_set_slot(x, slot, tibble::as_tibble(receptors))
   x$metadata$receptor_fields <- .sirup_update_receptor_fields(
     x,
     receptor_fields
@@ -996,7 +1078,7 @@ updateAnalysis <- function(x, name, fun, ..., sample_id = NULL, validate = TRUE)
 #' @export
 print.sirup <- function(x, ...) {
   validateSIRUP(x)
-  info <- .sirup_join_diagnostics(x)
+  info <- .sirup_join_diagnostics(x, if (.sirup_is_slotted(x$receptors)) .sirup_slot_names(x)[[1L]] else NULL)
   receptor_fields <- .sirup_receptor_fields(x)
   polygon_count <- nrow(.sirup_polygons(x))
   spatial_count <- length(.sirup_spatial_names(x$spatial))
@@ -1016,14 +1098,29 @@ print.sirup <- function(x, ...) {
     cat(", ", image_count, " ", .sirup_count_label(image_count, "image"), sep = "")
   }
   cat("\n")
-  cat("Receptor data:   tibble, ", format(nrow(x$receptors), big.mark = ","), " ",
-      .sirup_count_label(nrow(x$receptors), "receptor sequence"), " x ",
-      format(ncol(x$receptors), big.mark = ","), " ",
-      .sirup_count_label(ncol(x$receptors), "column"), "\n", sep = "")
-  cat("Spatial overlap: ", format(info$n_matched_ids, big.mark = ","), "/",
-      format(info$n_receptor_ids, big.mark = ","), " ",
-      .sirup_count_label(info$n_receptor_ids, "receptor ID"), " in spatial data (",
-      formatC(100 * info$id_match_rate, format = "f", digits = 1), "%)\n", sep = "")
+  slots <- .sirup_receptor_slots(x)
+  if (length(slots) == 1L && !.sirup_is_slotted(x$receptors)) {
+    cat("Receptor data:   tibble, ", format(nrow(x$receptors), big.mark = ","), " ",
+        .sirup_count_label(nrow(x$receptors), "receptor sequence"), " x ",
+        format(ncol(x$receptors), big.mark = ","), " ",
+        .sirup_count_label(ncol(x$receptors), "column"), "\n", sep = "")
+    cat("Spatial overlap: ", format(info$n_matched_ids, big.mark = ","), "/",
+        format(info$n_receptor_ids, big.mark = ","), " ",
+        .sirup_count_label(info$n_receptor_ids, "receptor ID"), " in spatial data (",
+        formatC(100 * info$id_match_rate, format = "f", digits = 1), "%)\n", sep = "")
+  } else {
+    cat("Receptor data:   ", length(slots), " ", .sirup_count_label(length(slots), "slot"), "\n", sep = "")
+    for (slot in names(slots)) {
+      table <- slots[[slot]]
+      slot_info <- .sirup_join_diagnostics(x, slot)
+      cat("  ", slot, ": ", format(nrow(table), big.mark = ","), " ",
+          .sirup_count_label(nrow(table), "receptor sequence"), " x ",
+          format(ncol(table), big.mark = ","), " ", .sirup_count_label(ncol(table), "column"),
+          "; ", format(slot_info$n_matched_ids, big.mark = ","), "/",
+          format(slot_info$n_receptor_ids, big.mark = ","), " receptor IDs in spatial data (",
+          formatC(100 * slot_info$id_match_rate, format = "f", digits = 1), "%)\n", sep = "")
+    }
+  }
   if (spatial_count > 1L) {
     cat("Samples:         ", spatial_count, "\n", sep = "")
   }
@@ -1044,15 +1141,40 @@ print.sirup <- function(x, ...) {
 #' @export
 summary.sirup <- function(object, ...) {
   validateSIRUP(object)
-  info <- .sirup_join_diagnostics(object)
+  slots <- .sirup_receptor_slots(object)
+  slotted <- .sirup_is_slotted(object$receptors)
+  slot_info <- lapply(names(slots), function(slot) .sirup_join_diagnostics(object, slot))
+  names(slot_info) <- names(slots)
+  info <- if (!slotted) {
+    slot_info[[1L]]
+  } else {
+    n_ids <- sum(vapply(slot_info, `[[`, numeric(1), "n_receptor_ids"))
+    n_matched <- sum(vapply(slot_info, `[[`, numeric(1), "n_matched_ids"))
+    list(
+      n_spatial_ids = slot_info[[1L]]$n_spatial_ids,
+      n_receptor_ids = n_ids,
+      n_matched_ids = n_matched,
+      n_matched_records = sum(vapply(slot_info, `[[`, numeric(1), "n_matched_records")),
+      id_match_rate = n_matched / n_ids
+    )
+  }
   receptor_fields <- .sirup_receptor_fields(object)
-  sample_summary <- .sirup_sample_summary(object)
+  sample_summary <- if (!slotted) {
+    .sirup_sample_summary(object)
+  } else {
+    dplyr::bind_rows(lapply(names(slots), function(slot) {
+      one <- .sirup_sample_summary(object, slot)
+      one$slot <- slot
+      one[c("slot", setdiff(colnames(one), "slot"))]
+    }))
+  }
   structure(
     c(
       info,
       list(
-        n_receptor_records = nrow(object$receptors),
-        n_receptor_columns = ncol(object$receptors),
+        n_receptor_records = sum(vapply(slots, nrow, integer(1))),
+        n_receptor_columns = max(vapply(slots, ncol, integer(1))),
+        receptor_slots = names(slots),
         n_spatial_genes = .sirup_spatial_feature_count(object$spatial),
         spatial_id = receptor_fields$spatial_id,
         clone = receptor_fields$clone,
@@ -1275,8 +1397,8 @@ print.summary.sirup <- function(x, ...) {
   out
 }
 
-.sirup_merge_receptors_for_sample <- function(object, sample_id, sample_field) {
-  receptors <- tibble::as_tibble(getReceptors(object))
+.sirup_merge_receptors_for_sample <- function(receptors, sample_id, sample_field) {
+  receptors <- tibble::as_tibble(receptors)
   if (sample_field %in% colnames(receptors)) {
     values <- unique(stats::na.omit(as.character(receptors[[sample_field]])))
     values <- values[nzchar(values)]
@@ -1551,17 +1673,21 @@ print.summary.sirup <- function(x, ...) {
     include_boundary = isTRUE(x$metadata$polygons_include_boundary %||% TRUE)
   )
   x$spatial <- .sirup_ensure_spatial_metadata_column(x$spatial, "polygon_id", NA_character_)
-  x$receptors <- assignReceptorPolygons(
-    receptors = x$receptors,
-    object = x,
-    polygon = polygon,
-    column = "polygon_id",
-    spatial_id = .sirup_receptor_fields(x)$spatial_id,
-    image_scale = x$metadata$image_scale,
-    swap_coords = x$metadata$swap_coords,
-    polygon_id = "polygon",
-    include_boundary = isTRUE(x$metadata$polygons_include_boundary %||% TRUE)
-  )
+  # Every receptor slot gets the polygon columns. A receptor is in a polygon if it is
+  # in the same sample as the polygon and its spatial ID lies inside the polygon.
+  x <- .sirup_map_slots(x, function(receptors, slot_name) {
+    assignReceptorPolygons(
+      receptors = receptors,
+      object = x,
+      polygon = polygon,
+      column = "polygon_id",
+      spatial_id = .sirup_receptor_fields(x)$spatial_id,
+      image_scale = x$metadata$image_scale,
+      swap_coords = x$metadata$swap_coords,
+      polygon_id = "polygon",
+      include_boundary = isTRUE(x$metadata$polygons_include_boundary %||% TRUE)
+    )
+  })
   x
 }
 
@@ -1782,8 +1908,10 @@ print.summary.sirup <- function(x, ...) {
 .sirup_update_receptor_fields <- function(x, receptor_fields = NULL) {
   fields <- .sirup_receptor_fields(x)
   conventional <- c(clone = "clone_id", locus = "locus")
+  slots <- .sirup_receptor_slots(x)
   for (field in names(conventional)) {
-    if (is.null(fields[[field]]) && conventional[[field]] %in% names(x$receptors)) {
+    in_any_slot <- any(vapply(slots, function(table) conventional[[field]] %in% names(table), logical(1)))
+    if (is.null(fields[[field]]) && in_any_slot) {
       fields[[field]] <- conventional[[field]]
     }
   }
@@ -1814,18 +1942,30 @@ print.summary.sirup <- function(x, ...) {
 
 # Validate optional receptor field mappings while allowing default clone/locus
 # fields to quietly become NULL when their conventional columns are absent.
-.sirup_resolve_optional_col <- function(receptors, column, argument, allow_missing = FALSE) {
+.sirup_resolve_optional_col <- function(receptors, column, argument, allow_missing = FALSE, require_all = FALSE) {
   if (is.null(column)) {
     return(NULL)
   }
   if (!is.character(column) || length(column) != 1L || is.na(column) || !nzchar(column)) {
     rlang::abort(paste0("`", argument, "` must be `NULL` or one column name."))
   }
-  if (!column %in% colnames(receptors)) {
+  tables <- if (is.data.frame(receptors)) list(receptors) else receptors
+  has_column <- vapply(tables, function(table) column %in% colnames(table), logical(1))
+  if (if (isTRUE(require_all)) !all(has_column) else !any(has_column)) {
     if (isTRUE(allow_missing)) {
       return(NULL)
     }
-    rlang::abort(paste0("`", argument, "` refers to missing column '", column, "'."))
+    if (is.data.frame(receptors)) {
+      rlang::abort(paste0("`", argument, "` refers to missing column '", column, "'."))
+    }
+    if (!isTRUE(require_all)) {
+      rlang::abort(paste0("`", argument, "` refers to column '", column, "', which is missing from every receptor slot."))
+    }
+    rlang::abort(paste0(
+      "`", argument, "` refers to column '", column, "', which is missing from receptor slot",
+      if (sum(!has_column) == 1L) " " else "s ",
+      paste0("`", names(tables)[!has_column], "`", collapse = ", "), "."
+    ))
   }
   column
 }
@@ -1907,13 +2047,14 @@ print.summary.sirup <- function(x, ...) {
   invisible(sample_id)
 }
 
-.sirup_receptors_for_sample <- function(x, sample_id) {
+.sirup_receptors_for_sample <- function(x, sample_id, slot = NULL) {
   .sirup_validate_sample_name(x, sample_id)
+  receptors <- .sirup_get_slot(x, slot)
   sample_col <- .sirup_receptor_fields(x)$sample
-  if (is.null(sample_col) || !sample_col %in% colnames(x$receptors)) {
+  if (is.null(sample_col) || !sample_col %in% colnames(receptors)) {
     rlang::abort("This SIRUP object does not have a receptor sample field.")
   }
-  x$receptors[!is.na(x$receptors[[sample_col]]) & as.character(x$receptors[[sample_col]]) == sample_id, , drop = FALSE]
+  receptors[!is.na(receptors[[sample_col]]) & as.character(receptors[[sample_col]]) == sample_id, , drop = FALSE]
 }
 
 .sirup_subset_spatial_component <- function(spatial,
@@ -1976,10 +2117,10 @@ print.summary.sirup <- function(x, ...) {
   dplyr::bind_rows(add_missing(x), add_missing(y))
 }
 
-.sirup_sample_summary <- function(x) {
+.sirup_sample_summary <- function(x, slot = NULL) {
   receptor_fields <- .sirup_receptor_fields(x)
   spatial_cells <- .sirup_spatial_cells(x$spatial)
-  receptors <- x$receptors
+  receptors <- .sirup_get_slot(x, slot)
   spatial_id_col <- receptor_fields$spatial_id
   sample_col <- receptor_fields$sample
   samples <- .sirup_spatial_names(x$spatial)
@@ -2025,12 +2166,13 @@ print.summary.sirup <- function(x, ...) {
 
 # Count spatial_id overlap between the spatial object and receptor table for
 # validation, print, and summary methods.
-.sirup_join_diagnostics <- function(x) {
+.sirup_join_diagnostics <- function(x, slot = NULL) {
   receptor_fields <- .sirup_receptor_fields(x)
   spatial_cells <- .sirup_spatial_cells(x$spatial)
-  receptor_values <- as.character(x$receptors[[receptor_fields$spatial_id]])
+  receptors <- .sirup_get_slot(x, slot)
+  receptor_values <- as.character(receptors[[receptor_fields$spatial_id]])
   if (.sirup_is_spatial_list(x$spatial)) {
-    sample_values <- as.character(x$receptors[[receptor_fields$sample]])
+    sample_values <- as.character(receptors[[receptor_fields$sample]])
     spatial_key <- paste(spatial_cells$.sirup_sample, spatial_cells$spatial_id, sep = "\r")
     receptor_key <- paste(sample_values, receptor_values, sep = "\r")
     valid_receptor <- !is.na(sample_values) & nzchar(sample_values) &
@@ -2055,6 +2197,147 @@ print.summary.sirup <- function(x, ...) {
   )
 }
 
+# --- receptor slots -------------------------------------------------------------
+# `x$receptors` is one tibble, or a named list of tibbles (one tibble per slot, for
+# example BCRs and TCRs). One tibble counts as the single slot "only_slot".
+.sirup_only_slot <- "only_slot"
+
+.sirup_is_slotted <- function(receptors) {
+  is.list(receptors) && !is.data.frame(receptors)
+}
+
+# All receptor tables of an object as a named list.
+.sirup_receptor_slots <- function(x) {
+  receptors <- x$receptors
+  if (.sirup_is_slotted(receptors)) {
+    return(receptors)
+  }
+  stats::setNames(list(receptors), .sirup_only_slot)
+}
+
+.sirup_slot_names <- function(x) {
+  names(.sirup_receptor_slots(x))
+}
+
+# Choose one slot. NULL is allowed only when the object has one slot.
+.sirup_resolve_slot <- function(x, slot = NULL) {
+  slots <- .sirup_slot_names(x)
+  if (is.null(slot)) {
+    if (length(slots) == 1L) {
+      return(slots[[1L]])
+    }
+    rlang::abort(c(
+      "`slot` is required because this SIRUP object has several receptor slots.",
+      i = paste0("Slots: ", paste(slots, collapse = ", "), ".")
+    ))
+  }
+  if (!is.character(slot) || length(slot) != 1L || is.na(slot) || !nzchar(slot)) {
+    rlang::abort("`slot` must be one non-empty slot name.")
+  }
+  if (!slot %in% slots) {
+    rlang::abort(c(
+      paste0("Unknown receptor slot: ", slot),
+      i = paste0("Slots: ", paste(slots, collapse = ", "), ".")
+    ))
+  }
+  slot
+}
+
+.sirup_get_slot <- function(x, slot = NULL) {
+  .sirup_receptor_slots(x)[[.sirup_resolve_slot(x, slot)]]
+}
+
+# Put a table in one slot. An object with one table keeps one table.
+.sirup_set_slot <- function(x, slot, table) {
+  if (.sirup_is_slotted(x$receptors)) {
+    x$receptors[[slot]] <- table
+  } else {
+    x$receptors <- table
+  }
+  x
+}
+
+# Apply fun(table, slot_name) to every slot and keep the shape of `x$receptors`.
+.sirup_map_slots <- function(x, fun) {
+  if (.sirup_is_slotted(x$receptors)) {
+    slot_names <- names(x$receptors)
+    x$receptors <- stats::setNames(lapply(slot_names, function(slot) fun(x$receptors[[slot]], slot)), slot_names)
+  } else {
+    x$receptors <- fun(x$receptors, .sirup_only_slot)
+  }
+  x
+}
+
+# Default analysis name for a slot: the plain name for one table, the name plus the slot otherwise.
+.sirup_slot_analysis_name <- function(x, name, slot = NULL) {
+  if (!.sirup_is_slotted(x$receptors)) {
+    return(name)
+  }
+  paste0(name, "_", .sirup_resolve_slot(x, slot))
+}
+
+# Turn the `receptors` argument of createSIRUP() into a tibble or a named list of tibbles.
+.sirup_as_receptor_tables <- function(receptors) {
+  if (!.sirup_is_slotted(receptors)) {
+    return(tibble::as_tibble(receptors))
+  }
+  .sirup_check_slot_names(names(receptors), length(receptors))
+  stats::setNames(lapply(receptors, function(table) {
+    if (!is.data.frame(table)) {
+      rlang::abort("Each element of a `receptors` list must be a data frame.")
+    }
+    tibble::as_tibble(table)
+  }), names(receptors))
+}
+
+.sirup_check_slot_names <- function(slot_names, n) {
+  if (n == 0L || is.null(slot_names) || any(is.na(slot_names) | !nzchar(slot_names)) || anyDuplicated(slot_names)) {
+    rlang::abort("A `receptors` list must have at least one element, and every element needs a unique, non-empty name.")
+  }
+  invisible(slot_names)
+}
+
+.sirup_validate_receptor_component <- function(receptors) {
+  if (tibble::is_tibble(receptors)) {
+    return(invisible(receptors))
+  }
+  if (.sirup_is_slotted(receptors)) {
+    .sirup_check_slot_names(names(receptors), length(receptors))
+    if (all(vapply(receptors, tibble::is_tibble, logical(1)))) {
+      return(invisible(receptors))
+    }
+  }
+  rlang::abort("`x$receptors` must be a tibble or a named list of tibbles.")
+}
+
+# The spatial ID column must be the same in every slot.
+.sirup_guess_spatial_id_col <- function(receptors, spatial_id = NULL) {
+  if (!.sirup_is_slotted(receptors)) {
+    return(.guess_spatial_id_col(receptors, spatial_id))
+  }
+  columns <- vapply(receptors, function(table) .guess_spatial_id_col(table, spatial_id), character(1))
+  if (length(unique(columns)) > 1L) {
+    rlang::abort(c(
+      "The receptor slots use different spatial ID columns.",
+      i = paste0(names(columns), ": ", columns, collapse = "; "),
+      i = "Give `spatial_id`, or rename the columns so that all slots match."
+    ))
+  }
+  columns[[1L]]
+}
+
+# All objects need the same receptor slots to merge.
+.sirup_check_merge_slots <- function(objects) {
+  slot_sets <- lapply(objects, .sirup_slot_names)
+  if (length(unique(lapply(slot_sets, sort))) > 1L) {
+    rlang::abort(c(
+      "SIRUP objects cannot be merged because their receptor slots differ.",
+      i = paste0("Object ", seq_along(slot_sets), ": ", vapply(slot_sets, paste, character(1), collapse = ", "), collapse = "; ")
+    ))
+  }
+  slot_sets[[1L]]
+}
+
 # Retrieve the canonical receptor-field mapping list from a SIRUP object.
 .sirup_receptor_fields <- function(x) {
   if (is.list(x$metadata) && is.list(x$metadata$receptor_fields)) {
@@ -2069,7 +2352,7 @@ print.summary.sirup <- function(x, ...) {
   if (is.null(column)) {
     return(character())
   }
-  values <- unique(as.character(x$receptors[[column]]))
+  values <- unique(unlist(lapply(.sirup_receptor_slots(x), function(table) as.character(table[[column]])), use.names = FALSE))
   sort(values[!is.na(values) & nzchar(values)])
 }
 
@@ -2082,8 +2365,20 @@ print.summary.sirup <- function(x, ...) {
   x$spatial
 }
 
+# Some mapped columns can be in one slot only, for example `clone_id` in the BCR
+# slot. For one slot, ignore the optional mapped fields that the slot lacks.
+.sirup_slot_fields <- function(receptor_fields, table) {
+  for (field in c("clone", "locus", "count", "image")) {
+    column <- receptor_fields[[field]]
+    if (!is.null(column) && !column %in% colnames(table)) {
+      receptor_fields[field] <- list(NULL)
+    }
+  }
+  receptor_fields
+}
+
 # Accept either a receptor table or SIRUP object where receptor data are needed.
-.sirup_receptor_input <- function(x, spatial_id_col = NULL) {
+.sirup_receptor_input <- function(x, spatial_id_col = NULL, slot = NULL) {
   if (!isSIRUP(x)) {
     return(list(
       receptors = x,
@@ -2093,16 +2388,17 @@ print.summary.sirup <- function(x, ...) {
   }
   validateSIRUP(x)
   receptor_fields <- .sirup_receptor_fields(x)
+  table <- .sirup_get_slot(x, slot)
   list(
-    receptors = x$receptors,
+    receptors = table,
     spatial_id_col = spatial_id_col %||% receptor_fields$spatial_id,
-    receptor_fields = receptor_fields
+    receptor_fields = .sirup_slot_fields(receptor_fields, table)
   )
 }
 
 # Resolve paired spatial/receptor inputs for functions that accept either a
 # SIRUP object or separate Seurat-plus-receptor arguments.
-.sirup_resolve_inputs <- function(object, receptors = NULL, spatial_id_col = NULL) {
+.sirup_resolve_inputs <- function(object, receptors = NULL, spatial_id_col = NULL, slot = NULL) {
   if (!isSIRUP(object)) {
     return(list(
       object = object,
@@ -2116,7 +2412,7 @@ print.summary.sirup <- function(x, ...) {
   container <- object
   receptor_fields <- .sirup_receptor_fields(container)
   using_container_receptors <- is.null(receptors)
-  receptors <- receptors %||% container$receptors
+  receptors <- receptors %||% .sirup_get_slot(container, slot)
   if (is.null(spatial_id_col)) {
     spatial_id_col <- if (using_container_receptors) {
       receptor_fields$spatial_id
@@ -2128,7 +2424,7 @@ print.summary.sirup <- function(x, ...) {
     object = container$spatial,
     receptors = receptors,
     spatial_id_col = spatial_id_col,
-    receptor_fields = receptor_fields
+    receptor_fields = .sirup_slot_fields(receptor_fields, receptors)
   )
 }
 

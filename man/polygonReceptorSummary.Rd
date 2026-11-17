@@ -14,7 +14,8 @@ polygonReceptorSummary(
   summary_columns = NULL,
   summary_operations = NULL,
   include_total_spots = FALSE,
-  analysis_name = "polygon_receptor_summary",
+  analysis_name = NULL,
+  slot = NULL,
   validate = TRUE
 )
 }
@@ -53,7 +54,12 @@ column holds the number of all spots in each polygon, including spots with
 no receptor rows. It works only for SIRUP objects.}
 
 \item{analysis_name}{Name for the stored summary in a SIRUP object (default
-\code{"polygon_receptor_summary"}).}
+\code{"polygon_receptor_summary"}). If the object has several receptor slots, the default also ends
+with \verb{_} and the slot name.}
+
+\item{slot}{Name of the receptor slot to use. Leave it \code{NULL} if the SIRUP
+object has one receptor table. You must give it if the object has several
+slots. The function ignores \code{slot} if you give a plain receptor table.}
 
 \item{validate}{Validate the updated SIRUP object (default \code{TRUE})?}
 }

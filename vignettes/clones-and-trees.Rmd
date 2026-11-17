@@ -49,6 +49,7 @@ extdata <- SIRUP::downloadSIRUPExample(
   files = c(
   "mg_thymus_slice2_spatial.rds",
   "mg_thymus_slice2_bcr.tsv.gz",
+  "mg_thymus_slice2_tcr.tsv.gz",
   "mg_thymus_slice2_gc_polygons.csv"
   )
 )
@@ -84,10 +85,28 @@ bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz
     spatial_id = "barcode_10x"
   ) %>%
   filter(!grepl("[^ACGT]", junction))
+tcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_tcr.tsv.gz")) %>%
+  extractSpatialIds(
+    id = "sequence_id",
+    spatial_id = "barcode_10x",
+    regex = ",([ACGT]{16})$",
+    suffix = "-1"
+  ) %>%
+  mutate(sequence_id = gsub(",", "_", sequence_id)) %>%
+  filterAirr(
+    locus_val = "TRB",
+    min_v_length = 250,
+    min_j_length = 30,
+    min_junction_length = 10,
+    productive_only = TRUE,
+    min_consensus_count = NULL,
+    spatial_id = "barcode_10x"
+  ) %>%
+  filter(!grepl("[^ACGT]", junction))
 
 sirup <- createSIRUP(
   spatial = thymus,
-  receptors = bcrs,
+  receptors = list(BCR = bcrs, TCR = tcrs),
   spatial_id = "barcode_10x",
   image_scale = "lowres",
   swap_coords = FALSE,
@@ -95,23 +114,26 @@ sirup <- createSIRUP(
 )
 ```
 
+The object holds two receptor slots, `"BCR"` and `"TCR"`. The functions on this page read one slot at a time. This page works on the BCR slot, so each call that reads receptors has `slot = "BCR"`.
+
 The code replaces the comma in each `sequence_id` with `_`. dowser writes trees in Newick format, and a comma separates tips in that format. dowser therefore renames tips that contain a comma. With the comma gone, the tip names match the receptor table. SIRUP can then find each tip on the tissue.
 
 ## Call clones
 
-The object has no clones yet. To call clones, run `scoper::hierarchicalClones()` through `updateReceptors()`. `updateReceptors()` gives the receptor table to the function as its first argument, with your other arguments. It then stores the returned table and validates the object.
+The object has no clones yet. To call clones, run `scoper::hierarchicalClones()` through `updateReceptors()`. `slot = "BCR"` tells `updateReceptors()` to change the BCR table only. `updateReceptors()` gives the receptor table to the function as its first argument, with your other arguments. It then stores the returned table and validates the object.
 
 ```{r call-clones, message = FALSE}
 sirup <- updateReceptors(
   sirup,
   scoper::hierarchicalClones,
+  slot = "BCR",
   threshold = 0.1,
   summarize_clones = FALSE,
   nproc = 1
 )
 
 sirup
-dplyr::n_distinct(getReceptors(sirup)$clone_id)
+dplyr::n_distinct(getReceptors(sirup, slot = "BCR")$clone_id)
 ```
 
 `hierarchicalClones()` groups sequences with the same V gene, J gene, and junction length. It joins sequences whose junctions differ by less than `threshold`. The SIRUP paper used `threshold = 0.1` for BCRs. TCRs do not mutate, so call TCR clones with `scoper::identicalClones()`.
@@ -130,12 +152,13 @@ references <- dowser::readIMGT(imgt_dir)
 sirup <- updateReceptors(
   sirup,
   dowser::createGermlines,
+  slot = "BCR",
   references = references,
   id = "sequence_id",
   nproc = 1
 )
 
-sirup <- updateReceptors(sirup, function(receptors) {
+sirup <- updateReceptors(sirup, slot = "BCR", function(receptors) {
   chimera <- shazam::slideWindowDb(
     receptors,
     sequenceColumn = "sequence_alignment",
@@ -155,12 +178,13 @@ Somatic hypermutation (SHM) is the process that introduces point mutations into 
 sirup <- updateReceptors(
   sirup,
   shazam::observedMutations,
+  slot = "BCR",
   sequenceColumn = "sequence_alignment",
   germlineColumn = "germline_alignment",
   frequency = TRUE,
   combine = TRUE
 )
-summary(getReceptors(sirup)$mu_freq)
+summary(getReceptors(sirup, slot = "BCR")$mu_freq)
 ```
 
 `plotReceptors()` can color spots by a numeric receptor column. Give the column to `value`. If a spot has several receptors, `value_combine` sets how SIRUP combines them. The default is the mean.
@@ -168,6 +192,7 @@ summary(getReceptors(sirup)$mu_freq)
 ```{r shm-map, eval = has_shazam}
 plotReceptors(
   sirup,
+  slot = "BCR",
   group = "locus",
   value = "mu_freq",
   value_colors = c("white", "darkred"),
@@ -184,7 +209,7 @@ plotReceptors(
 Trees are most useful for expanded clones. The code below keeps clones that have 10 to 60 sequences and at least one sequence in an eGC. It sorts them by the number of sequences in eGCs.
 
 ```{r choose-clones}
-clone_sizes <- getReceptors(sirup) %>%
+clone_sizes <- getReceptors(sirup, slot = "BCR") %>%
   group_by(clone_id) %>%
   summarise(
     n_sequences = n(),
@@ -204,6 +229,7 @@ Plot the spots of the three chosen clones. A spot is one capture area of the Vis
 ```{r clone-map}
 plotReceptors(
   sirup,
+  slot = "BCR",
   group = "clone_id",
   group_val = tree_clones,
   receptor_size = 1.6,
@@ -222,10 +248,11 @@ Two functions run dowser on the object. `formatSpatialClones()` runs `dowser::fo
 Tree building takes time for large clones. First make a smaller object with only the clones that you want. `updateReceptors()` with `dplyr::filter()` does this.
 
 ```{r build-trees, eval = has_trees}
-tree_sirup <- updateReceptors(sirup, dplyr::filter, clone_id %in% tree_clones)
+tree_sirup <- updateReceptors(sirup, dplyr::filter, clone_id %in% tree_clones, slot = "BCR")
 
 tree_sirup <- formatSpatialClones(
   tree_sirup,
+  slot = "BCR",
   analysis_name = "formatted_clones",
   id = "sequence_id",
   germ = "germline_alignment_d_mask",
@@ -235,6 +262,7 @@ tree_sirup <- formatSpatialClones(
 set.seed(1)
 tree_sirup <- getSpatialTrees(
   tree_sirup,
+  slot = "BCR",
   f_clones_analysis = "formatted_clones",
   analysis_name = "trees",
   build = "pratchet"
@@ -267,6 +295,7 @@ sirup <- setAnalysis(sirup, "trees", trees)
 pairs <- plotSpatialCloneTreePairs(
   trees,
   object = sirup,
+  slot = "BCR",
   clone_val = tree_clones,
   id = "sequence_id",
   zoom = TRUE,
@@ -300,6 +329,7 @@ clustered <- clusterTreesTips(
 cluster_pairs <- plotSpatialCloneTreePairs(
   clustered,
   object = sirup,
+  slot = "BCR",
   clone_val = tree_clones,
   id = "sequence_id",
   color_by = "tree_cluster",

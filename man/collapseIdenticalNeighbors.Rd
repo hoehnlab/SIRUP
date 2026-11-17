@@ -14,6 +14,7 @@ collapseIdenticalNeighbors(
   image_scale = NULL,
   swap_coords = NULL,
   num_neighbors_non_boundary = 6L,
+  slot = NULL,
   validate = TRUE
 )
 }
@@ -44,6 +45,10 @@ Seurat coordinates?}
 
 \item{num_neighbors_non_boundary}{Number of nearby spots that makes a spot a
 non-boundary spot (default 6).}
+
+\item{slot}{Name of the receptor slot to collapse if \code{object} is a SIRUP
+object. Leave it \code{NULL} if the object has one receptor table. You must give
+it if the object has several slots. The function changes only that slot.}
 
 \item{validate}{Validate the updated SIRUP object (default \code{TRUE})? The
 function uses it only if \code{object} is a SIRUP object.}

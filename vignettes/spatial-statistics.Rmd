@@ -67,7 +67,7 @@ extdata <- SIRUP::downloadSIRUPExample(
 
 ## Set up the object
 
-Load the packages, then build one BCR object and one TCR object from the example data.
+Load the packages, then build one SIRUP object with a BCR slot and a TCR slot from the example data.
 
 ```{r libraries, message = FALSE, warning = FALSE}
 library(SIRUP)
@@ -106,38 +106,28 @@ cell_types <- data.table::fread(
 rownames(cell_types) <- cell_types$barcode
 thymus <- Seurat::AddMetaData(thymus, select(cell_types, -sample, -barcode))
 
-bcr_sirup <- createSIRUP(
+sirup <- createSIRUP(
   spatial = thymus,
-  receptors = read_receptors("mg_thymus_slice2_bcr.tsv.gz", "IGH"),
+  receptors = list(
+    BCR = read_receptors("mg_thymus_slice2_bcr.tsv.gz", "IGH"),
+    TCR = read_receptors("mg_thymus_slice2_tcr.tsv.gz", "TRB")
+  ),
   spatial_id = "barcode_10x",
   image_scale = "lowres",
   swap_coords = FALSE,
   polygons_path = file.path(extdata, "mg_thymus_slice2_gc_polygons.csv")
 )
-bcr_sirup <- updateReceptors(
-  bcr_sirup,
+sirup <- updateReceptors(
+  sirup,
   scoper::hierarchicalClones,
+  slot = "BCR",
   threshold = 0.1,
-  summarize_clones = FALSE,
-  nproc = 1
-)
-
-tcr_sirup <- createSIRUP(
-  spatial = thymus,
-  receptors = read_receptors("mg_thymus_slice2_tcr.tsv.gz", "TRB"),
-  spatial_id = "barcode_10x",
-  image_scale = "lowres",
-  swap_coords = FALSE
-)
-tcr_sirup <- updateReceptors(
-  tcr_sirup,
-  scoper::identicalClones,
   summarize_clones = FALSE,
   nproc = 1
 )
 ```
 
-`read_receptors()` reads a consensus table. It takes the spot barcode from `sequence_id`. It keeps the high-quality sequences of one locus that have an unambiguous junction. BCR clones come from `scoper::hierarchicalClones()`. TCRs do not mutate, so TCR clones come from `scoper::identicalClones()`. The cell-type table holds the estimated proportion of each cell type in each spot. The proportions come from the cell2location method and join the Seurat metadata. The BCR object also holds the polygons that mark the ectopic germinal centers (eGCs). `vignette("regions", package = "SIRUP")` explains polygons.
+`read_receptors()` reads a consensus table. It takes the spot barcode from `sequence_id`. It keeps the high-quality sequences of one locus that have an unambiguous junction. The object holds two receptor slots, `"BCR"` and `"TCR"`. Functions that read receptors take a `slot` argument. BCR clones come from `scoper::hierarchicalClones()`. The cell-type table holds the estimated proportion of each cell type in each spot. The proportions come from the cell2location method and join the Seurat metadata. The object also holds the polygons that mark the ectopic germinal centers (eGCs). `vignette("regions", package = "SIRUP")` explains polygons.
 
 ## Choose the neighbors
 
@@ -170,7 +160,7 @@ Here $x_i$ is the value at spot $i$. $w_{ij}$ is 1 if spot $j$ is a neighbor of 
 
 ```{r moran}
 aicda <- spatialMoran(
-  bcr_sirup,
+  sirup,
   variable = "AICDA",
   variable_type = "feature",
   assay = "Spatial",
@@ -188,15 +178,15 @@ The same function tests cell-type proportions and receptor presence:
 moran_table <- bind_rows(
   tibble(variable = "AICDA expression", I = aicda$test$estimate[[1]], p = aicda$test$p.value),
   {
-    res <- spatialMoran(bcr_sirup, variable = "GC B", variable_type = "metadata", k = 6)
+    res <- spatialMoran(sirup, variable = "GC B", variable_type = "metadata", k = 6)
     tibble(variable = "GC B cell proportion", I = res$test$estimate[[1]], p = res$test$p.value)
   },
   {
-    res <- spatialMoran(bcr_sirup, variable = "BCR", variable_type = "receptor", k = 6)
+    res <- spatialMoran(sirup, slot = "BCR", variable = "BCR", variable_type = "receptor", k = 6)
     tibble(variable = "BCR present", I = res$test$estimate[[1]], p = res$test$p.value)
   },
   {
-    res <- spatialMoran(tcr_sirup, variable = "TCR", variable_type = "receptor", k = 6)
+    res <- spatialMoran(sirup, slot = "TCR", variable = "TCR", variable_type = "receptor", k = 6)
     tibble(variable = "TCR present", I = res$test$estimate[[1]], p = res$test$p.value)
   }
 )
@@ -213,7 +203,7 @@ Global Moran's I gives one number for the whole section. *Local Moran's I* (also
 
 ```{r local-moran}
 gc_b_local <- spatialLocalMoran(
-  bcr_sirup,
+  sirup,
   variable = "GC B",
   variable_type = "metadata",
   k = 6
@@ -225,7 +215,7 @@ head(gc_b_local[, c("cell", "value", "local_i", "z_i", "p_value")])
 
 ```{r local-moran-plot}
 plotSpatialLocalMoran(
-  bcr_sirup,
+  sirup,
   gc_b_local,
   point_size = 1,
   title = "GC B cell proportion, local Moran's I (z-score)"
@@ -243,12 +233,12 @@ In MG, patients make antibodies against the acetylcholine receptor (AChR). *CHRN
 
 ```{r lee}
 lee_control <- spatialLee(
-  bcr_sirup,
+  sirup,
   x = "AICDA", y = "MS4A1",
   assay = "Spatial", layer = "data", k = 6
 )
 lee_chrna1 <- spatialLee(
-  bcr_sirup,
+  sirup,
   x = "AICDA", y = "CHRNA1",
   assay = "Spatial", layer = "data", k = 6
 )
@@ -280,7 +270,7 @@ $|W|$ is the area of the tissue window. $d_{ij}$ is the distance between points 
 T follicular helper (Tfh) cells give B cells the signals that keep a germinal center going. This test asks whether spots with GC B cells sit near spots with Tfh cells. First, label each spot from its cell2location proportions. `updateSpatial()` runs a function on the Seurat object and stores the result:
 
 ```{r ripley-marks}
-bcr_sirup <- updateSpatial(bcr_sirup, function(spatial) {
+sirup <- updateSpatial(sirup, function(spatial) {
   gc_b <- spatial$`GC B` > 0.10
   tfh <- spatial$Tfh > 0.10
   spatial$gc_tfh_mark <- case_when(
@@ -291,14 +281,14 @@ bcr_sirup <- updateSpatial(bcr_sirup, function(spatial) {
   spatial
 })
 
-table(getSpatial(bcr_sirup)$gc_tfh_mark, useNA = "ifany")
+table(getSpatial(sirup)$gc_tfh_mark, useNA = "ifany")
 ```
 
 Spots with neither cell type, or with both, get `NA`. The test leaves them out. Then run the test. `nsim` sets the number of random relabelings. Use 99 or more for a final analysis:
 
 ```{r ripley, eval = has_spatstat, results = "hide"}
 gc_tfh_k <- spatialRipleyCrossK(
-  bcr_sirup,
+  sirup,
   mark_col = "gc_tfh_mark",
   i = "GC B",
   j = "Tfh",
@@ -312,7 +302,7 @@ plotRipleyCrossK(gc_tfh_k, title = "Cross K: GC B spots to Tfh spots")
 The distance $r$ is in image pixels at the stored `image_scale`. To convert it to micrometers, use the Visium spot size. A spot is 55 µm wide. The image object stores the spot diameter in full-resolution pixels:
 
 ```{r microns, eval = has_spatstat}
-scale_factors <- getSpatial(bcr_sirup)@images[[1]]@scale.factors
+scale_factors <- getSpatial(sirup)@images[[1]]@scale.factors
 um_per_pixel <- 55 / (scale_factors$spot * scale_factors$lowres)
 um_per_pixel
 max(gc_tfh_k$plot_data$r) * um_per_pixel
@@ -329,7 +319,7 @@ The join-count test suits a clone. Take every spot with a BCR. Mark the spots th
 `spatialCloneJoinCount()` runs `spdep::joincount.test()` for each clone that occurs in at least `min_spatial_ids` spots. If the object has stored polygons, the function runs one test for each polygon by default. Set `use_stored_polygons = FALSE` for one test over the whole section:
 
 ```{r join-count}
-big_clones <- getReceptors(bcr_sirup) %>%
+big_clones <- getReceptors(sirup, slot = "BCR") %>%
   filter(!is.na(barcode_10x)) %>%
   distinct(clone_id, barcode_10x) %>%
   count(clone_id, sort = TRUE) %>%
@@ -337,7 +327,8 @@ big_clones <- getReceptors(bcr_sirup) %>%
   pull(clone_id)
 
 join_count <- spatialCloneJoinCount(
-  bcr_sirup,
+  sirup,
+  slot = "BCR",
   clone_val = big_clones,
   use_stored_polygons = FALSE,
   k = 6,
@@ -352,7 +343,7 @@ The summary has one row for each clone. `statistic` is the standardized join cou
 ```{r join-count-plot}
 plotSpatialCloneJoinCount(
   join_count = join_count,
-  object = bcr_sirup,
+  object = sirup,
   clone_val = join_count$summary$clone_id[[1]],
   show_neighbors = TRUE
 )
@@ -363,7 +354,7 @@ plotSpatialCloneJoinCount(
 `spatialCloneSpread()` describes how far each clone reaches across the section. It uses the pairwise distances between the sequences of the clone:
 
 ```{r spread}
-spread <- spatialCloneSpread(bcr_sirup, min_spatial_ids = 3)
+spread <- spatialCloneSpread(sirup, slot = "BCR", min_spatial_ids = 3)
 spread %>%
   arrange(desc(n_spatial_ids)) %>%
   head()
@@ -376,13 +367,13 @@ The table gives the mean and the maximum pairwise distance for each clone, in im
 Store the results in the object, so they travel with the data:
 
 ```{r store}
-bcr_sirup <- bcr_sirup %>%
+sirup <- sirup %>%
   setAnalysis("moran_aicda", aicda) %>%
   setAnalysis("local_moran_gc_b", gc_b_local) %>%
   setAnalysis("lee_aicda_chrna1", lee_chrna1) %>%
   setAnalysis("clone_join_count", join_count) %>%
   setAnalysis("clone_spread", spread)
-listAnalyses(bcr_sirup)
+listAnalyses(sirup)
 ```
 
 ## Next steps

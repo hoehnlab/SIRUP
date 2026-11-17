@@ -42,18 +42,20 @@ extdata <- SIRUP::downloadSIRUPExample(
   files = c(
     "mg_thymus_cell_types.csv.gz",
     "mg_thymus_slice2_bcr.tsv.gz",
+    "mg_thymus_slice2_tcr.tsv.gz",
     "mg_thymus_slice2_gc_polygons.csv",
     "mg_thymus_slice2_spatial.rds"
   )
 )
 #> ℹ Downloading 'mg_thymus_cell_types.csv.gz'
 #> ℹ Downloading 'mg_thymus_slice2_bcr.tsv.gz'
+#> ℹ Downloading 'mg_thymus_slice2_tcr.tsv.gz'
 #> ℹ Downloading 'mg_thymus_slice2_gc_polygons.csv'
 #> ℹ Downloading 'mg_thymus_slice2_spatial.rds'
 ```
 
 Then build a SIRUP object from the spatial data, the cell-type
-estimates, and the BCRs, and call clones.
+estimates, and the BCRs and TCRs. Then call the BCR clones.
 [Test spatial patterns of genes, cells, and clones](spatial-statistics.md) explains each step.
 
 ``` r
@@ -87,10 +89,27 @@ bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz
     spatial_id = "barcode_10x"
   ) %>%
   filter(!grepl("[^ACGT]", junction))
+tcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_tcr.tsv.gz")) %>%
+  extractSpatialIds(
+    id = "sequence_id",
+    spatial_id = "barcode_10x",
+    regex = ",([ACGT]{16})$",
+    suffix = "-1"
+  ) %>%
+  filterAirr(
+    locus_val = "TRB",
+    min_v_length = 250,
+    min_j_length = 30,
+    min_junction_length = 10,
+    productive_only = TRUE,
+    min_consensus_count = NULL,
+    spatial_id = "barcode_10x"
+  ) %>%
+  filter(!grepl("[^ACGT]", junction))
 
 x <- createSIRUP(
   spatial = thymus,
-  receptors = bcrs,
+  receptors = list(BCR = bcrs, TCR = tcrs),
   spatial_id = "barcode_10x",
   image_scale = "lowres",
   swap_coords = FALSE,
@@ -99,6 +118,7 @@ x <- createSIRUP(
 x <- updateReceptors(
   x,
   scoper::hierarchicalClones,
+  slot = "BCR",
   threshold = 0.1,
   summarize_clones = FALSE,
   nproc = 1
@@ -237,7 +257,7 @@ image pixels.
 See the code below for an example on the thymus section.
 
 ``` r
-spread <- spatialCloneSpread(x, min_spatial_ids = 3)
+spread <- spatialCloneSpread(x, slot = "BCR", min_spatial_ids = 3)
 spread %>%
   arrange(desc(n_spatial_ids)) %>%
   head()
@@ -280,7 +300,7 @@ be sure to adjust for multiple testing.
 See the code below for an example on the thymus section.
 
 ``` r
-big_clones <- getReceptors(x) %>%
+big_clones <- getReceptors(x, slot = "BCR") %>%
   filter(!is.na(barcode_10x)) %>%
   distinct(clone_id, barcode_10x) %>%
   count(clone_id, sort = TRUE) %>%
@@ -289,6 +309,7 @@ big_clones <- getReceptors(x) %>%
 
 join_count <- spatialCloneJoinCount(
   x,
+  slot = "BCR",
   clone_val = big_clones,
   use_stored_polygons = FALSE,
   k = 6,

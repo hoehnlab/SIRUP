@@ -559,7 +559,8 @@
       "also_documents": [
         "getSpatial",
         "spatialSamples",
-        "getReceptors"
+        "getReceptors",
+        "receptorSlots"
       ]
     },
     {

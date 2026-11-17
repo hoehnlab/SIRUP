@@ -5,36 +5,46 @@
 \alias{getSpatial}
 \alias{spatialSamples}
 \alias{getReceptors}
+\alias{receptorSlots}
 \title{Extract data from a SIRUP object}
 \usage{
 getSpatial(x, sample_id = NULL)
 
 spatialSamples(x)
 
-getReceptors(x, sample_id = NULL)
+getReceptors(x, sample_id = NULL, slot = NULL)
+
+receptorSlots(x)
 }
 \arguments{
 \item{x}{A SIRUP object.}
 
 \item{sample_id}{Name of one spatial sample. Use it only if the object holds a
 named list of Seurat objects.}
+
+\item{slot}{Name of the receptor slot. If the object has one receptor table,
+leave it \code{NULL} (the slot is called \code{"only_slot"}). If the object has
+several slots, you must give one.}
 }
 \value{
 \code{getSpatial} returns the Seurat object. For a multi-sample object, it
 returns the named list of Seurat objects, or one Seurat object if you give
 \code{sample_id}. \code{spatialSamples} returns a character vector of sample names.
-\code{getReceptors} returns the receptor tibble. If you give \code{sample_id}, it
-returns only the rows for that sample.
+\code{getReceptors} returns the receptor tibble of one slot. If you give
+\code{sample_id}, it returns only the rows for that sample. \code{receptorSlots}
+returns a character vector of slot names.
 }
 \description{
 \code{getSpatial} returns the Seurat object(s). \code{spatialSamples} returns the
-spatial sample names. \code{getReceptors} returns the receptor table.
+spatial sample names. \code{getReceptors} returns one receptor table. \code{receptorSlots}
+returns the names of the receptor slots.
 }
 \examples{
 x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
 getSpatial(x)
 head(getReceptors(x))
 spatialSamples(x)
+receptorSlots(x)
 }
 \seealso{
 \code{\link[=getPolygons]{getPolygons()}}, \code{\link[=getAnalysis]{getAnalysis()}}

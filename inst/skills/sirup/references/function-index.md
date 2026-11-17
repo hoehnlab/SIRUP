@@ -35,7 +35,7 @@ Details: `references/functions-sirup-object.md`
 - `createSIRUP`: Create a SIRUP object
 - `isSIRUP`: Test whether an object is a SIRUP object
 - `mergeSIRUP`: Merge SIRUP objects into one multi-sample object
-- `sirup-accessors` (also: `getSpatial`, `spatialSamples`, `getReceptors`): Extract data from a SIRUP object
+- `sirup-accessors` (also: `getSpatial`, `spatialSamples`, `getReceptors`, `receptorSlots`): Extract data from a SIRUP object
 - `sirup-analyses` (also: `getAnalysis`, `setAnalysis`, `listAnalyses`, `removeAnalysis`): Store and retrieve analyses in a SIRUP object
 - `sirup-polygons` (also: `getPolygons`, `addPolygons`): Add or retrieve polygon geometry from a SIRUP object
 - `sirup-transform` (also: `updateReceptors`, `updateSpatial`, `updateAnalysis`): Update data stored in a SIRUP object
