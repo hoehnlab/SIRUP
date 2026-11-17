@@ -10,7 +10,7 @@
 #   * 5 clones (clone_id "1" to "5"). Each clone has 1 to 10 sequences, drawn
 #     with a discrete uniform distribution. Each sequence goes to a random spot;
 #   * real BCR sequences. Each synthetic clone gets the sequences of one real
-#     clone from the myasthenia gravis thymus section 2 in inst/extdata. The
+#     clone from the myasthenia gravis thymus section 2 in example-data. The
 #     script keeps every AIRR column of these rows. It changes only the
 #     sequence ID, the spatial ID, and the clone ID. The spots stay synthetic;
 #   * 2 polygons: "upper_right" and "lower_left".
@@ -66,7 +66,7 @@ receptors$sequence_id <- sprintf("seq%02d", seq_len(nrow(receptors)))
 # ---- 3b. Real sequences for each synthetic clone ----------------------------
 # Read the real table and keep the high-quality IGH sequences (the same
 # thresholds as the main vignette). Then call clones with scoper.
-real <- airr::read_rearrangement("inst/extdata/mg_thymus_slice2_bcr.tsv.gz")
+real <- airr::read_rearrangement("example-data/mg_thymus_slice2_bcr.tsv.gz")
 real <- extractSpatialIds(
   real,
   id = "sequence_id",

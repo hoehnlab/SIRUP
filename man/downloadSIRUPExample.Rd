@@ -50,6 +50,8 @@ rearrangement tables of IGH sequences with spatial IDs.
 sequences and the demultiplexed reads of section 2.
 \item \code{mg_thymus_slice1_gc_polygons.csv}, \code{mg_thymus_slice2_gc_polygons.csv}:
 annotated polygons of the ectopic germinal centers.
+\item \code{mg_thymus_slice2_qupath_gcs.geojson}: six germinal center outlines that
+a user drew on section 2 in QuPath. Use it with \code{\link[=addQuPathPolygons]{addQuPathPolygons()}}.
 \item \code{mg_thymus_cell_types.csv.gz}: cell-type proportions for each spot.
 \item \code{mg_thymus_bulk_*.tsv.gz}: bulk repertoire tables from thymus and blood.
 }

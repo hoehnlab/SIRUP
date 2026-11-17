@@ -38,6 +38,7 @@ Imports:
     grDevices,
     grid,
     igraph,
+    jsonlite,
     kedd,
     KernSmooth,
     magrittr,

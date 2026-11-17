@@ -1,4 +1,7 @@
-# Build the example data shipped in inst/extdata and used by the vignettes.
+# Build the example data in example-data/ that the vignettes download with
+# downloadSIRUPExample(). The files are not part of the package build.
+# One file is not built here: mg_thymus_slice2_qupath_gcs.geojson is a QuPath
+# export that was copied into example-data/ by hand.
 #
 # Source: the two myasthenia gravis (MG) thymus Visium sections analysed in the
 # SIRUP manuscript, their UMI-supported BCR (IGH) and TCR (TRB) consensus
@@ -32,7 +35,7 @@ suppressPackageStartupMessages({
 
 repo <- "/dartfs/rc/lab/H/HoehnK/Hunter/spatial_bcr_tcr_package"
 devtools::load_all(file.path(repo, "SIRUP"), quiet = TRUE)
-out_dir <- file.path(repo, "SIRUP", "inst", "extdata")
+out_dir <- file.path(repo, "SIRUP", "example-data")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 set.seed(20261012)
 

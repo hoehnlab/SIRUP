@@ -60,12 +60,13 @@ NULL
   mg_thymus_slice1_spatial.rds = "7ba68b7aa2b15d79f307d6c10fbe2444",
   mg_thymus_slice2_bcr.tsv.gz = "5e321c97072f5385404e035993a2b3b1",
   mg_thymus_slice2_gc_polygons.csv = "645f0c556f6aa69a3adb735a6333cb43",
+  mg_thymus_slice2_qupath_gcs.geojson = "015da4f75651f2beb49a0a6fa08fa6be",
   mg_thymus_slice2_reads.tsv.gz = "3fb3a4dfd97170ce7c779fd169ec8d52",
   mg_thymus_slice2_spatial.rds = "70af91a05c16c267e21bb98b021818dc",
   mg_thymus_slice2_tcr.tsv.gz = "3ac507853a38c88363116c062df1a4ba"
 )
 
-.sirup_example_url <- "https://github.com/hoehnlab/SIRUP/releases/download/example-data/"
+.sirup_example_url <- "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/example-data/"
 
 #' Download the SIRUP example data
 #'
@@ -83,6 +84,8 @@ NULL
 #'   sequences and the demultiplexed reads of section 2.
 #' * `mg_thymus_slice1_gc_polygons.csv`, `mg_thymus_slice2_gc_polygons.csv`:
 #'   annotated polygons of the ectopic germinal centers.
+#' * `mg_thymus_slice2_qupath_gcs.geojson`: six germinal center outlines that
+#'   a user drew on section 2 in QuPath. Use it with [addQuPathPolygons()].
 #' * `mg_thymus_cell_types.csv.gz`: cell-type proportions for each spot.
 #' * `mg_thymus_bulk_*.tsv.gz`: bulk repertoire tables from thymus and blood.
 #'
