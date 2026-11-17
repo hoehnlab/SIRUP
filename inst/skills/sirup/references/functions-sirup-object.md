@@ -136,6 +136,14 @@ listAnalyses(x)
 removeAnalysis(x, name, validate = TRUE)
 ```
 
+Arguments:
+
+- `x`: A SIRUP object.
+- `name`: Name of the analysis. Give one non-empty character string.
+- `sample_id`: Name of a spatial sample. Use it to store or get a result for one sample.
+- `value`: R object to store. It can be `NULL`.
+- `validate`: Validate the updated SIRUP object?
+
 Value: `getAnalysis` returns the stored object. `listAnalyses` returns a character vector. `setAnalysis` and `removeAnalysis` return the updated SIRUP object.
 
 ## sirup-polygons
@@ -158,6 +166,15 @@ addPolygons(
   validate = TRUE
 )
 ```
+
+Arguments:
+
+- `x`: A SIRUP object.
+- `sample_id`: Sample name or names to add to the polygons from `polygons_path`. Use it only if the paths have no names.
+- `polygons`: Polygon table.
+- `polygons_path`: Path to a flat CSV file of polygon vertices. For a multi-sample object, give a named vector or list of paths, with one path for each sample.
+- `include_boundary`: Count spots on a polygon edge as members of the polygon?
+- `validate`: Validate the updated object?
 
 Value: `getPolygons` returns a polygon tibble. `addPolygons` returns the updated SIRUP object.
 

@@ -19,6 +19,7 @@ so any agent that can fetch a URL can read them directly.
 - [Use SIRUP with your LLM agent](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/llm-agents.md)
 - [Analyze several sections with bulk AIRR-seq and blood](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/multisample.md)
 - [Process demultiplexed reads](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/processing.md)
+- [Use QuPath annotations as polygons](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/qupath-annotations.md)
 - [Draw tissue regions and measure clonal dominance and diversity](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/regions.md)
 - [How the SIRUP object works](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/sirup-object.md)
 - [Test spatial patterns of genes, cells, and clones](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/spatial-statistics.md)
@@ -27,6 +28,7 @@ so any agent that can fetch a URL can read them directly.
 
 All URLs share the prefix https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/ (e.g. `fn` -> `.../topics/fn.md`).
 
+- `addQuPathPolygons`: Add QuPath annotations to a SIRUP object as polygons
 - `addSequenceQualityMetrics`: Add quality measures to an AIRR table
 - `addTissuePositions`: Add tissue coordinates to an AIRR table
 - `assignReceptorPolygons`: Add polygon IDs to a receptor table
@@ -69,6 +71,7 @@ All URLs share the prefix https://raw.githubusercontent.com/hoehnlab/SIRUP/main/
 - `polygonReceptorSummary`: Summarize columns in receptors data inside polygons
 - `processSpatialSample`: Process one spatial sample from reads to an AIRR table
 - `processSpatialSamples`: Process several spatial samples
+- `readQuPathPolygons`: Read QuPath annotations as SIRUP polygons
 - `readSpatialIdMapping`: Read a spatial ID mapping file
 - `runIgblast`: Annotate raw reads with IgBLAST
 - `selectSpatialPolygons`: Select polygon vertices in an interactive app

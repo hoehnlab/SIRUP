@@ -22,23 +22,23 @@ downloadSIRUPExample(
 
 `dest`
 
-: Folder to save the files in. The function creates it if needed. The default is a folder in the R session\'s temporary directory, so the files are lost when you close R. Give a permanent folder to keep them.
+:   Folder to save the files in. The function creates it if needed. The default is a folder in the R session\'s temporary directory, so the files are lost when you close R. Give a permanent folder to keep them.
 
 `files`
 
-: Names of the files to download. If `NULL` (default), the function downloads all files. Use this to download only what a guide needs.
+:   Names of the files to download. If `NULL` (default), the function downloads all files. Use this to download only what a guide needs.
 
 `overwrite`
 
-: Download a file again even if it is already in `dest` (default `FALSE`)?
+:   Download a file again even if it is already in `dest` (default `FALSE`)?
 
 `base_url`
 
-: Web address of the folder that holds the files. Change it only to use a mirror. A `⁠file://⁠` address of a local folder also works. The default is the option `SIRUP.example_url` if you set it.
+:   Web address of the folder that holds the files. Change it only to use a mirror. A `⁠file://⁠` address of a local folder also works. The default is the option `SIRUP.example_url` if you set it.
 
 `quiet`
 
-: Hide the download progress messages (default `FALSE`)?
+:   Hide the download progress messages (default `FALSE`)?
 
 ## Details
 
@@ -51,6 +51,8 @@ The files are:
 - `mg_thymus_slice2_tcr.tsv.gz`, `mg_thymus_slice2_reads.tsv.gz`: TCR sequences and the demultiplexed reads of section 2.
 
 - `mg_thymus_slice1_gc_polygons.csv`, `mg_thymus_slice2_gc_polygons.csv`: annotated polygons of the ectopic germinal centers.
+
+- `mg_thymus_slice2_qupath_gcs.geojson`: six germinal center outlines that a user drew on section 2 in QuPath. Use it with [`addQuPathPolygons()`](addQuPathPolygons.md).
 
 - `mg_thymus_cell_types.csv.gz`: cell-type proportions for each spot.
 

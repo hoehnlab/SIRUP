@@ -18,4 +18,12 @@ downloadSIRUPExample(
 )
 ```
 
+Arguments:
+
+- `dest`: Folder to save the files in. The function creates it if needed. The default is a folder in the R session\'s temporary directory, so the files are lost when you close R. Give a permanent folder to keep them.
+- `files`: Names of the files to download. If `NULL` (default), the function downloads all files. Use this to download only what a guide needs.
+- `overwrite`: Download a file again even if it is already in `dest` (default `FALSE`)?
+- `base_url`: Web address of the folder that holds the files. Change it only to use a mirror. A `⁠file://⁠` address of a local folder also works. The default is the option `SIRUP.example_url` if you set it.
+- `quiet`: Hide the download progress messages (default `FALSE`)?
+
 Value: The path of `dest`, invisibly. Use `file.path()` with the path and a file name to read a file.

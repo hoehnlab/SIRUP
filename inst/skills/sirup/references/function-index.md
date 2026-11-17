@@ -22,6 +22,13 @@ Details: `references/functions-processing.md`
 - `spatialReceptorSummary`: Count the sequences and spots of a receptor table
 - `writeFastqas`: Write sequences to a FASTQ or FASTA file
 
+## Qupath
+
+Details: `references/functions-qupath.md`
+
+- `addQuPathPolygons`: Add QuPath annotations to a SIRUP object as polygons
+- `readQuPathPolygons`: Read QuPath annotations as SIRUP polygons
+
 ## SIRUP io
 
 Details: `references/functions-sirup-io.md`

@@ -61,3 +61,11 @@ Pick a spatial statistic by the question you ask: clustering, co-variation, near
 Page: https://sirup.readthedocs.io/en/latest/vignettes/llm-agents/
 
 Give an LLM agent such as Claude Code, Codex, or Antigravity the SIRUP skill or the llms files, and work with it on spatial receptor data.
+
+## Vignettes
+
+### Use QuPath annotations as polygons
+
+Page: https://sirup.readthedocs.io/en/latest/vignettes/qupath-annotations/
+
+This page shows how to export those outlines from QuPath and add them to a SIRUP object that has no polygons yet.

@@ -593,10 +593,10 @@ extdata <- SIRUP::downloadSIRUPExample(
   "mg_thymus_slice2_gc_polygons.csv"
   )
 )
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
 ```
 
 ## Load the data
@@ -1148,11 +1148,11 @@ extdata <- SIRUP::downloadSIRUPExample(
   "mg_thymus_cell_types.csv.gz"
   )
 )
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_cell_types.csv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_cell_types.csv.gz' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
 ```
 
 ## Install SIRUP
@@ -1882,7 +1882,7 @@ index.
 Use these requests with the skill installed. Replace the file names with
 your own.
 
-```
+``` text
 I have a Seurat object in `spatial.rds` and a corresponding spatial AIRR rearrangement in `bcr.tsv.gz`.
 Please build a SIRUP object and then build clones. Tell me how many sequences you removed and why.
 
@@ -1996,12 +1996,12 @@ extdata <- SIRUP::downloadSIRUPExample(
   )
 )
 #> ℹ Downloading 'mg_thymus_slice1_spatial.rds'
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_slice1_bcr.tsv.gz'
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_slice1_gc_polygons.csv'
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_bulk_thymus_1.tsv.gz'
 #> ℹ Downloading 'mg_thymus_bulk_thymus_2.tsv.gz'
 #> ℹ Downloading 'mg_thymus_bulk_blood_month0_1.tsv.gz'
@@ -2653,8 +2653,8 @@ extdata <- SIRUP::downloadSIRUPExample(
   )
 )
 #> ℹ Downloading 'mg_thymus_slice2_reads.tsv.gz'
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
 ```
 
 ## Demultiplexing long-read sequences
@@ -3150,6 +3150,188 @@ The table is now ready for `createSIRUP()`.
 
 ---
 
+<!-- source: docs/vignettes/qupath-annotations.md -->
+
+Use QuPath annotations as polygons
+================
+
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+**Time:** ~5 minutes.<br> **Data:** consensus BCRs and spatial gene
+expression from one myasthenia gravis (MG) thymus section, downloaded
+with `downloadSIRUPExample()`. The download also holds six germinal
+center (GC) outlines that a user drew in QuPath.<br> **Needs:** SIRUP
+with its Suggests packages airr, jsonlite, and sf.
+
+</div>
+
+A *polygon* is a closed outline around spots on the H&E image. You can
+draw polygons in SIRUP with `selectSpatialPolygons()`. You can also draw
+them in [QuPath](https://qupath.github.io), a free program for tissue
+images. A pathologist can outline regions there at full resolution. This
+page shows how to export those outlines from QuPath and add them to a
+SIRUP object that has no polygons yet. For what to do with polygons
+afterward, see [Draw tissue regions and measure clonal dominance and diversity](regions.md).
+
+## Draw and export the annotations in QuPath
+
+1.  Open the full-resolution H&E image in QuPath. It must be the same
+    image that the spots were registered to.
+2.  Draw one annotation for each region. Close every outline. SIRUP
+    reads only closed polygons. Give each annotation a name, such as
+    `GC1`. The name becomes the polygon ID in SIRUP. A classification,
+    such as `GC`, also works.
+
+![](figures/qupath-annotations.jpg)
+
+3.  Select the annotations. Choose
+    `File > Export objects as GeoJSON...`. The menu name can differ a
+    little between QuPath versions.
+
+![](figures/qupath-export-menu.jpg)
+
+4.  In the dialog, export the selected objects. Keep
+    `Export as FeatureCollection` checked. Click `OK` and save the file.
+
+![](figures/qupath-export-dialog.jpg)
+
+QuPath writes the coordinates in pixels of the full-resolution image.
+SIRUP converts them for you.
+
+## Build an object without polygons
+
+This page uses the example files of the MG thymus. This code downloads
+them. The default folder is temporary. The function skips files that are
+already there.
+
+``` r
+extdata <- SIRUP::downloadSIRUPExample(
+  dest = file.path(tempdir(), "SIRUP_example"),
+  files = c(
+    "mg_thymus_slice2_spatial.rds",
+    "mg_thymus_slice2_bcr.tsv.gz",
+    "mg_thymus_slice2_qupath_gcs.geojson"
+  )
+)
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice2_qupath_gcs.geojson'
+```
+
+The next chunk builds a SIRUP object from the spatial data and the BCRs.
+It gives no polygons. [Get started with SIRUP](get-started.md)
+explains each step.
+
+``` r
+library(SIRUP)
+library(dplyr)
+
+thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
+bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz")) %>%
+  extractSpatialIds(
+    id = "sequence_id",
+    spatial_id = "barcode_10x",
+    regex = ",([ACGT]{16})$",
+    suffix = "-1"
+  ) %>%
+  filterAirr(
+    locus_val = "IGH",
+    min_v_length = 250,
+    min_j_length = 30,
+    min_junction_length = 10,
+    productive_only = TRUE,
+    min_consensus_count = NULL,
+    spatial_id = "barcode_10x"
+  ) %>%
+  filter(!grepl("[^ACGT]", junction))
+
+sirup <- createSIRUP(
+  spatial = thymus,
+  receptors = bcrs,
+  spatial_id = "barcode_10x",
+  image_scale = "lowres",
+  swap_coords = FALSE
+)
+nrow(getPolygons(sirup))
+#> [1] 0
+```
+
+## Add the annotations
+
+The download holds the GeoJSON file that the screenshots show. Give
+`addQuPathPolygons()` the object and the path of your own file.
+
+``` r
+geojson <- file.path(extdata, "mg_thymus_slice2_qupath_gcs.geojson")
+sirup <- addQuPathPolygons(sirup, geojson)
+#> Warning: package 'sf' was built under R version 4.5.3
+#> Linking to GEOS 3.7.2, GDAL 3.0.4, PROJ 6.3.2; sf_use_s2() is TRUE
+getPolygons(sirup)
+#> # A tibble: 6 × 3
+#>   polygon_id vertices           class
+#>   <chr>      <list>             <chr>
+#> 1 GC1        <tibble [172 × 4]> <NA> 
+#> 2 GC2        <tibble [88 × 4]>  <NA> 
+#> 3 GC3        <tibble [96 × 4]>  <NA> 
+#> 4 GC4        <tibble [182 × 4]> <NA> 
+#> 5 GC5        <tibble [235 × 4]> <NA> 
+#> 6 GC6        <tibble [282 × 4]> <NA>
+```
+
+The function takes `image_scale` (`"lowres"` here) from the object. It
+stores one polygon for each annotation, named after the annotation. Each
+spot and each receptor record now has a `polygon_id`.
+
+``` r
+table(getSpatial(sirup)$polygon_id, useNA = "ifany")
+#> 
+#>  GC1  GC2  GC3  GC4  GC5  GC6 <NA> 
+#>    7    2    3    6    8   11 3166
+```
+
+`plotSpatialPolygons()` draws the polygons over the tissue. Always make
+this plot. It shows at once if the annotations and the spots do not line
+up.
+
+``` r
+plotSpatialPolygons(sirup, polygon_alpha = 0.3)
+```
+
+![](qupath-annotations_files/figure-gfm/plot-polygons-1.jpeg)
+
+## What the function does
+
+- **Scale.** QuPath pixels are full-resolution pixels. The function
+  finds the factor that converts them to the coordinates of the object,
+  for the `image_scale` of the object. If the object has no
+  `image_scale`, you must give it.
+- **Buffer.** A spot is a circle. By default, the function grows each
+  polygon by the spot radius. A spot whose circle touches the outline
+  then counts as inside. Use `buffer = 0` to count only spots with the
+  centre inside the outline.
+- **Names and classes.** The polygon ID is the annotation name. If an
+  annotation has no name, the ID is its class and a number, such as
+  `GC_01`. Use `class = "GC"` to keep only one class.
+- **Holes.** A SIRUP polygon has one ring and cannot have holes. The
+  function drops holes and gives a warning. A shape with several parts
+  becomes one polygon for each part.
+- **Existing polygons.** The function adds to the polygons that the
+  object already holds. Use `replace = TRUE` to replace them. A
+  multi-sample object needs `sample_id`, and only the polygons of that
+  sample change.
+
+To read the annotations without changing an object, use
+`readQuPathPolygons()`.
+
+
+---
+
 <!-- source: docs/vignettes/regions.md -->
 
 Draw tissue regions and measure clonal dominance and diversity
@@ -3201,10 +3383,10 @@ extdata <- SIRUP::downloadSIRUPExample(
   "mg_thymus_slice2_gc_polygons.csv"
   )
 )
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
 ```
 
 ## Set up the object
@@ -3650,8 +3832,6 @@ plotSpatialPolygonPies(
   top_n = 5,
   zoom = TRUE
 )
-#> Warning: package 'sf' was built under R version 4.5.3
-#> Linking to GEOS 3.7.2, GDAL 3.0.4, PROJ 6.3.2; sf_use_s2() is TRUE
 ```
 
 ![](regions_files/figure-gfm/clipped-1.jpeg)
@@ -4306,11 +4486,11 @@ extdata <- SIRUP::downloadSIRUPExample(
   "mg_thymus_slice2_tcr.tsv.gz"
   )
 )
-#> ℹ 'mg_thymus_cell_types.csv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_cell_types.csv.gz' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmptjUwoP/SIRUP_example'.
 ```
 
 ## Set up the object
@@ -4798,6 +4978,124 @@ listAnalyses(sirup)
   [Call clones and build lineage trees on the tissue](clones-and-trees.md).
 - Run the tests on several sections:
   [Analyze several sections with bulk AIRR-seq and blood](multisample.md).
+
+
+---
+
+<!-- source: docs/topics/addQuPathPolygons.md -->
+
+# addQuPathPolygons
+
+## Add QuPath annotations to a SIRUP object as polygons
+
+## Description
+
+`addQuPathPolygons` reads a GeoJSON file that QuPath exported. It converts the annotations to the coordinates of a spatial sample in a SIRUP object. It adds a buffer to each polygon, so that every spot whose circle touches the polygon becomes a member of it. Then it stores the polygons in the object.
+
+## Usage
+
+``` R
+addQuPathPolygons(
+  x,
+  path,
+  sample_id = NULL,
+  class = NULL,
+  keep_unclassified = TRUE,
+  image_scale = NULL,
+  swap_coords = NULL,
+  image = NULL,
+  buffer = NULL,
+  replace = FALSE,
+  include_boundary = TRUE,
+  validate = TRUE
+)
+```
+
+## Arguments
+
+`x`
+
+:   A SIRUP object.
+
+`path`
+
+:   Path to the QuPath GeoJSON file.
+
+`sample_id`
+
+:   Name of the spatial sample that the annotations belong to. A SIRUP object with one spatial sample does not need it. A multi-sample object does.
+
+`class`
+
+:   Class names to keep. If `NULL`, the function keeps all classes.
+
+`keep_unclassified`
+
+:   Keep annotations that have no class (default `TRUE`)? The function ignores this if you set `class`.
+
+`image_scale`
+
+:   Image scale of the polygon coordinates, for example `"hires"`. If `NULL`, the function uses the value stored in `x`. If `x` has no value, you must give one, and the function stores it in `x`. A value that differs from the stored one gives an error.
+
+`swap_coords`
+
+:   Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in `x`. The rules are the same as for `image_scale`.
+
+`image`
+
+:   Name of the Seurat image to use. If `NULL`, the function uses the only image of the sample.
+
+`buffer`
+
+:   Distance to grow each polygon, in the coordinates of the object. If `NULL` (default), the function uses the spot radius. Use `0` for no buffer.
+
+`replace`
+
+:   Replace the stored polygons of this sample (default `FALSE`)? If `FALSE`, the function adds the new polygons to the stored ones, and the polygon IDs must not repeat.
+
+`include_boundary`
+
+:   Count spots on a polygon edge as members of the polygon?
+
+`validate`
+
+:   Validate the updated object?
+
+## Details
+
+QuPath writes coordinates in pixels of the full-resolution image. The function finds the factor that converts them to the coordinates of the object. It compares `SeuratObject::GetTissueCoordinates()` at the `image_scale` of the object with the unscaled coordinates. This works for `"hires"` and `"lowres"`. The image that you annotated in QuPath must be the full-resolution image that the spots were registered to.
+
+`image_scale` and `swap_coords` come from the SIRUP object. If the object has no `image_scale`, you must give it. The function swaps the polygon axes in the same way as the spots when `swap_coords` is `TRUE`.
+
+A spot is a circle. By default, the function grows each polygon by the spot radius, which it reads from the scale factors of the Seurat image. If the sample has no Seurat image, the function uses the QuPath coordinates as they are and sets the default buffer to 0. Then [`assignSpatialPolygons()`](assignSpatialPolygons.md) counts a spot as inside when its centre is inside the grown polygon. That is the same as counting every spot whose circle touches the original polygon. Set `buffer = 0` to count only spots with the centre inside the QuPath polygon. For Visium HD, check that the stored spot size suits your bins, or give `buffer`.
+
+A SIRUP polygon cannot have holes. The function drops holes and gives a warning. See [`readQuPathPolygons()`](readQuPathPolygons.md) for the rules about shapes, classes, and IDs.
+
+## Value
+
+The updated SIRUP object. Spatial metadata and receptor records get the new `polygon_id` values.
+
+## See Also
+
+[`readQuPathPolygons()`](readQuPathPolygons.md), [`addPolygons()`](sirup-polygons.md), [`plotSpatialPolygons()`](plotSpatialPolygons.md)
+
+## Examples
+
+``` R
+# Write a small GeoJSON file with one annotation. QuPath makes files like it.
+geojson <- tempfile(fileext = ".geojson")
+writeLines(paste0(
+  '{"type":"FeatureCollection","features":[{"type":"Feature",',
+  '"geometry":{"type":"Polygon","coordinates":',
+  '[[[3.5,0.5],[5.5,0.5],[5.5,2.5],[3.5,2.5],[3.5,0.5]]]},',
+  '"properties":{"objectType":"annotation","name":"GC1"}}]}'
+), geojson)
+
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+x <- addQuPathPolygons(x, geojson, replace = TRUE)
+getPolygons(x)
+table(getSpatial(x)$polygon_id, useNA = "ifany")
+```
 
 
 ---
@@ -5877,23 +6175,23 @@ downloadSIRUPExample(
 
 `dest`
 
-: Folder to save the files in. The function creates it if needed. The default is a folder in the R session\'s temporary directory, so the files are lost when you close R. Give a permanent folder to keep them.
+:   Folder to save the files in. The function creates it if needed. The default is a folder in the R session\'s temporary directory, so the files are lost when you close R. Give a permanent folder to keep them.
 
 `files`
 
-: Names of the files to download. If `NULL` (default), the function downloads all files. Use this to download only what a guide needs.
+:   Names of the files to download. If `NULL` (default), the function downloads all files. Use this to download only what a guide needs.
 
 `overwrite`
 
-: Download a file again even if it is already in `dest` (default `FALSE`)?
+:   Download a file again even if it is already in `dest` (default `FALSE`)?
 
 `base_url`
 
-: Web address of the folder that holds the files. Change it only to use a mirror. A `⁠file://⁠` address of a local folder also works. The default is the option `SIRUP.example_url` if you set it.
+:   Web address of the folder that holds the files. Change it only to use a mirror. A `⁠file://⁠` address of a local folder also works. The default is the option `SIRUP.example_url` if you set it.
 
 `quiet`
 
-: Hide the download progress messages (default `FALSE`)?
+:   Hide the download progress messages (default `FALSE`)?
 
 ## Details
 
@@ -5906,6 +6204,8 @@ The files are:
 - `mg_thymus_slice2_tcr.tsv.gz`, `mg_thymus_slice2_reads.tsv.gz`: TCR sequences and the demultiplexed reads of section 2.
 
 - `mg_thymus_slice1_gc_polygons.csv`, `mg_thymus_slice2_gc_polygons.csv`: annotated polygons of the ectopic germinal centers.
+
+- `mg_thymus_slice2_qupath_gcs.geojson`: six germinal center outlines that a user drew on section 2 in QuPath. Use it with [`addQuPathPolygons()`](addQuPathPolygons.md).
 
 - `mg_thymus_cell_types.csv.gz`: cell-type proportions for each spot.
 
@@ -8421,139 +8721,139 @@ plotSpatialColorTips(
 
 `object`
 
-: Seurat object or SIRUP object.
+:   Seurat object or SIRUP object.
 
 `tip_data`
 
-: Data frame with a spatial ID column and a color column. For example, use the result of [`assignTipColors()`](assignTipColors.md).
+:   Data frame with a spatial ID column and a color column. For example, use the result of [`assignTipColors()`](assignTipColors.md).
 
 `spatial_id`
 
-: Name of the column in `tip_data` that holds the Seurat spot names (default `"spatial_id_8um"`).
+:   Name of the column in `tip_data` that holds the Seurat spot names (default `"spatial_id_8um"`).
 
 `sample_col`
 
-: Name of the column in `tip_data` that matches the names of a list of spatial objects.
+:   Name of the column in `tip_data` that matches the names of a list of spatial objects.
 
 `color`
 
-: Name of the column that holds the colors (default `"tip_color"`).
+:   Name of the column that holds the colors (default `"tip_color"`).
 
 `label`
 
-: Name of the column that holds the legend labels of the colors.
+:   Name of the column that holds the legend labels of the colors.
 
 `legend_title`
 
-: Title of the color legend (default `"Tip color"`).
+:   Title of the color legend (default `"Tip color"`).
 
 `legend_colors`
 
-: Named vector of colors for the legend.
+:   Named vector of colors for the legend.
 
 `title`
 
-: Plot title.
+:   Plot title.
 
 `image_scale`
 
-: Image scale for `SeuratObject::GetTissueCoordinates()`. If `NULL`, the function uses the value stored in the SIRUP object.
+:   Image scale for `SeuratObject::GetTissueCoordinates()`. If `NULL`, the function uses the value stored in the SIRUP object.
 
 `swap_coords`
 
-: Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in the SIRUP object. Give a value if `object` is a Seurat object.
+:   Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in the SIRUP object. Give a value if `object` is a Seurat object.
 
 `point_size`
 
-: Size of the spots. The default is 1.6.
+:   Size of the spots. The default is 1.6.
 
 `point_alpha`
 
-: Opacity of the spots.
+:   Opacity of the spots.
 
 `order_points`
 
-: Draw the early color groups first, so that the later groups show on top (default `TRUE`)?
+:   Draw the early color groups first, so that the later groups show on top (default `TRUE`)?
 
 `images`
 
-: Names of the Seurat images to use.
+:   Names of the Seurat images to use.
 
 `sample_id`
 
-: Names of the samples to plot. Use it for multi-sample SIRUP objects. If `NULL`, the function plots all samples.
+:   Names of the samples to plot. Use it for multi-sample SIRUP objects. If `NULL`, the function plots all samples.
 
 `image_alpha`
 
-: Opacity of the tissue image.
+:   Opacity of the tissue image.
 
 `zoom`
 
-: Zoom to the plotted spots (default `FALSE`)? If `FALSE`, the plot shows the full tissue area that the spatial coordinates cover.
+:   Zoom to the plotted spots (default `FALSE`)? If `FALSE`, the plot shows the full tissue area that the spatial coordinates cover.
 
 `show_legend`
 
-: Show the color legend (default `FALSE`)?
+:   Show the color legend (default `FALSE`)?
 
 `polygons`
 
-: Draw polygons under the points on each spatial panel. With `FALSE` (default), the function draws no polygons. With `TRUE`, it uses the polygons stored in the SIRUP object. You can also give a data frame of polygon vertices, or the path of a CSV file of polygon vertices. A vertex table needs the columns set by `polygon_x` and `polygon_y`. It needs the column set by `polygon_id` if it holds more than one polygon.
+:   Draw polygons under the points on each spatial panel. With `FALSE` (default), the function draws no polygons. With `TRUE`, it uses the polygons stored in the SIRUP object. You can also give a data frame of polygon vertices, or the path of a CSV file of polygon vertices. A vertex table needs the columns set by `polygon_x` and `polygon_y`. It needs the column set by `polygon_id` if it holds more than one polygon.
 
 `polygon_x`
 
-: Name of the x-coordinate column in the polygon table (default `"x"`).
+:   Name of the x-coordinate column in the polygon table (default `"x"`).
 
 `polygon_y`
 
-: Name of the y-coordinate column in the polygon table (default `"y"`).
+:   Name of the y-coordinate column in the polygon table (default `"y"`).
 
 `polygon_id`
 
-: Name of the column that separates the polygons in the polygon table (default `"polygon"`). If the column does not exist, the function uses a `polygon` or `polygon_id` column. If neither exists, all rows form one polygon.
+:   Name of the column that separates the polygons in the polygon table (default `"polygon"`). If the column does not exist, the function uses a `polygon` or `polygon_id` column. If neither exists, all rows form one polygon.
 
 `polygon_val`
 
-: IDs of the polygons to draw. If `NULL`, the function draws all polygons.
+:   IDs of the polygons to draw. If `NULL`, the function draws all polygons.
 
 `polygon_alpha`
 
-: Opacity of the polygon fill (default 0.2).
+:   Opacity of the polygon fill (default 0.2).
 
 `polygon_fill`
 
-: Fill color of the polygons (default `"#0072B2"`).
+:   Fill color of the polygons (default `"#0072B2"`).
 
 `polygon_color`
 
-: Color of the polygon outlines (default `"#0072B2"`).
+:   Color of the polygon outlines (default `"#0072B2"`).
 
 `polygon_linewidth`
 
-: Width of the polygon outlines (default 0.6).
+:   Width of the polygon outlines (default 0.6).
 
 `polygon_label`
 
-: Write a label at the center of each polygon (default `FALSE`)?
+:   Write a label at the center of each polygon (default `FALSE`)?
 
 `polygon_label_by`
 
-: Name of the column that holds the labels. If `NULL`, the function uses the polygon ID.
+:   Name of the column that holds the labels. If `NULL`, the function uses the polygon ID.
 
 `polygon_label_size`
 
-: Text size of the polygon labels (default 3).
+:   Text size of the polygon labels (default 3).
 
 `polygon_label_color`
 
-: Text color of the polygon labels (default `"black"`).
+:   Text color of the polygon labels (default `"black"`).
 
 `combine`
 
-: Combine the image panels with patchwork (default `TRUE`)?
+:   Combine the image panels with patchwork (default `TRUE`)?
 
 `combine_sample_plots`
 
-: Combine the plots of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns a named list with one plot for each sample.
+:   Combine the plots of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns a named list with one plot for each sample.
 
 ## Details
 
@@ -8923,119 +9223,119 @@ plotSpatialPolygons(
 
 `object`
 
-: Seurat object or SIRUP object.
+:   Seurat object or SIRUP object.
 
 `polygon`
 
-: Data frame of polygon vertices in order. It needs the columns set by `x` and `y`. If the column set by `polygon_id` exists, the function treats each polygon on its own. If `object` is a SIRUP object and `polygon` is `NULL`, the function uses the stored polygons.
+:   Data frame of polygon vertices in order. It needs the columns set by `x` and `y`. If the column set by `polygon_id` exists, the function treats each polygon on its own. If `object` is a SIRUP object and `polygon` is `NULL`, the function uses the stored polygons.
 
 `images`
 
-: Names of the Seurat images to use.
+:   Names of the Seurat images to use.
 
 `sample_id`
 
-: Names of the samples to plot. Use it for multi-sample SIRUP objects. If `NULL`, the function plots all samples.
+:   Names of the samples to plot. Use it for multi-sample SIRUP objects. If `NULL`, the function plots all samples.
 
 `image_scale`
 
-: Image scale for `SeuratObject::GetTissueCoordinates()`. If `NULL`, the function uses the value stored in the SIRUP object.
+:   Image scale for `SeuratObject::GetTissueCoordinates()`. If `NULL`, the function uses the value stored in the SIRUP object.
 
 `swap_coords`
 
-: Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in the SIRUP object. Give a value if `object` is a Seurat object.
+:   Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in the SIRUP object. Give a value if `object` is a Seurat object.
 
 `polygon_val`
 
-: IDs of the polygons to use. If `NULL`, the function uses all polygons.
+:   IDs of the polygons to use. If `NULL`, the function uses all polygons.
 
 `x`
 
-: Name of the x-coordinate column in `polygon` (default `"x"`).
+:   Name of the x-coordinate column in `polygon` (default `"x"`).
 
 `y`
 
-: Name of the y-coordinate column in `polygon` (default `"y"`).
+:   Name of the y-coordinate column in `polygon` (default `"y"`).
 
 `polygon_id`
 
-: Name of the column in `polygon` that groups the vertices by polygon (default `"polygon"`).
+:   Name of the column in `polygon` that groups the vertices by polygon (default `"polygon"`).
 
 `polygon_alpha`
 
-: Opacity of the polygon fill (default 0.2).
+:   Opacity of the polygon fill (default 0.2).
 
 `polygon_fill`
 
-: Fill color of the polygons, if no analysis is mapped (default `"#0072B2"`).
+:   Fill color of the polygons, if no analysis is mapped (default `"#0072B2"`).
 
 `fill_analysis`
 
-: Name of a stored SIRUP analysis that has one row for each polygon. The function colors the polygons with it.
+:   Name of a stored SIRUP analysis that has one row for each polygon. The function colors the polygons with it.
 
 `fill_column`
 
-: Name of the column that sets the fill color. If `fill_analysis` is `NULL`, the function reads the column from the polygon data. Otherwise, it reads the column from the analysis. The analysis must have a `polygon_id` or `polygon` column as the polygon key.
+:   Name of the column that sets the fill color. If `fill_analysis` is `NULL`, the function reads the column from the polygon data. Otherwise, it reads the column from the analysis. The analysis must have a `polygon_id` or `polygon` column as the polygon key.
 
 `analysis_fill`
 
-: Two colors for the low and high end of the gradient for numeric analysis values (default `c("#D3D3D3", "#FFFF00")`). The function uses the Glasbey palette for other values.
+:   Two colors for the low and high end of the gradient for numeric analysis values (default `c("#D3D3D3", "#FFFF00")`). The function uses the Glasbey palette for other values.
 
 `polygon_color`
 
-: Color of the polygon outlines (default `"#0072B2"`).
+:   Color of the polygon outlines (default `"#0072B2"`).
 
 `linewidth`
 
-: Width of the polygon outlines (default 0.6).
+:   Width of the polygon outlines (default 0.6).
 
 `image_alpha`
 
-: Opacity of the tissue image.
+:   Opacity of the tissue image.
 
 `label`
 
-: Write a label at the center of each polygon (default `TRUE`)?
+:   Write a label at the center of each polygon (default `TRUE`)?
 
 `label_by`
 
-: Name of the column in the polygon data that holds the labels (default `"polygon"`).
+:   Name of the column in the polygon data that holds the labels (default `"polygon"`).
 
 `label_size`
 
-: Text size of the labels (default 3).
+:   Text size of the labels (default 3).
 
 `label_color`
 
-: Text color of the labels (default `"black"`).
+:   Text color of the labels (default `"black"`).
 
 `label_outside`
 
-: Put each label outside its polygon (default `FALSE`)? The function pushes each label away from the centroid of all plotted polygons, so that labels spread outward from a group of small polygons. The label is `label_offset` away from the polygon.
+:   Put each label outside its polygon (default `FALSE`)? The function pushes each label away from the centroid of all plotted polygons, so that labels spread outward from a group of small polygons. The label is `label_offset` away from the polygon.
 
 `label_offset`
 
-: Gap between a polygon edge and its label, if `label_outside` is `TRUE` (default 0.08). The value is a fraction of the plotted coordinate range.
+:   Gap between a polygon edge and its label, if `label_outside` is `TRUE` (default 0.08). The value is a fraction of the plotted coordinate range.
 
 `label_leader`
 
-: Draw a line from each polygon to its label, if `label_outside` is `TRUE` (default `TRUE`)?
+:   Draw a line from each polygon to its label, if `label_outside` is `TRUE` (default `TRUE`)?
 
 `label_leader_color`
 
-: Color of the leader lines (default `"grey40"`).
+:   Color of the leader lines (default `"grey40"`).
 
 `zoom`
 
-: Zoom to the extent of the polygons, not the full tissue (default `FALSE`)?
+:   Zoom to the extent of the polygons, not the full tissue (default `FALSE`)?
 
 `combine`
 
-: Combine the plots with patchwork, if possible (default `TRUE`)?
+:   Combine the plots with patchwork, if possible (default `TRUE`)?
 
 `combine_sample_plots`
 
-: Combine the plots of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns a named list with one plot for each sample.
+:   Combine the plots of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns a named list with one plot for each sample.
 
 ## Details
 
@@ -10013,6 +10313,92 @@ results <- processSpatialSamples(
 
 ---
 
+<!-- source: docs/topics/readQuPathPolygons.md -->
+
+# readQuPathPolygons
+
+## Read QuPath annotations as SIRUP polygons
+
+## Description
+
+`readQuPathPolygons` reads a GeoJSON file exported from QuPath. It returns a polygon table. Pass the table to [`addPolygons()`](sirup-polygons.md).
+
+## Usage
+
+``` R
+readQuPathPolygons(
+  path,
+  sample_id = NULL,
+  class = NULL,
+  keep_unclassified = TRUE,
+  scale = 1
+)
+```
+
+## Arguments
+
+`path`
+
+:   Path to the GeoJSON file.
+
+`sample_id`
+
+:   Sample name to add to all polygons. A multi-sample SIRUP object needs it. Use `NULL` for a single-sample object.
+
+`class`
+
+:   Class names to keep, for example `"GC"`. If `NULL`, the function keeps all classes.
+
+`keep_unclassified`
+
+:   Keep annotations that have no class (default `TRUE`)? The function ignores this if you set `class`.
+
+`scale`
+
+:   Number that multiplies all x and y values. See Details.
+
+## Details
+
+In QuPath, use `⁠File > Object data... > Export as GeoJSON⁠`. Select the annotations first, or export all objects. A script can also call `exportObjectsToGeoJson(getAnnotationObjects(), path, "FEATURE_COLLECTION")`.
+
+QuPath writes coordinates in pixels of the full-resolution image. The origin is the top-left corner, and y increases downward. SIRUP polygons must use the same coordinates as `SeuratObject::GetTissueCoordinates()` at the `image_scale` of the object. If the object uses the `hires` or `lowres` image, set `scale` to the matching scale factor from `scalefactors_json.json`. Use `scale = 1` for full-resolution coordinates.
+
+The function accepts a FeatureCollection, a single Feature, and the bare list of Features that older QuPath versions write. It keeps features with `objectType` equal to `"annotation"`, or with no `objectType`. It reads only `Polygon` and `MultiPolygon` shapes. A `MultiPolygon` becomes one SIRUP polygon for each part. The IDs of the parts end in `⁠_p1⁠`, `⁠_p2⁠`, and so on.
+
+A SIRUP polygon has one ring and cannot have holes. If an annotation has holes, the function drops them and gives a warning. Spots in a hole then count as inside the polygon.
+
+Polygon IDs come from the annotation name. If an annotation has no name, the ID comes from the class name and a number, for example `ENDO_01`. An annotation with neither gets the label `annotation`.
+
+## Value
+
+A tibble with the columns `polygon_id`, `class`, `vertices`, and `sample` (only if you set `sample_id`). `vertices` is a list-column of tables with the columns `x` and `y`.
+
+## See Also
+
+[`addPolygons()`](sirup-polygons.md), [`plotSpatialPolygons()`](plotSpatialPolygons.md)
+
+## Examples
+
+``` R
+geojson <- tempfile(fileext = ".geojson")
+writeLines(paste0(
+  '{"type":"FeatureCollection","features":[{"type":"Feature",',
+  '"geometry":{"type":"Polygon","coordinates":',
+  '[[[2.5,2.5],[3.5,2.5],[3.5,3.5],[2.5,3.5],[2.5,2.5]]]},',
+  '"properties":{"objectType":"annotation",',
+  '"classification":{"name":"GC","color":[255,0,0]}}}]}'
+), geojson)
+polygons <- readQuPathPolygons(geojson)
+polygons
+
+x <- readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))
+x <- addPolygons(x, polygons)
+getPolygons(x)$polygon_id
+```
+
+
+---
+
 <!-- source: docs/topics/readSpatialIdMapping.md -->
 
 # readSpatialIdMapping
@@ -10478,23 +10864,23 @@ removeAnalysis(x, name, validate = TRUE)
 
 `x`
 
-: A SIRUP object.
+:   A SIRUP object.
 
 `name`
 
-: Name of the analysis. Give one non-empty character string.
+:   Name of the analysis. Give one non-empty character string.
 
 `sample_id`
 
-: Name of a spatial sample. Use it to store or get a result for one sample.
+:   Name of a spatial sample. Use it to store or get a result for one sample.
 
 `value`
 
-: R object to store. It can be `NULL`.
+:   R object to store. It can be `NULL`.
 
 `validate`
 
-: Validate the updated SIRUP object?
+:   Validate the updated SIRUP object?
 
 ## Details
 
@@ -10619,27 +11005,27 @@ addPolygons(
 
 `x`
 
-: A SIRUP object.
+:   A SIRUP object.
 
 `sample_id`
 
-: Sample name or names to add to the polygons from `polygons_path`. Use it only if the paths have no names.
+:   Sample name or names to add to the polygons from `polygons_path`. Use it only if the paths have no names.
 
 `polygons`
 
-: Polygon table.
+:   Polygon table.
 
 `polygons_path`
 
-: Path to a flat CSV file of polygon vertices. For a multi-sample object, give a named vector or list of paths, with one path for each sample.
+:   Path to a flat CSV file of polygon vertices. For a multi-sample object, give a named vector or list of paths, with one path for each sample.
 
 `include_boundary`
 
-: Count spots on a polygon edge as members of the polygon?
+:   Count spots on a polygon edge as members of the polygon?
 
 `validate`
 
-: Validate the updated object?
+:   Validate the updated object?
 
 ## Details
 

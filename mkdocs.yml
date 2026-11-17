@@ -45,7 +45,10 @@ nav:
   - How the SIRUP object works: vignettes/sirup-object.md
   - Choose a spatial statistic: vignettes/choose-spatial-statistic.md
   - Use SIRUP with your LLM agent: vignettes/llm-agents.md
+- Vignettes:
+  - Use QuPath annotations as polygons: vignettes/qupath-annotations.md
 - Function Reference:
+  - addQuPathPolygons: topics/addQuPathPolygons.md
   - addSequenceQualityMetrics: topics/addSequenceQualityMetrics.md
   - addTissuePositions: topics/addTissuePositions.md
   - assignReceptorPolygons: topics/assignReceptorPolygons.md
@@ -88,6 +91,7 @@ nav:
   - polygonReceptorSummary: topics/polygonReceptorSummary.md
   - processSpatialSample: topics/processSpatialSample.md
   - processSpatialSamples: topics/processSpatialSamples.md
+  - readQuPathPolygons: topics/readQuPathPolygons.md
   - readSpatialIdMapping: topics/readSpatialIdMapping.md
   - runIgblast: topics/runIgblast.md
   - selectSpatialPolygons: topics/selectSpatialPolygons.md

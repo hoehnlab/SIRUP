@@ -8,7 +8,7 @@
   "documentation": "https://sirup.readthedocs.io/en/latest/",
   "requirements": {
     "depends": "R (>= 4.1.0)",
-    "imports": "airrblast, alakazam, cli, cowplot, data.table, dowser, dplyr, ggplot2, ggtree, grDevices, grid, igraph, kedd, KernSmooth, magrittr, Matrix, methods, parallel, patchwork, pbapply, RANN, rlang, scales, SeuratObject, sf, shiny, spdep, stats, stringr, tibble, tidyr, tools, utils",
+    "imports": "airrblast, alakazam, cli, cowplot, data.table, dowser, dplyr, ggplot2, ggtree, grDevices, grid, igraph, jsonlite, kedd, KernSmooth, magrittr, Matrix, methods, parallel, patchwork, pbapply, RANN, rlang, scales, SeuratObject, sf, shiny, spdep, stats, stringr, tibble, tidyr, tools, utils",
     "suggests": "airr, ape, arrow, BiocNeighbors, knitr, nabor, pals, qpdf, rgl, rmarkdown, scoper, Seurat, shazam, spatstat.explore, spatstat.geom, spatstat.random, testthat (>= 3.0.0), withr"
   },
   "full_content": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/llms-full.json",
@@ -30,6 +30,12 @@
         "sirup-object",
         "choose-spatial-statistic",
         "llm-agents"
+      ]
+    },
+    {
+      "title": "Vignettes",
+      "pages": [
+        "qupath-annotations"
       ]
     }
   ],
@@ -131,9 +137,28 @@
       "url": "https://sirup.readthedocs.io/en/latest/vignettes/llm-agents/",
       "section": "Guides",
       "summary": "Give an LLM agent such as Claude Code, Codex, or Antigravity the SIRUP skill or the llms files, and work with it on spatial receptor data."
+    },
+    {
+      "type": "vignette",
+      "id": "qupath-annotations",
+      "title": "Use QuPath annotations as polygons",
+      "source": "docs/vignettes/qupath-annotations.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/qupath-annotations.md",
+      "url": "https://sirup.readthedocs.io/en/latest/vignettes/qupath-annotations/",
+      "section": "Vignettes",
+      "summary": "This page shows how to export those outlines from QuPath and add them to a SIRUP object that has no polygons yet."
     }
   ],
   "functions": [
+    {
+      "type": "function",
+      "id": "addQuPathPolygons",
+      "title": "Add QuPath annotations to a SIRUP object as polygons",
+      "source": "docs/topics/addQuPathPolygons.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/addQuPathPolygons.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/addQuPathPolygons/",
+      "summary": "`addQuPathPolygons` reads a GeoJSON file that QuPath exported."
+    },
     {
       "type": "function",
       "id": "addSequenceQualityMetrics",
@@ -511,6 +536,15 @@
       "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/processSpatialSamples.md",
       "url": "https://sirup.readthedocs.io/en/latest/topics/processSpatialSamples/",
       "summary": "`processSpatialSamples` runs [`processSpatialSample()`](processSpatialSample.md) on each input in turn."
+    },
+    {
+      "type": "function",
+      "id": "readQuPathPolygons",
+      "title": "Read QuPath annotations as SIRUP polygons",
+      "source": "docs/topics/readQuPathPolygons.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/readQuPathPolygons.md",
+      "url": "https://sirup.readthedocs.io/en/latest/topics/readQuPathPolygons/",
+      "summary": "`readQuPathPolygons` reads a GeoJSON file exported from QuPath."
     },
     {
       "type": "function",
