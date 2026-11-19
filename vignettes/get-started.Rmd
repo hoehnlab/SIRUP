@@ -225,16 +225,20 @@ later functions can find these columns without including them as arguments.
 
 Two settings control how SIRUP constructs plots over the H&E image:
 
-* `image_scale` is `"lowres"` or `"hires"`. Use the image that tge Seurat
+* `image_scale` is `"lowres"` or `"hires"`. Use the image that the Seurat
   object stores. `Load10X_Spatial()` stores the low-resolution image by default, 
   though it can use the high-resolution image if specified in the `image.name` argument.
-* `swap_coords` swaps the x and y coordinates. Set it to `TRUE` if the spots
-  have the right shape but sit rotated or mirrored over the image. This is easiest to
+* `swap_coords` swaps the x and y coordinates. Set it to `TRUE` only if the spots
+  have the right shape but sit rotated or mirrored over the image, because the object
+  stores the coordinates as (row, column) instead of (x, y). This is easiest to
   determine by plotting the spots as shown below.
+
+The coordinates are generally in pixel space, where `y` counts down from the top of the image, so when we check we should
+plot `y` as `-y`. If the spots then look like the tissue as they do here, keep `swap_coords = FALSE`.
 
 ```{r check-swapcoords}
 coords <- SeuratObject::GetTissueCoordinates(thymus)
-ggplot(coords, aes(x, y)) + geom_point() 
+ggplot(coords, aes(x, -y)) + geom_point()
 ```
 
 If both arguments are included when constructing the SIRUP object, they will be stored in the object, 
@@ -494,11 +498,10 @@ sirup
 
 ## Next steps
 
-* To learn more about the structure of the SIRUP object see
-  `vignette("sirup-object", package = "SIRUP")`.
-* To compare ROIs in the tissue, see `vignette("regions", package = "SIRUP")`.
-* To build lineage trees and visualize them on the tissue, read
-  `vignette("clones-and-trees", package = "SIRUP")`.
-* To test spatial patterns, read
-  `vignette("spatial-statistics", package = "SIRUP")`.
 * To process your own reads, read `vignette("processing", package = "SIRUP")`.
+* To compare ROIs in the tissue, see `vignette("regions", package = "SIRUP")`.
+* To build lineage trees and visualize them on the tissue, read `vignette("clones-and-trees", package = "SIRUP")`.
+* To add more sections or bulk AIRR-seq, see `vignette("multisample", package = "SIRUP")`.
+* To learn more about the structure of the SIRUP object see `vignette("sirup-object", package = "SIRUP")`.
+* To test spatial patterns, read `vignette("choose-spatial-statistic", package = "SIRUP")`.
+* To learn how to use SIRUP with LLM agents, read `vignette("llm-agents", package = "SIRUP")`.

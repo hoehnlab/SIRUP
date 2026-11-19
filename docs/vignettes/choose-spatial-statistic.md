@@ -1,4 +1,4 @@
-Choose a spatial statistic
+Choose the right spatial statistic for your question
 ================
 
 This guide helps you choose an appropriate spatial statistic to answer
@@ -324,9 +324,7 @@ plotRipleyCrossK(kcross, title = "Cross K: GC B spots to Tfh spots")
 
 ## Next steps
 
-- Run tests on real data:
-  [Test spatial patterns of genes, cells, and clones](spatial-statistics.md).
-- Draw regions and measure their repertoires:
-  [Draw tissue regions and measure clonal dominance and diversity](regions.md).
-- Call clones before you test them:
-  [Call clones and build lineage trees on the tissue](clones-and-trees.md).
+- To compare ROIs in the tissue, see
+  [Annotate tissue ROIs and analyze local clonal structure](regions.md).
+- To build lineage trees and visualize them on the tissue, read
+  [Infer clones and lineage trees in situ](clones-and-trees.md).

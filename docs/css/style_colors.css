@@ -39,6 +39,8 @@
 
 /* ---- Light grey -> label tan ------------------------------------------------------ */
 body { background: var(--sirup-tan); }
+/* The theme paints the margin beside the page text with a 5% black layer, which looks grey. Make it tan. */
+.wy-nav-content-wrap { background: var(--sirup-tan); }
 .wy-menu-vertical li.current { background: var(--sirup-tan); }
 .wy-menu-vertical li.current a { color: var(--sirup-ink); }
 .wy-menu-vertical li.current a:hover { background: var(--sirup-tan-2); }

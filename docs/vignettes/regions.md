@@ -1,4 +1,4 @@
-Draw tissue regions and measure clonal dominance and diversity
+Annotate tissue ROIs and analyze local clonal structure
 ================
 
 <div markdown="1"
@@ -34,8 +34,8 @@ extdata <- SIRUP::downloadSIRUPExample(
     "mg_thymus_slice2_gc_polygons.csv"
   )
 )
-#> ℹ 'mg_thymus_slice2.sirup.rds' is already in '/scratch/f007p0j/Rtmpyr7Vhs/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/Rtmpyr7Vhs/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2.sirup.rds' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
 ```
 
 ``` r
@@ -194,7 +194,7 @@ Each row is one vertex. `polygon` names the region, `spatial_id` is the
 closest spot to where you clicked, and `x` and `y` are its coordinates.
 
 Regions drawn by a pathologist in QuPath (or by you) can be added too,
-as shown in [Use QuPath annotations as polygons](qupath-annotations.md).
+as shown in [Use QuPath annotations to define ROIs](qupath-annotations.md).
 
 ## Attach ROIs to the SIRUP object
 
@@ -654,3 +654,14 @@ polygonPairwiseDistance(sirup) %>%
 #> 6 spatial 1            3            1               3                   53.6
 #> # ℹ 2 more variables: normalized_distance <dbl>, section_diagonal <dbl>
 ```
+
+## Next steps
+
+- To build lineage trees and visualize them on the tissue, read
+  [Infer clones and lineage trees in situ](clones-and-trees.md).
+- To add more sections or bulk AIRR-seq, see
+  [Analyze multiple spatial sections and bulk BCR-seq](multisample.md).
+- To test spatial patterns, read
+  [Choose the right spatial statistic for your question](choose-spatial-statistic.md).
+- To use QuPath annotations to define ROIs, see
+  [Use QuPath annotations to define ROIs](qupath-annotations.md).

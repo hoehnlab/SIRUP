@@ -1,7 +1,7 @@
 # SIRUP: Spatial Immune Receptor Utilities Package
 
-<div markdown="1" style="background: #ffedcc; padding: 12px; margin-bottom: 24px; line-height: 24px;">
-  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">Under construction</p>
+<div markdown="1" style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;">Under construction</p>
   This site is still under construction. Be aware that some information may be missing or incorrect.
 </div>
 
@@ -51,15 +51,12 @@ Use R 4.1 or later.
 
 * [Process demultiplexed reads](vignettes/processing.md). Turn
   demultiplexed reads into a table of consensus BCR or TCR sequences.
-* [Draw tissue regions and measure clonal dominance and
-  diversity](vignettes/regions.md). Compare the repertoires of regions such as
+* [Annotate tissue ROIs and analyze local clonal
+  structure](vignettes/regions.md). Compare the repertoires of regions such as
   germinal centers.
 * [Call clones and build lineage trees on the
   tissue](vignettes/clones-and-trees.md). Build trees with Dowser and show them
   on the H&E image.
-* [Test spatial patterns of genes, cells, and
-  clones](vignettes/spatial-statistics.md). Run Moran's I, Lee's L, Ripley's
-  cross K, and join counts.
 * [Analyze several sections with bulk AIRR-seq and
   blood](vignettes/multisample.md). Combine sections and combine spatial and bulk receptor data in
   one object.
@@ -67,9 +64,10 @@ Use R 4.1 or later.
 **Guides**
 
 * [How the SIRUP object works](vignettes/sirup-object.md). 
-* [Choose a spatial statistic](vignettes/choose-spatial-statistic.md). Match
-  your question to a function.
-* [Use QuPath annotations as polygons](vignettes/qupath-annotations.md). Export outlines from QuPath and add them
+* [Choose the right spatial statistic for your
+  question](vignettes/choose-spatial-statistic.md). Match your question to a
+  function.
+* [Use QuPath annotations to define ROIs](vignettes/qupath-annotations.md). Export outlines from QuPath and add them
   to a SIRUP object.
 * [Use SIRUP with your LLM agent](vignettes/llm-agents.md).
 

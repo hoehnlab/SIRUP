@@ -20,7 +20,6 @@
         "processing",
         "regions",
         "clones-and-trees",
-        "spatial-statistics",
         "multisample"
       ]
     },
@@ -66,7 +65,7 @@
     {
       "type": "vignette",
       "id": "regions",
-      "title": "Draw tissue regions and measure clonal dominance and diversity",
+      "title": "Annotate tissue ROIs and analyze local clonal structure",
       "source": "docs/vignettes/regions.md",
       "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/regions.md",
       "url": "https://sirup.readthedocs.io/en/latest/vignettes/regions/",
@@ -76,7 +75,7 @@
     {
       "type": "vignette",
       "id": "clones-and-trees",
-      "title": "Call clones and build lineage trees on the tissue",
+      "title": "Infer clones and lineage trees in situ",
       "source": "docs/vignettes/clones-and-trees.md",
       "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/clones-and-trees.md",
       "url": "https://sirup.readthedocs.io/en/latest/vignettes/clones-and-trees/",
@@ -85,18 +84,8 @@
     },
     {
       "type": "vignette",
-      "id": "spatial-statistics",
-      "title": "Test spatial patterns of genes, cells, and clones",
-      "source": "docs/vignettes/spatial-statistics.md",
-      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/spatial-statistics.md",
-      "url": "https://sirup.readthedocs.io/en/latest/vignettes/spatial-statistics/",
-      "section": "Tutorials",
-      "summary": "Test whether a gene, a cell type, or a clone forms a spatial pattern, with Moran's I, Lee's L, Ripley's cross K, and join counts."
-    },
-    {
-      "type": "vignette",
       "id": "multisample",
-      "title": "Analyze multiple spatial sections bulk BCR-seq",
+      "title": "Analyze multiple spatial sections and bulk BCR-seq",
       "source": "docs/vignettes/multisample.md",
       "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/multisample.md",
       "url": "https://sirup.readthedocs.io/en/latest/vignettes/multisample/",
@@ -116,7 +105,7 @@
     {
       "type": "vignette",
       "id": "choose-spatial-statistic",
-      "title": "Choose a spatial statistic",
+      "title": "Choose the right spatial statistic for your question",
       "source": "docs/vignettes/choose-spatial-statistic.md",
       "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/choose-spatial-statistic.md",
       "url": "https://sirup.readthedocs.io/en/latest/vignettes/choose-spatial-statistic/",
@@ -126,7 +115,7 @@
     {
       "type": "vignette",
       "id": "qupath-annotations",
-      "title": "Use QuPath annotations as polygons",
+      "title": "Use QuPath annotations to define ROIs",
       "source": "docs/vignettes/qupath-annotations.md",
       "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/qupath-annotations.md",
       "url": "https://sirup.readthedocs.io/en/latest/vignettes/qupath-annotations/",

@@ -102,7 +102,8 @@ receptor: \code{"mean"} (default), \code{"median"}, \code{"mode"}, \code{"max"},
 
 \item{zero_tol}{Values at or below this threshold count as zero (default 0).}
 
-\item{title}{Plot title.}
+\item{title}{Plot title. Give one title for each plot, in the order of the
+plots, to title every plot of a multi-sample object.}
 
 \item{order_points}{Draw the low expression values first, so that the high
 values show on top (default \code{TRUE})? The function draws the receptor groups

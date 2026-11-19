@@ -41,6 +41,7 @@ plotSpatialCloneTreePairs(
   spatial_tip_alpha = 1,
   order_points = FALSE,
   show_spatial_legend = FALSE,
+  legend_theme = NULL,
   combine_sample_plots = FALSE,
   polygons = FALSE,
   polygon_x = "x",
@@ -186,6 +187,10 @@ plotSpatialCloneTreePairs(
 `show_spatial_legend`
 
 :   Show a color legend below the map, based on the tip colors of the tree (default `FALSE`)?
+
+`legend_theme`
+
+:   A ggplot2 theme, made with `ggplot2::theme()`, that changes the look of the shared legend (default `NULL`). Use it, for example, to make the legend text and keys smaller, so that a long legend fits on one line. The function uses it only if `show_spatial_legend` is `TRUE`.
 
 `combine_sample_plots`
 

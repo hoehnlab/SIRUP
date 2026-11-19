@@ -36,6 +36,7 @@ plotSpatialCloneTreePairs(
   spatial_tip_alpha = 1,
   order_points = FALSE,
   show_spatial_legend = FALSE,
+  legend_theme = NULL,
   combine_sample_plots = FALSE,
   polygons = FALSE,
   polygon_x = "x",
@@ -148,6 +149,11 @@ later groups show on top (default \code{FALSE})?}
 
 \item{show_spatial_legend}{Show a color legend below the map, based on the
 tip colors of the tree (default \code{FALSE})?}
+
+\item{legend_theme}{A ggplot2 theme, made with \code{ggplot2::theme()}, that
+changes the look of the shared legend (default \code{NULL}). Use it, for example,
+to make the legend text and keys smaller, so that a long legend fits on one
+line. The function uses it only if \code{show_spatial_legend} is \code{TRUE}.}
 
 \item{combine_sample_plots}{Combine the maps of all samples into one
 patchwork (default \code{FALSE})? The function uses it only for multi-sample

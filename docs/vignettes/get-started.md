@@ -51,7 +51,7 @@ extdata <- SIRUP::downloadSIRUPExample(
 #> ℹ Downloading 'mg_thymus_slice2_spatial.rds'
 #> ℹ Downloading 'mg_thymus_slice2_bcr.tsv.gz'
 #> ℹ Downloading 'mg_thymus_slice2_tcr.tsv.gz'
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpvqybX6/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_cell_types.csv.gz'
 ```
 
@@ -280,17 +280,24 @@ without including them as arguments.
 
 Two settings control how SIRUP constructs plots over the H&E image:
 
-- `image_scale` is `"lowres"` or `"hires"`. Use the image that tge
+- `image_scale` is `"lowres"` or `"hires"`. Use the image that the
   Seurat object stores. `Load10X_Spatial()` stores the low-resolution
   image by default, though it can use the high-resolution image if
   specified in the `image.name` argument.
-- `swap_coords` swaps the x and y coordinates. Set it to `TRUE` if the
-  spots have the right shape but sit rotated or mirrored over the image.
-  This is easiest to determine by plotting the spots as shown below.
+- `swap_coords` swaps the x and y coordinates. Set it to `TRUE` only if
+  the spots have the right shape but sit rotated or mirrored over the
+  image, because the object stores the coordinates as (row, column)
+  instead of (x, y). This is easiest to determine by plotting the spots
+  as shown below.
+
+The coordinates are generally in pixel space, where `y` counts down from
+the top of the image, so when we check we should plot `y` as `-y`. If
+the spots then look like the tissue as they do here, keep
+`swap_coords = FALSE`.
 
 ``` r
 coords <- SeuratObject::GetTissueCoordinates(thymus)
-ggplot(coords, aes(x, y)) + geom_point() 
+ggplot(coords, aes(x, -y)) + geom_point()
 ```
 
 ![](get-started_files/figure-gfm/check-swapcoords-1.jpeg)
@@ -608,7 +615,7 @@ The function returns one plot for each page, with six pies on a page.
 The `top_n` argument sets how many clones get their own color in each
 pie. The grey `Other` slice holds the remaining clones.
 
-[Draw tissue regions and measure clonal dominance and diversity](regions.md) covers ROIs in more detail.
+[Annotate tissue ROIs and analyze local clonal structure](regions.md) covers ROIs in more detail.
 
 ## Save an analysis in a SIRUP object
 
@@ -659,13 +666,17 @@ sirup
 
 ## Next steps
 
-- To learn more about the structure of the SIRUP object see
-  [How the SIRUP object works](sirup-object.md).
-- To compare ROIs in the tissue, see
-  [Draw tissue regions and measure clonal dominance and diversity](regions.md).
-- To build lineage trees and visualize them on the tissue, read
-  [Call clones and build lineage trees on the tissue](clones-and-trees.md).
-- To test spatial patterns, read
-  [Test spatial patterns of genes, cells, and clones](spatial-statistics.md).
 - To process your own reads, read
   [Process demultiplexed reads](processing.md).
+- To compare ROIs in the tissue, see
+  [Annotate tissue ROIs and analyze local clonal structure](regions.md).
+- To build lineage trees and visualize them on the tissue, read
+  [Infer clones and lineage trees in situ](clones-and-trees.md).
+- To add more sections or bulk AIRR-seq, see
+  [Analyze multiple spatial sections and bulk BCR-seq](multisample.md).
+- To learn more about the structure of the SIRUP object see
+  [How the SIRUP object works](sirup-object.md).
+- To test spatial patterns, read
+  [Choose the right spatial statistic for your question](choose-spatial-statistic.md).
+- To learn how to use SIRUP with LLM agents, read
+  [Use SIRUP with your LLM agent](llm-agents.md).

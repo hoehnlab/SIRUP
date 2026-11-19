@@ -1,6 +1,6 @@
 # The SIRUP object
 
-A SIRUP object keeps the spatial data, the receptor table, the tissue regions, and your results in one place. SIRUP checks that these parts agree each time you change the object.
+A SIRUP object keeps the spatial data, the receptor table, the ROIs that you draw, and your results in one place. SIRUP checks that these parts agree each time you change the object.
 
 ## Get a small test object
 
@@ -20,7 +20,7 @@ summary(x)
 | `spatial` | The Seurat object, with expression and the H&E image | `getSpatial(x)` |
 | `receptors` | The AIRR receptor table, as a tibble | `getReceptors(x)` |
 | `metadata` | Column names and image settings | `x$metadata` |
-| `polygons` | Tissue regions, one row for each polygon, with a list column `vertices` | `getPolygons(x)` |
+| `polygons` | The ROIs that the user creates, one row for each polygon, with a list column `vertices` | `getPolygons(x)` |
 | `analyses` | Any R object that you store under a name | `getAnalysis(x, name)` |
 
 The accessors return ordinary R objects. Pass them to any function from another package. In a multi-sample object, `getSpatial(x)` returns a named list of Seurat objects. Give `sample_id = "name"` to get one sample.

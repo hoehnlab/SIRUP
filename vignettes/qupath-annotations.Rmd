@@ -1,10 +1,10 @@
 ---
-title: "Use QuPath annotations as polygons"
+title: "Use QuPath annotations to define ROIs"
 output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Use QuPath annotations as polygons}
+  %\VignetteIndexEntry{Use QuPath annotations to define ROIs}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -132,5 +132,7 @@ To read the annotations without attaching them to an object, use `readQuPathPoly
 
 ## Next steps
 
-* To compare the regions in the tissue, see `vignette("regions", package = "SIRUP")`.
-
+* To compare ROIs in the tissue, see `vignette("regions", package = "SIRUP")`.
+* To build lineage trees and visualize them on the tissue, read `vignette("clones-and-trees", package = "SIRUP")`.
+* To add more sections or bulk AIRR-seq, see `vignette("multisample", package = "SIRUP")`.
+* To test spatial patterns, read `vignette("choose-spatial-statistic", package = "SIRUP")`.

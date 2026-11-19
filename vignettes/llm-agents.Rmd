@@ -131,4 +131,8 @@ This error came from `createSIRUP()`: <paste the error>. Can you please explain 
 
 **An agent does not replace an expert review of your results.**
 
+## Next steps
 
+* To build a SIRUP object and run a few simple analyses, see `vignette("get-started", package = "SIRUP")`.
+* To learn more about the structure of the SIRUP object see `vignette("sirup-object", package = "SIRUP")`.
+* To test spatial patterns, read `vignette("choose-spatial-statistic", package = "SIRUP")`.

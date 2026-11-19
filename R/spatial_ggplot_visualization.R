@@ -76,6 +76,9 @@ plotLengthQc <- function(airr_df, bin_width = 5, title = NULL, slot = NULL) {
 #' @param title Plot title. For one panel, it replaces the feature name. For
 #'   several panels that the function combines, it is the title of the whole
 #'   patchwork, and each panel keeps its feature name.
+#'   Give one title for each panel, in the order of the panels, to title every
+#'   panel. This works for a multi-sample object with one feature, where the
+#'   panels are the samples.
 #' @param image_alpha Opacity of the tissue image.
 #' @param zoom Zoom to the plotted spots (default `FALSE`)? If `FALSE`, the plot
 #'   shows the full tissue area that the spatial coordinates cover.
@@ -117,6 +120,8 @@ spatialExpressionPlot <- function(object,
                                       combine = TRUE,
                                       combine_sample_plots = FALSE) {
   sample_id <- .sirup_plot_sample_id(object, sample_id)
+  panel_titles <- .sirup_panel_titles(title)
+  if (!is.null(panel_titles)) title <- NULL
   context <- .sirup_spatial_context(object, image_scale = image_scale, swap_coords = swap_coords)
   object <- context$object
   image_scale <- context$image_scale
@@ -163,7 +168,7 @@ spatialExpressionPlot <- function(object,
     }
   }
 
-  out <- .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
+  out <- .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots, panel_titles = panel_titles)
   if (!is.null(out) && !is.list(out) && !single_panel && isTRUE(combine) && !is.null(title)) {
     out <- out + patchwork::plot_annotation(title = title)
   }
@@ -676,7 +681,8 @@ spatialExpressionMultiPlot <- function(object,
 #' @param feature_size Size of the expression points (default 1).
 #' @param feature_alpha Opacity of the expression points (default 1).
 #' @param zero_tol Values at or below this threshold count as zero (default 0).
-#' @param title Plot title.
+#' @param title Plot title. Give one title for each plot, in the order of the
+#'   plots, to title every plot of a multi-sample object.
 #' @param order_points Draw the low expression values first, so that the high
 #'   values show on top (default `TRUE`)? The function draws the receptor groups
 #'   in the order of `group_val`.
@@ -744,6 +750,8 @@ plotReceptorsExpression <- function(object,
                                     combine_sample_plots = FALSE,
                                     slot = NULL) {
   sample_id <- .sirup_plot_sample_id(object, sample_id)
+  panel_titles <- .sirup_panel_titles(title)
+  if (!is.null(panel_titles)) title <- NULL
   options <- .sirup_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
@@ -971,7 +979,7 @@ plotReceptorsExpression <- function(object,
     plots[[image]] <- p + ggplot2::labs(title = title %||% feature)
   }
 
-  .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
+  .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots, panel_titles = panel_titles)
 }
 
 #' Plot receptor groups on a tissue image
@@ -1013,7 +1021,8 @@ plotReceptorsExpression <- function(object,
 #'   `"sum"`. The function ignores it if `value = "count"`.
 #' @param receptor_size Size of the receptor points (default 1).
 #' @param receptor_alpha Opacity of the receptor points (default 1).
-#' @param title Plot title.
+#' @param title Plot title. Give one title for each plot, in the order of the
+#'   plots, to title every plot of a multi-sample object.
 #' @param order_points Draw the early receptor groups first, so that the later
 #'   groups show on top (default `TRUE`)?
 #' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
@@ -1115,6 +1124,8 @@ plotReceptors <- function(object,
                           combine_sample_plots = FALSE,
                           slot = NULL) {
   sample_id <- .sirup_plot_sample_id(object, sample_id)
+  panel_titles <- .sirup_panel_titles(title)
+  if (!is.null(panel_titles)) title <- NULL
   options <- .sirup_spatial_options(object, image_scale = image_scale, swap_coords = swap_coords)
   image_scale <- options$image_scale
   swap_coords <- options$swap_coords
@@ -1203,7 +1214,7 @@ plotReceptors <- function(object,
       }
       plots[[image]] <- p + ggplot2::labs(title = title %||% legend_name)
     }
-    return(.sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots))
+    return(.sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots, panel_titles = panel_titles))
   }
 
   if (is.null(group)) {
@@ -1318,7 +1329,7 @@ plotReceptors <- function(object,
     plots[[image]] <- p + ggplot2::labs(title = title %||% receptor_legend_title)
   }
 
-  .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
+  .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots, panel_titles = panel_titles)
 }
 
 #' Plot tip colors on a tissue image
@@ -1341,7 +1352,8 @@ plotReceptors <- function(object,
 #' @param label Name of the column that holds the legend labels of the colors.
 #' @param legend_title Title of the color legend (default `"Tip color"`).
 #' @param legend_colors Named vector of colors for the legend.
-#' @param title Plot title.
+#' @param title Plot title. Give one title for each plot, in the order of the
+#'   plots, to title every plot of a multi-sample object.
 #' @param image_scale Image scale for `SeuratObject::GetTissueCoordinates()`.
 #'   If `NULL`, the function uses the value stored in the SIRUP object.
 #' @param swap_coords Swap the two Seurat coordinate axes? If `NULL`, the
@@ -1434,6 +1446,8 @@ plotSpatialColorTips <- function(object,
                                 combine = TRUE,
                                 combine_sample_plots = FALSE) {
   sample_id <- .sirup_plot_sample_id(object, sample_id)
+  panel_titles <- .sirup_panel_titles(title)
+  if (!is.null(panel_titles)) title <- NULL
   spatial_id_missing <- missing(spatial_id)
   if (isSIRUP(object) && spatial_id_missing) {
     spatial_id <- .sirup_receptor_fields(object)$spatial_id
@@ -1568,7 +1582,7 @@ plotSpatialColorTips <- function(object,
     plots[[image]] <- p
   }
 
-  .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots)
+  .sirup_return_spatial_plots(plots, combine = combine, combine_sample_plots = combine_sample_plots, panel_titles = panel_titles)
 }
 
 #' Plot the tip colors of one clone on a tissue image
@@ -1750,6 +1764,10 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #'   later groups show on top (default `FALSE`)?
 #' @param show_spatial_legend Show a color legend below the map, based on the
 #'   tip colors of the tree (default `FALSE`)?
+#' @param legend_theme A ggplot2 theme, made with `ggplot2::theme()`, that
+#'   changes the look of the shared legend (default `NULL`). Use it, for example,
+#'   to make the legend text and keys smaller, so that a long legend fits on one
+#'   line. The function uses it only if `show_spatial_legend` is `TRUE`.
 #' @param combine_sample_plots Combine the maps of all samples into one
 #'   patchwork (default `FALSE`)? The function uses it only for multi-sample
 #'   objects. If `FALSE`, it returns one tree and map pair for each sample.
@@ -1841,6 +1859,7 @@ plotSpatialCloneTreePairs <- function(trees,
                                       spatial_tip_alpha = 1,
                                       order_points = FALSE,
                                       show_spatial_legend = FALSE,
+                                      legend_theme = NULL,
                                       combine_sample_plots = FALSE,
                                       polygons = FALSE,
                                       polygon_x = "x",
@@ -1858,6 +1877,9 @@ plotSpatialCloneTreePairs <- function(trees,
                                       nproc = 1L,
                                       slot = NULL,
                                       ...) {
+  if (!is.null(legend_theme) && !inherits(legend_theme, "theme")) {
+    rlang::abort("`legend_theme` must be NULL or a ggplot2 theme, made with `ggplot2::theme()`.")
+  }
   object_tip_ids <- NULL
   object_spatial_ids <- NULL
   object_samples <- NULL
@@ -2001,6 +2023,9 @@ plotSpatialCloneTreePairs <- function(trees,
       legend_position = "bottom",
       legend_ncol = min(6L, length(legend_info$colors))
     )
+    if (!is.null(legend_theme) && isTRUE(show_spatial_legend)) {
+      tree_plot <- tree_plot + legend_theme
+    }
     tree_legend <- if (isTRUE(show_spatial_legend)) {
       cowplot::get_legend(tree_plot)
     } else {
@@ -3265,11 +3290,35 @@ sirupSampleFromImage <- function(image) {
   out + c(-pad, pad)
 }
 
-.sirup_return_spatial_plots <- function(plots, combine = TRUE, combine_sample_plots = FALSE) {
+# A title vector with one title for each plot sets the titles of the panels.
+# One title stays a single title, as before.
+.sirup_panel_titles <- function(title) {
+  if (length(title) > 1L) as.character(title) else NULL
+}
+
+.sirup_set_panel_titles <- function(plots, panel_titles) {
+  if (is.null(panel_titles)) {
+    return(plots)
+  }
+  if (length(panel_titles) != length(plots)) {
+    rlang::abort(paste0(
+      "`title` must be one title, or one title for each plot. The function makes ",
+      length(plots), " plot(s) and `title` has ", length(panel_titles), "."
+    ))
+  }
+  for (i in seq_along(plots)) {
+    plots[[i]] <- plots[[i]] + ggplot2::labs(title = panel_titles[[i]])
+  }
+  plots
+}
+
+.sirup_return_spatial_plots <- function(plots, combine = TRUE, combine_sample_plots = FALSE,
+                                       panel_titles = NULL) {
   plots <- Filter(Negate(is.null), plots)
   if (length(plots) == 0L) {
     return(NULL)
   }
+  plots <- .sirup_set_panel_titles(plots, panel_titles)
   combine <- .sirup_combine_spatial_plots(plots, combine, combine_sample_plots)
   if (!isTRUE(combine) || length(plots) == 1L) {
     plots <- .sirup_name_spatial_plot_list(plots)

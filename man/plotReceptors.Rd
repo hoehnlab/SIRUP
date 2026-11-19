@@ -91,7 +91,8 @@ receptor: \code{"mean"} (default), \code{"median"}, \code{"mode"}, \code{"max"},
 
 \item{receptor_alpha}{Opacity of the receptor points (default 1).}
 
-\item{title}{Plot title.}
+\item{title}{Plot title. Give one title for each plot, in the order of the
+plots, to title every plot of a multi-sample object.}
 
 \item{order_points}{Draw the early receptor groups first, so that the later
 groups show on top (default \code{TRUE})?}

@@ -1,10 +1,10 @@
 ---
-title: "Draw tissue regions and measure clonal dominance and diversity"
+title: "Annotate tissue ROIs and analyze local clonal structure"
 output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Draw tissue regions and measure clonal dominance and diversity}
+  %\VignetteIndexEntry{Annotate tissue ROIs and analyze local clonal structure}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -465,3 +465,9 @@ polygonPairwiseDistance(sirup) %>%
   head()
 ```
 
+## Next steps
+
+* To build lineage trees and visualize them on the tissue, read `vignette("clones-and-trees", package = "SIRUP")`.
+* To add more sections or bulk AIRR-seq, see `vignette("multisample", package = "SIRUP")`.
+* To test spatial patterns, read `vignette("choose-spatial-statistic", package = "SIRUP")`.
+* To use QuPath annotations to define ROIs, see `vignette("qupath-annotations", package = "SIRUP")`.

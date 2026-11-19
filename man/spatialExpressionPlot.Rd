@@ -67,7 +67,10 @@ on top (default \code{TRUE})?}
 
 \item{title}{Plot title. For one panel, it replaces the feature name. For
 several panels that the function combines, it is the title of the whole
-patchwork, and each panel keeps its feature name.}
+patchwork, and each panel keeps its feature name.
+Give one title for each panel, in the order of the panels, to title every
+panel. This works for a multi-sample object with one feature, where the
+panels are the samples.}
 
 \item{image_alpha}{Opacity of the tissue image.}
 

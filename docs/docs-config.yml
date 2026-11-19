@@ -32,7 +32,6 @@ vignette_summaries:
   processing: "Turn demultiplexed long-read data into an AIRR table of consensus receptor sequences with one spatial ID for each sequence."
   regions: "Draw tissue regions, attach them to a SIRUP object, and measure clonal dominance, clonal diversity, and gene expression in each region."
   clones-and-trees: "Call clones, reconstruct germlines, build lineage trees with Dowser, and show each tree next to its spots on the tissue."
-  spatial-statistics: "Test whether a gene, a cell type, or a clone forms a spatial pattern, with Moran's I, Lee's L, Ripley's cross K, and join counts."
   multisample: "Put several tissue sections, bulk AIRR-seq, and blood samples in one SIRUP object, and follow clones between them."
   sirup-object: "Learn the five parts of a SIRUP object, the rules that SIRUP checks, and the functions that change the object."
   choose-spatial-statistic: "Pick a spatial statistic by the question you ask: clustering, co-variation, nearness of two spot types, or the spread of a clone."
@@ -43,7 +42,7 @@ vignette_summaries:
 # A vignette that is in no group goes to a "Vignettes" section at the end.
 vignette_groups:
   - title: Tutorials
-    vignettes: [get-started, processing, regions, clones-and-trees, spatial-statistics, multisample]
+    vignettes: [get-started, processing, regions, clones-and-trees, multisample]
   - title: Guides
     vignettes: [sirup-object, choose-spatial-statistic, qupath-annotations, llm-agents]
 

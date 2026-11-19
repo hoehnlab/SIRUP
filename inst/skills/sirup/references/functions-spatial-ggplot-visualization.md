@@ -86,7 +86,7 @@ Arguments:
 - `value_combine`: How to combine `value` if a spot holds more than one receptor: `"mean"` (default), `"median"`, `"mode"`, `"max"`, `"min"`, or `"sum"`. The function ignores it if `value = "count"`.
 - `receptor_size`: Size of the receptor points (default 1).
 - `receptor_alpha`: Opacity of the receptor points (default 1).
-- `title`: Plot title.
+- `title`: Plot title. Give one title for each plot, in the order of the plots, to title every plot of a multi-sample object.
 - `order_points`: Draw the early receptor groups first, so that the later groups show on top (default `TRUE`)?
 - `image_scale`: Image scale for `SeuratObject::GetTissueCoordinates()`. If `NULL`, the function uses the value stored in the SIRUP object.
 - `swap_coords`: Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in the SIRUP object. Give a value if `object` is a Seurat object.
@@ -183,7 +183,7 @@ Arguments:
 - `feature_size`: Size of the expression points (default 1).
 - `feature_alpha`: Opacity of the expression points (default 1).
 - `zero_tol`: Values at or below this threshold count as zero (default 0).
-- `title`: Plot title.
+- `title`: Plot title. Give one title for each plot, in the order of the plots, to title every plot of a multi-sample object.
 - `order_points`: Draw the low expression values first, so that the high values show on top (default `TRUE`)? The function draws the receptor groups in the order of `group_val`.
 - `assay`: Assay to use.
 - `layer`: Seurat expression layer to use (default `"counts"`).
@@ -276,6 +276,7 @@ plotSpatialCloneTreePairs(
   spatial_tip_alpha = 1,
   order_points = FALSE,
   show_spatial_legend = FALSE,
+  legend_theme = NULL,
   combine_sample_plots = FALSE,
   polygons = FALSE,
   polygon_x = "x",
@@ -329,6 +330,7 @@ Arguments:
 - `spatial_tip_alpha`: Opacity of the tip points on the map (default 1).
 - `order_points`: Draw the early color groups first on the map, so that the later groups show on top (default `FALSE`)?
 - `show_spatial_legend`: Show a color legend below the map, based on the tip colors of the tree (default `FALSE`)?
+- `legend_theme`: A ggplot2 theme, made with `ggplot2::theme()`, that changes the look of the shared legend (default `NULL`). Use it, for example, to make the legend text and keys smaller, so that a long legend fits on one line. The function uses it only if `show_spatial_legend` is `TRUE`.
 - `combine_sample_plots`: Combine the maps of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns one tree and map pair for each sample.
 - `polygons`: Draw polygons under the points on each spatial panel. With `FALSE` (default), the function draws no polygons. With `TRUE`, it uses the polygons stored in the SIRUP object. You can also give a data frame of polygon vertices, or the path of a CSV file of polygon vertices. A vertex table needs the columns set by `polygon_x` and `polygon_y`. It needs the column set by `polygon_id` if it holds more than one polygon.
 - `polygon_x`: Name of the x-coordinate column in the polygon table (default `"x"`).
@@ -404,7 +406,7 @@ Arguments:
 - `label`: Name of the column that holds the legend labels of the colors.
 - `legend_title`: Title of the color legend (default `"Tip color"`).
 - `legend_colors`: Named vector of colors for the legend.
-- `title`: Plot title.
+- `title`: Plot title. Give one title for each plot, in the order of the plots, to title every plot of a multi-sample object.
 - `image_scale`: Image scale for `SeuratObject::GetTissueCoordinates()`. If `NULL`, the function uses the value stored in the SIRUP object.
 - `swap_coords`: Swap the two Seurat coordinate axes? If `NULL`, the function uses the value stored in the SIRUP object. Give a value if `object` is a Seurat object.
 - `point_size`: Size of the spots. The default is 1.6.
@@ -685,7 +687,7 @@ Arguments:
 - `point_size`: Size of the spots. The default is 0.6.
 - `point_alpha`: Opacity of the spots.
 - `order_points`: Draw the low values first, so that the high values show on top (default `TRUE`)?
-- `title`: Plot title. For one panel, it replaces the feature name. For several panels that the function combines, it is the title of the whole patchwork, and each panel keeps its feature name.
+- `title`: Plot title. For one panel, it replaces the feature name. For several panels that the function combines, it is the title of the whole patchwork, and each panel keeps its feature name. Give one title for each panel, in the order of the panels, to title every panel. This works for a multi-sample object with one feature, where the panels are the samples.
 - `image_alpha`: Opacity of the tissue image.
 - `zoom`: Zoom to the plotted spots (default `FALSE`)? If `FALSE`, the plot shows the full tissue area that the spatial coordinates cover.
 - `combine`: Combine the panels into one figure with patchwork, if there are several images or features (default `TRUE`)?

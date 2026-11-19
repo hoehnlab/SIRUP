@@ -35,8 +35,8 @@ extdata <- SIRUP::downloadSIRUPExample(
   )
 )
 #> ℹ Downloading 'mg_thymus_slice2_reads.tsv.gz'
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/scratch/f007p0j/Rtmpyr7Vhs/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/scratch/f007p0j/Rtmpyr7Vhs/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
 ```
 
 ## Demultiplexing long-read sequences
@@ -520,11 +520,11 @@ The table is now ready for `createSIRUP()`.
 
 ## Next steps
 
-- Build the object from the table in
+- To build a SIRUP object and run a few simple analyses, see
   [Get started with SIRUP](get-started.md).
-- Draw tissue regions and measure clonal dominance in
-  [Draw tissue regions and measure clonal dominance and diversity](regions.md).
-- Call clones and build lineage trees in
-  [Call clones and build lineage trees on the tissue](clones-and-trees.md).
-- See what the object stores in
+- To compare ROIs in the tissue, see
+  [Annotate tissue ROIs and analyze local clonal structure](regions.md).
+- To build lineage trees and visualize them on the tissue, read
+  [Infer clones and lineage trees in situ](clones-and-trees.md).
+- To learn more about the structure of the SIRUP object see
   [How the SIRUP object works](sirup-object.md).

@@ -17,6 +17,7 @@ exclude_docs: |
   *.R
   *.py
   *.sbatch
+  *.sh
   *.log
   docs-config.yml
   requirements.txt
@@ -37,14 +38,13 @@ nav:
 - Tutorials:
   - Get started with SIRUP: vignettes/get-started.md
   - Process demultiplexed reads: vignettes/processing.md
-  - Draw tissue regions and measure clonal dominance and diversity: vignettes/regions.md
-  - Call clones and build lineage trees on the tissue: vignettes/clones-and-trees.md
-  - Test spatial patterns of genes, cells, and clones: vignettes/spatial-statistics.md
-  - Analyze multiple spatial sections bulk BCR-seq: vignettes/multisample.md
+  - Annotate tissue ROIs and analyze local clonal structure: vignettes/regions.md
+  - Infer clones and lineage trees in situ: vignettes/clones-and-trees.md
+  - Analyze multiple spatial sections and bulk BCR-seq: vignettes/multisample.md
 - Guides:
   - How the SIRUP object works: vignettes/sirup-object.md
-  - Choose a spatial statistic: vignettes/choose-spatial-statistic.md
-  - Use QuPath annotations as polygons: vignettes/qupath-annotations.md
+  - Choose the right spatial statistic for your question: vignettes/choose-spatial-statistic.md
+  - Use QuPath annotations to define ROIs: vignettes/qupath-annotations.md
   - Use SIRUP with your LLM agent: vignettes/llm-agents.md
 - Function Reference:
   - addQuPathPolygons: topics/addQuPathPolygons.md

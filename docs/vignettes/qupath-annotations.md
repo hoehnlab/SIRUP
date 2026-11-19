@@ -1,4 +1,4 @@
-Use QuPath annotations as polygons
+Use QuPath annotations to define ROIs
 ================
 
 <div markdown="1"
@@ -19,7 +19,7 @@ Here, we will add polygons that were drawn in
 
 Regions of interest (ROIs), or polygons, can be drawn in SIRUP with
 `selectSpatialPolygons()` (see
-[Draw tissue regions and measure clonal dominance and diversity](regions.md)). Pathologists often draw ROIs
+[Annotate tissue ROIs and analyze local clonal structure](regions.md)). Pathologists often draw ROIs
 in QuPath, a free program for working with tissue images. SIRUP can read
 exported QuPath polygon annotations (if exported as a GeoJSON) and add
 them to a SIRUP object.
@@ -40,7 +40,7 @@ extdata <- SIRUP::downloadSIRUPExample(
     "mg_thymus_slice2_qupath_gcs.geojson"
   )
 )
-#> ℹ 'mg_thymus_slice2.sirup.rds' is already in '/scratch/f007p0j/Rtmpyr7Vhs/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2.sirup.rds' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_slice2_qupath_gcs.geojson'
 ```
 
@@ -158,5 +158,11 @@ To read the annotations without attaching them to an object, use
 
 ## Next steps
 
-- To compare the regions in the tissue, see
-  [Draw tissue regions and measure clonal dominance and diversity](regions.md).
+- To compare ROIs in the tissue, see
+  [Annotate tissue ROIs and analyze local clonal structure](regions.md).
+- To build lineage trees and visualize them on the tissue, read
+  [Infer clones and lineage trees in situ](clones-and-trees.md).
+- To add more sections or bulk AIRR-seq, see
+  [Analyze multiple spatial sections and bulk BCR-seq](multisample.md).
+- To test spatial patterns, read
+  [Choose the right spatial statistic for your question](choose-spatial-statistic.md).

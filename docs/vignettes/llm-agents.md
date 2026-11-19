@@ -147,3 +147,12 @@ This error came from `createSIRUP()`: <paste the error>. Can you please explain 
   recommend not passing this task to an agent.
 
 **An agent does not replace an expert review of your results.**
+
+## Next steps
+
+- To build a SIRUP object and run a few simple analyses, see
+  [Get started with SIRUP](get-started.md).
+- To learn more about the structure of the SIRUP object see
+  [How the SIRUP object works](sirup-object.md).
+- To test spatial patterns, read
+  [Choose the right spatial statistic for your question](choose-spatial-statistic.md).

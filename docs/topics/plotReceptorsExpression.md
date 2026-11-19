@@ -132,7 +132,7 @@ plotReceptorsExpression(
 
 `title`
 
-:   Plot title.
+:   Plot title. Give one title for each plot, in the order of the plots, to title every plot of a multi-sample object.
 
 `order_points`
 

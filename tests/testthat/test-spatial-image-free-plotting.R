@@ -660,3 +660,52 @@ test_that("a tree and map pair prints the tree and the map side by side", {
   expect_invisible(print(pair))
   expect_s3_class(pair$tree, "ggplot")
 })
+
+test_that("a title vector titles each sample plot", {
+  sirup <- createSIRUP(
+    spatial = list(
+      section_a = make_image_free_spatial(),
+      section_b = make_image_free_spatial()
+    ),
+    receptors = data.frame(
+      barcode = c("cell1", "cell1"),
+      sample = c("section_a", "section_b"),
+      stringsAsFactors = FALSE
+    ),
+    spatial_id = "barcode",
+    sample_id = "sample",
+    image_scale = "hires",
+    swap_coords = FALSE
+  )
+
+  plots <- spatialExpressionPlot(
+    sirup,
+    features = "geneA",
+    title = c("A, section 1", "A, section 2"),
+    combine = FALSE
+  )
+  expect_equal(plots[["section_a"]]$labels$title, "A, section 1")
+  expect_equal(plots[["section_b"]]$labels$title, "A, section 2")
+
+  combined <- spatialExpressionPlot(
+    sirup,
+    features = "geneA",
+    title = c("A, section 1", "A, section 2"),
+    combine_sample_plots = TRUE
+  )
+  expect_s3_class(combined, "patchwork")
+  expect_equal(combined[[1]]$labels$title, "A, section 1")
+  expect_equal(combined[[2]]$labels$title, "A, section 2")
+
+  expect_error(
+    spatialExpressionPlot(sirup, features = "geneA", title = c("one", "two", "three"), combine = FALSE),
+    "one title for each plot"
+  )
+})
+
+test_that("plotSpatialCloneTreePairs checks legend_theme", {
+  expect_error(
+    plotSpatialCloneTreePairs(NULL, NULL, legend_theme = "small"),
+    "legend_theme"
+  )
+})

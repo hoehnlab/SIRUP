@@ -26,7 +26,7 @@ test_that("plotReceptorsExpression layers grouped receptors over expression", {
       )
     },
     .sirup_spatial_base = function(...) ggplot2::ggplot(),
-    .sirup_return_spatial_plots = function(plots, combine = TRUE, combine_sample_plots = FALSE) {
+    .sirup_return_spatial_plots = function(plots, combine = TRUE, combine_sample_plots = FALSE, panel_titles = NULL) {
       if (combine) plots[[1L]] else plots
     },
     .package = "SIRUP"

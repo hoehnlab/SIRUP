@@ -62,7 +62,8 @@ list of spatial objects.}
 
 \item{legend_colors}{Named vector of colors for the legend.}
 
-\item{title}{Plot title.}
+\item{title}{Plot title. Give one title for each plot, in the order of the
+plots, to title every plot of a multi-sample object.}
 
 \item{image_scale}{Image scale for \code{SeuratObject::GetTissueCoordinates()}.
 If \code{NULL}, the function uses the value stored in the SIRUP object.}

@@ -18,25 +18,19 @@ Page: https://sirup.readthedocs.io/en/latest/vignettes/processing/
 
 Turn demultiplexed long-read data into an AIRR table of consensus receptor sequences with one spatial ID for each sequence.
 
-### Draw tissue regions and measure clonal dominance and diversity
+### Annotate tissue ROIs and analyze local clonal structure
 
 Page: https://sirup.readthedocs.io/en/latest/vignettes/regions/
 
 Draw tissue regions, attach them to a SIRUP object, and measure clonal dominance, clonal diversity, and gene expression in each region.
 
-### Call clones and build lineage trees on the tissue
+### Infer clones and lineage trees in situ
 
 Page: https://sirup.readthedocs.io/en/latest/vignettes/clones-and-trees/
 
 Call clones, reconstruct germlines, build lineage trees with Dowser, and show each tree next to its spots on the tissue.
 
-### Test spatial patterns of genes, cells, and clones
-
-Page: https://sirup.readthedocs.io/en/latest/vignettes/spatial-statistics/
-
-Test whether a gene, a cell type, or a clone forms a spatial pattern, with Moran's I, Lee's L, Ripley's cross K, and join counts.
-
-### Analyze multiple spatial sections bulk BCR-seq
+### Analyze multiple spatial sections and bulk BCR-seq
 
 Page: https://sirup.readthedocs.io/en/latest/vignettes/multisample/
 
@@ -50,13 +44,13 @@ Page: https://sirup.readthedocs.io/en/latest/vignettes/sirup-object/
 
 Learn the five parts of a SIRUP object, the rules that SIRUP checks, and the functions that change the object.
 
-### Choose a spatial statistic
+### Choose the right spatial statistic for your question
 
 Page: https://sirup.readthedocs.io/en/latest/vignettes/choose-spatial-statistic/
 
 Pick a spatial statistic by the question you ask: clustering, co-variation, nearness of two spot types, or the spread of a clone.
 
-### Use QuPath annotations as polygons
+### Use QuPath annotations to define ROIs
 
 Page: https://sirup.readthedocs.io/en/latest/vignettes/qupath-annotations/
 

@@ -5,7 +5,7 @@ description: Run SIRUP (Spatial Immune Receptor Utilities Package) in R. SIRUP a
 
 # Use SIRUP
 
-SIRUP joins three kinds of data in one R object. These are spatial gene expression (a Seurat object), receptor sequences (an AIRR table), and tissue regions that the user draws as polygons. SIRUP then measures clones, regions, trees, and spatial patterns. SIRUP does not call clones or build trees itself. It runs Immcantation tools (scoper, dowser, shazam) on the data inside the object and adds the spatial part.
+SIRUP joins two kinds of experimental data in one R object: spatial gene expression (a Seurat object) and receptor sequences (an AIRR table). The object also stores regions of interest (ROIs) that the user draws as polygons. The polygons are not experimental data, but they have their own part of the object. SIRUP then measures clones, regions, trees, and spatial patterns. SIRUP does not call clones or build trees itself. It runs Immcantation tools (scoper, dowser, shazam) on the data inside the object and adds the spatial part.
 
 ## Start here
 

@@ -1,4 +1,4 @@
-Analyze multiple spatial sections bulk BCR-seq
+Analyze multiple spatial sections and bulk BCR-seq
 ================
 
 <div markdown="1"
@@ -9,7 +9,7 @@ style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24p
 <b>Note</b>
 </p>
 
-**Time:** ~25 minutes.<br> **Data:** example spatial MG thymus sections,
+**Time:** ~15 minutes.<br> **Data:** example spatial MG thymus sections,
 bulk thymus BCR-seq, and bulk blood BCR-seq.<br>
 
 </div>
@@ -54,8 +54,7 @@ learn how the object works, see
 
 This page uses example files that are slightly too big to be part of the
 SIRUP package. This code downloads them. Change `dest` to a folder you
-want to keep. The default folder is temporary. The function skips files
-that are already there.
+want to keep. The function skips files that are already there.
 
 ``` r
 extdata <- SIRUP::downloadSIRUPExample(
@@ -77,12 +76,12 @@ extdata <- SIRUP::downloadSIRUPExample(
   )
 )
 #> ℹ Downloading 'mg_thymus_slice1_spatial.rds'
-#> ℹ Downloading 'mg_thymus_slice2_spatial.rds'
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_slice1_bcr.tsv.gz'
-#> ℹ Downloading 'mg_thymus_slice2_bcr.tsv.gz'
-#> ℹ Downloading 'mg_thymus_slice2_tcr.tsv.gz'
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_slice1_gc_polygons.csv'
-#> ℹ Downloading 'mg_thymus_slice2_gc_polygons.csv'
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_bulk_thymus_1.tsv.gz'
 #> ℹ Downloading 'mg_thymus_bulk_thymus_2.tsv.gz'
 #> ℹ Downloading 'mg_thymus_bulk_blood_month0_1.tsv.gz'
@@ -247,7 +246,6 @@ sirup <- createSIRUP(
   image_scale = "lowres",
   swap_coords = FALSE
 )
-#> Loading required namespace: Seurat
 
 sirup
 #> <SIRUP object>
@@ -332,7 +330,7 @@ merged
 
 ## Add ROI polygons for each section
 
-As discussed in [Draw tissue regions and measure clonal dominance and diversity](regions.md), we can add ROI
+As discussed in [Annotate tissue ROIs and analyze local clonal structure](regions.md), we can add ROI
 polygons to the SIRUP object with `addPolygons()`. Since we have
 multiple spatial samples, we pass a named (with the section names)
 vector of polygon files.
@@ -371,7 +369,7 @@ getPolygons(sirup)
 Both files number their polygons from 1, so SIRUP adds the sample ID to
 each polygon ID, i.e., `mg_thymus_slice1::1` and `mg_thymus_slice2::1`.
 
-## Plot multiple sections
+## Plot multiple spatial sections
 
 Functions that create spatial plots for a multi-sample object return a
 list with one plot for each section. Set `combine_sample_plots = TRUE`
@@ -447,9 +445,9 @@ getReceptors(sirup, slot = "BCR") %>%
 
 Next, make the germline of the clone with `dowser::createGermlines()`.
 The germline is the sequence of the unmutated common ancestor, which
-roots the tree. As in [Call clones and build lineage trees on the tissue](clones-and-trees.md),
-building the germline requires IMGT references. Set the environment
-variable `SIRUP_IMGT_DIR` to the folder that contains them.
+roots the tree. As in [Infer clones and lineage trees in situ](clones-and-trees.md),
+building the germline requires IMGT references. Set the variable
+`imgt_dir` to the folder that contains them.
 
 <div markdown="1"
 style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
@@ -507,12 +505,12 @@ image of the section(s) on the right. Tips in the tree are plotted in
 their corresponding spots in the tissue if they are from the spatial
 data. The argument `shape_by` sets the shape for each tip according to
 the provided column (here `"compartment"`), and `color_by` colors the
-tips by tree cluster. `clusterTreesTips()` is a function that clusters
-the tips in the tree by genetic relationships in order to provide visual
-clarity for paired plots.
+tips by cluster. `clusterTreesTips()` clusters the tips in the tree by
+genetic relationships in order to provide visual clarity for paired
+plots. Here, `k = 6` splits the tree into six groups of tips.
 
 ``` r
-trees <- clusterTreesTips(trees, k = "auto", id = "sequence_id", k_range = 1:6, method = "monophyletic_clades")
+trees <- clusterTreesTips(trees, k = 6, id = "sequence_id", method = "monophyletic_clades")
 
 pair <- plotSpatialCloneTreePairs(
   trees,
@@ -528,15 +526,13 @@ pair <- plotSpatialCloneTreePairs(
   polygons = TRUE,
   polygon_alpha = 0,
   polygon_color = "black",
-  show_spatial_legend = TRUE
+  show_spatial_legend = TRUE,
+  legend_theme = ggplot2::theme(
+    legend.text = ggplot2::element_text(size = 7),
+    legend.title = ggplot2::element_text(size = 8, face = "bold"),
+    legend.key.size = grid::unit(0.3, "cm")
+  )
 )
-#> Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
-#> ℹ Please use `linewidth` instead.
-#> ℹ The deprecated feature was likely used in the ggtree package.
-#>   Please report the issue at <https://github.com/YuLab-SMU/ggtree/issues>.
-#> This warning is displayed once per session.
-#> Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-#> generated.
 
 names(pair)
 #> [1] "1045"
@@ -583,9 +579,9 @@ readSIRUP(path)
 
 ## Next steps
 
-- To call clones and build trees for one section, see
-  [Call clones and build lineage trees on the tissue](clones-and-trees.md).
-- To draw tissue regions and measure clonal dominance and diversity, see
-  [Draw tissue regions and measure clonal dominance and diversity](regions.md).
-- To learn how SIRUP stores samples, polygons, and analyses, see
+- To compare ROIs in the tissue, see
+  [Annotate tissue ROIs and analyze local clonal structure](regions.md).
+- To build lineage trees and visualize them on the tissue, read
+  [Infer clones and lineage trees in situ](clones-and-trees.md).
+- To learn more about the structure of the SIRUP object see
   [How the SIRUP object works](sirup-object.md).

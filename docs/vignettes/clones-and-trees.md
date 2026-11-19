@@ -1,4 +1,4 @@
-Call clones and build lineage trees on the tissue
+Infer clones and lineage trees in situ
 ================
 
 <div markdown="1"
@@ -9,10 +9,8 @@ style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24p
 <b>Note</b>
 </p>
 
-**Time:** ~20 minutes.<br> **Data:** a saved SIRUP object of the example
-MG thymus data, plus its polygon file.<br> **Needs:** SIRUP, scoper,
-dowser, shazam, and the IMGT reference sequences for the germline and
-tree steps.
+**Time:** ~15 minutes.<br> **Data:** The example SIRUP object, plus its
+polygon file.<br>
 
 </div>
 
@@ -42,17 +40,15 @@ style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24p
 This page starts with a saved SIRUP object, which is loaded below. To
 learn how the object is built, see
 [Get started with SIRUP](get-started.md). To learn about the
-polygons used here, see [Draw tissue regions and measure clonal dominance and diversity](regions.md).
+polygons used here, see [Annotate tissue ROIs and analyze local clonal structure](regions.md).
 
 </div>
 
-## Load the example object
+## Get the example data
 
-This code downloads a saved SIRUP object for MG thymus section 2, which
-is not part of the SIRUP package, and the polygon file for the section.
-Change `dest` to a folder you want to keep. The function skips files
-that are already there. To see how the object was built, see
-[Get started with SIRUP](get-started.md).
+This page uses example files that are slightly too big to be part of the
+SIRUP package. This code downloads them. Change `dest` to a folder you
+want to keep. The function skips files that are already there.
 
 ``` r
 extdata <- SIRUP::downloadSIRUPExample(
@@ -62,7 +58,7 @@ extdata <- SIRUP::downloadSIRUPExample(
     "mg_thymus_slice2_gc_polygons.csv"
   )
 )
-#> ℹ Downloading 'mg_thymus_slice2.sirup.rds'
+#> ℹ 'mg_thymus_slice2.sirup.rds' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_slice2_gc_polygons.csv'
 ```
 
@@ -86,35 +82,58 @@ sirup
 ```
 
 The object holds two receptor slots, `"BCR"` and `"TCR"`, and the
-functions on this page read one slot at a time. This page works mostly
-on the BCR slot, so each call that reads receptors has `slot = "BCR"`.
+functions that interact with the receptors in the SIRUP object read one
+slot at a time. If we only need to work with one type of receptor, we
+can specify the slot in the function call.
 
-In this object, the comma in each `sequence_id` is replaced with `_`.
-dowser writes trees in Newick format, where a comma separates tips, so
-dowser renames tips that contain a comma. With the comma gone, the tip
-names match the receptor table and SIRUP can find each tip on the
-tissue.
-
-Each polygon in the example polygon file outlines one ectopic germinal
-center (eGC), a site in the thymus where B cells proliferate and mutate
-their receptors. Add the polygons to the object with `addPolygons()`:
+In [Annotate tissue ROIs and analyze local clonal structure](regions.md), we annotated regions of
+interest (ROIs) in the tissue. We can add the polygons that outline
+these ROIs to the SIRUP object so that we can include them in plots and
+analyses. Add the polygons to the object with `addPolygons()`.
 
 ``` r
 sirup <- addPolygons(
   sirup,
   polygons_path = file.path(extdata, "mg_thymus_slice2_gc_polygons.csv")
 )
-#> Loading required namespace: Seurat
 ```
 
-## Look at the clones
+## Build clones
 
-A clone is a group of receptors that descend from one ancestor cell. The
-BCR clones in this object were called with
-`scoper::hierarchicalClones()` through `updateReceptors()`, as shown in
-[Get started with SIRUP](get-started.md).
+A clone, or clonal lineage, is a set of cells inferred to have descended
+from a common ancestor. We can infer clones from the receptor sequences
+using `scoper::hierarchicalClones()` for B cells and
+`scoper::identicalClones()` for T cells. Use the `updateReceptors()`
+function to run a function on the receptor table in a SIRUP object and
+update the object with the result.
+
+The example object already has BCR clones from
+[Get started with SIRUP](get-started.md). To start from scratch, we
+will remove the `clone_id` column and clear the clone field first.
 
 ``` r
+sirup <- updateReceptors(
+  sirup,
+  dplyr::select,
+  -clone_id,
+  slot = "BCR", # specify the receptor slot
+  receptor_fields = list(clone = NULL)
+)
+```
+
+Then build the clones.
+
+``` r
+sirup <- updateReceptors(
+  sirup,
+  scoper::hierarchicalClones,
+  slot = "BCR",
+  threshold = 0.1,
+  summarize_clones = FALSE,
+  nproc = 1
+)
+#> Warning: package 'scoper' was built under R version 4.5.3
+
 sirup
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image
@@ -125,19 +144,10 @@ sirup
 #> Clone ID field:  clone_id
 #> Analyses:        0
 #> Polygons:        9
-dplyr::n_distinct(getReceptors(sirup, slot = "BCR")$clone_id)
-#> [1] 953
 ```
 
-`hierarchicalClones()` groups sequences with the same V gene, J gene,
-and junction length, then joins sequences whose junctions differ by less
-than `threshold`. The SIRUP paper used `threshold = 0.1` for BCRs. The
-function writes a `clone_id` column, which `updateReceptors()` records
-as the clone field. If a function writes a different column, record it
-with `receptor_fields = list(clone = "my_clone_column")`.
-
-TCRs do not mutate, so TCR clones are called with
-`scoper::identicalClones()`. This call runs it on the TCR slot:
+Because T cells do not mutate their TCRs, clones are called with
+`scoper::identicalClones()`, as is below.
 
 ``` r
 sirup <- updateReceptors(
@@ -147,24 +157,29 @@ sirup <- updateReceptors(
   summarize_clones = FALSE,
   nproc = 1
 )
-dplyr::n_distinct(getReceptors(sirup, slot = "TCR")$clone_id)
-#> [1] 3408
 ```
 
-## Reconstruct germlines
+## Reconstruct clonal germlines
 
-The germline of a clone is the sequence of its unmutated ancestor, and a
-lineage tree starts at this sequence. `dowser::createGermlines()`
-reconstructs one germline for each clone from the IMGT reference
-sequences. IMGT is the international database of immune receptor genes.
-The SIRUP paper made the germlines in the object and removed likely PCR
-chimeras.
+Next, reconstruct the germline of the B cell clones with
+`dowser::createGermlines()`. The germline is the sequence of the
+unmutated common ancestor, which will root the reconstructed trees.
+Building the germline requires IMGT references. Set the variable
+`imgt_dir` to the folder that contains them.
 
-SIRUP does not include the IMGT references. Download them, e.g., with
-the Immcantation script `fetch_imgtdb.sh`, and set the environment
-variable `SIRUP_IMGT_DIR` to the folder that holds the human V, D, and J
-FASTA files, such as `~/share/germlines/imgt/human/vdj`. The germline
-and tree chunks on this page run only when that folder exists.
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+If you have not yet set up the IMGT references, see the
+[documentation](https://github.com/hoehnlab/airrblast) for the
+`airrblast` package and download and set up the IMGT references.
+
+</div>
 
 ``` r
 references <- dowser::readIMGT(imgt_dir)
@@ -178,7 +193,12 @@ sirup <- updateReceptors(
   id = "sequence_id",
   nproc = 1
 )
+```
 
+To be safe, we can also filter out potential PCR chimeras using
+`shazam::slideWindowDb()`.
+
+``` r
 sirup <- updateReceptors(sirup, slot = "BCR", function(receptors) {
   chimera <- shazam::slideWindowDb(
     receptors,
@@ -191,15 +211,10 @@ sirup <- updateReceptors(sirup, slot = "BCR", function(receptors) {
 })
 ```
 
-## Measure somatic hypermutation
+## Estimate somatic hypermutation levels
 
-Somatic hypermutation (SHM) is the process that introduces point
-mutations into B cell receptor genes. Use `shazam::observedMutations()`
-to count the mutations of each sequence against a germline. With clonal
-germlines, use `germline_alignment_d_mask`. The chunk below uses
-`germline_alignment`, the germline that IgBLAST wrote for each sequence,
-so it runs without the IMGT references. The result goes in `mu_freq`,
-the fraction of mutated positions.
+Use `shazam::observedMutations()` to count the SHM levels of each
+sequence against the germline.
 
 ``` r
 sirup <- updateReceptors(
@@ -207,18 +222,18 @@ sirup <- updateReceptors(
   shazam::observedMutations,
   slot = "BCR",
   sequenceColumn = "sequence_alignment",
-  germlineColumn = "germline_alignment",
+  germlineColumn = "germline_alignment_d_mask",
   frequency = TRUE,
   combine = TRUE
 )
-summary(getReceptors(sirup, slot = "BCR")$mu_freq)
+summary(getReceptors(sirup, slot = "BCR")$mu_freq) # SHM frequency stored in mu_freq column
 #>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#> 0.00000 0.01462 0.03750 0.04184 0.06377 0.13467
+#> 0.00000 0.01493 0.03727 0.04165 0.06377 0.13814
 ```
 
-`plotReceptors()` can color spots by a numeric receptor column. Give the
-column to `value`. If a spot has several receptors, `value_combine` sets
-how SIRUP combines them, and the default is the mean.
+`plotReceptors()` can color spots by a numeric column in the receptor
+data. Pass the column to `value`. If a spot has several receptors,
+`value_combine` sets how SIRUP combines them (default is `"mean"`).
 
 ``` r
 plotReceptors(
@@ -227,6 +242,7 @@ plotReceptors(
   group = "locus",
   value = "mu_freq",
   value_colors = c("white", "darkred"),
+  value_combine = "mean",
   receptor_size = 1.3,
   polygons = TRUE,
   polygon_alpha = 0,
@@ -237,40 +253,16 @@ plotReceptors(
 
 ![](clones-and-trees_files/figure-gfm/shm-map-1.jpeg)
 
-## Choose clones to build trees for
+## Infer trees
 
-Trees are most useful for expanded clones. The code below keeps clones
-that have 10 to 60 sequences and at least one sequence in an eGC, then
-sorts them by the number of sequences in eGCs.
-
-``` r
-clone_sizes <- getReceptors(sirup, slot = "BCR") %>%
-  group_by(clone_id) %>%
-  summarise(
-    n_sequences = n(),
-    n_in_gc = sum(!is.na(polygon_id)),
-    n_gcs = n_distinct(na.omit(polygon_id)),
-    gcs = paste(sort(unique(na.omit(polygon_id))), collapse = ", ")
-  ) %>%
-  filter(n_sequences >= 10, n_sequences <= 60, n_in_gc > 0) %>%
-  arrange(desc(n_in_gc))
-
-head(clone_sizes)
-#> # A tibble: 6 × 5
-#>   clone_id n_sequences n_in_gc n_gcs gcs  
-#>   <chr>          <int>   <int> <int> <chr>
-#> 1 739               15       6     2 6, 7 
-#> 2 810               13       6     1 5    
-#> 3 196               40       5     2 3, 5 
-#> 4 604               12       3     2 5, 6 
-#> 5 428               11       2     1 5    
-#> 6 598               13       1     1 7
-tree_clones <- head(clone_sizes$clone_id, 3)
-```
-
-Plot the spots of the three chosen clones:
+First, we need to choose a few clones to build trees for. The three
+clones below are large and have sequences in the ectopic germinal
+centers (the ROIs).
 
 ``` r
+tree_clones <- c("739", "810", "196")
+
+# Plot the locations of the three chosen clones
 plotReceptors(
   sirup,
   slot = "BCR",
@@ -278,28 +270,23 @@ plotReceptors(
   group_val = tree_clones,
   receptor_size = 1.6,
   polygons = TRUE,
-  polygon_alpha = 0,
-  polygon_color = "black",
-  zoom = TRUE,
+  polygon_alpha = 0.3,
   title = "Selected clones"
 )
 ```
 
-![](clones-and-trees_files/figure-gfm/clone-map-1.jpeg)
+![](clones-and-trees_files/figure-gfm/choose-clones-1.jpeg)
 
-## Build trees
-
-Two functions run dowser on the object. `formatSpatialClones()` runs
-`dowser::formatClones()` and stores the result as an analysis.
-`getSpatialTrees()` runs `dowser::getTrees()` on a stored
-formatted-clone analysis and stores the trees as another analysis. Both
-functions take the dowser arguments.
-
-Tree building takes time for large clones, so first make a smaller
-object with only the clones of interest. `updateReceptors()` with
-`dplyr::filter()` does this.
+To build trees with Dowser, we need a formatted clones object.
+`formatSpatialClones()` wraps `dowser::formatClones()` but allows users
+to provide a SIRUP object, and it automatically places a
+`formatted_clones` object in the SIRUP object’s analysis slot. Then, we
+can call `getSpatialTrees()`, which wraps `dowser::getTrees()` but
+allows users to provide a SIRUP object, and puts the trees in the SIRUP
+object’s analysis slot.
 
 ``` r
+# Filter the SIRUP object to only include the tree clones
 tree_sirup <- updateReceptors(sirup, dplyr::filter, clone_id %in% tree_clones, slot = "BCR")
 
 tree_sirup <- formatSpatialClones(
@@ -308,7 +295,8 @@ tree_sirup <- formatSpatialClones(
   analysis_name = "formatted_clones",
   id = "sequence_id",
   germ = "germline_alignment_d_mask",
-  traits = c("barcode_10x", "polygon_id")
+  traits = c("barcode_10x", "polygon_id") # Make sure to set the barcode column as a trait so that you don't collapse
+  # sequences with the same sequence that were observed in different locations.
 )
 
 set.seed(1)
@@ -330,28 +318,8 @@ trees
 #> 3 810      <airrClon> IGH      13 <phylo>
 ```
 
-`traits` keeps the columns that the tree plots need. Keep the spatial
-ID, so SIRUP can put each tip on the tissue, and add any column to color
-by.
-
-`build = "pratchet"` builds maximum parsimony trees, which is fast. The
-SIRUP paper used maximum likelihood (`build = "pml"`). For B cell
-models, use IgPhyML (`build = "igphyml"` with the `igphyml` path).
-
-<div markdown="1"
-style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
-
-<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
-
-<b>Note</b>
-</p>
-
-By default, `formatClones()` merges identical sequences into one tip, so
-a tip can stand for several sequences.
-
-</div>
-
-Store the trees in the main object:
+For more information on building trees, see the [Dowser
+documentation](https://dowser.readthedocs.io/en/stable/vignettes/Building-Trees-Vignette/).
 
 ``` r
 sirup <- setAnalysis(sirup, "trees", trees)
@@ -359,18 +327,18 @@ sirup <- setAnalysis(sirup, "trees", trees)
 
 ## Pair each tree with the tissue
 
-`plotSpatialCloneTreePairs()` makes two plots for each clone: the
-lineage tree and a tissue map. Each tip has one color in both plots, so
-a tip of the tree can be found on the tissue.
+`plotSpatialCloneTreePairs()` plots trees on the left and H&E images and
+the locations of the tip sequences on the right. `color_by` allows you
+to color the tips on the tree by a column in the receptor data, but
+leaving it `NULL` gives each tip its own color.
 
 ``` r
 pairs <- plotSpatialCloneTreePairs(
-  trees,
+  getAnalysis(tree_sirup, "trees"),
   object = sirup,
   slot = "BCR",
   clone_val = tree_clones,
   id = "sequence_id",
-  zoom = TRUE,
   polygons = TRUE,
   polygon_alpha = 0,
   polygon_color = "black"
@@ -390,25 +358,26 @@ pairs[[1]]
 
 ![](clones-and-trees_files/figure-gfm/tree-pairs-1.jpeg)
 
-The result is a list with one element for each clone. Printing an
-element shows the tree and the map side by side. Each element also holds
-the `tree` plot and the `spatial_clone` plot, which can be used for a
-custom layout. Tips with a spot in this section are circles. Tips
-without a spot, such as bulk sequences, are squares and appear in the
-tree only. Sequences in the same spot share a point on the map.
+The result is a list with one element for each clone, and each element
+consists of the tree on the left and the map on the right. Each element
+also holds the `tree` plot and the `spatial_clone` plot, which can be
+accessed separately for a custom layout. Sequences in the same spot
+share a point on the map.
 
 ### Color tips by group
 
-A clone with many tips is hard to read when each tip has its own color.
-`clusterTreesTips()` cuts each tree into `k` connected groups of related
-tips. The code below uses `k = 4` for every tree.
+A clone with many tips can be hard to read when each tip has its own
+color. `clusterTreesTips()` cuts each tree into `k` connected groups of
+related tips. The code below uses `k = 4` for every tree. Then
+`plotSpatialCloneTreePairs()` with `color_by = "tree_cluster"` colors
+the tips by their corresponding cluster for easier visualization.
 
 ``` r
 clustered <- clusterTreesTips(
   trees,
   k = 4,
   id = "sequence_id",
-  cluster = "tree_cluster"
+  cluster = "tree_cluster" # What column to store the cluster assignments in
 )
 
 cluster_pairs <- plotSpatialCloneTreePairs(
@@ -418,11 +387,10 @@ cluster_pairs <- plotSpatialCloneTreePairs(
   clone_val = tree_clones,
   id = "sequence_id",
   color_by = "tree_cluster",
-  zoom = TRUE,
   polygons = TRUE,
   polygon_alpha = 0,
   polygon_color = "black",
-  show_spatial_legend = TRUE
+  show_spatial_legend = FALSE
 )
 
 cluster_pairs[[1]]
@@ -430,15 +398,9 @@ cluster_pairs[[1]]
 
 ![](clones-and-trees_files/figure-gfm/tree-clusters-1.jpeg)
 
-With `k = "auto"`, the function chooses `k` for each tree from
-`k_range`. It stops when one more cut reduces the mean within-group
-patristic distance by less than `improvement_threshold`, which is 10% by
-default. A tree with little structure can get `k = 1`, which gives all
-its tips one color.
-
 `color_by` accepts any column of the dowser clone data. For example,
-`color_by = "polygon_id"` colors each tip by its eGC, because the code
-kept `polygon_id` in `traits`.
+`color_by = "polygon_id"` colors each tip by which polygon it belongs
+to.
 
 <div markdown="1"
 style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
@@ -448,71 +410,18 @@ style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24p
 <b>Tip</b>
 </p>
 
-`spatialCloneTreePairsToPDF(cluster_pairs, "tree_pairs.pdf", width = 12, height = 6)`
-writes one page for each clone.
+`spatialCloneTreePairsToPDF(cluster_pairs, "tree_pairs.pdf")` plots one
+page per clone and saves the results to a PDF file.
 
 </div>
 
-## Compare tree distance with physical distance
-
-Do sequences in the same eGC have shorter tree distances than sequences
-in different eGCs? The patristic distance between two tips is the sum of
-the branch lengths between them. `tipPatristicMatrix()` gives these
-distances for a set of tips.
-
-The code below takes the selected clone that spans the most eGCs and
-compares the tip pairs in the same eGC with the tip pairs in different
-eGCs.
-
-``` r
-multi_gc_clone <- clone_sizes %>%
-  filter(clone_id %in% tree_clones) %>%
-  slice_max(n_gcs, n = 1, with_ties = FALSE) %>%
-  pull(clone_id)
-multi_gc_clone
-#> [1] "739"
-
-index <- which(trees$clone_id == multi_gc_clone)
-clone_data <- trees$data[[index]]@data
-tree <- trees$trees[[index]]
-
-gc_tips <- clone_data %>%
-  filter(!is.na(polygon_id), sequence_id %in% tree$tip.label) %>%
-  select(sequence_id, polygon_id)
-
-distances <- tipPatristicMatrix(tree, gc_tips$sequence_id)
-
-pairs_table <- as.data.frame(as.table(distances)) %>%
-  rename(tip_a = Var1, tip_b = Var2, distance = Freq) %>%
-  filter(as.character(tip_a) < as.character(tip_b)) %>%
-  mutate(
-    gc_a = gc_tips$polygon_id[match(tip_a, gc_tips$sequence_id)],
-    gc_b = gc_tips$polygon_id[match(tip_b, gc_tips$sequence_id)],
-    pair = if_else(gc_a == gc_b, "same eGC", "different eGCs")
-  )
-
-pairs_table %>%
-  group_by(pair) %>%
-  summarise(n_pairs = n(), median_distance = median(distance))
-#> # A tibble: 2 × 3
-#>   pair           n_pairs median_distance
-#>   <chr>            <int>           <dbl>
-#> 1 different eGCs       5          0.0273
-#> 2 same eGC            10          0.0150
-```
-
-The table gives the two medians. One clone cannot support a conclusion,
-because tip pairs share branches. The SIRUP paper ran this comparison
-over all eGC clones, with a mixed model that had a random effect for
-each clone.
-
 ## Next steps
 
-- To draw tissue regions and measure clonal dominance, see
-  [Draw tissue regions and measure clonal dominance and diversity](regions.md).
-- To test spatial patterns of genes, cells, and clones, see
-  [Test spatial patterns of genes, cells, and clones](spatial-statistics.md).
-- To add more sections, bulk AIRR-seq, and blood tips to a tree, see
-  [Analyze multiple spatial sections bulk BCR-seq](multisample.md).
-- To learn how SIRUP stores trees and other results, see
-  [How the SIRUP object works](sirup-object.md).
+- To process your own reads, read
+  [Process demultiplexed reads](processing.md).
+- To compare ROIs in the tissue, see
+  [Annotate tissue ROIs and analyze local clonal structure](regions.md).
+- To add more sections or bulk AIRR-seq, see
+  [Analyze multiple spatial sections and bulk BCR-seq](multisample.md).
+- To test spatial patterns, read
+  [Choose the right spatial statistic for your question](choose-spatial-statistic.md).

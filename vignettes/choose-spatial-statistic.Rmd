@@ -1,10 +1,10 @@
 ---
-title: "Choose a spatial statistic"
+title: "Choose the right spatial statistic for your question"
 output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Choose a spatial statistic}
+  %\VignetteIndexEntry{Choose the right spatial statistic for your question}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -265,6 +265,5 @@ plotRipleyCrossK(kcross, title = "Cross K: GC B spots to Tfh spots")
 
 ## Next steps
 
-* Run tests on real data: `vignette("spatial-statistics", package = "SIRUP")`.
-* Draw regions and measure their repertoires: `vignette("regions", package = "SIRUP")`.
-* Call clones before you test them: `vignette("clones-and-trees", package = "SIRUP")`.
+* To compare ROIs in the tissue, see `vignette("regions", package = "SIRUP")`.
+* To build lineage trees and visualize them on the tissue, read `vignette("clones-and-trees", package = "SIRUP")`.

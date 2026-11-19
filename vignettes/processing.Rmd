@@ -448,7 +448,7 @@ The table is now ready for `createSIRUP()`.
 
 ## Next steps
 
-* Build the object from the table in `vignette("get-started", package = "SIRUP")`.
-* Draw tissue regions and measure clonal dominance in `vignette("regions", package = "SIRUP")`.
-* Call clones and build lineage trees in `vignette("clones-and-trees", package = "SIRUP")`.
-* See what the object stores in `vignette("sirup-object", package = "SIRUP")`.
+* To build a SIRUP object and run a few simple analyses, see `vignette("get-started", package = "SIRUP")`.
+* To compare ROIs in the tissue, see `vignette("regions", package = "SIRUP")`.
+* To build lineage trees and visualize them on the tissue, read `vignette("clones-and-trees", package = "SIRUP")`.
+* To learn more about the structure of the SIRUP object see `vignette("sirup-object", package = "SIRUP")`.

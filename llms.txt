@@ -13,16 +13,15 @@ so any agent that can fetch a URL can read them directly.
 
 ## Vignettes (tutorials)
 
-- [Choose a spatial statistic](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/choose-spatial-statistic.md)
-- [Call clones and build lineage trees on the tissue](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/clones-and-trees.md)
+- [Choose the right spatial statistic for your question](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/choose-spatial-statistic.md)
+- [Infer clones and lineage trees in situ](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/clones-and-trees.md)
 - [Get started with SIRUP](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/get-started.md)
 - [Use SIRUP with your LLM agent](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/llm-agents.md)
-- [Analyze multiple spatial sections bulk BCR-seq](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/multisample.md)
+- [Analyze multiple spatial sections and bulk BCR-seq](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/multisample.md)
 - [Process demultiplexed reads](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/processing.md)
-- [Use QuPath annotations as polygons](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/qupath-annotations.md)
-- [Draw tissue regions and measure clonal dominance and diversity](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/regions.md)
+- [Use QuPath annotations to define ROIs](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/qupath-annotations.md)
+- [Annotate tissue ROIs and analyze local clonal structure](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/regions.md)
 - [How the SIRUP object works](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/sirup-object.md)
-- [Test spatial patterns of genes, cells, and clones](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/spatial-statistics.md)
 
 ## Function reference
 

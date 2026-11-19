@@ -1,10 +1,10 @@
 ---
-title: "Analyze multiple spatial sections bulk BCR-seq"
+title: "Analyze multiple spatial sections and bulk BCR-seq"
 output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Analyze multiple spatial sections bulk BCR-seq}
+  %\VignetteIndexEntry{Analyze multiple spatial sections and bulk BCR-seq}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -26,7 +26,7 @@ has_trees <- nzchar(imgt_dir) && dir.exists(imgt_dir)
 
 <div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
   <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
-  **Time:** ~25 minutes.<br>
+  **Time:** ~15 minutes.<br>
   **Data:** example spatial MG thymus sections, bulk thymus BCR-seq, and bulk blood BCR-seq.<br>
 </div>
 
@@ -51,8 +51,7 @@ and 12 months later. The question is which clones in ectopic germinal centers (e
 ## Get the example data
 
 This page uses example files that are slightly too big to be part of the SIRUP package. This code
-downloads them. Change `dest` to a folder you want to keep. The default folder
-is temporary. The function skips files that are already there.
+downloads them. Change `dest` to a folder you want to keep. The function skips files that are already there.
 
 ```{r download-data}
 extdata <- SIRUP::downloadSIRUPExample(
@@ -262,12 +261,12 @@ getPolygons(sirup)
 Both files number their polygons from 1, so SIRUP adds the sample ID to each polygon ID, i.e., `mg_thymus_slice1::1` and
 `mg_thymus_slice2::1`.
 
-## Plot multiple sections
+## Plot multiple spatial sections
 
 Functions that create spatial plots for a multi-sample object return a list with one plot for each section.
 Set `combine_sample_plots = TRUE` to get one combined figure, or pass `sample_id` to plot one section.
 
-```{r plots, fig.width = 9, fig.height = 4.5}
+```{r plots, fig.width = 7, fig.height = 10}
 spatialExpressionPlot(
   sirup,
   features = "AICDA",
@@ -278,7 +277,7 @@ spatialExpressionPlot(
 )
 ```
 
-```{r plot-one}
+```{r plot-one, fig.width = 7, fig.height = 5}
 spatialExpressionPlot(
   sirup,
   features = "AICDA",
@@ -322,7 +321,7 @@ getReceptors(sirup, slot = "BCR") %>%
 
 Next, make the germline of the clone with `dowser::createGermlines()`. The germline is the sequence of the unmutated
 common ancestor, which roots the tree. As in `vignette("clones-and-trees", package = "SIRUP")`, building the germline
-requires IMGT references. Set the environment variable `SIRUP_IMGT_DIR` to the folder that contains them.
+requires IMGT references. Set the variable `imgt_dir` to the folder that contains them.
 
 <div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
   <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
@@ -348,7 +347,7 @@ but allows users to provide a SIRUP object, and it automatically places a `forma
 analysis slot. Then, we can call `getSpatialTrees()`, which wraps `dowser::getTrees()` but allows users to provide a SIRUP
 object, and puts the trees in the SIRUP object's analysis slot. 
 
-```{r tree format, eval = has_trees}
+```{r tree-format, eval = has_trees}
 tree_sirup <- formatSpatialClones(
   tree_sirup,
   slot = "BCR",
@@ -363,11 +362,11 @@ trees <- getAnalysis(tree_sirup, "trees_BCR")
 `plotSpatialCloneTreePairs()` plots the tree on the left and the H\&E image of the section(s) on the right. Tips in the 
 tree are plotted in their corresponding spots in the tissue if they are from the spatial data. The argument `shape_by`
 sets the shape for each tip according to the provided column (here `"compartment"`), and `color_by` colors the tips by
-tree cluster. `clusterTreesTips()` is a function that clusters the tips in the tree by genetic relationships in order to
-provide visual clarity for paired plots.
+cluster. `clusterTreesTips()` clusters the tips in the tree by genetic relationships in order to
+provide visual clarity for paired plots. Here, `k = 6` splits the tree into six groups of tips.
 
 ```{r tree-plot, eval = has_trees, fig.width = 10, fig.height = 6}
-trees <- clusterTreesTips(trees, k = "auto", id = "sequence_id", k_range = 1:6, method = "monophyletic_clades")
+trees <- clusterTreesTips(trees, k = 6, id = "sequence_id", method = "monophyletic_clades")
 
 pair <- plotSpatialCloneTreePairs(
   trees,
@@ -383,7 +382,12 @@ pair <- plotSpatialCloneTreePairs(
   polygons = TRUE,
   polygon_alpha = 0,
   polygon_color = "black",
-  show_spatial_legend = TRUE
+  show_spatial_legend = TRUE,
+  legend_theme = ggplot2::theme(
+    legend.text = ggplot2::element_text(size = 7),
+    legend.title = ggplot2::element_text(size = 8, face = "bold"),
+    legend.key.size = grid::unit(0.3, "cm")
+  )
 )
 
 names(pair)
@@ -415,6 +419,6 @@ readSIRUP(path)
 
 ## Next steps
 
-* To call clones and build trees for one section, see `vignette("clones-and-trees", package = "SIRUP")`.
-* To draw tissue regions and measure clonal dominance and diversity, see `vignette("regions", package = "SIRUP")`.
-* To learn how SIRUP stores samples, polygons, and analyses, see `vignette("sirup-object", package = "SIRUP")`.
+* To compare ROIs in the tissue, see `vignette("regions", package = "SIRUP")`.
+* To build lineage trees and visualize them on the tissue, read `vignette("clones-and-trees", package = "SIRUP")`.
+* To learn more about the structure of the SIRUP object see `vignette("sirup-object", package = "SIRUP")`.
