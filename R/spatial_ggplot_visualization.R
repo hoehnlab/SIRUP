@@ -1788,7 +1788,9 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #'
 #' @return A named list with one element for each clone. Each element is a list
 #'   with the items `tree` and `spatial_clone` (the two plots), and `legend` and
-#'   `legend_rel_height` (for the optional legend).
+#'   `legend_rel_height` (for the optional legend). Print an element to see the
+#'   tree and the map side by side, with the legend beneath them. Use the `tree`
+#'   and `spatial_clone` items to make your own layout.
 #' @seealso [spatialCloneTreePairsToPDF()], [clusterTreesTips()],
 #'   [getSpatialTrees()], [plotSpatialColorTips()], [plotSpatialCloneColorTips()]
 #'
@@ -1807,7 +1809,7 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #' names(pairs)
 #'
 #' # Show the tree and the map side by side.
-#' cowplot::plot_grid(pairs[["4"]]$tree, pairs[["4"]]$spatial_clone)
+#' pairs[["4"]]
 #' @export
 plotSpatialCloneTreePairs <- function(trees,
                                       object,
@@ -2052,11 +2054,14 @@ plotSpatialCloneTreePairs <- function(trees,
       # Return the shared legend separately so the pair assembler can place it
       # full-width beneath BOTH panels (avoids clipping when there are color and
       # shape guides). legend_rel_height scales with the number of colour rows.
-      list(
-      tree = tree_plot,
-      spatial_clone = spatial_panel,
-      legend = tree_legend,
-      legend_rel_height = max(0.12, 0.07 * ceiling(length(legend_info$colors) / 6))
+      structure(
+        list(
+          tree = tree_plot,
+          spatial_clone = spatial_panel,
+          legend = tree_legend,
+          legend_rel_height = max(0.12, 0.07 * ceiling(length(legend_info$colors) / 6))
+        ),
+        class = c("sirup_clone_tree_pair", "list")
       )
     }
     if (is.list(spatial_plot) && !inherits(spatial_plot, "ggplot")) {
@@ -2569,6 +2574,16 @@ spatialCloneTreePairsToPDF <- function(pairs,
   on.exit(grDevices::dev.off(), add = TRUE)
   print(.sirup_clone_tree_pair_grid(pair, rel_widths = rel_widths))
   invisible(path)
+}
+
+# Printing a tree and map pair draws the tree and the map side by side, with the
+# shared legend beneath them. The `tree`, `spatial_clone`, and `legend` items
+# stay available for custom layouts.
+#' @export
+#' @noRd
+print.sirup_clone_tree_pair <- function(x, ...) {
+  print(.sirup_clone_tree_pair_grid(x, rel_widths = c(1.2, 1)))
+  invisible(x)
 }
 
 .sirup_clone_tree_pair_grid <- function(pair, rel_widths) {

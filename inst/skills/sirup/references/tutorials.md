@@ -36,7 +36,7 @@ Page: https://sirup.readthedocs.io/en/latest/vignettes/spatial-statistics/
 
 Test whether a gene, a cell type, or a clone forms a spatial pattern, with Moran's I, Lee's L, Ripley's cross K, and join counts.
 
-### Analyze several sections with bulk AIRR-seq and blood
+### Analyze multiple spatial sections bulk BCR-seq
 
 Page: https://sirup.readthedocs.io/en/latest/vignettes/multisample/
 
@@ -56,16 +56,14 @@ Page: https://sirup.readthedocs.io/en/latest/vignettes/choose-spatial-statistic/
 
 Pick a spatial statistic by the question you ask: clustering, co-variation, nearness of two spot types, or the spread of a clone.
 
+### Use QuPath annotations as polygons
+
+Page: https://sirup.readthedocs.io/en/latest/vignettes/qupath-annotations/
+
+Export germinal center outlines from QuPath as GeoJSON and add them to a SIRUP object as polygons, then check how the spots and the outlines line up.
+
 ### Use SIRUP with your LLM agent
 
 Page: https://sirup.readthedocs.io/en/latest/vignettes/llm-agents/
 
 Give an LLM agent such as Claude Code, Codex, or Antigravity the SIRUP skill or the llms files, and work with it on spatial receptor data.
-
-## Vignettes
-
-### Use QuPath annotations as polygons
-
-Page: https://sirup.readthedocs.io/en/latest/vignettes/qupath-annotations/
-
-This page shows how to export those outlines from QuPath and add them to a SIRUP object that has no polygons yet.

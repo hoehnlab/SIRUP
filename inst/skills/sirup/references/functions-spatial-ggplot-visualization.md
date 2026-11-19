@@ -347,7 +347,7 @@ Arguments:
 - `slot`: Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots. The function ignores `slot` if you give a plain receptor table.
 - `...`: Other arguments for [`plotSpatialColorTips()`](plotSpatialColorTips.md).
 
-Value: A named list with one element for each clone. Each element is a list with the items `tree` and `spatial_clone` (the two plots), and `legend` and `legend_rel_height` (for the optional legend).
+Value: A named list with one element for each clone. Each element is a list with the items `tree` and `spatial_clone` (the two plots), and `legend` and `legend_rel_height` (for the optional legend). Print an element to see the tree and the map side by side, with the legend beneath them. Use the `tree` and `spatial_clone` items to make your own layout.
 
 ## plotSpatialColorTips
 

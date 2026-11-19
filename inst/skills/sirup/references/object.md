@@ -106,7 +106,7 @@ The polygon CSV file needs the columns `x`, `y`, and `polygon` (or `polygon_id`)
 
 ## Several samples
 
-`createSIRUP()` accepts one Seurat object or a named list of Seurat objects. With a list, the `sample` column of the receptor table names the list entry of each row. Rows with no matching entry stay in the table as non-spatial records. Bulk and blood sequences use this feature. Run `spatialSamples(x)` to list the samples. `mergeSIRUP()` joins several objects, `subsetSIRUP()` keeps chosen samples, spots, or receptor rows, and `filterSample()` keeps the samples that you name.
+`createSIRUP()` accepts one Seurat object or a named list of Seurat objects. With a list, the `sample` column of the receptor table names the list entry of each row. Rows with no matching entry stay in the table as non-spatial records. Bulk and blood sequences use this feature. Run `spatialSamples(x)` to list the samples. `mergeSIRUP()` joins several objects, and `subsetSIRUP()` keeps chosen samples, spots, or receptor rows.
 
 ## Keep and save results
 

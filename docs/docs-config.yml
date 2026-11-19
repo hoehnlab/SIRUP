@@ -36,6 +36,7 @@ vignette_summaries:
   multisample: "Put several tissue sections, bulk AIRR-seq, and blood samples in one SIRUP object, and follow clones between them."
   sirup-object: "Learn the five parts of a SIRUP object, the rules that SIRUP checks, and the functions that change the object."
   choose-spatial-statistic: "Pick a spatial statistic by the question you ask: clustering, co-variation, nearness of two spot types, or the spread of a clone."
+  qupath-annotations: "Export germinal center outlines from QuPath as GeoJSON and add them to a SIRUP object as polygons, then check how the spots and the outlines line up."
   llm-agents: "Give an LLM agent such as Claude Code, Codex, or Antigravity the SIRUP skill or the llms files, and work with it on spatial receptor data."
 
 # Nav sections for the vignettes. Each group has a title and a list of vignette file stems.
@@ -44,7 +45,7 @@ vignette_groups:
   - title: Tutorials
     vignettes: [get-started, processing, regions, clones-and-trees, spatial-statistics, multisample]
   - title: Guides
-    vignettes: [sirup-object, choose-spatial-statistic, llm-agents]
+    vignettes: [sirup-object, choose-spatial-statistic, qupath-annotations, llm-agents]
 
 # Title of the nav section that lists the function pages.
 help_topics_title: Function Reference

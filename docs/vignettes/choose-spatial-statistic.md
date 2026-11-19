@@ -29,100 +29,37 @@ question and all points inside that circle are neighbors of the point).
 | Is a discrete variable (in this case a particular clone) spatially autocorrelated? | `spatialCloneJoinCount()` | Receptor table with clone IDs, pass the ID of the clone you’re interested in |
 | Do two discrete variables co-vary in space? | `spatialRipleyCrossK()` | One metadata column with two labels |
 
-## Set up the example data
+## Load the example object
 
 The examples use one myasthenia gravis (MG) thymus section. This code
-downloads the example files, which are not part of the SIRUP package.
-Change `dest` to a folder you want to keep. The function skips files
-that are already there.
+downloads a saved SIRUP object for it, which is not part of the SIRUP
+package, and reads it. The object has BCRs and TCRs, cell-type
+estimates, and BCR clones. Change `dest` to a folder you want to keep.
+The function skips files that are already there. To see how the object
+was built, see [Get started with SIRUP](get-started.md).
 
 ``` r
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
-  files = c(
-    "mg_thymus_cell_types.csv.gz",
-    "mg_thymus_slice2_bcr.tsv.gz",
-    "mg_thymus_slice2_tcr.tsv.gz",
-    "mg_thymus_slice2_gc_polygons.csv",
-    "mg_thymus_slice2_spatial.rds"
-  )
+  files = "mg_thymus_slice2.sirup.rds"
 )
-#> ℹ Downloading 'mg_thymus_cell_types.csv.gz'
-#> ℹ Downloading 'mg_thymus_slice2_bcr.tsv.gz'
-#> ℹ Downloading 'mg_thymus_slice2_tcr.tsv.gz'
-#> ℹ Downloading 'mg_thymus_slice2_gc_polygons.csv'
-#> ℹ Downloading 'mg_thymus_slice2_spatial.rds'
+#> ℹ Downloading 'mg_thymus_slice2.sirup.rds'
 ```
-
-Then build a SIRUP object from the spatial data, the cell-type
-estimates, and the BCRs and TCRs. Then call the BCR clones.
-[Test spatial patterns of genes, cells, and clones](spatial-statistics.md) explains each step.
 
 ``` r
 library(SIRUP)
 library(dplyr)
 
-thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
-
-cell_types <- data.table::fread(
-  file.path(extdata, "mg_thymus_cell_types.csv.gz"),
-  data.table = FALSE
-) %>%
-  filter(sample == "mg_thymus_slice2")
-rownames(cell_types) <- cell_types$barcode
-thymus <- Seurat::AddMetaData(thymus, select(cell_types, -sample, -barcode))
-
-bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz")) %>%
-  extractSpatialIds(
-    id = "sequence_id",
-    spatial_id = "barcode_10x",
-    regex = ",([ACGT]{16})$",
-    suffix = "-1"
-  ) %>%
-  filterAirr(
-    locus_val = "IGH",
-    min_v_length = 250,
-    min_j_length = 30,
-    min_junction_length = 10,
-    productive_only = TRUE,
-    min_consensus_count = NULL,
-    spatial_id = "barcode_10x"
-  ) %>%
-  filter(!grepl("[^ACGT]", junction))
-tcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_tcr.tsv.gz")) %>%
-  extractSpatialIds(
-    id = "sequence_id",
-    spatial_id = "barcode_10x",
-    regex = ",([ACGT]{16})$",
-    suffix = "-1"
-  ) %>%
-  filterAirr(
-    locus_val = "TRB",
-    min_v_length = 250,
-    min_j_length = 30,
-    min_junction_length = 10,
-    productive_only = TRUE,
-    min_consensus_count = NULL,
-    spatial_id = "barcode_10x"
-  ) %>%
-  filter(!grepl("[^ACGT]", junction))
-
-x <- createSIRUP(
-  spatial = thymus,
-  receptors = list(BCR = bcrs, TCR = tcrs),
-  spatial_id = "barcode_10x",
-  image_scale = "lowres",
-  swap_coords = FALSE,
-  polygons_path = file.path(extdata, "mg_thymus_slice2_gc_polygons.csv")
-)
-x <- updateReceptors(
-  x,
-  scoper::hierarchicalClones,
-  slot = "BCR",
-  threshold = 0.1,
-  summarize_clones = FALSE,
-  nproc = 1
-)
+x <- readSIRUP(file.path(extdata, "mg_thymus_slice2.sirup.rds"))
+x
+#> <SIRUP object>
+#> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image
+#> Receptor data:   2 slots
+#>   BCR: 2,105 receptor sequences x 57 columns; 797/868 receptor IDs in spatial data (91.8%)
+#>   TCR: 3,610 receptor sequences x 56 columns; 1,414/1,571 receptor IDs in spatial data (90.0%)
+#> Spatial ID field: barcode_10x
+#> Clone ID field:  clone_id
+#> Analyses:        0
 ```
 
 ## Is a continuous variable spatially autocorrelated?
@@ -152,6 +89,7 @@ moran <- spatialMoran(
   variable_type = "metadata",
   k = 6
 )
+#> Loading required namespace: Seurat
 moran$test$estimate[[1]]
 #> [1] 0.6229165
 moran$test$p.value

@@ -9,135 +9,69 @@ style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24p
 <b>Note</b>
 </p>
 
-**Time:** ~15 minutes.<br> **Data:** consensus BCRs and spatial gene
-expression from one myasthenia gravis (MG) thymus section, downloaded
-with `downloadSIRUPExample()`.<br> **Needs:** SIRUP with its Suggests
-packages scoper, alakazam, and sf, plus rgl for the 3D plot.
+**Time:** ~15 minutes.<br> **Data:** The example SIRUP object, plus its
+polygon file.<br>
 
 </div>
 
-In this page you mark regions on a tissue section, attach them to a
-SIRUP object, and measure the B cell receptor (BCR) repertoire in each
-region. A *spot* is one capture location of the spatial assay. A
-*polygon* is a closed outline on the H&E image that you draw around
-spots. A *clone* is a group of receptors that descend from one ancestor
-cell. In the SIRUP paper, polygons mark the ectopic germinal centers
-(eGCs) of the MG thymus. You compare their repertoires with the germinal
-centers of the tonsil.
+Here, we will select regions of interest (ROIs) on a tissue section,
+attach them to a SIRUP object, and examine the BCR repertoire in each
+region.
 
-You finish with a table of receptors per region, clonal dominance plots,
-diversity curves, and pseudobulk expression profiles. This page assumes
-you know the SIRUP object. See
-[How the SIRUP object works](sirup-object.md) for an introduction.
+## Load the example object
 
-## Get the example data
-
-This page uses example files that are not part of the SIRUP package.
-This code downloads them. Change `dest` to a folder you want to keep.
-The default folder is temporary. The function skips files that are
-already there.
+This code downloads a saved SIRUP object for MG thymus section 2, which
+is slightly too big to come directly with the package, and the polygon
+file for the section. Change `dest` to a whatever folder you wish to
+save the example data in. To see how the object was built, see
+[Get started with SIRUP](get-started.md).
 
 ``` r
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = c(
-  "mg_thymus_slice2_spatial.rds",
-  "mg_thymus_slice2_bcr.tsv.gz",
-  "mg_thymus_slice2_tcr.tsv.gz",
-  "mg_thymus_slice2_gc_polygons.csv"
+    "mg_thymus_slice2.sirup.rds",
+    "mg_thymus_slice2_gc_polygons.csv"
   )
 )
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2.sirup.rds' is already in '/scratch/f007p0j/Rtmpyr7Vhs/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/Rtmpyr7Vhs/SIRUP_example'.
 ```
-
-## Set up the object
-
-Load the packages.
 
 ``` r
 library(SIRUP)
 library(dplyr)
 library(ggplot2)
+
+sirup <- readSIRUP(file.path(extdata, "mg_thymus_slice2.sirup.rds"))
+sirup
+#> <SIRUP object>
+#> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image
+#> Receptor data:   2 slots
+#>   BCR: 2,105 receptor sequences x 57 columns; 797/868 receptor IDs in spatial data (91.8%)
+#>   TCR: 3,610 receptor sequences x 56 columns; 1,414/1,571 receptor IDs in spatial data (90.0%)
+#> Spatial ID field: barcode_10x
+#> Clone ID field:  clone_id
+#> Analyses:        0
 ```
-
-``` r
-thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
-bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz")) %>%
-  extractSpatialIds(
-    id = "sequence_id",
-    spatial_id = "barcode_10x",
-    regex = ",([ACGT]{16})$",
-    suffix = "-1"
-  ) %>%
-  filterAirr(
-    locus_val = "IGH",
-    min_v_length = 250,
-    min_j_length = 30,
-    min_junction_length = 10,
-    productive_only = TRUE,
-    min_consensus_count = NULL,
-    spatial_id = "barcode_10x"
-  ) %>%
-  filter(!grepl("[^ACGT]", junction))
-#> filterAirr kept 2189 of 3793 rows (dropped 1604).
-tcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_tcr.tsv.gz")) %>%
-  extractSpatialIds(
-    id = "sequence_id",
-    spatial_id = "barcode_10x",
-    regex = ",([ACGT]{16})$",
-    suffix = "-1"
-  ) %>%
-  filterAirr(
-    locus_val = "TRB",
-    min_v_length = 250,
-    min_j_length = 30,
-    min_junction_length = 10,
-    productive_only = TRUE,
-    min_consensus_count = NULL,
-    spatial_id = "barcode_10x"
-  ) %>%
-  filter(!grepl("[^ACGT]", junction))
-#> filterAirr kept 3718 of 7915 rows (dropped 4197).
-
-sirup <- createSIRUP(
-  spatial = thymus,
-  receptors = list(BCR = bcrs, TCR = tcrs),
-  spatial_id = "barcode_10x",
-  image_scale = "lowres",
-  swap_coords = FALSE
-)
-sirup <- updateReceptors(
-  sirup,
-  scoper::hierarchicalClones,
-  slot = "BCR",
-  threshold = 0.1,
-  summarize_clones = FALSE,
-  nproc = 1
-)
-#> Running defineClonesScoper in bulk mode and only keep heavy chains
-```
-
-The setup chunk reads the consensus BCRs and TCRs of section 2. It
-stores them as the slots `"BCR"` and `"TCR"` of one object. The polygons
-apply to both slots. The functions on this page read one slot at a time,
-and they use `slot = "BCR"`. It takes the spot barcode from
-`sequence_id`. It keeps high-quality sequences that have an unambiguous
-junction. It then calls BCR clones with `scoper::hierarchicalClones()`.
-[Get started with SIRUP](get-started.md) explains each step.
 
 ## Draw regions
 
-`selectSpatialPolygons()` opens a Shiny app in your web browser. The app
-shows the spots over the H&E image. You color the spots by a gene or a
-metadata column. You click around the edge of each region. The app
-returns a table of vertices.
+In SIRUP, select ROIs using the `selectSpatialPolygons()` function,
+which opens a Shiny app in the web browser. The app shows spots over the
+H&E image, colored by a gene or a metadata column in the spatial gex
+data. Click to select the vertices of a region, then click **Close
+polygon** to join the last vertex to the first. Click **New polygon** to
+start the next region. When finished, click **Done**. The app returns a
+table of the vertices, and it writes them to the CSV file at
+`save_path`.
 
-In the SIRUP paper, the eGCs are drawn over imputed *AICDA* expression.
-*AICDA* marks germinal center B cells. This chunk does not run here,
-because it needs a browser:
+![](figures/select-spatial-polygons-app.jpg)
+
+The panel on the left sets the assay, layer, and feature (from the
+spatial GEX data) that color the spots, the size and opacity of the
+points, and whether to show the H&E image and the spots with zero
+expression. The screenshot shows one selected polygon.
 
 ``` r
 gc_vertices <- selectSpatialPolygons(
@@ -150,16 +84,11 @@ gc_vertices <- selectSpatialPolygons(
 )
 ```
 
-These arguments help on large sections:
-
-- `feature` names a gene or a numeric metadata column, such as a module
-  score or a cell-type proportion. You can change it in the app.
-- `show_zeros = FALSE` hides spots with zero expression. This helps on
-  sparse Visium HD bins.
-- `downsample_n` draws fewer spots, so the app responds faster. Clicks
-  still snap to the full set of spots.
-- On a remote server, set `launch_browser = FALSE`, `host = "0.0.0.0"`,
-  and a `port`. Then open the port through an SSH tunnel.
+If you’re working with very large or dense data, like Visium HD these
+arguments can help the app respond faster: \* `show_zeros = FALSE` hides
+spots with zero expression, which keeps 0 spots from overwhelming the
+visualization. \* `downsample_n` draws fewer spots, so the app responds
+faster. Each click still snaps to the full set of spots.
 
 <div markdown="1"
 style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
@@ -169,12 +98,82 @@ style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24p
 <b>Tip</b>
 </p>
 
-Give a `save_path`. The CSV file is the record of your annotation. Other
-people can repeat the analysis without a second round of drawing.
+Give a `save_path`. The CSV file is the record of the annotation, so
+other people can repeat the analysis without a second round of drawing.
 
 </div>
 
-The example data include the polygon file for this section. Read it:
+### Draw regions on a remote server
+
+If you are running R on a remote server, like an HPC cluster, the app
+cannot open a browser on your computer. Instead, start the app on the
+server, then connect to it from your computer through an SSH tunnel.
+
+1.  Start R on the server. On a cluster, use an interactive session on a
+    compute node (e.g., with `srun --pty`).
+2.  Run `selectSpatialPolygons()` with `launch_browser = FALSE` and a
+    `port`. Pick a port above 1024 that nobody else on the server uses,
+    e.g., 4321.
+3.  On your computer, open a second terminal and start the tunnel. The
+    tunnel sends your local port to the port of the app. Leave the
+    terminal open while you draw.
+4.  In the browser on your computer, go to `http://127.0.0.1:4321` (or
+    whatever port you chose).
+
+The app runs on the server, but you see it on your computer. When you
+finish drawing, click **Done**. The app writes the CSV file on the
+server, so provide a `save_path` that is valid there. An example call to
+selectSpatialPolygons() is below. The SSH command is also shown. Change
+`user` and `server.example.edu` to your username and server.
+
+``` r
+# On the server
+gc_vertices <- selectSpatialPolygons(
+  sirup,
+  feature = "AICDA",
+  assay = "alra",
+  layer = "data",
+  plot_image = TRUE,
+  save_path = "mg_thymus_slice2_gc_polygons.csv",
+  launch_browser = FALSE,
+  port = 4321
+)
+```
+
+``` bash
+# On your computer
+ssh -L 4321:127.0.0.1:4321 user@server.example.edu
+```
+
+If you run R on a compute node behind a login node, the tunnel must
+reach the compute node. Add `host = "0.0.0.0"` to
+`selectSpatialPolygons()`, so that the login node can connect to the
+app, and give the name of the compute node to the tunnel:
+
+``` bash
+# On your computer
+ssh -L 4321:compute-node-name:4321 user@login.server.example.edu
+```
+
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+`host = "0.0.0.0"` lets other computers on the server network reach the
+app while it runs. Draw the regions, click **Done**, and let the
+function end, so the app does not stay open. Give a `save_path` on the
+server, so that the CSV file holds the vertices after the session ends.
+
+</div>
+
+### Read the example polygons
+
+The example data include the polygon file for this section. Read it in
+as you would any .csv file.
 
 ``` r
 vertices <- read.csv(
@@ -191,16 +190,17 @@ head(vertices)
 #> 6 ACATCGATCGTTTACC-1 296.388 320.461       1 thymus_slice2
 ```
 
-Each row is one vertex. `polygon` names the region. `spatial_id` is the
-spot under the click. `x` and `y` are its image coordinates. You can
-build this table in other ways. For example, `formatSpatialPolygons()`
-turns a set of spots into a polygon outline. One such set is a Seurat
-cluster.
+Each row is one vertex. `polygon` names the region, `spatial_id` is the
+closest spot to where you clicked, and `x` and `y` are its coordinates.
 
-## Attach regions to the object
+Regions drawn by a pathologist in QuPath (or by you) can be added too,
+as shown in [Use QuPath annotations as polygons](qupath-annotations.md).
 
-`addPolygons()` stores the polygons. It also annotates the spots and the
-receptors:
+## Attach ROIs to the SIRUP object
+
+Use `addPolygons()` to attach the polygons to the SIRUP object. This
+function also automatically annotates the spots and the receptors with
+which polygons they live in.
 
 ``` r
 sirup <- addPolygons(
@@ -221,9 +221,10 @@ sirup
 
 The receptor table and the Seurat metadata now have a `polygon_id`
 column. They also have one `TRUE`/`FALSE` column for each polygon, such
-as `polygon_5`. The next section explains why both exist.
+as `polygon_5`. This ensures that if you have any overlapping polygons,
+you can still identify which polygon each spot or receptor belongs to.
 
-`plotSpatialPolygons()` draws the stored polygons over the tissue:
+`plotSpatialPolygons()` draws the stored polygons over the tissue.
 
 ``` r
 plotSpatialPolygons(sirup, polygon_alpha = 0.3)
@@ -231,7 +232,7 @@ plotSpatialPolygons(sirup, polygon_alpha = 0.3)
 
 ![](regions_files/figure-gfm/plot-polygons-1.jpeg)
 
-Set `zoom = TRUE` to crop the image to the polygons:
+Set `zoom = TRUE` to crop the image to the polygons.
 
 ``` r
 plotSpatialPolygons(sirup, zoom = TRUE)
@@ -239,24 +240,24 @@ plotSpatialPolygons(sirup, zoom = TRUE)
 
 ![](regions_files/figure-gfm/plot-polygons-zoom-1.jpeg)
 
-Small polygons can crowd their labels. Set `label_outside = TRUE` to
-move the labels outside, each joined to its polygon by a line. Leave
-`zoom` off, so the labels have space.
+Small polygons can crowd their labels, so set `label_outside = TRUE` to
+move the labels outside, each joined to its polygon by a line.
 
-Most SIRUP spatial plots accept `polygons = TRUE`. This draws the stored
-polygons on top. The next plot shows BCR-positive spots with the eGC
-outlines:
+Most SIRUP spatial plots accept `polygons = TRUE`, which draws the
+stored polygons on top, as in the next plot of BCR-positive spots.
 
 ``` r
 plotReceptors(
   sirup,
   slot = "BCR",
   group = "locus",
-  colors = "#0072B2",
+  colors = "#1888D0",
   receptor_size = 1,
+  receptor_alpha = 0.5,
   polygons = TRUE,
   polygon_alpha = 0,
-  polygon_color = "black",
+  polygon_color = "white",
+  polygon_linewidth = 1,
   zoom = TRUE,
   title = "BCRs and eGC outlines"
 )
@@ -264,53 +265,58 @@ plotReceptors(
 
 ![](regions_files/figure-gfm/receptors-polygons-1.jpeg)
 
-## Handle overlapping regions
+## Overlapping ROIs
 
-Regions can overlap. For example, you can draw a germinal center inside
-a larger follicle. SIRUP records polygon membership in two ways:
+ROIs can overlap, e.g., a germinal center can be drawn inside a larger
+follicle. To account for this, SIRUP records polygon membership in two
+ways
 
 - `polygon_id` holds one region for each spot. If a spot is in more than
-  one polygon, it gets the polygon with the smallest area.
+  one polygon, it is assigned to the polygon with the smallest area.
 - `polygon_<ID>` columns hold the full membership. Each polygon has one
   `TRUE`/`FALSE` column.
 
-The SIRUP analysis functions use `polygon_id`. To use a different rule,
-build your own column from the `polygon_<ID>` columns.
+SIRUP analyses use `polygon_id` by default for polygon membership. To
+use a different rule, build your own column from the `polygon_<ID>`
+columns and pass your new column to the analysis functions.
 
-To show this, make a zone around eGC 5. `expandPolygons()` moves each
-vertex away from the polygon center by `delta`, in image pixels:
+To demonstrate, we will make another polygon around polygon 5.
+`expandPolygons()` moves each vertex away from the polygon center by
+`delta`, in image pixels.
 
 ``` r
-zone <- vertices %>%
+expanded_5 <- vertices %>%
   filter(polygon == "5") %>%
   expandPolygons(delta = 12) %>%
-  mutate(polygon = "5_zone")
+  mutate(polygon = "5_expanded")
 
-nested <- addPolygons(sirup, polygons = bind_rows(vertices, zone))
+nested <- addPolygons(sirup, polygons = bind_rows(vertices, expanded_5))
 
 getReceptors(nested, slot = "BCR") %>%
-  filter(polygon_5_zone) %>%
-  count(polygon_id, polygon_5, polygon_5_zone)
+  filter(polygon_5_expanded == TRUE) %>%
+  count(polygon_id, polygon_5, polygon_5_expanded)
 #> # A tibble: 2 × 4
-#>   polygon_id polygon_5 polygon_5_zone     n
-#>   <chr>      <lgl>     <lgl>          <int>
-#> 1 5          TRUE      TRUE              47
-#> 2 5_zone     FALSE     TRUE              65
+#>   polygon_id polygon_5 polygon_5_expanded     n
+#>   <chr>      <lgl>     <lgl>              <int>
+#> 1 5          TRUE      TRUE                  47
+#> 2 5_expanded FALSE     TRUE                  65
 
-plotSpatialPolygons(nested, polygon_val = c("5", "5_zone"), zoom = TRUE, label = FALSE)
+plotSpatialPolygons(nested, polygon_val = c("5", "5_expanded"), zoom = TRUE, label = FALSE)
 ```
 
 ![](regions_files/figure-gfm/nested-1.jpeg)
 
-The inner polygon is eGC 5. The outer polygon is the zone. Receptors in
-eGC 5 keep `polygon_id = "5"`, because eGC 5 is the smaller polygon.
-Receptors in the ring around it get `polygon_id = "5_zone"`. The
-`polygon_5_zone` column is `TRUE` for both groups.
+The inner polygon is polygon 5 and the outer polygon is the expanded
+version. Receptors in polygon 5 keep `polygon_id = "5"`, because polygon
+5 is smaller by area. Receptors in the ring around it get
+`polygon_id = "5_expanded"`. The `polygon_5_expanded` column is `TRUE`
+for both groups.
 
-## Count receptors in each region
+## Count receptors in each ROI
 
-`polygonReceptorSummary()` gives one row for each polygon. It also
-stores the table in the object as an analysis:
+Use `polygonReceptorSummary()` to count the receptors in each polygon.
+It gives one row for each polygon and also stores the table in the
+object as an analysis.
 
 ``` r
 sirup <- polygonReceptorSummary(
@@ -345,20 +351,21 @@ getAnalysis(sirup, "polygon_receptor_summary_BCR")
 #> 9                         IGHG1,IGHM             52.50000                   3
 ```
 
-The default columns count the receptors, the spots with receptors, and
-the clones. They also give the fraction of receptors in the largest
-clone. `include_total_spots = TRUE` adds the number of spots in the
-polygon, with or without a receptor.
+The default output table includes columns that count the receptors, the
+spots with receptors, and the clones. The table also gives the fraction
+of receptors in the largest clone. `include_total_spots = TRUE` adds the
+total number of spots in the polygon.
 
-`summary_columns` and `summary_operations` add your own summaries. Each
-pair gives a column named `<operation>_<column>`. The operations are
-`count`, `sum`, `mean`, `median`, `var`, `sd`, `min`, `max`, `any`,
-`all`, and `cat`. `cat` pastes the distinct values together. In the
-table above, `mean_junction_length` is the mean junction length in each
-eGC.
+`summary_columns` and `summary_operations` can add custom summaries.
+Pass `summary_columns` a vector of column names in that you want to
+summarize from the receptor table, and `summary_operations` a vector of
+operations to run on each column. Allowed operations are `count`, `sum`,
+`mean`, `median`, `var`, `sd`, `min`, `max`, `any`, `all`, and `cat`. In
+the table above, `mean_junction_length` is the mean junction length in
+each eGC.
 
 `withPolygons()` runs any function on the receptors of each polygon. It
-returns a list with one result for each polygon:
+returns a list with one result for each polygon.
 
 ``` r
 isotypes <- withPolygons(
@@ -382,13 +389,11 @@ isotypes[["5"]]
 With `mode = "all_polygons"`, `withPolygons()` runs the function once on
 the receptors of all polygons together.
 
-## Measure clonal dominance
+## Determine which clones dominate the ROIs
 
-*Clonal dominance* is the fraction of the receptors in a region that
-belong to each clone. One clone dominates a region when the region has
-few, large clones. A polyclonal region has many small clones.
-
-`spatialCloneDominance()` computes this for every polygon:
+*Clonal dominance* is the fraction of the receptors in an ROI that
+belong to each clone. Use `spatialCloneDominance()` to compute this for
+every polygon.
 
 ``` r
 dominance <- spatialCloneDominance(object = sirup, slot = "BCR", locus_val = "IGH")
@@ -413,24 +418,24 @@ dominance$dominance %>%
 #> 10       1      128           1 0.03571429              IGHV1
 ```
 
-The result is a list. `dominance` is the main table, with one row for
-each clone and polygon. The other items hold the spots, coordinates,
+The result is a list, and `dominance` is the main table, with one row
+for each clone and polygon. The other items hold the spots, coordinates,
 receptors, and polygon outlines that the plot functions need. Store the
-result in the object to keep it:
+result in the SIRUP object.
 
 ``` r
 sirup <- setAnalysis(sirup, "gc_dominance", dominance)
 ```
 
 By default, each receptor row counts once. Give a numeric column to
-`count` to weight the rows, for example by `consensus_count`. Set
+`count` to weight the rows, e.g., by `consensus_count`. Set
 `exclude_singletons = TRUE` to drop clones with one receptor.
 
-### Plot dominance
+### Plot clonal dominance
 
 `plotSpatialRegionReceptors()` draws the receptors in each polygon,
 colored by a column. `top_n` gives a color to each of the most common
-values. The function groups the rest as `Other`:
+values, and the function groups the rest as `Other`.
 
 ``` r
 plotSpatialRegionReceptors(
@@ -446,13 +451,15 @@ plotSpatialRegionReceptors(
 ![](regions_files/figure-gfm/region-receptors-1.jpeg)
 
 `plotSpatialPolygonPies()` shows each polygon as a pie chart. It has
-four modes:
+four modes.
 
-- `"side_by_side"` (default): a numbered map with the pies next to it.
-- `"spatial_clipped"`: each pie fills its own polygon on the tissue.
+- `"side_by_side"` (default) is a numbered map with the pie charts next
+  to it.
+- `"spatial_clipped"` fills each pie into its own polygon on the tissue.
   This mode needs the sf package.
-- `"dominance_only"`: the pies without a map.
-- `"stacked_bar"`: one stacked bar for each polygon, in one panel.
+- `"dominance_only"` shows the pie charts without a map.
+- `"stacked_bar"` shows one stacked bar for each polygon to the right of
+  the numbered map.
 
 ``` r
 pies <- plotSpatialPolygonPies(
@@ -471,7 +478,8 @@ pies$page_1
 
 The fill column can be any column, not only the clone.
 `v_gene_superfamily` shows which IGHV families each region uses. The
-`stacked_bar` mode puts every polygon in one panel:
+`stacked_bar` mode plots a stacked bar chart summarizing the proportions
+of each value in each polygon.
 
 ``` r
 plotSpatialPolygonPies(
@@ -485,7 +493,8 @@ plotSpatialPolygonPies(
 
 ![](regions_files/figure-gfm/bars-1.jpeg)
 
-The `spatial_clipped` mode draws each pie inside its polygon:
+The `spatial_clipped` mode draws each pie inside its polygon, which is
+not recommended for small polygons as it can be tough to see.
 
 ``` r
 plotSpatialPolygonPies(
@@ -496,63 +505,33 @@ plotSpatialPolygonPies(
   top_n = 5,
   zoom = TRUE
 )
-#> Warning: package 'sf' was built under R version 4.5.3
-#> Linking to GEOS 3.7.2, GDAL 3.0.4, PROJ 6.3.2; sf_use_s2() is TRUE
 ```
 
 ![](regions_files/figure-gfm/clipped-1.jpeg)
 
-### Plot clone density in 3D
+## Measure clonal diversity in ROIs
 
-`plotSpatialCloneDensity3D()` draws the H&E image as a floor. It adds a
-smoothed density surface for each of the largest clones in a polygon. In
-the HTML version of this page, you can rotate and zoom the plot with the
-mouse. The plot needs the rgl package. The Markdown version of this page
-shows the code only.
+*Clonal diversity* describes the variety and abundance of clones in the
+repertoire, see for more details. We are interested in the diversity of
+the clones in each ROI.
 
-``` r
-options(rgl.useNULL = TRUE)
-plotSpatialCloneDensity3D(
-  dominance = dominance,
-  object = sirup,
-  polygon_val = "5",
-  top_n = 5,
-  zoom = TRUE
-)
-```
-
-Use `plot_type = "histogram"` for 3D bars in place of smooth surfaces.
-Set `return_data = TRUE` to get the computed surfaces as tables.
-
-## Measure clonal diversity
-
-*Clonal diversity* describes how the receptors in a region spread across
-clones. A Hill number gives a diversity value for each order `q`. At
-`q = 0`, the Hill number is the number of clones (richness). As `q`
-rises, large clones get more weight. `q = 1` gives the exponential of
-Shannon entropy. `q = 2` gives the inverse Simpson index.
-
-Small regions have few receptors, and a diversity estimate depends on
-sample size. `polygonDiversity()` calls `alakazam::alphaDiversity()`
-once, with the polygon as the group. alakazam then resamples every
-polygon to the same number of receptors, the size of the smallest
-polygon that has at least `min_n` receptors. It also adds bootstrap
-confidence intervals. The function leaves out polygons with fewer than
-`min_n` receptors (default 10). A larger `min_n` gives less noisy
-estimates and keeps fewer polygons:
+`polygonDiversity()` calls `alakazam::alphaDiversity()` with polygon as
+the grouping variable. `alakazam::alphaDiversity()` resamples every
+polygon to the same number of receptors (to ensure comparability, since
+diversity is sensitive to sample size), the size of the smallest polygon
+that has at least `min_n` receptors, and adds bootstrap confidence
+intervals. The function excludes any ROIs with fewer than `min_n`
+receptors (default 10). A larger `min_n` gives less noisy estimates but
+keeps fewer polygons.
 
 ``` r
 sirup <- polygonDiversity(sirup, slot = "BCR", polygon_id = "polygon_id", min_n = 10, nboot = 200)
 diversity <- getAnalysis(sirup, "polygon_diversity_BCR")
-class(diversity)
-#> [1] "DiversityCurve"
-#> attr(,"package")
-#> [1] "alakazam"
 ```
 
 The stored analysis is one `alakazam` `DiversityCurve` object, with one
-curve for each polygon. Plot it with `alakazam::plotDiversityCurve()`.
-The plot shows the 95% confidence band of each polygon:
+curve for each polygon. Plot it with `alakazam::plotDiversityCurve()`,
+which shows the 95% confidence band of each polygon.
 
 ``` r
 alakazam::plotDiversityCurve(diversity, legend_title = "eGC")
@@ -560,9 +539,9 @@ alakazam::plotDiversityCurve(diversity, legend_title = "eGC")
 
 ![](regions_files/figure-gfm/diversity-plot-1.jpeg)
 
-`summarizePolygonDiversity()` picks one `q`. It stores a table with one
+`summarizePolygonDiversity()` picks one `q` and stores a table with one
 row for each polygon. `plotSpatialPolygons()` can then fill each polygon
-by a column of any stored analysis:
+by a column of any stored analysis.
 
 ``` r
 sirup <- summarizePolygonDiversity(sirup, slot = "BCR", q = 1, analysis_name = "shannon")
@@ -572,8 +551,7 @@ plotSpatialPolygons(
   fill_analysis = "shannon",
   fill_column = "d",
   analysis_fill = c("#08306B", "#FFFF00"),
-  polygon_alpha = 1,
-  zoom = TRUE
+  polygon_alpha = 1
 ) +
   labs(fill = "Hill number\n(q = 1)")
 ```
@@ -582,17 +560,19 @@ plotSpatialPolygons(
 
 `analysis_fill` sets the colors for the lowest and the highest value.
 Polygons with too few receptors for the estimate are grey.
+
 `polygonAbundance()` works the same way for clonal rank-abundance
 curves. It calls `alakazam::estimateAbundance()` once on all polygons
 and stores one `AbundanceCurve`. Plot it with
 `alakazam::plotAbundanceCurve()`.
 
-## Extract gene expression from regions
+## Extract and compare GEX in ROIs
 
-`seuratSubsetPolygon()` keeps the spots inside polygons. It records the
-polygon of each spot in the metadata. Use it for in silico
-microdissection. For example, make one pseudobulk expression profile for
-each eGC:
+`seuratSubsetPolygon()` keeps the spots inside polygons and records the
+polygon of each spot in the Seurat metadata under the specified column
+(e.g., with `metadata = "gc"`). Use it to extract the spots in each
+polygon and then make comparisons. Here, we aggregate the expression of
+each gene in each polygon to make pseudobulk profiles.
 
 ``` r
 gc_spots <- seuratSubsetPolygon(sirup, metadata = "gc")
@@ -635,16 +615,16 @@ for eGC 1 is `g1`.
 
 </div>
 
-You can give these profiles to a differential expression tool, such as
+These profiles can be given to a differential expression tool, such as
 limma or DESeq2.
 
 ## Measure distances between regions
 
-`polygonCentroids()` gives the center of each polygon.
-`polygonPairwiseDistance()` gives the distance between every pair of
-centers, in image pixels (`distance`). It also divides each distance by
-the diagonal of the section (`normalized_distance`). Use the normalized
-value to compare sections of different sizes:
+`polygonCentroids()` calculates and returns the centroid of each
+polygon. `polygonPairwiseDistance()` returns the distance between every
+pair of centroid, in image pixels (`distance`). It also divides each
+distance by the diagonal of the section (`normalized_distance`), which
+can be used to compare sections of different sizes.
 
 ``` r
 polygonCentroids(sirup)
@@ -674,14 +654,3 @@ polygonPairwiseDistance(sirup) %>%
 #> 6 spatial 1            3            1               3                   53.6
 #> # ℹ 2 more variables: normalized_distance <dbl>, section_diagonal <dbl>
 ```
-
-## Next steps
-
-- Call clones across the section and build trees for each region:
-  [Call clones and build lineage trees on the tissue](clones-and-trees.md).
-- Test whether a gene, cell type, or clone clusters in space:
-  [Test spatial patterns of genes, cells, and clones](spatial-statistics.md).
-- Pick the right test for your question:
-  [Choose a spatial statistic](choose-spatial-statistic.md).
-- Compare several sections:
-  [Analyze several sections with bulk AIRR-seq and blood](multisample.md).

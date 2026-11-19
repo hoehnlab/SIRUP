@@ -367,8 +367,8 @@ processSpatialSamples(
 )
 ```
 
-<div markdown="1" style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
-  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;"> <b>Tip</b> </p>
+<div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+  <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Tip</b> </p>
   On a cluster, submit one job per sample. Each job calls
   `processSpatialSample()` once.
 </div>

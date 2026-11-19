@@ -204,7 +204,9 @@ slots. The function ignores \code{slot} if you give a plain receptor table.}
 \value{
 A named list with one element for each clone. Each element is a list
 with the items \code{tree} and \code{spatial_clone} (the two plots), and \code{legend} and
-\code{legend_rel_height} (for the optional legend).
+\code{legend_rel_height} (for the optional legend). Print an element to see the
+tree and the map side by side, with the legend beneath them. Use the \code{tree}
+and \code{spatial_clone} items to make your own layout.
 }
 \description{
 \code{plotSpatialCloneTreePairs} makes two plots for each clone: the lineage tree,
@@ -237,7 +239,7 @@ pairs <- plotSpatialCloneTreePairs(trees, x, clone_val = "4")
 names(pairs)
 
 # Show the tree and the map side by side.
-cowplot::plot_grid(pairs[["4"]]$tree, pairs[["4"]]$spatial_clone)
+pairs[["4"]]
 }
 \seealso{
 \code{\link[=spatialCloneTreePairsToPDF]{spatialCloneTreePairsToPDF()}}, \code{\link[=clusterTreesTips]{clusterTreesTips()}},

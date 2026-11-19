@@ -644,3 +644,19 @@ test_that("plotReceptors validates value and accepts multi-stop palettes", {
   # `group` is still required when no value is given.
   expect_error(do.call(plotReceptors, base), "`group` is required")
 })
+
+test_that("a tree and map pair prints the tree and the map side by side", {
+  pair <- structure(
+    list(
+      tree = ggplot2::ggplot(),
+      spatial_clone = ggplot2::ggplot(),
+      legend = NULL,
+      legend_rel_height = 0.12
+    ),
+    class = c("sirup_clone_tree_pair", "list")
+  )
+  grDevices::pdf(NULL)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  expect_invisible(print(pair))
+  expect_s3_class(pair$tree, "ggplot")
+})

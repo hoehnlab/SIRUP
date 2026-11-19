@@ -46,7 +46,7 @@ Details: `references/functions-sirup-object.md`
 - `sirup-analyses` (also: `getAnalysis`, `setAnalysis`, `listAnalyses`, `removeAnalysis`): Store and retrieve analyses in a SIRUP object
 - `sirup-polygons` (also: `getPolygons`, `addPolygons`): Add or retrieve polygon geometry from a SIRUP object
 - `sirup-transform` (also: `updateReceptors`, `updateSpatial`, `updateAnalysis`): Update data stored in a SIRUP object
-- `subsetSIRUP` (also: `filterSample`): Subset a SIRUP object
+- `subsetSIRUP`: Subset a SIRUP object
 - `validateSIRUP`: Validate a SIRUP object
 
 ## SIRUP trees

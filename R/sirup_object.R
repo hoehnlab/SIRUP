@@ -446,7 +446,7 @@ mergeSIRUP <- function(...,
     object_spatial <- getSpatial(object)
     if (.sirup_is_spatial_list(object_spatial)) {
       if (length(object_spatial) != 1L) {
-        rlang::abort("Each input SIRUP object must contain exactly one spatial sample. Use `filterSample()` before merging multi-sample objects.")
+        rlang::abort("Each input SIRUP object must contain exactly one spatial sample. Use `subsetSIRUP()` before merging multi-sample objects.")
       }
       object_spatial <- object_spatial[[1L]]
     }
@@ -578,7 +578,7 @@ receptorSlots <- function(x) {
 #' Subset a SIRUP object
 #'
 #' `subsetSIRUP` keeps selected samples, spatial IDs, and receptor rows of a
-#' SIRUP object. `filterSample` keeps only the samples you name.
+#' SIRUP object.
 #'
 #' @details
 #' The function subsets the Seurat data, the receptor rows, the stored polygons,
@@ -607,7 +607,9 @@ receptorSlots <- function(x) {
 #'   for multi-sample objects.
 #' @param validate Validate the subset object (default `TRUE`)?
 #'
-#' @return A SIRUP object that contains the subset.
+#' @return A SIRUP object that contains the subset. If you give one name in
+#'   `sample_id`, the `spatial` part of the object is the Seurat object of that
+#'   sample, not a list.
 #' @seealso [mergeSIRUP()], [createSIRUP()]
 #'
 #' @examples
@@ -621,7 +623,7 @@ receptorSlots <- function(x) {
 #'
 #' # Keep one sample of a multi-sample object.
 #' merged <- mergeSIRUP(x, x, samples = c("a", "b"))
-#' filterSample(merged, "a")
+#' subsetSIRUP(merged, sample_id = "a")
 #' @export
 subsetSIRUP <- function(x,
                         sample_id = NULL,
@@ -714,25 +716,8 @@ subsetSIRUP <- function(x,
     out$analyses <- list()
   }
   out <- .sirup_annotate_stored_polygons(out)
-  if (isTRUE(validate)) {
-    validateSIRUP(out)
-  }
-  out
-}
-
-#' @rdname subsetSIRUP
-#' @export
-filterSample <- function(x,
-                         sample_id,
-                         keep_analyses = FALSE,
-                         validate = TRUE) {
-  out <- subsetSIRUP(
-    x,
-    sample_id = sample_id,
-    keep_analyses = keep_analyses,
-    validate = FALSE
-  )
-  if (.sirup_is_spatial_list(out$spatial) && length(out$spatial) == 1L) {
+  # One sample is left: store its Seurat object, not a list with one object.
+  if (!is.null(sample_id) && .sirup_is_spatial_list(out$spatial) && length(out$spatial) == 1L) {
     out$spatial <- out$spatial[[1L]]
     out$metadata$sample_names <- .sirup_spatial_names(out$spatial)
   }

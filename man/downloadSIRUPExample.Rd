@@ -53,6 +53,8 @@ annotated polygons of the ectopic germinal centers.
 \item \code{mg_thymus_slice2_qupath_gcs.geojson}: six germinal center outlines that
 a user drew on section 2 in QuPath. Use it with \code{\link[=addQuPathPolygons]{addQuPathPolygons()}}.
 \item \code{mg_thymus_cell_types.csv.gz}: cell-type proportions for each spot.
+\item \code{mg_thymus_slice2.sirup.rds}: a saved SIRUP object for section 2, with BCR and
+TCR slots, cell-type proportions, and BCR clones. Read it with \code{\link[=readSIRUP]{readSIRUP()}}.
 \item \code{mg_thymus_bulk_*.tsv.gz}: bulk repertoire tables from thymus and blood.
 }
 }

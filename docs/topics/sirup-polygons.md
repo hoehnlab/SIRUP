@@ -25,27 +25,27 @@ addPolygons(
 
 `x`
 
-: A SIRUP object.
+:   A SIRUP object.
 
 `sample_id`
 
-: Sample name or names to add to the polygons from `polygons_path`. Use it only if the paths have no names.
+:   Sample name or names to add to the polygons from `polygons_path`. Use it only if the paths have no names.
 
 `polygons`
 
-: Polygon table.
+:   Polygon table.
 
 `polygons_path`
 
-: Path to a flat CSV file of polygon vertices. For a multi-sample object, give a named vector or list of paths, with one path for each sample.
+:   Path to a flat CSV file of polygon vertices. For a multi-sample object, give a named vector or list of paths, with one path for each sample.
 
 `include_boundary`
 
-: Count spots on a polygon edge as members of the polygon?
+:   Count spots on a polygon edge as members of the polygon?
 
 `validate`
 
-: Validate the updated object?
+:   Validate the updated object?
 
 ## Details
 

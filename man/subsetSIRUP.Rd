@@ -2,7 +2,6 @@
 % Please edit documentation in R/sirup_object.R
 \name{subsetSIRUP}
 \alias{subsetSIRUP}
-\alias{filterSample}
 \title{Subset a SIRUP object}
 \usage{
 subsetSIRUP(
@@ -16,8 +15,6 @@ subsetSIRUP(
   drop_empty_spatial = TRUE,
   validate = TRUE
 )
-
-filterSample(x, sample_id, keep_analyses = FALSE, validate = TRUE)
 }
 \arguments{
 \item{x}{A SIRUP object.}
@@ -51,11 +48,13 @@ for multi-sample objects.}
 \item{validate}{Validate the subset object (default \code{TRUE})?}
 }
 \value{
-A SIRUP object that contains the subset.
+A SIRUP object that contains the subset. If you give one name in
+\code{sample_id}, the \code{spatial} part of the object is the Seurat object of that
+sample, not a list.
 }
 \description{
 \code{subsetSIRUP} keeps selected samples, spatial IDs, and receptor rows of a
-SIRUP object. \code{filterSample} keeps only the samples you name.
+SIRUP object.
 }
 \details{
 The function subsets the Seurat data, the receptor rows, the stored polygons,
@@ -73,7 +72,7 @@ subsetSIRUP(x, receptor_rows = function(receptors) receptors$clone_id == "2")
 
 # Keep one sample of a multi-sample object.
 merged <- mergeSIRUP(x, x, samples = c("a", "b"))
-filterSample(merged, "a")
+subsetSIRUP(merged, sample_id = "a")
 }
 \seealso{
 \code{\link[=mergeSIRUP]{mergeSIRUP()}}, \code{\link[=createSIRUP]{createSIRUP()}}

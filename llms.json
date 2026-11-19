@@ -29,13 +29,8 @@
       "pages": [
         "sirup-object",
         "choose-spatial-statistic",
+        "qupath-annotations",
         "llm-agents"
-      ]
-    },
-    {
-      "title": "Vignettes",
-      "pages": [
-        "qupath-annotations"
       ]
     }
   ],
@@ -101,7 +96,7 @@
     {
       "type": "vignette",
       "id": "multisample",
-      "title": "Analyze several sections with bulk AIRR-seq and blood",
+      "title": "Analyze multiple spatial sections bulk BCR-seq",
       "source": "docs/vignettes/multisample.md",
       "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/multisample.md",
       "url": "https://sirup.readthedocs.io/en/latest/vignettes/multisample/",
@@ -130,6 +125,16 @@
     },
     {
       "type": "vignette",
+      "id": "qupath-annotations",
+      "title": "Use QuPath annotations as polygons",
+      "source": "docs/vignettes/qupath-annotations.md",
+      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/qupath-annotations.md",
+      "url": "https://sirup.readthedocs.io/en/latest/vignettes/qupath-annotations/",
+      "section": "Guides",
+      "summary": "Export germinal center outlines from QuPath as GeoJSON and add them to a SIRUP object as polygons, then check how the spots and the outlines line up."
+    },
+    {
+      "type": "vignette",
       "id": "llm-agents",
       "title": "Use SIRUP with your LLM agent",
       "source": "docs/vignettes/llm-agents.md",
@@ -137,16 +142,6 @@
       "url": "https://sirup.readthedocs.io/en/latest/vignettes/llm-agents/",
       "section": "Guides",
       "summary": "Give an LLM agent such as Claude Code, Codex, or Antigravity the SIRUP skill or the llms files, and work with it on spatial receptor data."
-    },
-    {
-      "type": "vignette",
-      "id": "qupath-annotations",
-      "title": "Use QuPath annotations as polygons",
-      "source": "docs/vignettes/qupath-annotations.md",
-      "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/qupath-annotations.md",
-      "url": "https://sirup.readthedocs.io/en/latest/vignettes/qupath-annotations/",
-      "section": "Vignettes",
-      "summary": "This page shows how to export those outlines from QuPath and add them to a SIRUP object that has no polygons yet."
     }
   ],
   "functions": [
@@ -803,10 +798,7 @@
       "source": "docs/topics/subsetSIRUP.md",
       "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/topics/subsetSIRUP.md",
       "url": "https://sirup.readthedocs.io/en/latest/topics/subsetSIRUP/",
-      "summary": "`subsetSIRUP` keeps selected samples, spatial IDs, and receptor rows of a SIRUP object.",
-      "also_documents": [
-        "filterSample"
-      ]
+      "summary": "`subsetSIRUP` keeps selected samples, spatial IDs, and receptor rows of a SIRUP object."
     },
     {
       "type": "function",

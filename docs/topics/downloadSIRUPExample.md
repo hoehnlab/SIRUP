@@ -56,6 +56,8 @@ The files are:
 
 - `mg_thymus_cell_types.csv.gz`: cell-type proportions for each spot.
 
+- `mg_thymus_slice2.sirup.rds`: a saved SIRUP object for section 2, with BCR and TCR slots, cell-type proportions, and BCR clones. Read it with [`readSIRUP()`](sirup-io.md).
+
 - `mg_thymus_bulk_*.tsv.gz`: bulk repertoire tables from thymus and blood.
 
 ## Value

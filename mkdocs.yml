@@ -40,13 +40,12 @@ nav:
   - Draw tissue regions and measure clonal dominance and diversity: vignettes/regions.md
   - Call clones and build lineage trees on the tissue: vignettes/clones-and-trees.md
   - Test spatial patterns of genes, cells, and clones: vignettes/spatial-statistics.md
-  - Analyze several sections with bulk AIRR-seq and blood: vignettes/multisample.md
+  - Analyze multiple spatial sections bulk BCR-seq: vignettes/multisample.md
 - Guides:
   - How the SIRUP object works: vignettes/sirup-object.md
   - Choose a spatial statistic: vignettes/choose-spatial-statistic.md
-  - Use SIRUP with your LLM agent: vignettes/llm-agents.md
-- Vignettes:
   - Use QuPath annotations as polygons: vignettes/qupath-annotations.md
+  - Use SIRUP with your LLM agent: vignettes/llm-agents.md
 - Function Reference:
   - addQuPathPolygons: topics/addQuPathPolygons.md
   - addSequenceQualityMetrics: topics/addSequenceQualityMetrics.md

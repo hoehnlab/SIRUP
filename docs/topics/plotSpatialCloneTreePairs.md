@@ -265,7 +265,7 @@ To match the tips to receptors, see [`formatSpatialClones()`](formatSpatialClone
 
 ## Value
 
-A named list with one element for each clone. Each element is a list with the items `tree` and `spatial_clone` (the two plots), and `legend` and `legend_rel_height` (for the optional legend).
+A named list with one element for each clone. Each element is a list with the items `tree` and `spatial_clone` (the two plots), and `legend` and `legend_rel_height` (for the optional legend). Print an element to see the tree and the map side by side, with the legend beneath them. Use the `tree` and `spatial_clone` items to make your own layout.
 
 ## See Also
 
@@ -288,5 +288,5 @@ pairs <- plotSpatialCloneTreePairs(trees, x, clone_val = "4")
 names(pairs)
 
 # Show the tree and the map side by side.
-cowplot::plot_grid(pairs[["4"]]$tree, pairs[["4"]]$spatial_clone)
+pairs[["4"]]
 ```

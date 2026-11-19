@@ -61,15 +61,17 @@ Use R 4.1 or later.
   clones](vignettes/spatial-statistics.md). Run Moran's I, Lee's L, Ripley's
   cross K, and join counts.
 * [Analyze several sections with bulk AIRR-seq and
-  blood](vignettes/multisample.md). Combine sections, bulk data, and blood in
+  blood](vignettes/multisample.md). Combine sections and combine spatial and bulk receptor data in
   one object.
 
 **Guides**
 
-* [How the SIRUP object works](vignettes/sirup-object.md). The five parts of the
-  object, and the rules that SIRUP checks.
+* [How the SIRUP object works](vignettes/sirup-object.md). 
 * [Choose a spatial statistic](vignettes/choose-spatial-statistic.md). Match
   your question to a function.
+* [Use QuPath annotations as polygons](vignettes/qupath-annotations.md). Export outlines from QuPath and add them
+  to a SIRUP object.
+* [Use SIRUP with your LLM agent](vignettes/llm-agents.md).
 
 ## For AI agents and LLMs
 
@@ -83,9 +85,7 @@ SIRUP provides the following resources for AI agents. See the [guide](vignettes/
 
 **Set up the skill**
 
-Install SIRUP. Then use the `installSIRUPSkill()` function to install the skill for your agent. Currently,  
-`installSIRUPSkill` is set up to work for Claude Code, Codex, or Antigravity. Other types of agents can be set up by 
-manually installing the skill.
+Install SIRUP. Then use the `installSIRUPSkill()` function to install the skill for your agent. Currently,  `installSIRUPSkill` is set up to work for Claude Code, Codex, or Antigravity. Other types of agents can be set up by manually installing the skill.
 
 ```r
 library(SIRUP)

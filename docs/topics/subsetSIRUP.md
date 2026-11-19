@@ -4,7 +4,7 @@
 
 ## Description
 
-`subsetSIRUP` keeps selected samples, spatial IDs, and receptor rows of a SIRUP object. `filterSample` keeps only the samples you name.
+`subsetSIRUP` keeps selected samples, spatial IDs, and receptor rows of a SIRUP object.
 
 ## Usage
 
@@ -20,8 +20,6 @@ subsetSIRUP(
   drop_empty_spatial = TRUE,
   validate = TRUE
 )
-
-filterSample(x, sample_id, keep_analyses = FALSE, validate = TRUE)
 ```
 
 ## Arguments
@@ -68,7 +66,7 @@ The function subsets the Seurat data, the receptor rows, the stored polygons, an
 
 ## Value
 
-A SIRUP object that contains the subset.
+A SIRUP object that contains the subset. If you give one name in `sample_id`, the `spatial` part of the object is the Seurat object of that sample, not a list.
 
 ## See Also
 
@@ -87,5 +85,5 @@ subsetSIRUP(x, receptor_rows = function(receptors) receptors$clone_id == "2")
 
 # Keep one sample of a multi-sample object.
 merged <- mergeSIRUP(x, x, samples = c("a", "b"))
-filterSample(merged, "a")
+subsetSIRUP(merged, sample_id = "a")
 ```

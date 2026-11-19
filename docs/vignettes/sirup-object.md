@@ -1,18 +1,45 @@
 How the SIRUP object works
 ================
 
-A spatial receptor experiment gives you three kinds of data: gene
-expression for each spot, receptor sequences, and the regions that you
-draw on the tissue. These data must agree with each other. A receptor
-must belong to a spot that exists. A clone column must exist in the
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+**Time:** ~10 minutes.<br> **Data:** a small synthetic SIRUP object
+included in SIRUP.
+
+</div>
+
+Here, we will explain the parts of a SIRUP object, the rules that SIRUP
+checks, and the functions that change the object.
+
+A spatial receptor experiment gives us three kinds of data: gene
+expression for each spot, receptor sequences, and regions drawn on the
+tissue. These data must agree with each other. For example, a receptor
+must belong to a spot that exists, and a clone column must exist in the
 receptor table. The SIRUP object keeps all of the data in one place and
-checks these rules each time you change it.
+checks these rules each time the object changes.
 
-This page explains the parts of the object, the rules that SIRUP checks,
-and the functions that change the object. It has little code. For a
-hands-on start, read [Get started with SIRUP](get-started.md).
+<div markdown="1"
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
 
-The examples use a small synthetic object. It has 25 spots, 10 genes, 5
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
+
+<b>Note</b>
+</p>
+
+This page has little code. To build an object from real data, see
+[Get started with SIRUP](get-started.md) first.
+
+</div>
+
+## Load the example object
+
+The examples use a small synthetic object with 25 spots, 10 genes, 5
 clones, and 2 polygons. The spots and gene counts are simulated. The
 receptor rows are real BCR sequences from a human thymus section,
 assigned to synthetic spots.
@@ -32,7 +59,7 @@ x
 #> Polygons:        2
 ```
 
-## The five parts
+## Look at the five parts of the object
 
 A SIRUP object is a list with five parts, in this order:
 
@@ -42,10 +69,10 @@ A SIRUP object is a list with five parts, in this order:
 | `receptors` | The AIRR receptor table, as a tibble, or a named list of tables | `getReceptors(x)` |
 | `metadata` | The field names and the image settings | `x$metadata` |
 | `polygons` | The tissue regions, with one row for each polygon | `getPolygons(x)` |
-| `analyses` | Results that you choose to keep | `getAnalysis(x, name)` |
+| `analyses` | Results that are saved in the object | `getAnalysis(x, name)` |
 
-The accessors return ordinary R objects. You can pass them to any
-function from another package:
+The accessors return ordinary R objects, so they can be passed to any
+function from another package.
 
 ``` r
 getSpatial(x)
@@ -98,9 +125,9 @@ summary(x)
 #> # ℹ 2 more variables: n_matched_records <int>, id_match_rate <dbl>
 ```
 
-## Field names
+## Set the field names
 
-Your receptor table can use any column names. SIRUP needs to know which
+A receptor table can use any column names, so SIRUP needs to know which
 column plays which role. It stores this map in
 `x$metadata$receptor_fields`. There are six fields:
 
@@ -134,12 +161,12 @@ x$metadata$receptor_fields
 #> NULL
 ```
 
-You set the fields once, in `createSIRUP()`. After that, SIRUP functions
-find each column without arguments. To change a field later, give a new
-map to `updateReceptors()` with the `receptor_fields` argument. A value
-of `NULL` clears an optional field.
+The fields are set once, in `createSIRUP()`. After that, SIRUP functions
+find each column without extra arguments. To change a field later, give
+a new map to `updateReceptors()` with the `receptor_fields` argument. A
+value of `NULL` clears an optional field.
 
-## Rules that SIRUP checks
+## Validate the object
 
 `validateSIRUP()` checks that the parts agree. It gives an error if one
 of these rules fails:
@@ -151,7 +178,7 @@ of these rules fails:
     table. If the object has several receptor tables, the spatial ID
     column must be in every table. Each other named column, such as
     `clone_id`, must be in at least one table.
-4.  If the `sample` field is set, the column exists in every receptor
+4.  If the sample field is set, the column exists in every receptor
     table and in the Seurat metadata.
 
 ``` r
@@ -168,8 +195,9 @@ validateSIRUP(x, verbose = TRUE)
 
 `createSIRUP()`, `updateReceptors()`, `updateSpatial()`, and the other
 functions that change the object run this check before they return. A
-change that breaks a rule fails at once and leaves your object as it
-was. This example gives every receptor a spot name that does not exist:
+change that breaks a rule fails right away and leaves the original
+object as it was. This example gives every receptor a spot name that
+does not exist:
 
 ``` r
 tryCatch(
@@ -190,30 +218,29 @@ style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24p
 <b>Note</b>
 </p>
 
-SIRUP keeps receptor rows that match no spot. Bulk and blood sequences
-are examples. The rules need only one match, so these rows stay in the
+SIRUP keeps receptor rows that match no spot, such as bulk and blood
+sequences. The rules need only one match, so these rows stay in the
 table.
 
 </div>
 
-## Image settings
+## Set the image settings
 
-Two settings tell SIRUP how to put spots on the H&E image. Both live in
-`x$metadata`:
+Two settings tell SIRUP how to put spots on the H&E image. Both are
+stored in `x$metadata`:
 
 - `image_scale` is the Seurat image scale, `"lowres"` or `"hires"`.
-- `swap_coords` says whether to swap the x and y coordinates. Some older
-  Seurat objects store the coordinates in the opposite order to the
-  image.
+- `swap_coords` swaps the x and y coordinates. Some older Seurat objects
+  store the coordinates in the opposite order to the image.
 
-Plots and spatial statistics read these settings when you leave their
-own `image_scale` and `swap_coords` arguments at `NULL`. You set them
-once.
+Plots and spatial statistics read these settings when their own
+`image_scale` and `swap_coords` arguments are `NULL`, so they only need
+to be set once.
 
-## Change the data
+## Change the data in the object
 
-SIRUP does not wrap every AIRR tool. Three functions run any function on
-one part of the object and put the result back:
+SIRUP does not wrap every AIRR tool. Instead, three functions run any
+function on one part of the object and put the result back:
 
 - `updateReceptors(x, fun, ...)` calls `fun(getReceptors(x), ...)` and
   stores the table that `fun` returns.
@@ -250,12 +277,12 @@ The same pattern runs germline reconstruction
 (`shazam::observedMutations()`) inside the object.
 [Call clones and build lineage trees on the tissue](clones-and-trees.md) shows these steps.
 
-## Regions in the object
+## Add regions to the object
 
 A region is a polygon on the tissue image. `addPolygons()` stores the
 polygons and then marks the polygon of each spot and each receptor. It
 adds a `polygon_id` column and one logical `polygon_<ID>` column for
-each polygon to both the Seurat metadata and the receptor table:
+each polygon to both the Seurat metadata and the receptor table.
 
 ``` r
 grep("^polygon", names(getReceptors(x)), value = TRUE)
@@ -269,26 +296,14 @@ A spot on the edge of a polygon counts as a member when
 [Draw tissue regions and measure clonal dominance and diversity](regions.md) shows how to draw regions and
 measure what they hold.
 
-## Several samples
+## Hold several receptor tables
 
-`createSIRUP()` accepts one Seurat object or a named list of Seurat
-objects. With a list, the `sample` column of the receptor table names
-the list entry of each row. Rows with no matching entry stay in the
-table as non-spatial records. Bulk and blood sequences use this feature.
-`mergeSIRUP()` joins several objects into one. `subsetSIRUP()` keeps
-chosen samples, spots, or receptor rows. `getSpatial()` and
-`getReceptors()` return the data of one sample when you give
-`sample_id`. [Analyze several sections with bulk AIRR-seq and blood](multisample.md) has a full
-example.
-
-## Several receptor tables
-
-One object can hold more than one receptor table, for example one table
-of BCRs and one of TCRs. Give `createSIRUP()` a named list of tables.
-Each table is a *slot*. All slots share the spatial data, the polygons,
-and the field names. The spatial ID column must be in every table. A
-column such as `clone_id` can be in one table only, for example in the
-BCR table. Clone IDs only need to be unique within one slot.
+One object can hold more than one receptor table, e.g., one table of
+BCRs and one of TCRs. Give `createSIRUP()` a named list of tables. Each
+table is a *slot*. All slots share the spatial data, the polygons, and
+the field names. The spatial ID column must be in every table, but a
+column such as `clone_id` can be in one table only, e.g., the BCR table.
+Clone IDs only need to be unique within one slot.
 
 ``` r
 bcr <- getReceptors(x)
@@ -318,10 +333,10 @@ both
 #> Polygons:        2
 ```
 
-Functions that use receptors work on one slot at a time. Choose the slot
-with the `slot` argument. If the object has several slots, you must give
-`slot`. If the object has one table, leave it out. That table has the
-slot name `"only_slot"`.
+Functions that use receptors work on one slot at a time, chosen with the
+`slot` argument. If the object has several slots, `slot` is required. If
+the object has one table, leave it out. That table has the slot name
+`"only_slot"`.
 
 ``` r
 head(getReceptors(both, slot = "tcr"), 3)
@@ -350,11 +365,67 @@ the same sample and its spatial ID lies inside the polygon. The default
 analysis names end with the slot name, so results for different slots do
 not overwrite each other.
 
-## Keep results with the data
+## Hold several samples
 
-`setAnalysis()` stores any R object under a name. Use it for clones,
-trees, spatial statistics, and polygon summaries. Stored results stay
-with the data that made them, so you do not track separate files:
+`createSIRUP()` accepts one Seurat object or a named list of Seurat
+objects, e.g., one for each tissue section. With a list, the column of
+the receptor table that `sample_id` names matches each row to a list
+entry. Rows with no matching entry stay in the table as non-spatial
+records, which is how bulk and blood sequences are stored. Spot barcodes
+can repeat between sections, so SIRUP matches each receptor to a spot by
+the pair of sample and barcode.
+
+``` r
+receptors <- dplyr::bind_rows(
+  dplyr::mutate(getReceptors(x), sample = "a"),
+  dplyr::mutate(getReceptors(x), sample = "b")
+)
+
+two_samples <- createSIRUP(
+  spatial = list(a = getSpatial(x), b = getSpatial(x)),
+  receptors = receptors,
+  spatial_id = "spatial_id",
+  clone = "clone_id",
+  sample_id = "sample",
+  image_scale = "hires",
+  swap_coords = FALSE
+)
+two_samples
+#> <SIRUP object>
+#> Spatial data:    Seurat, 50 spatial IDs, 10 genes, 2 spatial samples, 0 images
+#> Receptor data:   tibble, 72 receptor sequences x 65 columns
+#> Spatial overlap: 38/38 receptor IDs in spatial data (100.0%)
+#> Samples:         2
+#> Spatial ID field: spatial_id
+#> Sample ID field: sample
+#> Clone ID field:  clone_id
+#> Analyses:        0
+spatialSamples(two_samples)
+#> [1] "a" "b"
+```
+
+If the sections need different image settings, give named values, e.g.,
+`image_scale = c(a = "hires", b = "lowres")`.
+
+`mergeSIRUP()` goes the other way. It joins several single-sample
+objects into one, with the sample names that are given:
+
+``` r
+merged <- mergeSIRUP(x, x, samples = c("a", "b"), sample_field = "sample")
+spatialSamples(merged)
+#> [1] "a" "b"
+```
+
+`subsetSIRUP()` keeps chosen samples, spots, or receptor rows.
+`getSpatial()` and `getReceptors()` return the data of one sample when
+`sample_id` is given. [Analyze multiple spatial sections bulk BCR-seq](multisample.md) has a
+full example.
+
+## Save results in the object
+
+`setAnalysis()` stores any R object under a name, e.g., clones, trees,
+spatial statistics, and polygon summaries. Stored results stay with the
+data that made them, so separate files do not need to be tracked.
 
 ``` r
 x <- setAnalysis(x, "n_clones", 5)
@@ -367,12 +438,14 @@ listAnalyses(x)
 #> character(0)
 ```
 
+## Save and read a SIRUP object
+
 `saveSIRUP()` validates the object and writes it to one RDS file. The
 file also records the versions of SIRUP and SeuratObject that wrote it.
 `readSIRUP()` reads the file and does four things. It converts an object
-saved under the old package name (SIRAP). It upgrades an older object to
-the current layout. It warns you if the package versions differ from the
-file. It validates the object.
+saved under the old package name (SIRAP), upgrades an older object to
+the current layout, warns if the package versions differ from the file,
+and validates the object.
 
 ``` r
 path <- saveSIRUP(x, tempfile(fileext = ".sirup.rds"))
@@ -390,8 +463,8 @@ x_again
 
 ## Next steps
 
-- To build an object from your own data, follow
+- To build an object from your own data, see
   [Get started with SIRUP](get-started.md).
-- To work with regions, read [Draw tissue regions and measure clonal dominance and diversity](regions.md).
-- To combine sections, bulk data, and blood, read
-  [Analyze several sections with bulk AIRR-seq and blood](multisample.md).
+- To work with regions, see [Draw tissue regions and measure clonal dominance and diversity](regions.md).
+- To combine sections, bulk data, and blood, see
+  [Analyze multiple spatial sections bulk BCR-seq](multisample.md).

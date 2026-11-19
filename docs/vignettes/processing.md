@@ -35,8 +35,8 @@ extdata <- SIRUP::downloadSIRUPExample(
   )
 )
 #> ℹ Downloading 'mg_thymus_slice2_reads.tsv.gz'
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/var/folders/5l/x6nq60_10t53vqby5_sjxj9r0000gr/T//RtmpqlRSLG/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/scratch/f007p0j/Rtmpyr7Vhs/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/scratch/f007p0j/Rtmpyr7Vhs/SIRUP_example'.
 ```
 
 ## Demultiplexing long-read sequences
@@ -416,9 +416,9 @@ processSpatialSamples(
 ```
 
 <div markdown="1"
-style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
+style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
 
-<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;">
+<p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;">
 
 <b>Tip</b>
 </p>

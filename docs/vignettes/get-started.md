@@ -9,7 +9,8 @@ style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24p
 <b>Note</b>
 </p>
 
-**Time:** ~15 minutes.<br> **Data:** example MG thymus data in SIRUP.
+**Time:** ~15 minutes.<br> **Data:** example spatial MG thymus data in
+SIRUP.
 
 </div>
 
@@ -31,10 +32,10 @@ reads, see [Process demultiplexed reads](processing.md) first.
 
 ## Get the example data
 
-This page uses example files that are not part of the SIRUP package.
-This code downloads them. Change `dest` to a folder you want to keep.
-The default folder is temporary. The function skips files that are
-already there.
+This page uses example files that are slightly too big to be part of the
+SIRUP package. This code downloads them. Change `dest` to a folder you
+want to keep. The default folder is temporary. The function skips files
+that are already there.
 
 ``` r
 extdata <- SIRUP::downloadSIRUPExample(
@@ -47,11 +48,11 @@ extdata <- SIRUP::downloadSIRUPExample(
   "mg_thymus_cell_types.csv.gz"
   )
 )
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
-#> ℹ 'mg_thymus_cell_types.csv.gz' is already in '/tmp/RtmpWzQrg2/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice2_spatial.rds'
+#> ℹ Downloading 'mg_thymus_slice2_bcr.tsv.gz'
+#> ℹ Downloading 'mg_thymus_slice2_tcr.tsv.gz'
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpvqybX6/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_cell_types.csv.gz'
 ```
 
 ## Install SIRUP
@@ -211,11 +212,11 @@ tcrs <- filterAirr(
 object holds BCRs and TCRs. Give `receptors` a named list with one table
 for each receptor type. Each table is a *slot*, and here the slots are
 named `"BCR"` and `"TCR"`. Later functions that read receptors take a
-`slot` argument. This guide uses `slot = "BCR"`. Tell `createSIRUP()`
-which receptor column holds the spatial ID and which holds the locus.
-All slots share these field names. You can also specify the image scale
-and coordinate settings when constructing the object, which are
-discussed further below.
+`slot` argument. Tell `createSIRUP()` which receptor column holds the
+spatial ID and which holds the locus. All slots in the list of receptors
+share these field names. You can also specify the image scale and
+coordinate settings when constructing the object, which are discussed
+further below.
 
 ``` r
 sirup <- createSIRUP(
@@ -236,10 +237,19 @@ sirup
 #>   TCR: 3,718 receptor sequences x 56 columns; 1,433/1,592 receptor IDs in spatial data (90.0%)
 #> Spatial ID field: barcode_10x
 #> Analyses:        0
+```
 
+`receptorSlots()` lists the slot names:
+
+``` r
 receptorSlots(sirup)
 #> [1] "BCR" "TCR"
+```
 
+`summary()` gives the number of spatial IDs, receptors, and matches for
+each slot:
+
+``` r
 summary(sirup)
 #> SIRUP summary
 #>   Spatial IDs:      3,203
@@ -323,7 +333,6 @@ sirup <- updateReceptors(
 )
 #> Warning in prepare_db(db = db, junction = junction, v_call = v_call, j_call =
 #> j_call, : Removed 84 sequences with non ATCG characters.
-#> Running defineClonesScoper in bulk mode and only keep heavy chains
 sirup
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image

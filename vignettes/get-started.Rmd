@@ -25,7 +25,7 @@ knitr::opts_chunk$set(
 <div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
   <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
   **Time:** ~15 minutes.<br>
-  **Data:** example MG thymus data in SIRUP.
+  **Data:** example spatial MG thymus data in SIRUP.
 </div>
 
 Here, we will build a SIRUP object from example data and run a few simple analyses.
@@ -37,7 +37,7 @@ Here, we will build a SIRUP object from example data and run a few simple analys
 
 ## Get the example data
 
-This page uses example files that are not part of the SIRUP package. This code
+This page uses example files that are slightly too big to be part of the SIRUP package. This code
 downloads them. Change `dest` to a folder you want to keep. The default folder
 is temporary. The function skips files that are already there.
 
@@ -185,9 +185,9 @@ tcrs <- filterAirr(
 `createSIRUP()` joins the Seurat object and the receptor tables. This object
 holds BCRs and TCRs. Give `receptors` a named list with one table for each receptor type. 
 Each table is a *slot*, and here the slots are named `"BCR"` and `"TCR"`. Later
-functions that read receptors take a `slot` argument. This guide uses `slot = "BCR"`.
+functions that read receptors take a `slot` argument.
 Tell `createSIRUP()` which receptor column holds the spatial ID and which holds the locus.
-All slots share these field names. You can also 
+All slots in the list of receptors share these field names. You can also 
 specify the image scale and coordinate settings when constructing the object, 
 which are discussed further below.
 
@@ -203,9 +203,17 @@ sirup <- createSIRUP(
 )
 
 sirup
+```
 
+`receptorSlots()` lists the slot names:
+
+```{r slots}
 receptorSlots(sirup)
+```
 
+`summary()` gives the number of spatial IDs, receptors, and matches for each slot:
+
+```{r summary}
 summary(sirup)
 ```
 
@@ -247,7 +255,7 @@ The `updateReceptors()` function is a method that can runs any function on
 the receptor table and updates the receptor table in the object with the result. 
 This call runs `hierarchicalClones()` from the `scoper` package on the BCR slot.
 
-```{r call-clones}
+```{r call-clones, message = FALSE}
 sirup <- updateReceptors(
   sirup,
   scoper::hierarchicalClones,

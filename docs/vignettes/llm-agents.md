@@ -113,7 +113,7 @@ index.
 Use these requests with the skill installed. Replace the file names with
 your own.
 
-```
+``` text
 I have a Seurat object in `spatial.rds` and a corresponding spatial AIRR rearrangement in `bcr.tsv.gz`.
 Please build a SIRUP object and then build clones. Tell me how many sequences you removed and why.
 

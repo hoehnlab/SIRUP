@@ -440,7 +440,7 @@ test_that("addPolygons can tag multisample polygons from named paths", {
   expect_equal(getSpatial(out, "section_a")[[]]["cell1", "polygon_id"], "section_a::gc")
   expect_equal(getSpatial(out, "section_b")[[]]["cell1", "polygon_id"], "section_b::gc")
   expect_equal(out$receptors$polygon_id, c("section_a::gc", "section_b::gc"))
-  one <- filterSample(out, "section_a")
+  one <- subsetSIRUP(out, sample_id = "section_a")
   expect_equal(sort(getPolygons(one)$polygon_id), c("empty", "gc"))
   expect_equal(getSpatial(one)[[]]["cell1", "polygon_id"], "gc")
   expect_equal(getReceptors(one)$polygon_id, "gc")

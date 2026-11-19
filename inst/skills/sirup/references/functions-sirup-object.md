@@ -219,9 +219,7 @@ Value: The updated SIRUP object.
 
 Subset a SIRUP object.
 
-This topic also documents: `filterSample`.
-
-`subsetSIRUP` keeps selected samples, spatial IDs, and receptor rows of a SIRUP object. `filterSample` keeps only the samples you name.
+`subsetSIRUP` keeps selected samples, spatial IDs, and receptor rows of a SIRUP object.
 
 ```r
 subsetSIRUP(
@@ -235,8 +233,6 @@ subsetSIRUP(
   drop_empty_spatial = TRUE,
   validate = TRUE
 )
-
-filterSample(x, sample_id, keep_analyses = FALSE, validate = TRUE)
 ```
 
 Arguments:
@@ -251,7 +247,7 @@ Arguments:
 - `drop_empty_spatial`: Drop samples that have no cells left after the `spatial_id` filter (default `TRUE`)? The function uses this argument only for multi-sample objects.
 - `validate`: Validate the subset object (default `TRUE`)?
 
-Value: A SIRUP object that contains the subset.
+Value: A SIRUP object that contains the subset. If you give one name in `sample_id`, the `spatial` part of the object is the Seurat object of that sample, not a list.
 
 ## validateSIRUP
 
