@@ -16,8 +16,8 @@ plotSpatialRegionReceptors(
   point_size = 1,
   point_alpha = 0.5,
   polygon_alpha = 0.12,
-  polygon_fill = "#FFFFFF",
-  polygon_color = "black",
+  polygon_fill = "white",
+  polygon_color = "white",
   image_alpha = 1,
   top_n = NULL,
   other_label = "Other",
@@ -57,9 +57,9 @@ function uses the value stored in the SIRUP object. Give a value if
 
 \item{polygon_alpha}{Opacity of the polygon fill (default 0.12).}
 
-\item{polygon_fill}{Fill color of the polygons (default \code{"#FFFFFF"}).}
+\item{polygon_fill}{Fill color of the polygons (default \code{"white"}).}
 
-\item{polygon_color}{Color of the polygon outlines (default \code{"black"}).}
+\item{polygon_color}{Color of the polygon outlines (default \code{"white"}).}
 
 \item{image_alpha}{Opacity of the tissue image.}
 

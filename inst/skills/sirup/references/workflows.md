@@ -23,7 +23,7 @@ The example data are a myasthenia gravis (MG) thymus, in two 10x Visium sections
 
 | File in `extdata` | Holds |
 |---|---|
-| `mg_thymus_slice2_spatial.rds` | A Seurat object for section 2 (a few hundred genes, a low-resolution image) |
+| `mg_thymus_slice2_spatial_brighter.rds` | A Seurat object for section 2 (a few hundred genes, a low-resolution image) |
 | `mg_thymus_slice2_bcr.tsv.gz` | IGH consensus sequences of section 2, in an AIRR table |
 | `mg_thymus_slice2_tcr.tsv.gz` | TRB consensus sequences of section 2 |
 | `mg_thymus_slice2_gc_polygons.csv` | Outlines of the ectopic germinal centers (eGCs) of section 2 |
@@ -36,7 +36,7 @@ The example data are a myasthenia gravis (MG) thymus, in two 10x Visium sections
 Needs: airr, Seurat, scoper.
 
 ```r
-thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
+thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial_brighter.rds"))
 bcrs <- airr::read_rearrangement(file.path(extdata, "mg_thymus_slice2_bcr.tsv.gz"))
 
 # The pipeline writes the spot barcode at the end of sequence_id, after a comma.

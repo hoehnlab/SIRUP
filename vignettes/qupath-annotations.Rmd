@@ -44,7 +44,7 @@ To see how the object was built, see `vignette("get-started", package = "SIRUP")
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = c(
-    "mg_thymus_slice2.sirup.rds",
+    "mg_thymus_slice2_brighter.sirup.rds",
     "mg_thymus_slice2_qupath_gcs.geojson"
   )
 )
@@ -53,7 +53,7 @@ extdata <- SIRUP::downloadSIRUPExample(
 ```{r setup, message = FALSE, warning = FALSE}
 library(SIRUP)
 
-sirup <- readSIRUP(file.path(extdata, "mg_thymus_slice2.sirup.rds"))
+sirup <- readSIRUP(file.path(extdata, "mg_thymus_slice2_brighter.sirup.rds"))
 ```
 
 ## Draw and export the annotations in QuPath
@@ -108,7 +108,7 @@ table(getSpatial(sirup)$polygon_id)
 spots do not line up.
 
 ```{r plot-polygons}
-plotSpatialPolygons(sirup, polygon_alpha = 0.3)
+plotSpatialPolygons(sirup, polygon_alpha = 0.3, label_color = "black")
 ```
 
 ## Check how the function converts the annotations

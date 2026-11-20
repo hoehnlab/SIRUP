@@ -58,12 +58,15 @@ NULL
   mg_thymus_slice1_bcr.tsv.gz = "8160318f04f9e4d429e2df7715050c4a",
   mg_thymus_slice1_gc_polygons.csv = "dd81ab1de77af3e4acde62783fba00ea",
   mg_thymus_slice1_spatial.rds = "7ba68b7aa2b15d79f307d6c10fbe2444",
+  mg_thymus_slice1_spatial_brighter.rds = "22f9f3dcf23b1edc403cb4f3fb6957a6",
   mg_thymus_slice2.sirup.rds = "06160861803adfe4bb372787454ef252",
+  mg_thymus_slice2_brighter.sirup.rds = "89b1f8556e8dcb0b41d6289c6d928342",
   mg_thymus_slice2_bcr.tsv.gz = "5e321c97072f5385404e035993a2b3b1",
   mg_thymus_slice2_gc_polygons.csv = "645f0c556f6aa69a3adb735a6333cb43",
   mg_thymus_slice2_qupath_gcs.geojson = "015da4f75651f2beb49a0a6fa08fa6be",
   mg_thymus_slice2_reads.tsv.gz = "3fb3a4dfd97170ce7c779fd169ec8d52",
   mg_thymus_slice2_spatial.rds = "70af91a05c16c267e21bb98b021818dc",
+  mg_thymus_slice2_spatial_brighter.rds = "8a65ffb3b92b45031370f27fe55c9001",
   mg_thymus_slice2_tcr.tsv.gz = "3ac507853a38c88363116c062df1a4ba"
 )
 
@@ -90,6 +93,9 @@ NULL
 #' * `mg_thymus_cell_types.csv.gz`: cell-type proportions for each spot.
 #' * `mg_thymus_slice2.sirup.rds`: a saved SIRUP object for section 2, with BCR and
 #'   TCR slots, cell-type proportions, and BCR clones. Read it with [readSIRUP()].
+#' * `mg_thymus_slice1_spatial_brighter.rds`, `mg_thymus_slice2_spatial_brighter.rds`,
+#'   `mg_thymus_slice2_brighter.sirup.rds`: the same objects with a brighter H&E
+#'   image. The guides use these files.
 #' * `mg_thymus_bulk_*.tsv.gz`: bulk repertoire tables from thymus and blood.
 #'
 #' @param dest Folder to save the files in. The function creates it if needed.

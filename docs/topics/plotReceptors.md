@@ -39,13 +39,13 @@ plotReceptors(
   polygon_id = "polygon",
   polygon_val = NULL,
   polygon_alpha = 0.2,
-  polygon_fill = "#0072B2",
-  polygon_color = "#0072B2",
+  polygon_fill = "white",
+  polygon_color = "white",
   polygon_linewidth = 0.6,
   polygon_label = FALSE,
   polygon_label_by = NULL,
   polygon_label_size = 3,
-  polygon_label_color = "black",
+  polygon_label_color = "white",
   combine = TRUE,
   combine_sample_plots = FALSE,
   slot = NULL
@@ -172,11 +172,11 @@ plotReceptors(
 
 `polygon_fill`
 
-:   Fill color of the polygons (default `"#0072B2"`).
+:   Fill color of the polygons (default `"white"`).
 
 `polygon_color`
 
-:   Color of the polygon outlines (default `"#0072B2"`).
+:   Color of the polygon outlines (default `"white"`).
 
 `polygon_linewidth`
 
@@ -196,7 +196,7 @@ plotReceptors(
 
 `polygon_label_color`
 
-:   Text color of the polygon labels (default `"black"`).
+:   Text color of the polygon labels (default `"white"`).
 
 `combine`
 

@@ -58,6 +58,8 @@ The files are:
 
 - `mg_thymus_slice2.sirup.rds`: a saved SIRUP object for section 2, with BCR and TCR slots, cell-type proportions, and BCR clones. Read it with [`readSIRUP()`](sirup-io.md).
 
+- `mg_thymus_slice1_spatial_brighter.rds`, `mg_thymus_slice2_spatial_brighter.rds`, `mg_thymus_slice2_brighter.sirup.rds`: the same objects with a brighter H&E image. The guides use these files.
+
 - `mg_thymus_bulk_*.tsv.gz`: bulk repertoire tables from thymus and blood.
 
 ## Value

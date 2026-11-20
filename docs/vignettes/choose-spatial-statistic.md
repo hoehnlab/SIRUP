@@ -41,16 +41,16 @@ was built, see [Get started with SIRUP](get-started.md).
 ``` r
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
-  files = "mg_thymus_slice2.sirup.rds"
+  files = "mg_thymus_slice2_brighter.sirup.rds"
 )
-#> ℹ Downloading 'mg_thymus_slice2.sirup.rds'
+#> ℹ Downloading 'mg_thymus_slice2_brighter.sirup.rds'
 ```
 
 ``` r
 library(SIRUP)
 library(dplyr)
 
-x <- readSIRUP(file.path(extdata, "mg_thymus_slice2.sirup.rds"))
+x <- readSIRUP(file.path(extdata, "mg_thymus_slice2_brighter.sirup.rds"))
 x
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image
@@ -288,10 +288,12 @@ Set `nsim` above 0 to generate the randomly relabeled envelope for
 comparison. Spots with `NA` in the column are left out.
 
 The result holds the observed K at each distance (`plot_data`). A curve
-above the envelope means that A and B sit closer than chance, i.e., they
-**colocalize**. A curve below the envelope means that A and B are.
-`plotRipleyCrossK()` draws the curve and the envelope. The distance is
-in image pixels at the stored `image_scale`.
+above the envelope (which represents the null distribution created by
+permuting labels) means that A and B are nearer than expected by chance,
+i.e., they **colocalize**. A curve below the envelope means that A and B
+are farther apart than expected by chance. `plotRipleyCrossK()` plots
+the curve and the envelope. The distance is in image pixels at the
+stored `image_scale`.
 
 See the code below for an example on the thymus section.
 

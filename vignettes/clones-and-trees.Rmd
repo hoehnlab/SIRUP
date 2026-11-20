@@ -54,7 +54,7 @@ downloads them. Change `dest` to a folder you want to keep. The function skips f
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = c(
-    "mg_thymus_slice2.sirup.rds",
+    "mg_thymus_slice2_brighter.sirup.rds",
     "mg_thymus_slice2_gc_polygons.csv"
   )
 )
@@ -67,7 +67,7 @@ library(ggplot2)
 ```
 
 ```{r setup}
-sirup <- readSIRUP(file.path(extdata, "mg_thymus_slice2.sirup.rds"))
+sirup <- readSIRUP(file.path(extdata, "mg_thymus_slice2_brighter.sirup.rds"))
 sirup
 ```
 

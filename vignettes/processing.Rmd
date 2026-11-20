@@ -42,7 +42,7 @@ extdata <- SIRUP::downloadSIRUPExample(
   files = c(
   "mg_thymus_slice2_reads.tsv.gz",
   "mg_thymus_slice2_bcr.tsv.gz",
-  "mg_thymus_slice2_spatial.rds"
+  "mg_thymus_slice2_spatial_brighter.rds"
   )
 )
 ```

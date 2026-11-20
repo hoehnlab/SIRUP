@@ -52,7 +52,7 @@ Rscript docs/build.R ${DOCS_STEPS:-}
 # After a full build, also make a static copy of the site for the lab, until the package
 # is public. The copy goes to ../docs_preview. A failure here does not fail the job.
 if [ -z "${DOCS_STEPS:-}" ] && [ -z "${DOCS_VIGNETTES:-}" ]; then
-  MKDOCS_PYTHON=/dartfs/rc/lab/H/HoehnK/Hunter/spatial_bcr_tcr_package/tmp/mkdocs-venv/bin/python \
+  MKDOCS_PYTHON=/dartfs/rc/lab/H/HoehnK/Hunter/spatial_bcr_tcr_package/docs_preview/_tools/mkdocs-venv/bin/python \
     bash docs/build_preview.sh || echo "The preview build failed. The docs pages are built." >&2
 fi
 if [ -z "${DOCS_STEPS:-}" ]; then

@@ -1056,8 +1056,8 @@ plotReceptorsExpression <- function(object,
 #' @param polygon_val IDs of the polygons to draw. If `NULL`, the function draws
 #'   all polygons.
 #' @param polygon_alpha Opacity of the polygon fill (default 0.2).
-#' @param polygon_fill Fill color of the polygons (default `"#0072B2"`).
-#' @param polygon_color Color of the polygon outlines (default `"#0072B2"`).
+#' @param polygon_fill Fill color of the polygons (default `"white"`).
+#' @param polygon_color Color of the polygon outlines (default `"white"`).
 #' @param polygon_linewidth Width of the polygon outlines (default 0.6).
 #' @param polygon_label Write a label at the center of each polygon (default
 #'   `FALSE`)?
@@ -1065,7 +1065,7 @@ plotReceptorsExpression <- function(object,
 #'   the function uses the polygon ID.
 #' @param polygon_label_size Text size of the polygon labels (default 3).
 #' @param polygon_label_color Text color of the polygon labels (default
-#'   `"black"`).
+#'   `"white"`).
 #' @param combine Combine the image panels with patchwork (default `TRUE`)?
 #' @param combine_sample_plots Combine the plots of all samples into one
 #'   patchwork (default `FALSE`)? The function uses it only for multi-sample
@@ -1113,13 +1113,13 @@ plotReceptors <- function(object,
                           polygon_id = "polygon",
                           polygon_val = NULL,
                           polygon_alpha = 0.2,
-                          polygon_fill = "#0072B2",
-                          polygon_color = "#0072B2",
+                          polygon_fill = "white",
+                          polygon_color = "white",
                           polygon_linewidth = 0.6,
                           polygon_label = FALSE,
                           polygon_label_by = NULL,
                           polygon_label_size = 3,
-                          polygon_label_color = "black",
+                          polygon_label_color = "white",
                           combine = TRUE,
                           combine_sample_plots = FALSE,
                           slot = NULL) {
@@ -1387,8 +1387,8 @@ plotReceptors <- function(object,
 #' @param polygon_val IDs of the polygons to draw. If `NULL`, the function draws
 #'   all polygons.
 #' @param polygon_alpha Opacity of the polygon fill (default 0.2).
-#' @param polygon_fill Fill color of the polygons (default `"#0072B2"`).
-#' @param polygon_color Color of the polygon outlines (default `"#0072B2"`).
+#' @param polygon_fill Fill color of the polygons (default `"white"`).
+#' @param polygon_color Color of the polygon outlines (default `"white"`).
 #' @param polygon_linewidth Width of the polygon outlines (default 0.6).
 #' @param polygon_label Write a label at the center of each polygon (default
 #'   `FALSE`)?
@@ -1396,7 +1396,7 @@ plotReceptors <- function(object,
 #'   the function uses the polygon ID.
 #' @param polygon_label_size Text size of the polygon labels (default 3).
 #' @param polygon_label_color Text color of the polygon labels (default
-#'   `"black"`).
+#'   `"white"`).
 #' @param combine Combine the image panels with patchwork (default `TRUE`)?
 #' @param combine_sample_plots Combine the plots of all samples into one
 #'   patchwork (default `FALSE`)? The function uses it only for multi-sample
@@ -1436,13 +1436,13 @@ plotSpatialColorTips <- function(object,
                                 polygon_id = "polygon",
                                 polygon_val = NULL,
                                 polygon_alpha = 0.2,
-                                polygon_fill = "#0072B2",
-                                polygon_color = "#0072B2",
+                                polygon_fill = "white",
+                                polygon_color = "white",
                                 polygon_linewidth = 0.6,
                                 polygon_label = FALSE,
                                 polygon_label_by = NULL,
                                 polygon_label_size = 3,
-                                polygon_label_color = "black",
+                                polygon_label_color = "white",
                                 combine = TRUE,
                                 combine_sample_plots = FALSE) {
   sample_id <- .sirup_plot_sample_id(object, sample_id)
@@ -1788,8 +1788,8 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #' @param polygon_val IDs of the polygons to draw. If `NULL`, the function draws
 #'   all polygons.
 #' @param polygon_alpha Opacity of the polygon fill (default 0.2).
-#' @param polygon_fill Fill color of the polygons (default `"#0072B2"`).
-#' @param polygon_color Color of the polygon outlines (default `"#0072B2"`).
+#' @param polygon_fill Fill color of the polygons (default `"white"`).
+#' @param polygon_color Color of the polygon outlines (default `"white"`).
 #' @param polygon_linewidth Width of the polygon outlines (default 0.6).
 #' @param polygon_label Write a label at the center of each polygon (default
 #'   `FALSE`)?
@@ -1797,7 +1797,7 @@ plotSpatialCloneColorTips <- function(colored_clones,
 #'   the function uses the polygon ID.
 #' @param polygon_label_size Text size of the polygon labels (default 3).
 #' @param polygon_label_color Text color of the polygon labels (default
-#'   `"black"`).
+#'   `"white"`).
 #' @param nproc Number of processes for building the plot pairs (default 1).
 #' @param ... Other arguments for [plotSpatialColorTips()].
 #' @param slot Name of the receptor slot to use. Leave it `NULL` if the SIRUP
@@ -1867,13 +1867,13 @@ plotSpatialCloneTreePairs <- function(trees,
                                       polygon_id = "polygon",
                                       polygon_val = NULL,
                                       polygon_alpha = 0.2,
-                                      polygon_fill = "#0072B2",
-                                      polygon_color = "#0072B2",
+                                      polygon_fill = "white",
+                                      polygon_color = "white",
                                       polygon_linewidth = 0.6,
                                       polygon_label = FALSE,
                                       polygon_label_by = NULL,
                                       polygon_label_size = 3,
-                                      polygon_label_color = "black",
+                                      polygon_label_color = "white",
                                       nproc = 1L,
                                       slot = NULL,
                                       ...) {
@@ -2188,8 +2188,8 @@ plotSpatialCloneTreePairs <- function(trees,
 # BEFORE the receptor/tip points so the points stay visible on top.
 .sirup_polygon_fill_layer <- function(polygon_data,
                                       polygon_alpha = 0.2,
-                                      polygon_fill = "#0072B2",
-                                      polygon_color = "#0072B2",
+                                      polygon_fill = "white",
+                                      polygon_color = "white",
                                       polygon_linewidth = 0.6) {
   ggplot2::geom_polygon(
     data = polygon_data,
@@ -2207,7 +2207,7 @@ plotSpatialCloneTreePairs <- function(trees,
                                        polygon_label = FALSE,
                                        polygon_label_by = NULL,
                                        polygon_label_size = 3,
-                                       polygon_label_color = "black") {
+                                       polygon_label_color = "white") {
   if (!isTRUE(polygon_label)) {
     return(NULL)
   }
@@ -2254,13 +2254,13 @@ plotSpatialCloneTreePairs <- function(trees,
                                        polygon_data,
                                        image = NULL,
                                        polygon_alpha = 0.2,
-                                       polygon_fill = "#0072B2",
-                                       polygon_color = "#0072B2",
+                                       polygon_fill = "white",
+                                       polygon_color = "white",
                                        polygon_linewidth = 0.6,
                                        polygon_label = FALSE,
                                        polygon_label_by = NULL,
                                        polygon_label_size = 3,
-                                       polygon_label_color = "black") {
+                                       polygon_label_color = "white") {
   if (is.null(plot) || is.null(polygon_data) || nrow(polygon_data) == 0L) {
     return(plot)
   }

@@ -21,21 +21,21 @@ plotSpatialPolygons(
   y = "y",
   polygon_id = "polygon",
   polygon_alpha = 0.2,
-  polygon_fill = "#0072B2",
+  polygon_fill = "white",
   fill_analysis = NULL,
   fill_column = NULL,
   analysis_fill = c("#D3D3D3", "#FFFF00"),
-  polygon_color = "#0072B2",
+  polygon_color = "white",
   linewidth = 0.6,
   image_alpha = 1,
   label = TRUE,
   label_by = "polygon",
   label_size = 3,
-  label_color = "black",
+  label_color = "white",
   label_outside = FALSE,
   label_offset = 0.08,
   label_leader = TRUE,
-  label_leader_color = "grey40",
+  label_leader_color = "white",
   zoom = FALSE,
   combine = TRUE,
   combine_sample_plots = FALSE
@@ -90,7 +90,7 @@ plotSpatialPolygons(
 
 `polygon_fill`
 
-:   Fill color of the polygons, if no analysis is mapped (default `"#0072B2"`).
+:   Fill color of the polygons, if no analysis is mapped (default `"white"`).
 
 `fill_analysis`
 
@@ -106,7 +106,7 @@ plotSpatialPolygons(
 
 `polygon_color`
 
-:   Color of the polygon outlines (default `"#0072B2"`).
+:   Color of the polygon outlines (default `"white"`).
 
 `linewidth`
 
@@ -130,7 +130,7 @@ plotSpatialPolygons(
 
 `label_color`
 
-:   Text color of the labels (default `"black"`).
+:   Text color of the labels (default `"white"`).
 
 `label_outside`
 
@@ -146,7 +146,7 @@ plotSpatialPolygons(
 
 `label_leader_color`
 
-:   Color of the leader lines (default `"grey40"`).
+:   Color of the leader lines (default `"white"`).
 
 `zoom`
 

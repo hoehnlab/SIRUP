@@ -23,6 +23,9 @@
 # ALRA assays, and the H&E reduced to Space Ranger lowres size (polygon
 # vertices are rescaled to match).
 #
+# The H&E image is replaced afterwards by brighten_example_images.R, which uses the
+# brightened image of the updated thymus objects.
+#
 # Run on Discovery (needs ~40 GB of memory):
 #   module load R/4.5.1; Rscript data-raw/make_example_data.R
 

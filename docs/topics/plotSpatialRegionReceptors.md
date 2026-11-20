@@ -21,8 +21,8 @@ plotSpatialRegionReceptors(
   point_size = 1,
   point_alpha = 0.5,
   polygon_alpha = 0.12,
-  polygon_fill = "#FFFFFF",
-  polygon_color = "black",
+  polygon_fill = "white",
+  polygon_color = "white",
   image_alpha = 1,
   top_n = NULL,
   other_label = "Other",
@@ -82,11 +82,11 @@ plotSpatialRegionReceptors(
 
 `polygon_fill`
 
-:   Fill color of the polygons (default `"#FFFFFF"`).
+:   Fill color of the polygons (default `"white"`).
 
 `polygon_color`
 
-:   Color of the polygon outlines (default `"black"`).
+:   Color of the polygon outlines (default `"white"`).
 
 `image_alpha`
 

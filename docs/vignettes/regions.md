@@ -30,12 +30,12 @@ save the example data in. To see how the object was built, see
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = c(
-    "mg_thymus_slice2.sirup.rds",
+    "mg_thymus_slice2_brighter.sirup.rds",
     "mg_thymus_slice2_gc_polygons.csv"
   )
 )
-#> ℹ 'mg_thymus_slice2.sirup.rds' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_brighter.sirup.rds' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
 ```
 
 ``` r
@@ -43,7 +43,7 @@ library(SIRUP)
 library(dplyr)
 library(ggplot2)
 
-sirup <- readSIRUP(file.path(extdata, "mg_thymus_slice2.sirup.rds"))
+sirup <- readSIRUP(file.path(extdata, "mg_thymus_slice2_brighter.sirup.rds"))
 sirup
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image
@@ -251,15 +251,15 @@ plotReceptors(
   sirup,
   slot = "BCR",
   group = "locus",
-  colors = "#1888D0",
-  receptor_size = 1,
-  receptor_alpha = 0.5,
+  colors = "green",
+  receptor_size = 1.2,
+  receptor_alpha = 0.8,
   polygons = TRUE,
-  polygon_alpha = 0,
+  polygon_alpha = 0.2,
   polygon_color = "white",
   polygon_linewidth = 1,
   zoom = TRUE,
-  title = "BCRs and eGC outlines"
+  title = "BCRs and ROI outlines"
 )
 ```
 
@@ -362,7 +362,7 @@ summarize from the receptor table, and `summary_operations` a vector of
 operations to run on each column. Allowed operations are `count`, `sum`,
 `mean`, `median`, `var`, `sd`, `min`, `max`, `any`, `all`, and `cat`. In
 the table above, `mean_junction_length` is the mean junction length in
-each eGC.
+each ROI.
 
 `withPolygons()` runs any function on the receptors of each polygon. It
 returns a list with one result for each polygon.
@@ -443,7 +443,7 @@ plotSpatialRegionReceptors(
   object = sirup,
   color = "clone_id",
   top_n = 12,
-  point_size = 1.5,
+  point_size = 2,
   zoom = TRUE
 )
 ```
@@ -534,7 +534,7 @@ curve for each polygon. Plot it with `alakazam::plotDiversityCurve()`,
 which shows the 95% confidence band of each polygon.
 
 ``` r
-alakazam::plotDiversityCurve(diversity, legend_title = "eGC")
+alakazam::plotDiversityCurve(diversity, legend_title = "ROI")
 ```
 
 ![](regions_files/figure-gfm/diversity-plot-1.jpeg)
@@ -551,7 +551,8 @@ plotSpatialPolygons(
   fill_analysis = "shannon",
   fill_column = "d",
   analysis_fill = c("#08306B", "#FFFF00"),
-  polygon_alpha = 1
+  polygon_alpha = 1,
+  label = FALSE
 ) +
   labs(fill = "Hill number\n(q = 1)")
 ```

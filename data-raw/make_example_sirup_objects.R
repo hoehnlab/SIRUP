@@ -3,7 +3,8 @@
 # "multisample" guides show how to build an object. The other guides start from
 # this file.
 #
-# mg_thymus_slice2.sirup.rds is MG thymus section 2. It has a BCR slot and a TCR
+# mg_thymus_slice2_brighter.sirup.rds is MG thymus section 2, with the brightened H&E image
+# (see brighten_example_images.R). It has a BCR slot and a TCR
 # slot, the cell2location cell-type proportions in the Seurat metadata, and BCR
 # clones. It has no polygons.
 #
@@ -22,7 +23,7 @@ example_dir <- "example-data"
 
 # --- Section 2 ---------------------------------------------------------------
 
-thymus <- readRDS(file.path(example_dir, "mg_thymus_slice2_spatial.rds"))
+thymus <- readRDS(file.path(example_dir, "mg_thymus_slice2_spatial_brighter.rds"))
 
 cell_types <- data.table::fread(
   file.path(example_dir, "mg_thymus_cell_types.csv.gz"),
@@ -85,4 +86,4 @@ sirup <- updateReceptors(
   summarize_clones = FALSE,
   nproc = 1
 )
-saveSIRUP(sirup, file.path(example_dir, "mg_thymus_slice2.sirup.rds"))
+saveSIRUP(sirup, file.path(example_dir, "mg_thymus_slice2_brighter.sirup.rds"))

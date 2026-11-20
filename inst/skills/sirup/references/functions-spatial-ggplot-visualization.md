@@ -58,13 +58,13 @@ plotReceptors(
   polygon_id = "polygon",
   polygon_val = NULL,
   polygon_alpha = 0.2,
-  polygon_fill = "#0072B2",
-  polygon_color = "#0072B2",
+  polygon_fill = "white",
+  polygon_color = "white",
   polygon_linewidth = 0.6,
   polygon_label = FALSE,
   polygon_label_by = NULL,
   polygon_label_size = 3,
-  polygon_label_color = "black",
+  polygon_label_color = "white",
   combine = TRUE,
   combine_sample_plots = FALSE,
   slot = NULL
@@ -102,13 +102,13 @@ Arguments:
 - `polygon_id`: Name of the column that separates the polygons in the polygon table (default `"polygon"`). If the column does not exist, the function uses a `polygon` or `polygon_id` column. If neither exists, all rows form one polygon.
 - `polygon_val`: IDs of the polygons to draw. If `NULL`, the function draws all polygons.
 - `polygon_alpha`: Opacity of the polygon fill (default 0.2).
-- `polygon_fill`: Fill color of the polygons (default `"#0072B2"`).
-- `polygon_color`: Color of the polygon outlines (default `"#0072B2"`).
+- `polygon_fill`: Fill color of the polygons (default `"white"`).
+- `polygon_color`: Color of the polygon outlines (default `"white"`).
 - `polygon_linewidth`: Width of the polygon outlines (default 0.6).
 - `polygon_label`: Write a label at the center of each polygon (default `FALSE`)?
 - `polygon_label_by`: Name of the column that holds the labels. If `NULL`, the function uses the polygon ID.
 - `polygon_label_size`: Text size of the polygon labels (default 3).
-- `polygon_label_color`: Text color of the polygon labels (default `"black"`).
+- `polygon_label_color`: Text color of the polygon labels (default `"white"`).
 - `combine`: Combine the image panels with patchwork (default `TRUE`)?
 - `combine_sample_plots`: Combine the plots of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns a named list with one plot for each sample.
 - `slot`: Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots. The function ignores `slot` if you give a plain receptor table.
@@ -284,13 +284,13 @@ plotSpatialCloneTreePairs(
   polygon_id = "polygon",
   polygon_val = NULL,
   polygon_alpha = 0.2,
-  polygon_fill = "#0072B2",
-  polygon_color = "#0072B2",
+  polygon_fill = "white",
+  polygon_color = "white",
   polygon_linewidth = 0.6,
   polygon_label = FALSE,
   polygon_label_by = NULL,
   polygon_label_size = 3,
-  polygon_label_color = "black",
+  polygon_label_color = "white",
   nproc = 1L,
   slot = NULL,
   ...
@@ -338,13 +338,13 @@ Arguments:
 - `polygon_id`: Name of the column that separates the polygons in the polygon table (default `"polygon"`). If the column does not exist, the function uses a `polygon` or `polygon_id` column. If neither exists, all rows form one polygon.
 - `polygon_val`: IDs of the polygons to draw. If `NULL`, the function draws all polygons.
 - `polygon_alpha`: Opacity of the polygon fill (default 0.2).
-- `polygon_fill`: Fill color of the polygons (default `"#0072B2"`).
-- `polygon_color`: Color of the polygon outlines (default `"#0072B2"`).
+- `polygon_fill`: Fill color of the polygons (default `"white"`).
+- `polygon_color`: Color of the polygon outlines (default `"white"`).
 - `polygon_linewidth`: Width of the polygon outlines (default 0.6).
 - `polygon_label`: Write a label at the center of each polygon (default `FALSE`)?
 - `polygon_label_by`: Name of the column that holds the labels. If `NULL`, the function uses the polygon ID.
 - `polygon_label_size`: Text size of the polygon labels (default 3).
-- `polygon_label_color`: Text color of the polygon labels (default `"black"`).
+- `polygon_label_color`: Text color of the polygon labels (default `"white"`).
 - `nproc`: Number of processes for building the plot pairs (default 1).
 - `slot`: Name of the receptor slot to use. Leave it `NULL` if the SIRUP object has one receptor table. You must give it if the object has several slots. The function ignores `slot` if you give a plain receptor table.
 - `...`: Other arguments for [`plotSpatialColorTips()`](plotSpatialColorTips.md).
@@ -384,13 +384,13 @@ plotSpatialColorTips(
   polygon_id = "polygon",
   polygon_val = NULL,
   polygon_alpha = 0.2,
-  polygon_fill = "#0072B2",
-  polygon_color = "#0072B2",
+  polygon_fill = "white",
+  polygon_color = "white",
   polygon_linewidth = 0.6,
   polygon_label = FALSE,
   polygon_label_by = NULL,
   polygon_label_size = 3,
-  polygon_label_color = "black",
+  polygon_label_color = "white",
   combine = TRUE,
   combine_sample_plots = FALSE
 )
@@ -423,13 +423,13 @@ Arguments:
 - `polygon_id`: Name of the column that separates the polygons in the polygon table (default `"polygon"`). If the column does not exist, the function uses a `polygon` or `polygon_id` column. If neither exists, all rows form one polygon.
 - `polygon_val`: IDs of the polygons to draw. If `NULL`, the function draws all polygons.
 - `polygon_alpha`: Opacity of the polygon fill (default 0.2).
-- `polygon_fill`: Fill color of the polygons (default `"#0072B2"`).
-- `polygon_color`: Color of the polygon outlines (default `"#0072B2"`).
+- `polygon_fill`: Fill color of the polygons (default `"white"`).
+- `polygon_color`: Color of the polygon outlines (default `"white"`).
 - `polygon_linewidth`: Width of the polygon outlines (default 0.6).
 - `polygon_label`: Write a label at the center of each polygon (default `FALSE`)?
 - `polygon_label_by`: Name of the column that holds the labels. If `NULL`, the function uses the polygon ID.
 - `polygon_label_size`: Text size of the polygon labels (default 3).
-- `polygon_label_color`: Text color of the polygon labels (default `"black"`).
+- `polygon_label_color`: Text color of the polygon labels (default `"white"`).
 - `combine`: Combine the image panels with patchwork (default `TRUE`)?
 - `combine_sample_plots`: Combine the plots of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns a named list with one plot for each sample.
 

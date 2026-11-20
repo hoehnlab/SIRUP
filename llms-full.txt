@@ -185,16 +185,16 @@ was built, see [Get started with SIRUP](get-started.md).
 ``` r
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
-  files = "mg_thymus_slice2.sirup.rds"
+  files = "mg_thymus_slice2_brighter.sirup.rds"
 )
-#> ℹ Downloading 'mg_thymus_slice2.sirup.rds'
+#> ℹ Downloading 'mg_thymus_slice2_brighter.sirup.rds'
 ```
 
 ``` r
 library(SIRUP)
 library(dplyr)
 
-x <- readSIRUP(file.path(extdata, "mg_thymus_slice2.sirup.rds"))
+x <- readSIRUP(file.path(extdata, "mg_thymus_slice2_brighter.sirup.rds"))
 x
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image
@@ -432,10 +432,12 @@ Set `nsim` above 0 to generate the randomly relabeled envelope for
 comparison. Spots with `NA` in the column are left out.
 
 The result holds the observed K at each distance (`plot_data`). A curve
-above the envelope means that A and B sit closer than chance, i.e., they
-**colocalize**. A curve below the envelope means that A and B are.
-`plotRipleyCrossK()` draws the curve and the envelope. The distance is
-in image pixels at the stored `image_scale`.
+above the envelope (which represents the null distribution created by
+permuting labels) means that A and B are nearer than expected by chance,
+i.e., they **colocalize**. A curve below the envelope means that A and B
+are farther apart than expected by chance. `plotRipleyCrossK()` plots
+the curve and the envelope. The distance is in image pixels at the
+stored `image_scale`.
 
 See the code below for an example on the thymus section.
 
@@ -534,11 +536,11 @@ want to keep. The function skips files that are already there.
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = c(
-    "mg_thymus_slice2.sirup.rds",
+    "mg_thymus_slice2_brighter.sirup.rds",
     "mg_thymus_slice2_gc_polygons.csv"
   )
 )
-#> ℹ 'mg_thymus_slice2.sirup.rds' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_brighter.sirup.rds' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_slice2_gc_polygons.csv'
 ```
 
@@ -549,7 +551,7 @@ library(ggplot2)
 ```
 
 ``` r
-sirup <- readSIRUP(file.path(extdata, "mg_thymus_slice2.sirup.rds"))
+sirup <- readSIRUP(file.path(extdata, "mg_thymus_slice2_brighter.sirup.rds"))
 sirup
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image
@@ -954,17 +956,17 @@ that are already there.
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = c(
-  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice2_spatial_brighter.rds",
   "mg_thymus_slice2_bcr.tsv.gz",
   "mg_thymus_slice2_tcr.tsv.gz",
   "mg_thymus_slice2_gc_polygons.csv",
   "mg_thymus_cell_types.csv.gz"
   )
 )
-#> ℹ Downloading 'mg_thymus_slice2_spatial.rds'
+#> ℹ Downloading 'mg_thymus_slice2_spatial_brighter.rds'
 #> ℹ Downloading 'mg_thymus_slice2_bcr.tsv.gz'
 #> ℹ Downloading 'mg_thymus_slice2_tcr.tsv.gz'
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_cell_types.csv.gz'
 ```
 
@@ -999,7 +1001,7 @@ This vignette uses these files:
 
 | File | Contents |
 |----|----|
-| `mg_thymus_slice2_spatial.rds` | A spatial Seurat object for MG thymus |
+| `mg_thymus_slice2_spatial_brighter.rds` | A spatial Seurat object for MG thymus |
 | `mg_thymus_slice2_bcr.tsv.gz` | AIRR rearrangement table of IGH sequences with spatial IDs |
 | `mg_thymus_slice2_tcr.tsv.gz` | AIRR rearrangement table of TRB sequences with spatial IDs |
 | `mg_thymus_slice2_gc_polygons.csv` | Annotated polygons of the eGCs |
@@ -1022,7 +1024,7 @@ library(ggplot2)
 Read the Seurat object and the AIRR table:
 
 ``` r
-thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
+thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial_brighter.rds"))
 thymus
 #> An object of class Seurat 
 #> 506 features across 3203 samples within 2 assays 
@@ -1286,7 +1288,8 @@ spatialExpressionPlot(
   layer = "data",
   title = "AICDA",
   zero_tol = 0,
-  point_alpha = 0.5
+  point_alpha = 0.8,
+  point_size = 1.2
 )
 ```
 
@@ -1301,7 +1304,7 @@ plotReceptors(
   sirup,
   slot = "BCR",
   group = "locus",
-  colors = "#0072B2",
+  colors = "white",
   receptor_size = 1.2,
   title = "BCR-positive spots"
 )
@@ -1352,8 +1355,8 @@ plotReceptorsExpression(
   gene = "AICDA",
   assay = "alra",
   layer = "data",
-  colors = "#0072B2",
-  receptor_size = 1.3,
+  colors = "white",
+  receptor_size = 1.5,
   feature_size = 2,
   title = "AICDA expression and BCR-positive spots"
 )
@@ -1562,7 +1565,7 @@ used.
 back and validates it.
 
 ``` r
-path <- file.path(tempdir(), "mg_thymus_slice2.sirup.rds")
+path <- file.path(tempdir(), "mg_thymus_slice2_brighter.sirup.rds")
 saveSIRUP(sirup, path)
 sirup <- readSIRUP(path)
 sirup
@@ -1825,8 +1828,8 @@ want to keep. The function skips files that are already there.
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = c(
-    "mg_thymus_slice1_spatial.rds",
-    "mg_thymus_slice2_spatial.rds",
+    "mg_thymus_slice1_spatial_brighter.rds",
+    "mg_thymus_slice2_spatial_brighter.rds",
     "mg_thymus_slice1_bcr.tsv.gz",
     "mg_thymus_slice2_bcr.tsv.gz",
     "mg_thymus_slice2_tcr.tsv.gz",
@@ -1840,13 +1843,13 @@ extdata <- SIRUP::downloadSIRUPExample(
     "mg_thymus_bulk_blood_month12_2.tsv.gz"
   )
 )
-#> ℹ Downloading 'mg_thymus_slice1_spatial.rds'
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice1_spatial_brighter.rds'
+#> ℹ 'mg_thymus_slice2_spatial_brighter.rds' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_slice1_bcr.tsv.gz'
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_slice1_gc_polygons.csv'
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_bulk_thymus_1.tsv.gz'
 #> ℹ Downloading 'mg_thymus_bulk_thymus_2.tsv.gz'
 #> ℹ Downloading 'mg_thymus_bulk_blood_month0_1.tsv.gz'
@@ -1867,8 +1870,8 @@ Load the two spatial Seurat objects and all of the BCR data.
 
 ``` r
 spatial <- list(
-  mg_thymus_slice1 = readRDS(file.path(extdata, "mg_thymus_slice1_spatial.rds")),
-  mg_thymus_slice2 = readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
+  mg_thymus_slice1 = readRDS(file.path(extdata, "mg_thymus_slice1_spatial_brighter.rds")),
+  mg_thymus_slice2 = readRDS(file.path(extdata, "mg_thymus_slice2_spatial_brighter.rds"))
 )
 
 # One AIRR file for each sample, with the compartment that the sample came from
@@ -2147,6 +2150,7 @@ spatialExpressionPlot(
   assay = "alra",
   layer = "data",
   title = c("AICDA, section 1", "AICDA, section 2"),
+  point_size = 1.5,
   combine_sample_plots = TRUE
 )
 ```
@@ -2160,7 +2164,8 @@ spatialExpressionPlot(
   assay = "alra",
   layer = "data",
   sample_id = "mg_thymus_slice1",
-  title = "AICDA, section 1"
+  title = "AICDA, section 1",
+  point_size = 1.5
 )
 ```
 
@@ -2389,12 +2394,12 @@ extdata <- SIRUP::downloadSIRUPExample(
   files = c(
   "mg_thymus_slice2_reads.tsv.gz",
   "mg_thymus_slice2_bcr.tsv.gz",
-  "mg_thymus_slice2_spatial.rds"
+  "mg_thymus_slice2_spatial_brighter.rds"
   )
 )
 #> ℹ Downloading 'mg_thymus_slice2_reads.tsv.gz'
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_spatial_brighter.rds' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
 ```
 
 ## Demultiplexing long-read sequences
@@ -2930,18 +2935,18 @@ the example data in. To see how the object was built, see
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = c(
-    "mg_thymus_slice2.sirup.rds",
+    "mg_thymus_slice2_brighter.sirup.rds",
     "mg_thymus_slice2_qupath_gcs.geojson"
   )
 )
-#> ℹ 'mg_thymus_slice2.sirup.rds' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_brighter.sirup.rds' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_slice2_qupath_gcs.geojson'
 ```
 
 ``` r
 library(SIRUP)
 
-sirup <- readSIRUP(file.path(extdata, "mg_thymus_slice2.sirup.rds"))
+sirup <- readSIRUP(file.path(extdata, "mg_thymus_slice2_brighter.sirup.rds"))
 ```
 
 ## Draw and export the annotations in QuPath
@@ -3016,7 +3021,7 @@ worth making this plot every time, because it shows right away if the
 annotations and the spots do not line up.
 
 ``` r
-plotSpatialPolygons(sirup, polygon_alpha = 0.3)
+plotSpatialPolygons(sirup, polygon_alpha = 0.3, label_color = "black")
 ```
 
 ![](qupath-annotations_files/figure-gfm/plot-polygons-1.jpeg)
@@ -3098,12 +3103,12 @@ save the example data in. To see how the object was built, see
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = c(
-    "mg_thymus_slice2.sirup.rds",
+    "mg_thymus_slice2_brighter.sirup.rds",
     "mg_thymus_slice2_gc_polygons.csv"
   )
 )
-#> ℹ 'mg_thymus_slice2.sirup.rds' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_brighter.sirup.rds' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
 ```
 
 ``` r
@@ -3111,7 +3116,7 @@ library(SIRUP)
 library(dplyr)
 library(ggplot2)
 
-sirup <- readSIRUP(file.path(extdata, "mg_thymus_slice2.sirup.rds"))
+sirup <- readSIRUP(file.path(extdata, "mg_thymus_slice2_brighter.sirup.rds"))
 sirup
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image
@@ -3319,15 +3324,15 @@ plotReceptors(
   sirup,
   slot = "BCR",
   group = "locus",
-  colors = "#1888D0",
-  receptor_size = 1,
-  receptor_alpha = 0.5,
+  colors = "green",
+  receptor_size = 1.2,
+  receptor_alpha = 0.8,
   polygons = TRUE,
-  polygon_alpha = 0,
+  polygon_alpha = 0.2,
   polygon_color = "white",
   polygon_linewidth = 1,
   zoom = TRUE,
-  title = "BCRs and eGC outlines"
+  title = "BCRs and ROI outlines"
 )
 ```
 
@@ -3430,7 +3435,7 @@ summarize from the receptor table, and `summary_operations` a vector of
 operations to run on each column. Allowed operations are `count`, `sum`,
 `mean`, `median`, `var`, `sd`, `min`, `max`, `any`, `all`, and `cat`. In
 the table above, `mean_junction_length` is the mean junction length in
-each eGC.
+each ROI.
 
 `withPolygons()` runs any function on the receptors of each polygon. It
 returns a list with one result for each polygon.
@@ -3511,7 +3516,7 @@ plotSpatialRegionReceptors(
   object = sirup,
   color = "clone_id",
   top_n = 12,
-  point_size = 1.5,
+  point_size = 2,
   zoom = TRUE
 )
 ```
@@ -3602,7 +3607,7 @@ curve for each polygon. Plot it with `alakazam::plotDiversityCurve()`,
 which shows the 95% confidence band of each polygon.
 
 ``` r
-alakazam::plotDiversityCurve(diversity, legend_title = "eGC")
+alakazam::plotDiversityCurve(diversity, legend_title = "ROI")
 ```
 
 ![](regions_files/figure-gfm/diversity-plot-1.jpeg)
@@ -3619,7 +3624,8 @@ plotSpatialPolygons(
   fill_analysis = "shannon",
   fill_column = "d",
   analysis_fill = c("#08306B", "#FFFF00"),
-  polygon_alpha = 1
+  polygon_alpha = 1,
+  label = FALSE
 ) +
   labs(fill = "Hill number\n(q = 1)")
 ```
@@ -5430,6 +5436,8 @@ The files are:
 
 - `mg_thymus_slice2.sirup.rds`: a saved SIRUP object for section 2, with BCR and TCR slots, cell-type proportions, and BCR clones. Read it with [`readSIRUP()`](sirup-io.md).
 
+- `mg_thymus_slice1_spatial_brighter.rds`, `mg_thymus_slice2_spatial_brighter.rds`, `mg_thymus_slice2_brighter.sirup.rds`: the same objects with a brighter H&E image. The guides use these files.
+
 - `mg_thymus_bulk_*.tsv.gz`: bulk repertoire tables from thymus and blood.
 
 ## Value
@@ -6617,13 +6625,13 @@ plotReceptors(
   polygon_id = "polygon",
   polygon_val = NULL,
   polygon_alpha = 0.2,
-  polygon_fill = "#0072B2",
-  polygon_color = "#0072B2",
+  polygon_fill = "white",
+  polygon_color = "white",
   polygon_linewidth = 0.6,
   polygon_label = FALSE,
   polygon_label_by = NULL,
   polygon_label_size = 3,
-  polygon_label_color = "black",
+  polygon_label_color = "white",
   combine = TRUE,
   combine_sample_plots = FALSE,
   slot = NULL
@@ -6750,11 +6758,11 @@ plotReceptors(
 
 `polygon_fill`
 
-:   Fill color of the polygons (default `"#0072B2"`).
+:   Fill color of the polygons (default `"white"`).
 
 `polygon_color`
 
-:   Color of the polygon outlines (default `"#0072B2"`).
+:   Color of the polygon outlines (default `"white"`).
 
 `polygon_linewidth`
 
@@ -6774,7 +6782,7 @@ plotReceptors(
 
 `polygon_label_color`
 
-:   Text color of the polygon labels (default `"black"`).
+:   Text color of the polygon labels (default `"white"`).
 
 `combine`
 
@@ -7460,7 +7468,7 @@ plotSpatialCloneJoinCount(
   point_alpha = 0.9,
   edge_width = 0.6,
   edge_alpha = 0.75,
-  polygon_color = "black",
+  polygon_color = "white",
   polygon_linewidth = 0.6,
   image_alpha = 1,
   zoom = FALSE,
@@ -7537,7 +7545,7 @@ plotSpatialCloneJoinCount(
 
 `polygon_color`
 
-:   Color of the polygon outlines.
+:   Color of the polygon outlines (default `"white"`).
 
 `polygon_linewidth`
 
@@ -7642,13 +7650,13 @@ plotSpatialCloneTreePairs(
   polygon_id = "polygon",
   polygon_val = NULL,
   polygon_alpha = 0.2,
-  polygon_fill = "#0072B2",
-  polygon_color = "#0072B2",
+  polygon_fill = "white",
+  polygon_color = "white",
   polygon_linewidth = 0.6,
   polygon_label = FALSE,
   polygon_label_by = NULL,
   polygon_label_size = 3,
-  polygon_label_color = "black",
+  polygon_label_color = "white",
   nproc = 1L,
   slot = NULL,
   ...
@@ -7815,11 +7823,11 @@ plotSpatialCloneTreePairs(
 
 `polygon_fill`
 
-:   Fill color of the polygons (default `"#0072B2"`).
+:   Fill color of the polygons (default `"white"`).
 
 `polygon_color`
 
-:   Color of the polygon outlines (default `"#0072B2"`).
+:   Color of the polygon outlines (default `"white"`).
 
 `polygon_linewidth`
 
@@ -7839,7 +7847,7 @@ plotSpatialCloneTreePairs(
 
 `polygon_label_color`
 
-:   Text color of the polygon labels (default `"black"`).
+:   Text color of the polygon labels (default `"white"`).
 
 `nproc`
 
@@ -7931,13 +7939,13 @@ plotSpatialColorTips(
   polygon_id = "polygon",
   polygon_val = NULL,
   polygon_alpha = 0.2,
-  polygon_fill = "#0072B2",
-  polygon_color = "#0072B2",
+  polygon_fill = "white",
+  polygon_color = "white",
   polygon_linewidth = 0.6,
   polygon_label = FALSE,
   polygon_label_by = NULL,
   polygon_label_size = 3,
-  polygon_label_color = "black",
+  polygon_label_color = "white",
   combine = TRUE,
   combine_sample_plots = FALSE
 )
@@ -8047,11 +8055,11 @@ plotSpatialColorTips(
 
 `polygon_fill`
 
-:   Fill color of the polygons (default `"#0072B2"`).
+:   Fill color of the polygons (default `"white"`).
 
 `polygon_color`
 
-:   Color of the polygon outlines (default `"#0072B2"`).
+:   Color of the polygon outlines (default `"white"`).
 
 `polygon_linewidth`
 
@@ -8071,7 +8079,7 @@ plotSpatialColorTips(
 
 `polygon_label_color`
 
-:   Text color of the polygon labels (default `"black"`).
+:   Text color of the polygon labels (default `"white"`).
 
 `combine`
 
@@ -8424,21 +8432,21 @@ plotSpatialPolygons(
   y = "y",
   polygon_id = "polygon",
   polygon_alpha = 0.2,
-  polygon_fill = "#0072B2",
+  polygon_fill = "white",
   fill_analysis = NULL,
   fill_column = NULL,
   analysis_fill = c("#D3D3D3", "#FFFF00"),
-  polygon_color = "#0072B2",
+  polygon_color = "white",
   linewidth = 0.6,
   image_alpha = 1,
   label = TRUE,
   label_by = "polygon",
   label_size = 3,
-  label_color = "black",
+  label_color = "white",
   label_outside = FALSE,
   label_offset = 0.08,
   label_leader = TRUE,
-  label_leader_color = "grey40",
+  label_leader_color = "white",
   zoom = FALSE,
   combine = TRUE,
   combine_sample_plots = FALSE
@@ -8493,7 +8501,7 @@ plotSpatialPolygons(
 
 `polygon_fill`
 
-:   Fill color of the polygons, if no analysis is mapped (default `"#0072B2"`).
+:   Fill color of the polygons, if no analysis is mapped (default `"white"`).
 
 `fill_analysis`
 
@@ -8509,7 +8517,7 @@ plotSpatialPolygons(
 
 `polygon_color`
 
-:   Color of the polygon outlines (default `"#0072B2"`).
+:   Color of the polygon outlines (default `"white"`).
 
 `linewidth`
 
@@ -8533,7 +8541,7 @@ plotSpatialPolygons(
 
 `label_color`
 
-:   Text color of the labels (default `"black"`).
+:   Text color of the labels (default `"white"`).
 
 `label_outside`
 
@@ -8549,7 +8557,7 @@ plotSpatialPolygons(
 
 `label_leader_color`
 
-:   Color of the leader lines (default `"grey40"`).
+:   Color of the leader lines (default `"white"`).
 
 `zoom`
 
@@ -8611,8 +8619,8 @@ plotSpatialRegionReceptors(
   point_size = 1,
   point_alpha = 0.5,
   polygon_alpha = 0.12,
-  polygon_fill = "#FFFFFF",
-  polygon_color = "black",
+  polygon_fill = "white",
+  polygon_color = "white",
   image_alpha = 1,
   top_n = NULL,
   other_label = "Other",
@@ -8672,11 +8680,11 @@ plotSpatialRegionReceptors(
 
 `polygon_fill`
 
-:   Fill color of the polygons (default `"#FFFFFF"`).
+:   Fill color of the polygons (default `"white"`).
 
 `polygon_color`
 
-:   Color of the polygon outlines (default `"black"`).
+:   Color of the polygon outlines (default `"white"`).
 
 `image_alpha`
 

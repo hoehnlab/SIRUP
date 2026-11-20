@@ -54,11 +54,11 @@ want to keep. The function skips files that are already there.
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = c(
-    "mg_thymus_slice2.sirup.rds",
+    "mg_thymus_slice2_brighter.sirup.rds",
     "mg_thymus_slice2_gc_polygons.csv"
   )
 )
-#> ℹ 'mg_thymus_slice2.sirup.rds' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_brighter.sirup.rds' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_slice2_gc_polygons.csv'
 ```
 
@@ -69,7 +69,7 @@ library(ggplot2)
 ```
 
 ``` r
-sirup <- readSIRUP(file.path(extdata, "mg_thymus_slice2.sirup.rds"))
+sirup <- readSIRUP(file.path(extdata, "mg_thymus_slice2_brighter.sirup.rds"))
 sirup
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image

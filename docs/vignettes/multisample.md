@@ -60,8 +60,8 @@ want to keep. The function skips files that are already there.
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = c(
-    "mg_thymus_slice1_spatial.rds",
-    "mg_thymus_slice2_spatial.rds",
+    "mg_thymus_slice1_spatial_brighter.rds",
+    "mg_thymus_slice2_spatial_brighter.rds",
     "mg_thymus_slice1_bcr.tsv.gz",
     "mg_thymus_slice2_bcr.tsv.gz",
     "mg_thymus_slice2_tcr.tsv.gz",
@@ -75,13 +75,13 @@ extdata <- SIRUP::downloadSIRUPExample(
     "mg_thymus_bulk_blood_month12_2.tsv.gz"
   )
 )
-#> ℹ Downloading 'mg_thymus_slice1_spatial.rds'
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ Downloading 'mg_thymus_slice1_spatial_brighter.rds'
+#> ℹ 'mg_thymus_slice2_spatial_brighter.rds' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_slice1_bcr.tsv.gz'
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_slice1_gc_polygons.csv'
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_bulk_thymus_1.tsv.gz'
 #> ℹ Downloading 'mg_thymus_bulk_thymus_2.tsv.gz'
 #> ℹ Downloading 'mg_thymus_bulk_blood_month0_1.tsv.gz'
@@ -102,8 +102,8 @@ Load the two spatial Seurat objects and all of the BCR data.
 
 ``` r
 spatial <- list(
-  mg_thymus_slice1 = readRDS(file.path(extdata, "mg_thymus_slice1_spatial.rds")),
-  mg_thymus_slice2 = readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
+  mg_thymus_slice1 = readRDS(file.path(extdata, "mg_thymus_slice1_spatial_brighter.rds")),
+  mg_thymus_slice2 = readRDS(file.path(extdata, "mg_thymus_slice2_spatial_brighter.rds"))
 )
 
 # One AIRR file for each sample, with the compartment that the sample came from
@@ -382,6 +382,7 @@ spatialExpressionPlot(
   assay = "alra",
   layer = "data",
   title = c("AICDA, section 1", "AICDA, section 2"),
+  point_size = 1.5,
   combine_sample_plots = TRUE
 )
 ```
@@ -395,7 +396,8 @@ spatialExpressionPlot(
   assay = "alra",
   layer = "data",
   sample_id = "mg_thymus_slice1",
-  title = "AICDA, section 1"
+  title = "AICDA, section 1",
+  point_size = 1.5
 )
 ```
 

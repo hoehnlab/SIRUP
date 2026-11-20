@@ -1283,7 +1283,7 @@ expandPolygons <- function(polygons,
 #'   by polygon (default `"polygon"`).
 #' @param polygon_alpha Opacity of the polygon fill (default 0.2).
 #' @param polygon_fill Fill color of the polygons, if no analysis is mapped
-#'   (default `"#0072B2"`).
+#'   (default `"white"`).
 #' @param fill_analysis Name of a stored SIRUP analysis that has one row for
 #'   each polygon. The function colors the polygons with it.
 #' @param fill_column Name of the column that sets the fill color. If
@@ -1293,14 +1293,14 @@ expandPolygons <- function(polygons,
 #' @param analysis_fill Two colors for the low and high end of the gradient for
 #'   numeric analysis values (default `c("#D3D3D3", "#FFFF00")`). The function
 #'   uses the Glasbey palette for other values.
-#' @param polygon_color Color of the polygon outlines (default `"#0072B2"`).
+#' @param polygon_color Color of the polygon outlines (default `"white"`).
 #' @param linewidth Width of the polygon outlines (default 0.6).
 #' @param image_alpha Opacity of the tissue image.
 #' @param label Write a label at the center of each polygon (default `TRUE`)?
 #' @param label_by Name of the column in the polygon data that holds the labels
 #'   (default `"polygon"`).
 #' @param label_size Text size of the labels (default 3).
-#' @param label_color Text color of the labels (default `"black"`).
+#' @param label_color Text color of the labels (default `"white"`).
 #' @param label_outside Put each label outside its polygon (default `FALSE`)?
 #'   The function pushes each label away from the centroid of all plotted
 #'   polygons, so that labels spread outward from a group of small polygons. The
@@ -1310,7 +1310,7 @@ expandPolygons <- function(polygons,
 #'   plotted coordinate range.
 #' @param label_leader Draw a line from each polygon to its label, if
 #'   `label_outside` is `TRUE` (default `TRUE`)?
-#' @param label_leader_color Color of the leader lines (default `"grey40"`).
+#' @param label_leader_color Color of the leader lines (default `"white"`).
 #' @param zoom Zoom to the extent of the polygons, not the full tissue (default
 #'   `FALSE`)?
 #' @param combine Combine the plots with patchwork, if possible (default
@@ -1339,21 +1339,21 @@ plotSpatialPolygons <- function(object,
                                 y = "y",
                                 polygon_id = "polygon",
                                 polygon_alpha = 0.2,
-                                polygon_fill = "#0072B2",
+                                polygon_fill = "white",
                                 fill_analysis = NULL,
                                 fill_column = NULL,
                                 analysis_fill = c("#D3D3D3", "#FFFF00"),
-                                polygon_color = "#0072B2",
+                                polygon_color = "white",
                                 linewidth = 0.6,
                                 image_alpha = 1,
                                 label = TRUE,
                                 label_by = "polygon",
                                 label_size = 3,
-                                label_color = "black",
+                                label_color = "white",
                                 label_outside = FALSE,
                                 label_offset = 0.08,
                                 label_leader = TRUE,
-                                label_leader_color = "grey40",
+                                label_leader_color = "white",
                                 zoom = FALSE,
                                 combine = TRUE,
                                 combine_sample_plots = FALSE) {
@@ -1649,8 +1649,8 @@ plotSpatialPolygons <- function(object,
 #' @param point_size Size of the receptor points (default 1).
 #' @param point_alpha Opacity of the receptor points (default 0.5).
 #' @param polygon_alpha Opacity of the polygon fill (default 0.12).
-#' @param polygon_fill Fill color of the polygons (default `"#FFFFFF"`).
-#' @param polygon_color Color of the polygon outlines (default `"black"`).
+#' @param polygon_fill Fill color of the polygons (default `"white"`).
+#' @param polygon_color Color of the polygon outlines (default `"white"`).
 #' @param image_alpha Opacity of the tissue image.
 #' @param top_n Number of the most frequent `color` levels to show. The function
 #'   groups the other levels under `other_label`. If `NULL`, it shows all
@@ -1686,8 +1686,8 @@ plotSpatialRegionReceptors <- function(dominance,
                                        point_size = 1,
                                        point_alpha = 0.5,
                                        polygon_alpha = 0.12,
-                                       polygon_fill = "#FFFFFF",
-                                       polygon_color = "black",
+                                       polygon_fill = "white",
+                                       polygon_color = "white",
                                        image_alpha = 1,
                                        top_n = NULL,
                                        other_label = "Other",

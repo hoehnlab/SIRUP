@@ -327,21 +327,21 @@ plotSpatialPolygons(
   y = "y",
   polygon_id = "polygon",
   polygon_alpha = 0.2,
-  polygon_fill = "#0072B2",
+  polygon_fill = "white",
   fill_analysis = NULL,
   fill_column = NULL,
   analysis_fill = c("#D3D3D3", "#FFFF00"),
-  polygon_color = "#0072B2",
+  polygon_color = "white",
   linewidth = 0.6,
   image_alpha = 1,
   label = TRUE,
   label_by = "polygon",
   label_size = 3,
-  label_color = "black",
+  label_color = "white",
   label_outside = FALSE,
   label_offset = 0.08,
   label_leader = TRUE,
-  label_leader_color = "grey40",
+  label_leader_color = "white",
   zoom = FALSE,
   combine = TRUE,
   combine_sample_plots = FALSE
@@ -361,21 +361,21 @@ Arguments:
 - `y`: Name of the y-coordinate column in `polygon` (default `"y"`).
 - `polygon_id`: Name of the column in `polygon` that groups the vertices by polygon (default `"polygon"`).
 - `polygon_alpha`: Opacity of the polygon fill (default 0.2).
-- `polygon_fill`: Fill color of the polygons, if no analysis is mapped (default `"#0072B2"`).
+- `polygon_fill`: Fill color of the polygons, if no analysis is mapped (default `"white"`).
 - `fill_analysis`: Name of a stored SIRUP analysis that has one row for each polygon. The function colors the polygons with it.
 - `fill_column`: Name of the column that sets the fill color. If `fill_analysis` is `NULL`, the function reads the column from the polygon data. Otherwise, it reads the column from the analysis. The analysis must have a `polygon_id` or `polygon` column as the polygon key.
 - `analysis_fill`: Two colors for the low and high end of the gradient for numeric analysis values (default `c("#D3D3D3", "#FFFF00")`). The function uses the Glasbey palette for other values.
-- `polygon_color`: Color of the polygon outlines (default `"#0072B2"`).
+- `polygon_color`: Color of the polygon outlines (default `"white"`).
 - `linewidth`: Width of the polygon outlines (default 0.6).
 - `image_alpha`: Opacity of the tissue image.
 - `label`: Write a label at the center of each polygon (default `TRUE`)?
 - `label_by`: Name of the column in the polygon data that holds the labels (default `"polygon"`).
 - `label_size`: Text size of the labels (default 3).
-- `label_color`: Text color of the labels (default `"black"`).
+- `label_color`: Text color of the labels (default `"white"`).
 - `label_outside`: Put each label outside its polygon (default `FALSE`)? The function pushes each label away from the centroid of all plotted polygons, so that labels spread outward from a group of small polygons. The label is `label_offset` away from the polygon.
 - `label_offset`: Gap between a polygon edge and its label, if `label_outside` is `TRUE` (default 0.08). The value is a fraction of the plotted coordinate range.
 - `label_leader`: Draw a line from each polygon to its label, if `label_outside` is `TRUE` (default `TRUE`)?
-- `label_leader_color`: Color of the leader lines (default `"grey40"`).
+- `label_leader_color`: Color of the leader lines (default `"white"`).
 - `zoom`: Zoom to the extent of the polygons, not the full tissue (default `FALSE`)?
 - `combine`: Combine the plots with patchwork, if possible (default `TRUE`)?
 - `combine_sample_plots`: Combine the plots of all samples into one patchwork (default `FALSE`)? The function uses it only for multi-sample objects. If `FALSE`, it returns a named list with one plot for each sample.
@@ -401,8 +401,8 @@ plotSpatialRegionReceptors(
   point_size = 1,
   point_alpha = 0.5,
   polygon_alpha = 0.12,
-  polygon_fill = "#FFFFFF",
-  polygon_color = "black",
+  polygon_fill = "white",
+  polygon_color = "white",
   image_alpha = 1,
   top_n = NULL,
   other_label = "Other",
@@ -427,8 +427,8 @@ Arguments:
 - `point_size`: Size of the receptor points (default 1).
 - `point_alpha`: Opacity of the receptor points (default 0.5).
 - `polygon_alpha`: Opacity of the polygon fill (default 0.12).
-- `polygon_fill`: Fill color of the polygons (default `"#FFFFFF"`).
-- `polygon_color`: Color of the polygon outlines (default `"black"`).
+- `polygon_fill`: Fill color of the polygons (default `"white"`).
+- `polygon_color`: Color of the polygon outlines (default `"white"`).
 - `image_alpha`: Opacity of the tissue image.
 - `top_n`: Number of the most frequent `color` levels to show. The function groups the other levels under `other_label`. If `NULL`, it shows all levels.
 - `other_label`: Label for the grouped levels (default `"Other"`).

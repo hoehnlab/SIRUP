@@ -31,12 +31,12 @@ extdata <- SIRUP::downloadSIRUPExample(
   files = c(
   "mg_thymus_slice2_reads.tsv.gz",
   "mg_thymus_slice2_bcr.tsv.gz",
-  "mg_thymus_slice2_spatial.rds"
+  "mg_thymus_slice2_spatial_brighter.rds"
   )
 )
 #> ℹ Downloading 'mg_thymus_slice2_reads.tsv.gz'
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_spatial.rds' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_spatial_brighter.rds' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
 ```
 
 ## Demultiplexing long-read sequences

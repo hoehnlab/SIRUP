@@ -26,7 +26,7 @@ plotSpatialCloneJoinCount(
   point_alpha = 0.9,
   edge_width = 0.6,
   edge_alpha = 0.75,
-  polygon_color = "black",
+  polygon_color = "white",
   polygon_linewidth = 0.6,
   image_alpha = 1,
   zoom = FALSE,
@@ -103,7 +103,7 @@ plotSpatialCloneJoinCount(
 
 `polygon_color`
 
-:   Color of the polygon outlines.
+:   Color of the polygon outlines (default `"white"`).
 
 `polygon_linewidth`
 

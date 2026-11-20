@@ -864,7 +864,7 @@ spatialCloneJoinCount <- function(object,
 #' @param point_alpha Opacity of the spots.
 #' @param edge_width Width of the neighbor lines.
 #' @param edge_alpha Opacity of the neighbor lines.
-#' @param polygon_color Color of the polygon outlines.
+#' @param polygon_color Color of the polygon outlines (default `"white"`).
 #' @param polygon_linewidth Width of the polygon outlines.
 #' @param image_alpha Opacity of the tissue image.
 #' @param zoom Zoom to the spots in the test (default `FALSE`)?
@@ -903,7 +903,7 @@ plotSpatialCloneJoinCount <- function(join_count,
                                       point_alpha = 0.9,
                                       edge_width = 0.6,
                                       edge_alpha = 0.75,
-                                      polygon_color = "black",
+                                      polygon_color = "white",
                                       polygon_linewidth = 0.6,
                                       image_alpha = 1,
                                       zoom = FALSE,

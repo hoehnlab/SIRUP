@@ -41,17 +41,17 @@ that are already there.
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = c(
-  "mg_thymus_slice2_spatial.rds",
+  "mg_thymus_slice2_spatial_brighter.rds",
   "mg_thymus_slice2_bcr.tsv.gz",
   "mg_thymus_slice2_tcr.tsv.gz",
   "mg_thymus_slice2_gc_polygons.csv",
   "mg_thymus_cell_types.csv.gz"
   )
 )
-#> ℹ Downloading 'mg_thymus_slice2_spatial.rds'
+#> ℹ Downloading 'mg_thymus_slice2_spatial_brighter.rds'
 #> ℹ Downloading 'mg_thymus_slice2_bcr.tsv.gz'
 #> ℹ Downloading 'mg_thymus_slice2_tcr.tsv.gz'
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpmcRWCi/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_cell_types.csv.gz'
 ```
 
@@ -86,7 +86,7 @@ This vignette uses these files:
 
 | File | Contents |
 |----|----|
-| `mg_thymus_slice2_spatial.rds` | A spatial Seurat object for MG thymus |
+| `mg_thymus_slice2_spatial_brighter.rds` | A spatial Seurat object for MG thymus |
 | `mg_thymus_slice2_bcr.tsv.gz` | AIRR rearrangement table of IGH sequences with spatial IDs |
 | `mg_thymus_slice2_tcr.tsv.gz` | AIRR rearrangement table of TRB sequences with spatial IDs |
 | `mg_thymus_slice2_gc_polygons.csv` | Annotated polygons of the eGCs |
@@ -109,7 +109,7 @@ library(ggplot2)
 Read the Seurat object and the AIRR table:
 
 ``` r
-thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial.rds"))
+thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial_brighter.rds"))
 thymus
 #> An object of class Seurat 
 #> 506 features across 3203 samples within 2 assays 
@@ -373,7 +373,8 @@ spatialExpressionPlot(
   layer = "data",
   title = "AICDA",
   zero_tol = 0,
-  point_alpha = 0.5
+  point_alpha = 0.8,
+  point_size = 1.2
 )
 ```
 
@@ -388,7 +389,7 @@ plotReceptors(
   sirup,
   slot = "BCR",
   group = "locus",
-  colors = "#0072B2",
+  colors = "white",
   receptor_size = 1.2,
   title = "BCR-positive spots"
 )
@@ -439,8 +440,8 @@ plotReceptorsExpression(
   gene = "AICDA",
   assay = "alra",
   layer = "data",
-  colors = "#0072B2",
-  receptor_size = 1.3,
+  colors = "white",
+  receptor_size = 1.5,
   feature_size = 2,
   title = "AICDA expression and BCR-positive spots"
 )
@@ -649,7 +650,7 @@ used.
 back and validates it.
 
 ``` r
-path <- file.path(tempdir(), "mg_thymus_slice2.sirup.rds")
+path <- file.path(tempdir(), "mg_thymus_slice2_brighter.sirup.rds")
 saveSIRUP(sirup, path)
 sirup <- readSIRUP(path)
 sirup

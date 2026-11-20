@@ -16,21 +16,21 @@ plotSpatialPolygons(
   y = "y",
   polygon_id = "polygon",
   polygon_alpha = 0.2,
-  polygon_fill = "#0072B2",
+  polygon_fill = "white",
   fill_analysis = NULL,
   fill_column = NULL,
   analysis_fill = c("#D3D3D3", "#FFFF00"),
-  polygon_color = "#0072B2",
+  polygon_color = "white",
   linewidth = 0.6,
   image_alpha = 1,
   label = TRUE,
   label_by = "polygon",
   label_size = 3,
-  label_color = "black",
+  label_color = "white",
   label_outside = FALSE,
   label_offset = 0.08,
   label_leader = TRUE,
-  label_leader_color = "grey40",
+  label_leader_color = "white",
   zoom = FALSE,
   combine = TRUE,
   combine_sample_plots = FALSE
@@ -69,7 +69,7 @@ by polygon (default \code{"polygon"}).}
 \item{polygon_alpha}{Opacity of the polygon fill (default 0.2).}
 
 \item{polygon_fill}{Fill color of the polygons, if no analysis is mapped
-(default \code{"#0072B2"}).}
+(default \code{"white"}).}
 
 \item{fill_analysis}{Name of a stored SIRUP analysis that has one row for
 each polygon. The function colors the polygons with it.}
@@ -83,7 +83,7 @@ have a \code{polygon_id} or \code{polygon} column as the polygon key.}
 numeric analysis values (default \code{c("#D3D3D3", "#FFFF00")}). The function
 uses the Glasbey palette for other values.}
 
-\item{polygon_color}{Color of the polygon outlines (default \code{"#0072B2"}).}
+\item{polygon_color}{Color of the polygon outlines (default \code{"white"}).}
 
 \item{linewidth}{Width of the polygon outlines (default 0.6).}
 
@@ -96,7 +96,7 @@ uses the Glasbey palette for other values.}
 
 \item{label_size}{Text size of the labels (default 3).}
 
-\item{label_color}{Text color of the labels (default \code{"black"}).}
+\item{label_color}{Text color of the labels (default \code{"white"}).}
 
 \item{label_outside}{Put each label outside its polygon (default \code{FALSE})?
 The function pushes each label away from the centroid of all plotted
@@ -110,7 +110,7 @@ plotted coordinate range.}
 \item{label_leader}{Draw a line from each polygon to its label, if
 \code{label_outside} is \code{TRUE} (default \code{TRUE})?}
 
-\item{label_leader_color}{Color of the leader lines (default \code{"grey40"}).}
+\item{label_leader_color}{Color of the leader lines (default \code{"white"}).}
 
 \item{zoom}{Zoom to the extent of the polygons, not the full tissue (default
 \code{FALSE})?}

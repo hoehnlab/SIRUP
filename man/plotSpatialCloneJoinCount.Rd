@@ -21,7 +21,7 @@ plotSpatialCloneJoinCount(
   point_alpha = 0.9,
   edge_width = 0.6,
   edge_alpha = 0.75,
-  polygon_color = "black",
+  polygon_color = "white",
   polygon_linewidth = 0.6,
   image_alpha = 1,
   zoom = FALSE,
@@ -67,7 +67,7 @@ both contain the clone (default \code{TRUE})?}
 
 \item{edge_alpha}{Opacity of the neighbor lines.}
 
-\item{polygon_color}{Color of the polygon outlines.}
+\item{polygon_color}{Color of the polygon outlines (default \code{"white"}).}
 
 \item{polygon_linewidth}{Width of the polygon outlines.}
 

@@ -58,7 +58,7 @@ plotSpatialCloneJoinCount(
   point_alpha = 0.9,
   edge_width = 0.6,
   edge_alpha = 0.75,
-  polygon_color = "black",
+  polygon_color = "white",
   polygon_linewidth = 0.6,
   image_alpha = 1,
   zoom = FALSE,
@@ -85,7 +85,7 @@ Arguments:
 - `point_alpha`: Opacity of the spots.
 - `edge_width`: Width of the neighbor lines.
 - `edge_alpha`: Opacity of the neighbor lines.
-- `polygon_color`: Color of the polygon outlines.
+- `polygon_color`: Color of the polygon outlines (default `"white"`).
 - `polygon_linewidth`: Width of the polygon outlines.
 - `image_alpha`: Opacity of the tissue image.
 - `zoom`: Zoom to the spots in the test (default `FALSE`)?

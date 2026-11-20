@@ -30,13 +30,13 @@ plotSpatialColorTips(
   polygon_id = "polygon",
   polygon_val = NULL,
   polygon_alpha = 0.2,
-  polygon_fill = "#0072B2",
-  polygon_color = "#0072B2",
+  polygon_fill = "white",
+  polygon_color = "white",
   polygon_linewidth = 0.6,
   polygon_label = FALSE,
   polygon_label_by = NULL,
   polygon_label_size = 3,
-  polygon_label_color = "black",
+  polygon_label_color = "white",
   combine = TRUE,
   combine_sample_plots = FALSE
 )
@@ -114,9 +114,9 @@ all polygons.}
 
 \item{polygon_alpha}{Opacity of the polygon fill (default 0.2).}
 
-\item{polygon_fill}{Fill color of the polygons (default \code{"#0072B2"}).}
+\item{polygon_fill}{Fill color of the polygons (default \code{"white"}).}
 
-\item{polygon_color}{Color of the polygon outlines (default \code{"#0072B2"}).}
+\item{polygon_color}{Color of the polygon outlines (default \code{"white"}).}
 
 \item{polygon_linewidth}{Width of the polygon outlines (default 0.6).}
 
@@ -129,7 +129,7 @@ the function uses the polygon ID.}
 \item{polygon_label_size}{Text size of the polygon labels (default 3).}
 
 \item{polygon_label_color}{Text color of the polygon labels (default
-\code{"black"}).}
+\code{"white"}).}
 
 \item{combine}{Combine the image panels with patchwork (default \code{TRUE})?}
 
