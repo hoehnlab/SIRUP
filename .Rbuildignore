@@ -16,7 +16,6 @@
 ^docs/readthedocs/html$
 ^docs/readthedocs/markdown$
 ^docs$
-^helper_function_audit[.]md$
 ^CLAUDE[.]md$
 ^ai$
 ^\.claude$
