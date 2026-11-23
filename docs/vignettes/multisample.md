@@ -75,19 +75,6 @@ extdata <- SIRUP::downloadSIRUPExample(
     "mg_thymus_bulk_blood_month12_2.tsv.gz"
   )
 )
-#> ℹ Downloading 'mg_thymus_slice1_spatial_brighter.rds'
-#> ℹ 'mg_thymus_slice2_spatial_brighter.rds' is already in '/scratch/f007p0j/RtmpscrZTE/SIRUP_example'.
-#> ℹ Downloading 'mg_thymus_slice1_bcr.tsv.gz'
-#> ℹ 'mg_thymus_slice2_bcr.tsv.gz' is already in '/scratch/f007p0j/RtmpscrZTE/SIRUP_example'.
-#> ℹ 'mg_thymus_slice2_tcr.tsv.gz' is already in '/scratch/f007p0j/RtmpscrZTE/SIRUP_example'.
-#> ℹ Downloading 'mg_thymus_slice1_gc_polygons.csv'
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpscrZTE/SIRUP_example'.
-#> ℹ Downloading 'mg_thymus_bulk_thymus_1.tsv.gz'
-#> ℹ Downloading 'mg_thymus_bulk_thymus_2.tsv.gz'
-#> ℹ Downloading 'mg_thymus_bulk_blood_month0_1.tsv.gz'
-#> ℹ Downloading 'mg_thymus_bulk_blood_month0_2.tsv.gz'
-#> ℹ Downloading 'mg_thymus_bulk_blood_month12_1.tsv.gz'
-#> ℹ Downloading 'mg_thymus_bulk_blood_month12_2.tsv.gz'
 ```
 
 ## Load the samples

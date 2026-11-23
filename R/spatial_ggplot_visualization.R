@@ -2985,7 +2985,7 @@ sirupSampleFromImage <- function(image) {
     options <- .sirup_require_spatial_options(
       image_scale,
       swap_coords,
-      sample = parsed$sample
+      sample_id = parsed$sample
     )
     out <- .sirup_spatial_data(
       object = object[[parsed$sample]],

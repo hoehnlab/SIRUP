@@ -40,7 +40,7 @@ This code downloads a saved SIRUP object for MG thymus section 2, which is sligh
 and the QuPath exported polygons. Change `dest` to a whatever folder you wish to save the example data in.
 To see how the object was built, see `vignette("get-started", package = "SIRUP")`.
 
-```{r download-data}
+```{r download-data, message = FALSE}
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = c(

@@ -58,7 +58,7 @@ The examples use one myasthenia gravis (MG) thymus section. This code downloads 
 package, and reads it. The object has BCRs and TCRs, cell-type estimates, and BCR clones. Change `dest` to a folder you want to keep.
 The function skips files that are already there. To see how the object was built, see `vignette("get-started", package = "SIRUP")`.
 
-```{r download-data}
+```{r download-data, message = FALSE}
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = "mg_thymus_slice2_brighter.sirup.rds"

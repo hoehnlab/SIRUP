@@ -60,7 +60,7 @@ NULL
   mg_thymus_slice1_spatial.rds = "7ba68b7aa2b15d79f307d6c10fbe2444",
   mg_thymus_slice1_spatial_brighter.rds = "22f9f3dcf23b1edc403cb4f3fb6957a6",
   mg_thymus_slice2.sirup.rds = "06160861803adfe4bb372787454ef252",
-  mg_thymus_slice2_brighter.sirup.rds = "89b1f8556e8dcb0b41d6289c6d928342",
+  mg_thymus_slice2_brighter.sirup.rds = "3786f8097d5a5df0f355a5f6ff5e4fed",
   mg_thymus_slice2_bcr.tsv.gz = "5e321c97072f5385404e035993a2b3b1",
   mg_thymus_slice2_gc_polygons.csv = "645f0c556f6aa69a3adb735a6333cb43",
   mg_thymus_slice2_qupath_gcs.geojson = "015da4f75651f2beb49a0a6fa08fa6be",

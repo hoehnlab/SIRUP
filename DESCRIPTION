@@ -1,12 +1,16 @@
 Package: SIRUP
 Title: Spatial Immune Receptor Utilities Package
-Version: 0.0.0.9001
+Version: 1.0.0
 Authors@R: c(
     person("Hunter J.", "Melton", role = c("aut", "cre"), email = "Hunter.J.Melton@dartmouth.edu"),
-    person("Chinmay", "Vaidya", role = "aut", email = "chinmay.m.vaidya.gr@dartmouth.edu")
+    person("Chinmay", "Vaidya", role = "aut", email = "chinmay.m.vaidya.gr@dartmouth.edu"),
+    person("Apekshya", "Panda", role = "aut"),
+    person("Kenneth B.", "Hoehn", role = "aut", email = "Kenneth.B.Hoehn@dartmouth.edu")
   )
 Author: Hunter J. Melton [aut, cre],
-    Chinmay Vaidya [aut]
+    Chinmay Vaidya [aut],
+    Apekshya Panda [aut],
+    Kenneth B. Hoehn [aut]
 Maintainer: Hunter J. Melton <Hunter.J.Melton@dartmouth.edu>
 Description: Spatial Immune Receptor Utilities Package. A consolidated
     toolkit for long-read spatial immune receptor sequencing. SIRUP takes
@@ -14,7 +18,10 @@ Description: Spatial Immune Receptor Utilities Package. A consolidated
     end-to-end IgBLAST and pRESTO pipeline to produce AIRR-style
     rearrangement tables with spatial IDs and coordinates. It also provides
     Visium HD barcode mapping, clonal summaries, tree plotting, polygon
-    annotation, and spatial statistics.
+    annotation, and spatial statistics. If you use SIRUP, please cite Melton
+    et al. (bioRxiv), 'SIRUP, a toolkit for spatial B and T cell receptor
+    repertoires, reveals differences between normal and ectopic germinal
+    centers in myasthenia gravis'. Run citation("SIRUP") for the reference.
 License: MIT + file LICENSE
 URL: https://github.com/hoehnlab/SIRUP, https://sirup.readthedocs.io
 BugReports: https://github.com/hoehnlab/SIRUP/issues

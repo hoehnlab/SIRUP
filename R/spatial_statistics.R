@@ -1561,6 +1561,7 @@ plotRipleyCrossK <- function(kcross,
   swap_coords <- options$swap_coords
   # Genes and metadata need no receptors. The receptor table only supplies the sample field,
   # which all slots share, so any slot works then.
+  variable_type <- match.arg(variable_type, c("feature", "metadata", "receptor", "clone"))
   needs_receptors <- variable_type %in% c("receptor", "clone")
   if (!needs_receptors && isSIRUP(object) && is.null(slot)) {
     slot <- .sirup_slot_names(object)[[1L]]
@@ -1573,8 +1574,6 @@ plotRipleyCrossK <- function(kcross,
   if (is.null(clone_col) && !is.null(inputs$receptor_fields$clone)) {
     clone_col <- inputs$receptor_fields$clone
   }
-  variable_type <- match.arg(variable_type, c("feature", "metadata", "receptor", "clone"))
-
   # Start from one row per spatial coordinate so all statistic modes share the
   # same neighbor graph construction.
   dat <- .sirup_spatial_coordinate_table(object, images = images, image_scale = image_scale, swap_coords = swap_coords)

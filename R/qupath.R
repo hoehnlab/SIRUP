@@ -368,7 +368,9 @@ addQuPathPolygons <- function(x,
 
     # Buffer distance: the spot radius, in the coordinates of the object.
     if (is.null(buffer)) {
-      spot <- tryCatch(unname(SeuratObject::ScaleFactors(tissue)[["spot"]]), error = function(e) NULL)
+      # Some SeuratObject versions do not export ScaleFactors(), so look it up at run time.
+      scale_factors <- get0("ScaleFactors", envir = asNamespace("SeuratObject"), inherits = FALSE)
+      spot <- tryCatch(unname(scale_factors(tissue)[["spot"]]), error = function(e) NULL)
       if (is.null(spot)) spot <- tryCatch(tissue@scale.factors$spot, error = function(e) NULL)
       if (is.null(spot) || !is.numeric(spot) || !is.finite(spot)) {
         rlang::abort("Could not read the spot size from the Seurat image. Give `buffer`.")

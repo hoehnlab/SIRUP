@@ -16,19 +16,15 @@ SIRUP covers three stages:
 3. **Analyze and visualize.** Draw tissue regions, measure clonal dominance and
    diversity, test spatial patterns, and show lineage trees on the tissue.
 
-SIRUP is in active development. Function names and arguments can change before
-the first release.
-
 ## Citation
 
-Melton, H.J., Vaidya, C.M., Panda, A., Fielding, J.J., Sergison, E., Kolling, F.W., O'Connor, K.C. Hoehn, K.B. *SIRUP, a toolkit for spatial B and T cell receptor repertoires, reveals differences between normal and ectopic germinal centers in myasthenia gravis.*  bioRxiv, date, doi.
+Melton, H.J., Vaidya, C.M., Panda, A., Fielding, J.J., Sergison, E., Kolling, F.W., O'Connor, K.C., Hoehn, K.B. *SIRUP, a toolkit for spatial B and T cell receptor repertoires, reveals differences between normal and ectopic germinal centers in myasthenia gravis.* bioRxiv.
 
 ## Getting started
 
-Start with the [get-started guide](vignettes/SIRUP.Rmd). It shows how to build
-the SIRUP object and a few plots and analyses.
-
-A full tutorial is available at [TODO].
+Start with the [get-started guide](https://sirup.readthedocs.io). It shows how to
+build the SIRUP object and a few plots and analyses. The full documentation is at
+<https://sirup.readthedocs.io>.
 
 
 ## Install SIRUP and dependencies
@@ -40,8 +36,6 @@ installs the Bioconductor packages that SIRUP needs, such as ggtree:
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 BiocManager::install("hoehnlab/SIRUP")
 ```
-
-TODO: CRAN
 
 ### Other dependencies
 

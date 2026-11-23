@@ -43,7 +43,6 @@ extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = "mg_thymus_slice2_brighter.sirup.rds"
 )
-#> ℹ Downloading 'mg_thymus_slice2_brighter.sirup.rds'
 ```
 
 ``` r

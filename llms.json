@@ -1,8 +1,8 @@
 {
   "name": "SIRUP",
   "title": "Spatial Immune Receptor Utilities Package",
-  "description": "A consolidated toolkit for long-read spatial immune receptor sequencing. SIRUP takes demultiplexed reads from the companion 'RRAD' package and runs an end-to-end IgBLAST and pRESTO pipeline to produce AIRR-style rearrangement tables with spatial IDs and coordinates. It also provides Visium HD barcode mapping, clonal summaries, tree plotting, polygon annotation, and spatial statistics.",
-  "version": "0.0.0.9001",
+  "description": "A consolidated toolkit for long-read spatial immune receptor sequencing. SIRUP takes demultiplexed reads from the companion 'RRAD' package and runs an end-to-end IgBLAST and pRESTO pipeline to produce AIRR-style rearrangement tables with spatial IDs and coordinates. It also provides Visium HD barcode mapping, clonal summaries, tree plotting, polygon annotation, and spatial statistics. If you use SIRUP, please cite Melton et al. (bioRxiv), 'SIRUP, a toolkit for spatial B and T cell receptor repertoires, reveals differences between normal and ectopic germinal centers in myasthenia gravis'. Run citation(\"SIRUP\") for the reference.",
+  "version": "1.0.0",
   "license": "MIT + file LICENSE",
   "repository": "https://github.com/hoehnlab/SIRUP",
   "documentation": "https://sirup.readthedocs.io/en/latest/",

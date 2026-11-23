@@ -1,0 +1,21 @@
+bibentry(
+  "Article",
+  title = "SIRUP, a toolkit for spatial B and T cell receptor repertoires, reveals differences between normal and ectopic germinal centers in myasthenia gravis",
+  author = c(
+    person("Hunter J.", "Melton"),
+    person("Chinmay M.", "Vaidya"),
+    person("Apekshya", "Panda"),
+    person("Jessie J.", "Fielding"),
+    person("Elizabeth", "Sergison"),
+    person("Fred W.", "Kolling"),
+    person("Kevin C.", "O'Connor"),
+    person("Kenneth B.", "Hoehn")
+  ),
+  journal = "bioRxiv",
+  year = "2026",
+  textVersion = paste(
+    "Melton HJ, Vaidya CM, Panda A, Fielding JJ, Sergison E, Kolling FW, O'Connor KC, Hoehn KB.",
+    "SIRUP, a toolkit for spatial B and T cell receptor repertoires, reveals differences",
+    "between normal and ectopic germinal centers in myasthenia gravis. bioRxiv."
+  )
+)

@@ -562,3 +562,13 @@ test_that("spatialCloneJoinCount honors use_stored_polygons for multisample obje
     "stored polygons"
   )
 })
+
+test_that("Moran statistics run with the default variable_type", {
+  skip_if_not_installed("spdep")
+  skip_if_not_installed("SeuratObject")
+  path <- system.file("extdata", "sirup_synthetic.rds", package = "SIRUP")
+  # The shipped object has the installed version, so reading it gives no warning.
+  expect_no_warning(x <- readSIRUP(path))
+  expect_no_error(spatialMoran(x, "gene1", k = 4))
+  expect_no_error(spatialLocalMoran(x, "gene1", k = 4))
+})

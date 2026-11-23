@@ -53,7 +53,7 @@ and 12 months later. The question is which clones in ectopic germinal centers (e
 This page uses example files that are slightly too big to be part of the SIRUP package. This code
 downloads them. Change `dest` to a folder you want to keep. The function skips files that are already there.
 
-```{r download-data}
+```{r download-data, message = FALSE}
 extdata <- SIRUP::downloadSIRUPExample(
   dest = file.path(tempdir(), "SIRUP_example"),
   files = c(
