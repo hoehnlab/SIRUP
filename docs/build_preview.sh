@@ -9,7 +9,7 @@
 #   ../docs_preview/README.txt       how to open it, and which commit it came from
 # Open sirup-docs/index.html in a browser. The pages work without a web server.
 #
-# build_docs.sbatch runs this script after each full docs build. To use another
+# The lab build job runs this script after each full docs build. To use another
 # folder, set PREVIEW_DIR. To use another Python with mkdocs, set MKDOCS_PYTHON.
 set -euo pipefail
 

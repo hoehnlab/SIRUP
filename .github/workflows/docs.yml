@@ -1,7 +1,7 @@
 name: docs
 
 # Check the committed docs. This job needs no R and no Docker image.
-# You build the pages on Discovery with docs/build_docs.sbatch, then commit them.
+# You build the pages on a machine with R (see docs/build.R), then commit them.
 # This job then does three things:
 #   1. It checks that each Rd file has a page and a nav entry.
 #   2. It checks that no link in the pages is dead.
