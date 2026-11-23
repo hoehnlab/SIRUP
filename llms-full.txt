@@ -1001,9 +1001,8 @@ This vignette uses these files:
 
 The code above downloaded these files with `downloadSIRUPExample()`.
 
-The SIRUP paper describes how the authors made these files. To reduce
-file sizes, each Seurat object holds a few hundred genes and a reduced
-image.
+To reduce file sizes, each Seurat object holds a few hundred genes and a
+reduced image.
 
 ``` r
 library(SIRUP)
@@ -1788,12 +1787,10 @@ section stay in the table as non-spatial rows. SIRUP does not put them
 on a tissue, but clone calling, trees, and custom summaries can use
 them.
 
-This page follows Figure 5 of the SIRUP paper. The MG thymus data come
-from a patient who had a thymectomy. Besides the two Visium sections,
-there is bulk BCR-seq of the thymus and bulk BCR-seq of blood, taken at
-the thymectomy and 12 months later. The question is which clones in
-ectopic germinal centers (eGCs) also appear in the blood. An eGC is a
-site in the thymus where B cells proliferate and mutate their receptors.
+The MG thymus data come from a patient who had a thymectomy. Besides the
+two Visium sections, there is bulk BCR-seq from the thymus and bulk
+BCR-seq from blood at the time of thymectomy and 12 months after
+thymectomy.
 
 <div markdown="1"
 style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
@@ -2695,11 +2692,11 @@ The point of using UMI support is to let multiple reads within the same
 UMI be counted as support for consensus sequence building, rather than
 as separate reads.
 
-This call of `processSpatialSample` is what was used in the SIRUP paper
-to process the demultiplexed data with UMI support. `filter_args` are
-passed to a call of `filterAirr()` that gets run after the first IgBLAST
-step to reduce downstream computational time. If you do not pass a set
-of `filter_args`, the filtering step is skipped.
+This call of `processSpatialSample` will process the demultiplexed data
+with UMI support. `filter_args` are passed to a call of `filterAirr()`
+that gets run after the first IgBLAST step to reduce downstream
+computational time. If you do not pass a set of `filter_args`, the
+filtering step is skipped.
 
 ``` r
 result <- processSpatialSample(

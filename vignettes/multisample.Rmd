@@ -40,8 +40,8 @@ The SIRUP object contains
   including both spatial and bulk data. A `sample` column tells SIRUP which sample each row belongs to.
 * Rows whose `sample` does not name a section stay in the table as non-spatial rows. SIRUP does not put them on a tissue, but clone calling, trees, and custom summaries can use them.
 
-This page follows Figure 5 of the SIRUP paper. The MG thymus data come from a patient who had a thymectomy. Besides the two Visium sections, there is bulk BCR-seq of the thymus and bulk BCR-seq of blood, taken at the thymectomy
-and 12 months later. The question is which clones in ectopic germinal centers (eGCs) also appear in the blood. An eGC is a site in the thymus where B cells proliferate and mutate their receptors.
+The MG thymus data come from a patient who had a thymectomy. Besides the two Visium sections, there is bulk BCR-seq from 
+the thymus and bulk BCR-seq from blood at the time of thymectomy and 12 months after thymectomy.
 
 <div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
   <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>

@@ -89,9 +89,8 @@ This vignette uses these files:
 
 The code above downloaded these files with `downloadSIRUPExample()`.
 
-The SIRUP paper describes how the authors made these files. To reduce
-file sizes, each Seurat object holds a few hundred genes and a reduced
-image.
+To reduce file sizes, each Seurat object holds a few hundred genes and a
+reduced image.
 
 ``` r
 library(SIRUP)

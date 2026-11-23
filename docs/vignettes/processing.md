@@ -353,11 +353,11 @@ The point of using UMI support is to let multiple reads within the same
 UMI be counted as support for consensus sequence building, rather than
 as separate reads.
 
-This call of `processSpatialSample` is what was used in the SIRUP paper
-to process the demultiplexed data with UMI support. `filter_args` are
-passed to a call of `filterAirr()` that gets run after the first IgBLAST
-step to reduce downstream computational time. If you do not pass a set
-of `filter_args`, the filtering step is skipped.
+This call of `processSpatialSample` will process the demultiplexed data
+with UMI support. `filter_args` are passed to a call of `filterAirr()`
+that gets run after the first IgBLAST step to reduce downstream
+computational time. If you do not pass a set of `filter_args`, the
+filtering step is skipped.
 
 ``` r
 result <- processSpatialSample(
