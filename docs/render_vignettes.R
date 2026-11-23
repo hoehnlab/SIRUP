@@ -2,8 +2,7 @@
 #
 # STATUS: run on a small fixture package (R 4.6.1, Nov 2026): figures, local images and
 # vignette() links work. Not yet run on a package with heavy vignettes (Seurat and so on).
-# Modelled on SIRUP's docs/readthedocs/render_docs.R, which renders
-# rmarkdown::github_document and has been used in practice.
+# It renders rmarkdown::github_document, which has been used in practice.
 #
 # vignettes/*.Rmd stays the single source. Chunks that call tools the machine lacks should
 # already carry eval = FALSE in the Rmd; this script never edits the Rmd.

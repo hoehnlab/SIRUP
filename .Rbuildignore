@@ -9,12 +9,9 @@
 ^spatialVDJ_.*\.tar\.gz$
 ^Rplots\.pdf$
 ^vignettes/figures$
-^vignettes/polygon_selection_screenshots$
 ^vignettes/(choose-spatial-statistic|clones-and-trees|get-started|multisample|processing|qupath-annotations|regions|sirup-object|llm-agents)\.Rmd$
 ^src/.*[.]o$
 ^src/.*[.]so$
-^docs/readthedocs/html$
-^docs/readthedocs/markdown$
 ^docs$
 ^CLAUDE[.]md$
 ^ai$
