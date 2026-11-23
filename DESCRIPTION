@@ -3,7 +3,7 @@ Title: Spatial Immune Receptor Utilities Package
 Version: 1.0.0
 Authors@R: c(
     person("Hunter J.", "Melton", role = c("aut", "cre"), email = "Hunter.J.Melton@dartmouth.edu"),
-    person("Chinmay", "Vaidya", role = "aut", email = "chinmay.m.vaidya.gr@dartmouth.edu"),
+    person("Chinmay", "Vaidya", role = "aut"),
     person("Apekshya", "Panda", role = "aut"),
     person("Kenneth B.", "Hoehn", role = "aut", email = "Kenneth.B.Hoehn@dartmouth.edu")
   )
