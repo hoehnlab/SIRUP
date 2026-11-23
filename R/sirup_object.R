@@ -27,7 +27,6 @@
 #' simulated. The receptor rows are real BCR sequences from a human thymus
 #' section, assigned to synthetic spots. Load the object with
 #' `readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))`.
-#' The script `data-raw/make_synthetic_example.R` builds it.
 #'
 #' @param spatial Seurat object with spatial expression data, or a named list of
 #'   Seurat objects (one per spatial sample).

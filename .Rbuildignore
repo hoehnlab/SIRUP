@@ -20,7 +20,6 @@
 ^\.smbdelete.*
 ^\.git$
 ^\.gitignore$
-^data-raw$
 ^mkdocs\.yml$
 ^\.readthedocs\.yaml$
 ^site$
@@ -30,3 +29,4 @@
 ^llms\.json$
 ^llms-full\.json$
 ^example-data$
+^data-raw$

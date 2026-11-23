@@ -24,3 +24,4 @@ vignettes/*_files/
 site/
 docs/build_docs_*.log
 docs/build_docs.sbatch
+data-raw/

@@ -51,7 +51,7 @@ extdata <- SIRUP::downloadSIRUPExample(
 #> ℹ Downloading 'mg_thymus_slice2_spatial_brighter.rds'
 #> ℹ Downloading 'mg_thymus_slice2_bcr.tsv.gz'
 #> ℹ Downloading 'mg_thymus_slice2_tcr.tsv.gz'
-#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpIBGu3P/SIRUP_example'.
+#> ℹ 'mg_thymus_slice2_gc_polygons.csv' is already in '/scratch/f007p0j/RtmpscrZTE/SIRUP_example'.
 #> ℹ Downloading 'mg_thymus_cell_types.csv.gz'
 ```
 

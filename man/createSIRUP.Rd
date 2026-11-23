@@ -118,7 +118,6 @@ spots, 10 genes, 5 clones, and 2 polygons. The spots and gene counts are
 simulated. The receptor rows are real BCR sequences from a human thymus
 section, assigned to synthetic spots. Load the object with
 \code{readSIRUP(system.file("extdata", "sirup_synthetic.rds", package = "SIRUP"))}.
-The script \code{data-raw/make_synthetic_example.R} builds it.
 }
 \examples{
 # Use the small synthetic object that comes with the package.
