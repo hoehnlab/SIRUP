@@ -19,8 +19,9 @@ knitr::opts_chunk$set(
 
 An LLM agent can write and run SIRUP code for you, and it can write better code when it knows how SIRUP works.
 SIRUP provides agents with:
-* a packaged skill 
-* the llms files, which are text and JSON copies of the documentation.
+
+- a packaged skill 
+- the llms files, which are text and JSON copies of the documentation.
 
 ## How to teach your agent about SIRUP
 
