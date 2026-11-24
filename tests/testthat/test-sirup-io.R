@@ -103,6 +103,28 @@ test_that("readSIRUP warns when the saving package version differs", {
   expect_warning(readSIRUP(file), "SIRUP")
 })
 
+test_that("0.0.0.9001 counts as the same release as 1.0.0", {
+  expect_true(SIRUP:::.sirup_same_release("1.0.0", "1.0.0"))
+  expect_true(SIRUP:::.sirup_same_release("0.0.0.9001", "1.0.0"))
+  expect_false(SIRUP:::.sirup_same_release("0.0.0.9001", "1.0.1"))
+  expect_false(SIRUP:::.sirup_same_release("0.0.0.9002", "1.0.0"))
+  expect_false(SIRUP:::.sirup_same_release("0.0.0.0000", "1.0.0"))
+  expect_false(SIRUP:::.sirup_same_release("1.0.0", "0.0.0.9001"))
+})
+
+test_that("readSIRUP does not warn for an object saved with 0.0.0.9001 under 1.0.0", {
+  skip_if_not(identical(as.character(utils::packageVersion("SIRUP")), "1.0.0"))
+  x <- make_io_test_sirup()
+  file <- tempfile(fileext = ".sirup.rds")
+  saveSIRUP(x, file)
+
+  stamped <- readRDS(file)
+  attr(stamped, "sirup_pkg_version") <- "0.0.0.9001"
+  saveRDS(stamped, file)
+
+  expect_no_warning(readSIRUP(file))
+})
+
 test_that("readSIRUP errors on a non-SIRUP file", {
   file <- tempfile(fileext = ".rds")
   saveRDS(list(1, 2, 3), file)

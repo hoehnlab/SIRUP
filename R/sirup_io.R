@@ -13,7 +13,9 @@
 #'     SIRAP (class `sirap`), to the current names.
 #'   \item It upgrades an older object to the current schema.
 #'   \item It gives a warning if the versions of SIRUP or SeuratObject that
-#'     wrote the file differ from the installed versions.
+#'     wrote the file differ from the installed versions. Version 0.0.0.9001
+#'     is the development version that became release 1.0.0. It gives no
+#'     warning for that pair.
 #'   \item It validates the object, then returns it.
 #' }
 #'
@@ -69,7 +71,7 @@ readSIRUP <- function(file) {
   x <- .sirup_upgrade(x)
 
   current_pkg <- as.character(utils::packageVersion("SIRUP"))
-  if (!is.null(saved_pkg) && !identical(as.character(saved_pkg), current_pkg)) {
+  if (!is.null(saved_pkg) && !.sirup_same_release(saved_pkg, current_pkg)) {
     cli::cli_warn(c(
       "This object was saved with SIRUP {saved_pkg} but SIRUP {current_pkg} is installed.",
       "i" = "It has been upgraded to the current schema; review results if behavior differs."
@@ -112,6 +114,15 @@ readSIRUP <- function(file) {
     }
   }
   x
+}
+
+# TRUE when two SIRUP versions are the same code. Version 0.0.0.9001 is the
+# development version that was released as 1.0.0, so the pair counts as equal.
+.sirup_same_release <- function(saved, current) {
+  saved <- as.character(saved)
+  current <- as.character(current)
+  identical(saved, current) ||
+    (identical(saved, "0.0.0.9001") && identical(current, "1.0.0"))
 }
 
 # Installed SeuratObject version, or NA when SeuratObject is unavailable.

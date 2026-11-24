@@ -36,7 +36,9 @@ SeuratObject that write the file.
 SIRAP (class \code{sirap}), to the current names.
 \item It upgrades an older object to the current schema.
 \item It gives a warning if the versions of SIRUP or SeuratObject that
-wrote the file differ from the installed versions.
+wrote the file differ from the installed versions. Version 0.0.0.9001
+is the development version that became release 1.0.0. It gives no
+warning for that pair.
 \item It validates the object, then returns it.
 }
 }
