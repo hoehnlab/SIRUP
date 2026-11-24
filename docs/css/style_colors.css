@@ -40,10 +40,10 @@
 /* ---- Light grey -> label tan ------------------------------------------------------ */
 body { background: var(--sirup-tan); }
 /* The theme paints the margin beside the page text with a 5% black layer, which looks grey. Make it tan. */
-.wy-nav-content-wrap { background: var(--sirup-tan); }
-/* Repeat the logo in the margin, like advertising boards at a stadium. The tile is tan with faint logos.
-   Use it only on wide screens. The theme gives the text column its own light box only from 1100px up.
-   On narrower screens the text sits directly on this background, so the logos would run behind it. */
+/* Wide screens only (1100px and up): the theme puts a light box behind the text, and the strips beside
+   it show the page background. Make those strips tan and repeat the logo in them, like advertising
+   boards at a stadium. The tile is tan with faint logos. On narrower screens the text sits directly on
+   the page background, so leave the theme's light page there. */
 @media screen and (min-width: 1100px) {
   .wy-nav-content-wrap {
     background: var(--sirup-tan) url("../img/sirup-margin-tile.png") repeat;
