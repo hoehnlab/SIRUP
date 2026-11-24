@@ -64,7 +64,7 @@ start the next region. When finished, click **Done**. The app returns a
 table of the vertices, and it writes them to the CSV file at
 `save_path`.
 
-![](figures/select-spatial-polygons-app.jpg)
+![](figures/region_selection.png)
 
 The panel on the left sets the assay, layer, and feature (from the
 spatial GEX data) that color the spots, the size and opacity of the
@@ -503,6 +503,8 @@ plotSpatialPolygonPies(
   top_n = 5,
   zoom = TRUE
 )
+#> Warning: package 'sf' was built under R version 4.5.3
+#> Linking to GEOS 3.7.2, GDAL 3.0.4, PROJ 6.3.2; sf_use_s2() is TRUE
 ```
 
 ![](regions_files/figure-gfm/clipped-1.jpeg)

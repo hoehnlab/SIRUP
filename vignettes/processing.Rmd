@@ -81,34 +81,43 @@ Long-read sequencing has a high error rate. A consensus of several reads removes
 
 ### IgBLAST and IMGT germline references
 
-See more detailed instructions in the [airrblast documentation](https://github.com/hoehnlab/airrblast/tree/main).
+First, download IgBLAST with `airrblast::downloadIgBLAST()`. This downloads IgBLAST from NCBI and unpacks it
+in your working directory. For IgBLAST 1.22.0, it also swaps in the patched `.aux` files. Set `os` to
+`"linux"`, `"macosx"`, or `"win64"`. The function returns the name of the IgBLAST folder.
 
-Briefly, download and decompress [IgBLAST](https://ftp.ncbi.nih.gov/blast/executables/igblast/release/LATEST/).
+```{r download-igblast, eval = FALSE}
+library(airrblast)
+
+# Download and unpack IgBLAST in the working directory. Only do this once
+igblast_dir <- downloadIgBLAST(dir = "./", version = "1.22.0", os = "linux")
+igblast_dir
+```
 
 <div markdown="1" style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
   <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #8b3620; color: #ffffff; font-weight: 700;"> <b>WARNING</b> </p>
-  There is a patch to the latest stable release of IgBLAST. Download the patched .aux files
+  If you already have IgBLAST installed, be aware that there is a patch to the latest stable release of IgBLAST. Download the patched .aux files
   [here](https://ftp.ncbi.nih.gov/blast/executables/igblast/release/patch/) (in `optional_file`). Then swap them into your
   `optional_file` directory in your IgBLAST installation.
 </div>
 
 Then download the IMGT germline references and set up the IgBLAST database with `airrblast`. airrblast supports
-human, mouse, and rhesus macaque.
+human, mouse, and rhesus macaque. The code below makes three paths that later steps reuse: `igblast_dir`
+(the IgBLAST program), `imgt_refs` (the IMGT germline references), and `igblast_refs` (the IgBLAST search databases).
 
 ```{r setup-igblast, eval = FALSE}
 library(airrblast)
 library(airr)
 
-# name/location of the uncompressed IgBLAST directory
-igblast_dir <- "ncbi-igblast-1.22.0"
+# igblast_dir is the IgBLAST folder from downloadIgBLAST() above.
+# If you installed IgBLAST by hand, set it to the location of the uncompressed IgBLAST directory.
 
-# Download IMGT GENE-DB into directory "imgt"
-# Do this only once
-downloadIMGT("imgt", organism="human", verbose=1)
+# Download the IMGT GENE-DB germline references into the directory "imgt".
+# imgt_refs is the path to this directory. Do this only once.
+imgt_refs <- downloadIMGT("imgt", organism = "human", verbose = 1)
 
-# Set up search databases for IgBlast using imgt database
-# Do this only once
-imgtToIgblast("imgt", "igblast", igblast_dir)
+# Set up the IgBLAST search databases from the IMGT references.
+# igblast_refs is the path to the new databases. Do this only once.
+igblast_refs <- imgtToIgblast(imgt_refs, "igblast", igblast_dir)
 ```
 
 ### Other dependencies
@@ -120,8 +129,9 @@ imgtToIgblast("imgt", "igblast", igblast_dir)
 
 <div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
   <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Note</b> </p>
-  Paths such as `~/share/igblast` and `~/bin/muscle3.8.31_i86linux64`
-  in this page are examples. Replace them with the paths on your system.
+  The paths `igblast_dir`, `imgt_refs`, and `igblast_refs` come from the setup code above.
+  Paths such as `~/bin/muscle3.8.31_i86linux64` in this page are examples.
+  Replace them with the paths on your system.
 </div>
 
 Check that R can find the programs. This chunk shows code only:
@@ -131,21 +141,22 @@ Sys.which(c(
   "ClusterSets.py", "ParseHeaders.py", "AlignSets.py", "BuildConsensus.py",
   "vsearch"
 ))
-file.exists(file.path("~/share/igblast", "bin", "igblastn"))
+file.exists(file.path(igblast_dir, "bin", "igblastn"))
 ```
 
 An empty string means R cannot find that program. Add its folder to `PATH`,
 or give its full path to `processSpatialSample()` (`muscle_exec`). SIRUP runs
 IgBLAST through airrblast. It uses `<igblast_base>/bin/igblastn`.
 
-## Process the demultiplexed reads
+## Optional: run the first steps of `processSpatialSample()` separately
 
 To go from demultiplexed reads to an AIRR table, give the FASTA file to
 `processSpatialSample()`. It runs IgBLAST on each read, reads the barcode and
 UMI from the header, filters the reads, builds the consensus sequences, and
-writes the AIRR table. The rest of *this* section is optional. Skip ahead to
-[Run the consensus pipeline](#run-the-consensus-pipeline) if you do not want to
-run the first IgBLAST pass by hand and examine the reads before building consensus sequences.
+writes the AIRR table. This section runs the first of those steps one at a time
+(the IgBLAST pass and the filtering). You can then examine the reads before building
+consensus sequences. The rest of *this* section is optional. Skip ahead to
+[Run the consensus pipeline](#run-the-consensus-pipeline) to run all the steps in one call.
 
 ### Run the first IgBLAST pass by hand
 
@@ -163,8 +174,8 @@ library(airrblast)
 
 assignGenes(
   file = "prepared/sample-igblast.fasta",
-  igblast = "~/share/igblast",
-  refs = "~/share/igblast_refs",
+  igblast = igblast_dir,
+  refs = igblast_refs,
   organism = "human",
   locus = "Ig",
   outfile = "processed/reads_igblast.tsv",
@@ -246,8 +257,9 @@ You can start from three types of input. Demultiplexed reads (the first row) are
 ### From demultiplexed reads
 
 This call takes the FASTA from RAD/rRAD all the way to a properly formatted AIRR
-rearrangement. It will run the first IgBLAST pass and filtering. Note that you should replace
-the paths below with your own paths.
+rearrangement. It will run the first IgBLAST pass and filtering. The `igblast_dir`,
+`imgt_refs`, and `igblast_refs` paths are from the [setup code](#igblast-and-imgt-germline-references)
+above. Replace the other paths (`input`, `output_dir`, `muscle_exec`) with your own.
 
 ```{r process-fasta, eval = FALSE}
 result <- processSpatialSample(
@@ -255,9 +267,9 @@ result <- processSpatialSample(
   output_dir = "processed/bcr",
   receptor = "ig",
   organism = "human",
-  igblast_base = "~/share/igblast",
-  igblast_refs = "~/share/igblast_refs",
-  imgt_dir = "~/share/imgt",
+  igblast_base = igblast_dir,
+  igblast_refs = igblast_refs,
+  imgt_dir = imgt_refs,
   muscle_exec = "~/bin/muscle3.8.31_i86linux64",
   identity = 1.0,
   consensus_freq = 0.51,
@@ -322,9 +334,9 @@ result <- processSpatialSample(
   identity = 1.0,
   consensus_freq = 0.51,
   cluster_field = "barcode",
-  igblast_base = "~/share/igblast",
-  igblast_refs = "~/share/igblast_refs",
-  imgt_dir = "~/share/imgt",
+  igblast_base = igblast_dir,
+  igblast_refs = igblast_refs,
+  imgt_dir = imgt_refs,
   muscle_exec = "~/bin/muscle3.8.31_i86linux64",
   nproc = 8,
   umi_support = TRUE,
@@ -360,9 +372,9 @@ processSpatialSamples(
   inputs = c("prepared/slice1.fasta", "prepared/slice2.fasta"),
   output_dirs = c("processed/slice1", "processed/slice2"),
   receptor = "ig",
-  igblast_base = "~/share/igblast",
-  igblast_refs = "~/share/igblast_refs",
-  imgt_dir = "~/share/imgt",
+  igblast_base = igblast_dir,
+  igblast_refs = igblast_refs,
+  imgt_dir = imgt_refs,
   nproc = 8
 )
 ```

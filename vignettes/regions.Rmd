@@ -70,7 +70,7 @@ Click to select the vertices of a region, then click
 click **Done**. The app returns a table of the vertices, and it writes them to the CSV file at `save_path`.
 
 ```{r polygon-app, echo = FALSE, out.width = "100%"}
-knitr::include_graphics("figures/select-spatial-polygons-app.jpg")
+knitr::include_graphics("figures/region_selection.png")
 ```
 
 The panel on the left sets the assay, layer, and feature (from the spatial GEX data) that color the spots, the size

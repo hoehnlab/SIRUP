@@ -1,4 +1,4 @@
-Infer clones and lineage trees in situ
+Infer clones and estimate lineage trees in situ
 ================
 
 <div markdown="1"
@@ -94,6 +94,7 @@ sirup <- addPolygons(
   sirup,
   polygons_path = file.path(extdata, "mg_thymus_slice2_gc_polygons.csv")
 )
+#> Loading required namespace: Seurat
 ```
 
 ## Build clones
@@ -162,8 +163,10 @@ sirup <- updateReceptors(
 Next, reconstruct the germline of the B cell clones with
 `dowser::createGermlines()`. The germline is the sequence of the
 unmutated common ancestor, which will root the reconstructed trees.
-Building the germline requires IMGT references. Set the variable
-`imgt_dir` to the folder that contains them.
+Building the germline requires IMGT references. Use the `imgt_refs`
+folder that you made with `downloadIMGT()` in the [IgBLAST and IMGT
+germline references](processing.md#igblast-and-imgt-germline-references)
+section of the processing guide.
 
 <div markdown="1"
 style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
@@ -173,14 +176,18 @@ style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24p
 <b>Note</b>
 </p>
 
-If you have not yet set up the IMGT references, see the
-[documentation](https://github.com/hoehnlab/airrblast) for the
-`airrblast` package and download and set up the IMGT references.
+If you have not yet set up the IMGT references, follow the instructions
+in the [IgBLAST and IMGT germline
+references](processing.md#igblast-and-imgt-germline-references) section
+of the processing guide, which will create the `imgt_refs` folder. For
+more detail, see the [airrblast
+documentation](https://github.com/hoehnlab/airrblast).
 
 </div>
 
 ``` r
-references <- dowser::readIMGT(imgt_dir)
+# imgt_refs is the folder name from downloadIMGT()
+references <- dowser::readIMGT(file.path(imgt_refs, "human", "vdj"))
 #> [1] "Read in 1198 from 17 fasta files"
 
 sirup <- updateReceptors(
@@ -251,7 +258,7 @@ plotReceptors(
 
 ![](clones-and-trees_files/figure-gfm/shm-map-1.jpeg)
 
-## Infer trees
+## Estimate trees
 
 First, we need to choose a few clones to build trees for. The three
 clones below are large and have sequences in the ectopic germinal

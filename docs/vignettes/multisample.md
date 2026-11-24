@@ -231,6 +231,7 @@ sirup <- createSIRUP(
   image_scale = "lowres",
   swap_coords = FALSE
 )
+#> Loading required namespace: Seurat
 
 sirup
 #> <SIRUP object>
@@ -388,12 +389,12 @@ spatialExpressionPlot(
 
 ![](multisample_files/figure-gfm/plot-one-1.jpeg)
 
-## Infer clones and trees across all samples
+## Build clones and estimate trees across all samples
 
-Infer clones for the entire set of BCRs, including both spatial and bulk
-datasets, using `updateReceptors()` with `scoper::hierarchicalClones()`.
-Clones represent the set of B cells that are inferred to descend from a
-common ancestor.
+Build clones for the entire set of BCRs, including both the spatial and
+bulk datasets, using `updateReceptors()` with
+`scoper::hierarchicalClones()`. Clones represent the set of B cells that
+are inferred to descend from a common ancestor.
 
 ``` r
 sirup <- updateReceptors(
@@ -404,6 +405,7 @@ sirup <- updateReceptors(
   summarize_clones = FALSE,
   nproc = 1
 )
+#> Warning: package 'scoper' was built under R version 4.5.3
 ```
 
 Phylogenetic trees show the evolutionary history of a clone. Each tip in
@@ -432,9 +434,11 @@ getReceptors(sirup, slot = "BCR") %>%
 
 Next, make the germline of the clone with `dowser::createGermlines()`.
 The germline is the sequence of the unmutated common ancestor, which
-roots the tree. As in [Infer clones and lineage trees in situ](clones-and-trees.md),
-building the germline requires IMGT references. Set the variable
-`imgt_dir` to the folder that contains them.
+roots the tree. Building the germline requires IMGT references. Use the
+`imgt_refs` folder that you made with `downloadIMGT()` in the [IgBLAST
+and IMGT germline
+references](processing.md#igblast-and-imgt-germline-references) section
+of the processing guide.
 
 <div markdown="1"
 style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
@@ -444,9 +448,12 @@ style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24p
 <b>Note</b>
 </p>
 
-If you have not yet set up the IMGT references, see the
-[documentation](https://github.com/hoehnlab/airrblast) for the
-`airrblast` package and download and set up the IMGT references.
+If you have not yet set up the IMGT references, follow the instructions
+in the [IgBLAST and IMGT germline
+references](processing.md#igblast-and-imgt-germline-references) section
+of the processing guide, which will create the `imgt_refs` folder. For
+more detail, see the [airrblast
+documentation](https://github.com/hoehnlab/airrblast).
 
 </div>
 
@@ -459,7 +466,7 @@ tree_sirup <- updateReceptors(
   tree_sirup,
   dowser::createGermlines,
   slot = "BCR",
-  references = dowser::readIMGT(imgt_dir),
+  references = dowser::readIMGT(file.path(imgt_refs, "human", "vdj")),
   id = "sequence_id"
 )
 #> Warning in fun(sirup_data, ...): 107 sequence lengths longer than predicted
@@ -520,6 +527,13 @@ pair <- plotSpatialCloneTreePairs(
     legend.key.size = grid::unit(0.3, "cm")
   )
 )
+#> Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+#> ℹ Please use `linewidth` instead.
+#> ℹ The deprecated feature was likely used in the ggtree package.
+#>   Please report the issue at <https://github.com/YuLab-SMU/ggtree/issues>.
+#> This warning is displayed once per session.
+#> Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+#> generated.
 
 names(pair)
 #> [1] "1045"
@@ -569,6 +583,6 @@ readSIRUP(path)
 - To compare ROIs in the tissue, see
   [Annotate tissue ROIs and analyze local clonal structure](regions.md).
 - To build lineage trees and visualize them on the tissue, read
-  [Infer clones and lineage trees in situ](clones-and-trees.md).
+  [Infer clones and estimate lineage trees in situ](clones-and-trees.md).
 - To learn more about the structure of the SIRUP object see
   [How the SIRUP object works](sirup-object.md).

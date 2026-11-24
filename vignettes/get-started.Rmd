@@ -377,7 +377,7 @@ gc_vertices <- selectSpatialPolygons(
 ```
 
 ```{r polygon-app, eval = TRUE, echo = FALSE, out.width = "100%"}
-knitr::include_graphics("figures/polygon-app.jpg")
+knitr::include_graphics("figures/polygon_selection_tool.png")
 ```
 
 Click around the edge of a region. Each click snaps to the nearest spot.
@@ -385,9 +385,9 @@ Click around the edge of a region. Each click snaps to the nearest spot.
 
 ```{r polygon-clicks, eval = TRUE, echo = FALSE, out.width = "30%", fig.show = "hold"}
 knitr::include_graphics(c(
-  "figures/polygon-click-1.png",
-  "figures/polygon-click-2.png",
-  "figures/polygon-closed.png"
+  "figures/select_polygon_1.png",
+  "figures/select_polygon_2.png",
+  "figures/select_polygon_3.png"
 ))
 ```
 

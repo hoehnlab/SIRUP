@@ -105,6 +105,7 @@ Read the Seurat object and the AIRR table:
 ``` r
 thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial_brighter.rds"))
 thymus
+#> Loading required namespace: Seurat
 #> An object of class Seurat 
 #> 506 features across 3203 samples within 2 assays 
 #> Active assay: Spatial (449 features, 0 variable features)
@@ -334,6 +335,7 @@ sirup <- updateReceptors(
 )
 #> Warning in prepare_db(db = db, junction = junction, v_call = v_call, j_call =
 #> j_call, : Removed 84 sequences with non ATCG characters.
+#> Warning: package 'scoper' was built under R version 4.5.3
 sirup
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image
@@ -461,12 +463,12 @@ gc_vertices <- selectSpatialPolygons(
 )
 ```
 
-![](figures/polygon-app.jpg)
+![](figures/polygon_selection_tool.png)
 
 Click around the edge of a region. Each click snaps to the nearest spot.
 **Close polygon** joins the last vertex to the first:
 
-![](figures/polygon-click-1.png)![](figures/polygon-click-2.png)![](figures/polygon-closed.png)
+![](figures/select_polygon_1.png)![](figures/select_polygon_2.png)![](figures/select_polygon_3.png)
 
 After you click **Done**, the app returns the vertices of every polygon.
 It writes them to the CSV file at `save_path` (which can be changed
