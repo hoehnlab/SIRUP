@@ -83,10 +83,12 @@ gc_vertices <- selectSpatialPolygons(
 ```
 
 If you’re working with very large or dense data, like Visium HD these
-arguments can help the app respond faster: \* `show_zeros = FALSE` hides
-spots with zero expression, which keeps 0 spots from overwhelming the
-visualization. \* `downsample_n` draws fewer spots, so the app responds
-faster. Each click still snaps to the full set of spots.
+arguments can help the app respond faster:
+
+- `show_zeros = FALSE` hides spots with zero expression, which keeps 0
+  spots from overwhelming the visualization.
+- `downsample_n` draws fewer spots, so the app responds faster. Each
+  click still snaps to the full set of spots.
 
 <div markdown="1"
 style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
@@ -659,7 +661,7 @@ polygonPairwiseDistance(sirup) %>%
 ## Next steps
 
 - To build lineage trees and visualize them on the tissue, read
-  [Infer clones and lineage trees in situ](clones-and-trees.md).
+  [Infer clones and estimate lineage trees in situ](clones-and-trees.md).
 - To add more sections or bulk AIRR-seq, see
   [Analyze multiple spatial sections and bulk BCR-seq](multisample.md).
 - To test spatial patterns, read

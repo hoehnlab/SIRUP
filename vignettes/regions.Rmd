@@ -89,8 +89,9 @@ gc_vertices <- selectSpatialPolygons(
 ```
 
 If you're working with very large or dense data, like Visium HD these arguments can help the app respond faster:
-* `show_zeros = FALSE` hides spots with zero expression, which keeps 0 spots from overwhelming the visualization.
-* `downsample_n` draws fewer spots, so the app responds faster. Each click still snaps to the full set of spots.
+
+- `show_zeros = FALSE` hides spots with zero expression, which keeps 0 spots from overwhelming the visualization.
+- `downsample_n` draws fewer spots, so the app responds faster. Each click still snaps to the full set of spots.
 
 <div markdown="1" style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
   <p style="margin: -12px -12px 12px; padding: 6px 12px; background: #d6b676; color: #ffffff; font-weight: 700;"> <b>Tip</b> </p>

@@ -19,14 +19,17 @@ or multi-modal AIRR-seq from the same patient. Here, we will build and
 analyze a single SIRUP object that contains two spatial sections, bulk
 thymus BCR-seq, and bulk blood BCR-seq.
 
-The SIRUP object contains \* `spatial`, a named list of spatial Seurat
-objects, one for each section. \* `receptors`, a named list of receptor
-tables, have one for each type of receptor. One table can hold all BCRs,
-including both spatial and bulk data. A `sample` column tells SIRUP
-which sample each row belongs to. \* Rows whose `sample` does not name a
-section stay in the table as non-spatial rows. SIRUP does not put them
-on a tissue, but clone calling, trees, and custom summaries can use
-them.
+The SIRUP object contains
+
+- `spatial`, a named list of spatial Seurat objects, one for each
+  section.
+- `receptors`, a named list of receptor tables, have one for each type
+  of receptor. One table can hold all BCRs, including both spatial and
+  bulk data. A `sample` column tells SIRUP which sample each row belongs
+  to.
+- Rows whose `sample` does not name a section stay in the table as
+  non-spatial rows. SIRUP does not put them on a tissue, but clone
+  calling, trees, and custom summaries can use them.
 
 The MG thymus data come from a patient who had a thymectomy. Besides the
 two Visium sections, there is bulk BCR-seq from the thymus and bulk
