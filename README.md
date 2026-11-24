@@ -22,9 +22,9 @@ Melton, H.J., Vaidya, C.M., Panda, A., Fielding, J.J., Sergison, E., Kolling, F.
 
 ## Getting started
 
-Start with the [get-started guide](https://sirup.readthedocs.io). It shows how to
+Start with the [get-started guide](https://spairr-sirup.readthedocs.io). It shows how to
 build the SIRUP object and a few plots and analyses. The full documentation is at
-<https://sirup.readthedocs.io>.
+<https://spairr-sirup.readthedocs.io>.
 
 
 ## Install SIRUP and dependencies

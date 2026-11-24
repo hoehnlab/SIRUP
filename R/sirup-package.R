@@ -25,7 +25,7 @@
 #' }
 #' The package vignette gives a short introduction: `vignette("sirup", package = "SIRUP")`.
 #' The documentation site has a tutorial for each step, guides, and the function
-#' reference: <https://sirup.readthedocs.io>. To use SIRUP with an LLM agent, run
+#' reference: <https://spairr-sirup.readthedocs.io>. To use SIRUP with an LLM agent, run
 #' [installSIRUPSkill()].
 #'
 #' @keywords internal

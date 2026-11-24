@@ -120,4 +120,4 @@ After each step, check these points:
 - `references/choose-function.md`: which function answers which question.
 - `references/function-index.md` and `references/functions-*.md`: every function, with its usage and arguments. The build generates these files.
 - `references/tutorials.md`: the tutorials and guides on the documentation site.
-- The documentation site is at https://sirup.readthedocs.io. The files `llms.json` and `llms-full.json` in the repository hold the whole documentation in machine-readable form.
+- The documentation site is at https://spairr-sirup.readthedocs.io. The files `llms.json` and `llms-full.json` in the repository hold the whole documentation in machine-readable form.

@@ -1,5 +1,5 @@
 site_name: SIRUP
-site_url: https://sirup.readthedocs.io
+site_url: https://spairr-sirup.readthedocs.io
 repo_url: https://github.com/hoehnlab/SIRUP
 edit_uri: edit/main/docs/
 theme:

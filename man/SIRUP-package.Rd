@@ -31,14 +31,14 @@ Then work with both together.
 }
 The package vignette gives a short introduction: \code{vignette("sirup", package = "SIRUP")}.
 The documentation site has a tutorial for each step, guides, and the function
-reference: \url{https://sirup.readthedocs.io}. To use SIRUP with an LLM agent, run
+reference: \url{https://spairr-sirup.readthedocs.io}. To use SIRUP with an LLM agent, run
 \code{\link[=installSIRUPSkill]{installSIRUPSkill()}}.
 }
 \seealso{
 Useful links:
 \itemize{
   \item \url{https://github.com/hoehnlab/SIRUP}
-  \item \url{https://sirup.readthedocs.io}
+  \item \url{https://spairr-sirup.readthedocs.io}
   \item Report bugs at \url{https://github.com/hoehnlab/SIRUP/issues}
 }
 

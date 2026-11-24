@@ -15,4 +15,4 @@ working with spatial adaptive immune receptor repertoire sequencing
 expression from the same tissue section. Isn't that sweet?
 
 Full guides, tutorials, and function documentation are at
-<https://sirup.readthedocs.io>.
+<https://spairr-sirup.readthedocs.io>.

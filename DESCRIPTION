@@ -23,7 +23,7 @@ Description: Spatial Immune Receptor Utilities Package. A consolidated
     repertoires, reveals differences between normal and ectopic germinal
     centers in myasthenia gravis'. Run citation("SIRUP") for the reference.
 License: MIT + file LICENSE
-URL: https://github.com/hoehnlab/SIRUP, https://sirup.readthedocs.io
+URL: https://github.com/hoehnlab/SIRUP, https://spairr-sirup.readthedocs.io
 BugReports: https://github.com/hoehnlab/SIRUP/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
