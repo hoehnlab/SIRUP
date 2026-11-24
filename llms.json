@@ -75,7 +75,7 @@
     {
       "type": "vignette",
       "id": "clones-and-trees",
-      "title": "Infer clones and lineage trees in situ",
+      "title": "Infer clones and estimate lineage trees in situ",
       "source": "docs/vignettes/clones-and-trees.md",
       "markdown_url": "https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/clones-and-trees.md",
       "url": "https://sirup.readthedocs.io/en/latest/vignettes/clones-and-trees/",

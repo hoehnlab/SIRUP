@@ -479,7 +479,7 @@ plotRipleyCrossK(kcross, title = "Cross K: GC B spots to Tfh spots")
 
 <!-- source: docs/vignettes/clones-and-trees.md -->
 
-Infer clones and lineage trees in situ
+Infer clones and estimate lineage trees in situ
 ================
 
 <div markdown="1"
@@ -575,6 +575,7 @@ sirup <- addPolygons(
   sirup,
   polygons_path = file.path(extdata, "mg_thymus_slice2_gc_polygons.csv")
 )
+#> Loading required namespace: Seurat
 ```
 
 ## Build clones
@@ -643,8 +644,10 @@ sirup <- updateReceptors(
 Next, reconstruct the germline of the B cell clones with
 `dowser::createGermlines()`. The germline is the sequence of the
 unmutated common ancestor, which will root the reconstructed trees.
-Building the germline requires IMGT references. Set the variable
-`imgt_dir` to the folder that contains them.
+Building the germline requires IMGT references. Use the `imgt_refs`
+folder that you made with `downloadIMGT()` in the [IgBLAST and IMGT
+germline references](processing.md#igblast-and-imgt-germline-references)
+section of the processing guide.
 
 <div markdown="1"
 style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
@@ -654,14 +657,18 @@ style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24p
 <b>Note</b>
 </p>
 
-If you have not yet set up the IMGT references, see the
-[documentation](https://github.com/hoehnlab/airrblast) for the
-`airrblast` package and download and set up the IMGT references.
+If you have not yet set up the IMGT references, follow the instructions
+in the [IgBLAST and IMGT germline
+references](processing.md#igblast-and-imgt-germline-references) section
+of the processing guide, which will create the `imgt_refs` folder. For
+more detail, see the [airrblast
+documentation](https://github.com/hoehnlab/airrblast).
 
 </div>
 
 ``` r
-references <- dowser::readIMGT(imgt_dir)
+# imgt_refs is the folder name from downloadIMGT()
+references <- dowser::readIMGT(file.path(imgt_refs, "human", "vdj"))
 #> [1] "Read in 1198 from 17 fasta files"
 
 sirup <- updateReceptors(
@@ -732,7 +739,7 @@ plotReceptors(
 
 ![](clones-and-trees_files/figure-gfm/shm-map-1.jpeg)
 
-## Infer trees
+## Estimate trees
 
 First, we need to choose a few clones to build trees for. The three
 clones below are large and have sequences in the ectopic germinal
@@ -1017,6 +1024,7 @@ Read the Seurat object and the AIRR table:
 ``` r
 thymus <- readRDS(file.path(extdata, "mg_thymus_slice2_spatial_brighter.rds"))
 thymus
+#> Loading required namespace: Seurat
 #> An object of class Seurat 
 #> 506 features across 3203 samples within 2 assays 
 #> Active assay: Spatial (449 features, 0 variable features)
@@ -1246,6 +1254,7 @@ sirup <- updateReceptors(
 )
 #> Warning in prepare_db(db = db, junction = junction, v_call = v_call, j_call =
 #> j_call, : Removed 84 sequences with non ATCG characters.
+#> Warning: package 'scoper' was built under R version 4.5.3
 sirup
 #> <SIRUP object>
 #> Spatial data:    Seurat, 3,203 spatial IDs, 449 genes, 1 image
@@ -1373,12 +1382,12 @@ gc_vertices <- selectSpatialPolygons(
 )
 ```
 
-![](figures/polygon-app.jpg)
+![](figures/polygon_selection_tool.png)
 
 Click around the edge of a region. Each click snaps to the nearest spot.
 **Close polygon** joins the last vertex to the first:
 
-![](figures/polygon-click-1.png)![](figures/polygon-click-2.png)![](figures/polygon-closed.png)
+![](figures/select_polygon_1.png)![](figures/select_polygon_2.png)![](figures/select_polygon_3.png)
 
 After you click **Done**, the app returns the vertices of every polygon.
 It writes them to the CSV file at `save_path` (which can be changed
@@ -1990,6 +1999,7 @@ sirup <- createSIRUP(
   image_scale = "lowres",
   swap_coords = FALSE
 )
+#> Loading required namespace: Seurat
 
 sirup
 #> <SIRUP object>
@@ -2147,12 +2157,12 @@ spatialExpressionPlot(
 
 ![](multisample_files/figure-gfm/plot-one-1.jpeg)
 
-## Infer clones and trees across all samples
+## Build clones and estimate trees across all samples
 
-Infer clones for the entire set of BCRs, including both spatial and bulk
-datasets, using `updateReceptors()` with `scoper::hierarchicalClones()`.
-Clones represent the set of B cells that are inferred to descend from a
-common ancestor.
+Build clones for the entire set of BCRs, including both the spatial and
+bulk datasets, using `updateReceptors()` with
+`scoper::hierarchicalClones()`. Clones represent the set of B cells that
+are inferred to descend from a common ancestor.
 
 ``` r
 sirup <- updateReceptors(
@@ -2163,6 +2173,7 @@ sirup <- updateReceptors(
   summarize_clones = FALSE,
   nproc = 1
 )
+#> Warning: package 'scoper' was built under R version 4.5.3
 ```
 
 Phylogenetic trees show the evolutionary history of a clone. Each tip in
@@ -2191,9 +2202,11 @@ getReceptors(sirup, slot = "BCR") %>%
 
 Next, make the germline of the clone with `dowser::createGermlines()`.
 The germline is the sequence of the unmutated common ancestor, which
-roots the tree. As in [Infer clones and lineage trees in situ](clones-and-trees.md),
-building the germline requires IMGT references. Set the variable
-`imgt_dir` to the folder that contains them.
+roots the tree. Building the germline requires IMGT references. Use the
+`imgt_refs` folder that you made with `downloadIMGT()` in the [IgBLAST
+and IMGT germline
+references](processing.md#igblast-and-imgt-germline-references) section
+of the processing guide.
 
 <div markdown="1"
 style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24px;">
@@ -2203,9 +2216,12 @@ style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24p
 <b>Note</b>
 </p>
 
-If you have not yet set up the IMGT references, see the
-[documentation](https://github.com/hoehnlab/airrblast) for the
-`airrblast` package and download and set up the IMGT references.
+If you have not yet set up the IMGT references, follow the instructions
+in the [IgBLAST and IMGT germline
+references](processing.md#igblast-and-imgt-germline-references) section
+of the processing guide, which will create the `imgt_refs` folder. For
+more detail, see the [airrblast
+documentation](https://github.com/hoehnlab/airrblast).
 
 </div>
 
@@ -2218,7 +2234,7 @@ tree_sirup <- updateReceptors(
   tree_sirup,
   dowser::createGermlines,
   slot = "BCR",
-  references = dowser::readIMGT(imgt_dir),
+  references = dowser::readIMGT(file.path(imgt_refs, "human", "vdj")),
   id = "sequence_id"
 )
 #> Warning in fun(sirup_data, ...): 107 sequence lengths longer than predicted
@@ -2279,6 +2295,13 @@ pair <- plotSpatialCloneTreePairs(
     legend.key.size = grid::unit(0.3, "cm")
   )
 )
+#> Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+#> ℹ Please use `linewidth` instead.
+#> ℹ The deprecated feature was likely used in the ggtree package.
+#>   Please report the issue at <https://github.com/YuLab-SMU/ggtree/issues>.
+#> This warning is displayed once per session.
+#> Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+#> generated.
 
 names(pair)
 #> [1] "1045"
@@ -2328,7 +2351,7 @@ readSIRUP(path)
 - To compare ROIs in the tissue, see
   [Annotate tissue ROIs and analyze local clonal structure](regions.md).
 - To build lineage trees and visualize them on the tissue, read
-  [Infer clones and lineage trees in situ](clones-and-trees.md).
+  [Infer clones and estimate lineage trees in situ](clones-and-trees.md).
 - To learn more about the structure of the SIRUP object see
   [How the SIRUP object works](sirup-object.md).
 
@@ -2419,11 +2442,19 @@ header through every step, so each consensus sequence keeps its spot.
 
 ### IgBLAST and IMGT germline references
 
-See more detailed instructions in the [airrblast
-documentation](https://github.com/hoehnlab/airrblast/tree/main).
+First, download IgBLAST with `airrblast::downloadIgBLAST()`. This
+downloads IgBLAST from NCBI and unpacks it in your working directory.
+For IgBLAST 1.22.0, it also swaps in the patched `.aux` files. Set `os`
+to `"linux"`, `"macosx"`, or `"win64"`. The function returns the name of
+the IgBLAST folder.
 
-Briefly, download and decompress
-[IgBLAST](https://ftp.ncbi.nih.gov/blast/executables/igblast/release/LATEST/).
+``` r
+library(airrblast)
+
+# Download and unpack IgBLAST in the working directory. Only do this once
+igblast_dir <- downloadIgBLAST(dir = "./", version = "1.22.0", os = "linux")
+igblast_dir
+```
 
 <div markdown="1"
 style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24px;">
@@ -2433,8 +2464,8 @@ style="background: #9e584a; padding: 12px; margin-bottom: 24px; line-height: 24p
 <b>WARNING</b>
 </p>
 
-There is a patch to the latest stable release of IgBLAST. Download the
-patched .aux files
+If you already have IgBLAST installed, be aware that there is a patch to
+the latest stable release of IgBLAST. Download the patched .aux files
 [here](https://ftp.ncbi.nih.gov/blast/executables/igblast/release/patch/)
 (in `optional_file`). Then swap them into your `optional_file` directory
 in your IgBLAST installation.
@@ -2443,22 +2474,24 @@ in your IgBLAST installation.
 
 Then download the IMGT germline references and set up the IgBLAST
 database with `airrblast`. airrblast supports human, mouse, and rhesus
-macaque.
+macaque. The code below makes three paths that later steps reuse:
+`igblast_dir` (the IgBLAST program), `imgt_refs` (the IMGT germline
+references), and `igblast_refs` (the IgBLAST search databases).
 
 ``` r
 library(airrblast)
 library(airr)
 
-# name/location of the uncompressed IgBLAST directory
-igblast_dir <- "ncbi-igblast-1.22.0"
+# igblast_dir is the IgBLAST folder from downloadIgBLAST() above.
+# If you installed IgBLAST by hand, set it to the location of the uncompressed IgBLAST directory.
 
-# Download IMGT GENE-DB into directory "imgt"
-# Do this only once
-downloadIMGT("imgt", organism="human", verbose=1)
+# Download the IMGT GENE-DB germline references into the directory "imgt".
+# imgt_refs is the path to this directory. Do this only once.
+imgt_refs <- downloadIMGT("imgt", organism = "human", verbose = 1)
 
-# Set up search databases for IgBlast using imgt database
-# Do this only once
-imgtToIgblast("imgt", "igblast", igblast_dir)
+# Set up the IgBLAST search databases from the IMGT references.
+# igblast_refs is the path to the new databases. Do this only once.
+igblast_refs <- imgtToIgblast(imgt_refs, "igblast", igblast_dir)
 ```
 
 ### Other dependencies
@@ -2475,8 +2508,9 @@ style="background: #F7E5BC; padding: 12px; margin-bottom: 24px; line-height: 24p
 <b>Note</b>
 </p>
 
-Paths such as `~/share/igblast` and `~/bin/muscle3.8.31_i86linux64` in
-this page are examples. Replace them with the paths on your system.
+The paths `igblast_dir`, `imgt_refs`, and `igblast_refs` come from the
+setup code above. Paths such as `~/bin/muscle3.8.31_i86linux64` in this
+page are examples. Replace them with the paths on your system.
 
 </div>
 
@@ -2487,7 +2521,7 @@ Sys.which(c(
   "ClusterSets.py", "ParseHeaders.py", "AlignSets.py", "BuildConsensus.py",
   "vsearch"
 ))
-file.exists(file.path("~/share/igblast", "bin", "igblastn"))
+file.exists(file.path(igblast_dir, "bin", "igblastn"))
 ```
 
 An empty string means R cannot find that program. Add its folder to
@@ -2495,16 +2529,16 @@ An empty string means R cannot find that program. Add its folder to
 (`muscle_exec`). SIRUP runs IgBLAST through airrblast. It uses
 `<igblast_base>/bin/igblastn`.
 
-## Process the demultiplexed reads
+## Optional: run the first steps of `processSpatialSample()` separately
 
 To go from demultiplexed reads to an AIRR table, give the FASTA file to
 `processSpatialSample()`. It runs IgBLAST on each read, reads the
 barcode and UMI from the header, filters the reads, builds the consensus
-sequences, and writes the AIRR table. The rest of *this* section is
-optional. Skip ahead to [Run the consensus
-pipeline](#run-the-consensus-pipeline) if you do not want to run the
-first IgBLAST pass by hand and examine the reads before building
-consensus sequences.
+sequences, and writes the AIRR table. This section runs the first of
+those steps one at a time (the IgBLAST pass and the filtering). You can
+then examine the reads before building consensus sequences. The rest of
+*this* section is optional. Skip ahead to [Run the consensus
+pipeline](#run-the-consensus-pipeline) to run all the steps in one call.
 
 ### Run the first IgBLAST pass by hand
 
@@ -2523,8 +2557,8 @@ library(airrblast)
 
 assignGenes(
   file = "prepared/sample-igblast.fasta",
-  igblast = "~/share/igblast",
-  refs = "~/share/igblast_refs",
+  igblast = igblast_dir,
+  refs = igblast_refs,
   organism = "human",
   locus = "Ig",
   outfile = "processed/reads_igblast.tsv",
@@ -2625,8 +2659,10 @@ row) are the usual start:
 
 This call takes the FASTA from RAD/rRAD all the way to a properly
 formatted AIRR rearrangement. It will run the first IgBLAST pass and
-filtering. Note that you should replace the paths below with your own
-paths.
+filtering. The `igblast_dir`, `imgt_refs`, and `igblast_refs` paths are
+from the [setup code](#igblast-and-imgt-germline-references) above.
+Replace the other paths (`input`, `output_dir`, `muscle_exec`) with your
+own.
 
 ``` r
 result <- processSpatialSample(
@@ -2634,9 +2670,9 @@ result <- processSpatialSample(
   output_dir = "processed/bcr",
   receptor = "ig",
   organism = "human",
-  igblast_base = "~/share/igblast",
-  igblast_refs = "~/share/igblast_refs",
-  imgt_dir = "~/share/imgt",
+  igblast_base = igblast_dir,
+  igblast_refs = igblast_refs,
+  imgt_dir = imgt_refs,
   muscle_exec = "~/bin/muscle3.8.31_i86linux64",
   identity = 1.0,
   consensus_freq = 0.51,
@@ -2706,9 +2742,9 @@ result <- processSpatialSample(
   identity = 1.0,
   consensus_freq = 0.51,
   cluster_field = "barcode",
-  igblast_base = "~/share/igblast",
-  igblast_refs = "~/share/igblast_refs",
-  imgt_dir = "~/share/imgt",
+  igblast_base = igblast_dir,
+  igblast_refs = igblast_refs,
+  imgt_dir = imgt_refs,
   muscle_exec = "~/bin/muscle3.8.31_i86linux64",
   nproc = 8,
   umi_support = TRUE,
@@ -2744,9 +2780,9 @@ processSpatialSamples(
   inputs = c("prepared/slice1.fasta", "prepared/slice2.fasta"),
   output_dirs = c("processed/slice1", "processed/slice2"),
   receptor = "ig",
-  igblast_base = "~/share/igblast",
-  igblast_refs = "~/share/igblast_refs",
-  imgt_dir = "~/share/imgt",
+  igblast_base = igblast_dir,
+  igblast_refs = igblast_refs,
+  imgt_dir = imgt_refs,
   nproc = 8
 )
 ```
@@ -3108,7 +3144,7 @@ start the next region. When finished, click **Done**. The app returns a
 table of the vertices, and it writes them to the CSV file at
 `save_path`.
 
-![](figures/select-spatial-polygons-app.jpg)
+![](figures/region_selection.png)
 
 The panel on the left sets the assay, layer, and feature (from the
 spatial GEX data) that color the spots, the size and opacity of the
@@ -3547,6 +3583,8 @@ plotSpatialPolygonPies(
   top_n = 5,
   zoom = TRUE
 )
+#> Warning: package 'sf' was built under R version 4.5.3
+#> Linking to GEOS 3.7.2, GDAL 3.0.4, PROJ 6.3.2; sf_use_s2() is TRUE
 ```
 
 ![](regions_files/figure-gfm/clipped-1.jpeg)

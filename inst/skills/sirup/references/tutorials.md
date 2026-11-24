@@ -24,7 +24,7 @@ Page: https://sirup.readthedocs.io/en/latest/vignettes/regions/
 
 Draw tissue regions, attach them to a SIRUP object, and measure clonal dominance, clonal diversity, and gene expression in each region.
 
-### Infer clones and lineage trees in situ
+### Infer clones and estimate lineage trees in situ
 
 Page: https://sirup.readthedocs.io/en/latest/vignettes/clones-and-trees/
 

@@ -14,7 +14,7 @@ so any agent that can fetch a URL can read them directly.
 ## Vignettes (tutorials)
 
 - [Choose the right spatial statistic for your question](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/choose-spatial-statistic.md)
-- [Infer clones and lineage trees in situ](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/clones-and-trees.md)
+- [Infer clones and estimate lineage trees in situ](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/clones-and-trees.md)
 - [Get started with SIRUP](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/get-started.md)
 - [Use SIRUP with your LLM agent](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/llm-agents.md)
 - [Analyze multiple spatial sections and bulk BCR-seq](https://raw.githubusercontent.com/hoehnlab/SIRUP/main/docs/vignettes/multisample.md)
